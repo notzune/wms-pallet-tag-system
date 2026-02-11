@@ -12,6 +12,7 @@
 
   <modules>
     <module>core</module>
+    <module>db</module>
     <module>cli</module>
     <!-- web module will be added later -->
   </modules>
@@ -61,11 +62,6 @@
         <version>${ojdbc.version}</version>
       </dependency>
 
-      <dependency>
-        <groupId>com.oracle.database.jdbc</groupId>
-        <artifactId>ojdbc11</artifactId>
-        <version>${ojdbc.version}</version>
-      </dependency>
 
       <dependency>
         <groupId>info.picocli</groupId>

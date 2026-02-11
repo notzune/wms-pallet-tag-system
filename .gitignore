@@ -41,6 +41,7 @@ target/
 **/target/
 .idea/
 *.iml
+INSTRUCTIONS.md
 
 ### Mac OS ###
 .DS_Store

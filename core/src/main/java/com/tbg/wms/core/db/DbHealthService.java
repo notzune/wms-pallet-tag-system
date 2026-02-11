@@ -1,3 +1,11 @@
+/*
+ * Copyright © 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.0.0
+ */
+
 package com.tbg.wms.core.db;
 
 import org.slf4j.Logger;
@@ -9,7 +17,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
- * Small utility service used by the CLI to validate DB connectivity.
+ * Utility service for validating Oracle database connectivity.
+ *
+ * <p>Used by the CLI during initialization and troubleshooting to confirm that
+ * the database is reachable and responding normally. Uses a lightweight
+ * {@code SELECT 1 FROM dual} query to validate.</p>
  */
 public final class DbHealthService {
 
@@ -17,10 +29,24 @@ public final class DbHealthService {
 
     private final DataSource ds;
 
+    /**
+     * Creates a new health check service.
+     *
+     * @param ds the data source to test (typically a HikariCP pool)
+     */
     public DbHealthService(DataSource ds) {
         this.ds = ds;
     }
 
+    /**
+     * Performs a simple connectivity check against the database.
+     *
+     * <p>This method executes {@code SELECT 1 FROM dual} and checks that the result
+     * is received. Errors are logged but not thrown, so callers can easily determine
+     * success/failure without exception handling.</p>
+     *
+     * @return {@code true} if the database responds correctly, {@code false} otherwise
+     */
     public boolean ping() {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement("SELECT 1 FROM dual");
