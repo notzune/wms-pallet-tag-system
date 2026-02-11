@@ -1,0 +1,15 @@
+version: 1
+siteCode: TBG3002
+
+defaultPrinterId: OFFICE
+
+rules:
+  - id: staging-rossi-dispatch
+    enabled: true
+    when:
+      all:
+        - field: stagingLocation
+          op: EQUALS
+          value: "ROSSI"
+    then:
+      printerId: DISPATCH

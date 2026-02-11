@@ -1,0 +1,31 @@
+version: 1
+siteCode: TBG3002
+
+# Inventory of printers at this site.
+# "id" is what routing rules reference (stable identifier).
+# "tags" help group printers by function (DISPATCH, QA, DOCK, etc.).
+# "locationHint" is optional human context (physical placement).
+printers:
+  - id: OFFICE
+    name: Office_Test
+    ip: 10.19.64.106
+    port: 9100
+    tags: [TEST, QA]
+    locationHint: "Admin office (backup/test)"
+
+  - id: DISPATCH
+    name: Dispatch_Prod
+    ip: 10.19.64.53
+    port: 9100
+    tags: [PROD, DISPATCH]
+    locationHint: "Dispatch office (production)"
+
+  # Placeholder for the new post go-live printer
+  # Add the real IP/port when it gets installed.
+  - id: FLOOR_1
+    name: "Floor Printer 1"
+    ip: 0.0.0.0
+    port: 9100
+    tags: [PROD, FLOOR]
+    locationHint: "Warehouse floor (planned post go-live)"
+    enabled: false
