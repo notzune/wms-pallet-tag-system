@@ -7,14 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned for Sprint 2
-- Domain models: Shipment, Lpn, LineItem POJOs with proper serialization
-- DbQueryRepository interface with methods for shipment/LPN/line item queries
-- WMS data normalization service mapping raw database rows to domain models
-- JSON snapshot capture with metadata (jobId, timestamp, input key, version)
+### Added (Sprint 2 - Minimal WMS Data Pull)
+- Domain models: Shipment, Lpn, LineItem POJOs with proper serialization and immutability
+- DbQueryRepository interface defining WMS data query contract for repository pattern
+- NormalizationService utility for data cleaning, trimming, and transformation
+- SnapshotService for capturing and loading normalized data to/from JSON files
+- Snapshot structure with metadata (jobId, timestamp, schema version, input key)
+- Schema versioning for forward compatibility and replay validation
+- Unit tests for domain models validating construction, immutability, and edge cases
+- Jackson JSON serialization with pretty printing and ISO-8601 date format
+- Deterministic snapshot filenames for organization and debugging
+
+### Technical Improvements
+- Added jackson-databind dependency for JSON serialization
+- Immutable POJOs with defensive copying for data integrity
+- ObjectMapper configured with JavaTimeModule for LocalDateTime support
+- Comprehensive error handling with IOException and validation
+
+### Planned for Sprint 2 (Phase 2)
+- OracleDbQueryRepository implementation with actual SQL queries
+- DbQueryRepository integration tests with mocked data
 - Enhanced run command with --write-snapshot flag for capturing normalized data
-- Unit tests for domain models, normalization service, and snapshot structure
-- Integration tests with mocked repository for data retrieval flows
+- Snapshot replay mode for regenerating data without database access
 
 ### Planned for Sprint 3
 - ZPL label template engine with placeholder mapping and substitution

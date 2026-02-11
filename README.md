@@ -494,13 +494,31 @@ Version is defined in root `pom.xml` as `<version>1.0.0-SNAPSHOT</version>`.
 
 ## License
 
-[Your License Here] – e.g., Proprietary, Apache 2.0, MIT
+This software is owned by Zeyad Rashed and protected under a custom proprietary license.
+
+**License Summary**:
+- Non-commercial use permitted for open source purposes
+- Commercial use prohibited without written agreement
+- Tropicana Brands Group granted perpetual internal use rights
+- Full license terms in [LICENSE](LICENSE) file
+
+**Key Terms**:
+- You may view, copy, and modify the code for non-commercial purposes
+- Commercial use (selling, licensing, revenue generation) prohibited without permission
+- Ownership remains with Zeyad Rashed regardless of employment status
+- Tropicana Brands Group retains perpetual internal operational rights
+
+**For Commercial Use**: Contact Zeyad Rashed at zeyad.rashed@tropicana.com
+
+See [LICENSE](LICENSE) for complete terms and conditions.
 
 ## Contact
 
-For questions or support, contact the WMS team or open an issue in the repository.
-
-Alternatively , email: zeyad.rashed@tropicana.com
+For questions about usage or licensing, contact:
+- Zeyad Rashed
+- Email: zeyad.rashed@tropicana.com
+- Position: WMS Analyst, Logistics Technology Team
+- Company: Tropicana Brands Group
 
 ## Sprint Roadmap
 
