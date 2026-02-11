@@ -1,0 +1,55 @@
+2026-02-11 01:45:43.275 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - WMS Database Analysis Tool
+2026-02-11 01:45:43.279 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Dump Directory: ../db-dumps
+2026-02-11 01:45:43.283 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Phase: all
+2026-02-11 01:45:43.283 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - 
+2026-02-11 01:45:43.284 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Using dump directory: /mnt/c/Users/zrash/OneDrive/Documents/GitHub/wms-pallet-tag-system/../db-dumps
+2026-02-11 01:45:43.284 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - 
+2026-02-11 01:45:43.284 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Loading configuration...
+2026-02-11 01:45:43.305 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Creating database connection pool...
+2026-02-11 01:45:43.330 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle - Starting...
+2026-02-11 01:45:48.024 [ERROR] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Error during analysis: Failed to initialize pool: ORA-12170: Cannot connect. TCP connect timeout of 3000ms for host 10.19.68.61 port 1521. (CONNECTION_ID=nWgIPnPfRC6Yz4MsqXfFhw==)
+https://docs.oracle.com/error-help/db/ora-12170/
+com.zaxxer.hikari.pool.HikariPool$PoolInitializationException: Failed to initialize pool: ORA-12170: Cannot connect. TCP connect timeout of 3000ms for host 10.19.68.61 port 1521. (CONNECTION_ID=nWgIPnPfRC6Yz4MsqXfFhw==)
+https://docs.oracle.com/error-help/db/ora-12170/
+	at com.zaxxer.hikari.pool.HikariPool.throwPoolInitializationException(HikariPool.java:584)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:571)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:98)
+	at com.zaxxer.hikari.HikariDataSource.<init>(HikariDataSource.java:80)
+	at com.tbg.wms.core.db.DataSourceFactory.create(DataSourceFactory.java:73)
+	at com.tbg.wms.analysis.DatabaseAnalysisCli.main(DatabaseAnalysisCli.java:74)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.mojo.exec.AbstractExecJavaBase.executeMainMethod(AbstractExecJavaBase.java:402)
+	at org.codehaus.mojo.exec.ExecJavaMojo.executeMainMethod(ExecJavaMojo.java:142)
+	at org.codehaus.mojo.exec.AbstractExecJavaBase.doExecClassLoader(AbstractExecJavaBase.java:377)
+	at org.codehaus.mojo.exec.AbstractExecJavaBase.lambda$execute$0(AbstractExecJavaBase.java:287)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.sql.SQLTimeoutException: ORA-12170: Cannot connect. TCP connect timeout of 3000ms for host 10.19.68.61 port 1521. (CONNECTION_ID=nWgIPnPfRC6Yz4MsqXfFhw==)
+https://docs.oracle.com/error-help/db/ora-12170/
+	at oracle.jdbc.driver.T4CConnection.handleLogonNetException(T4CConnection.java:1398)
+	at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:991)
+	at oracle.jdbc.driver.PhysicalConnection.connect(PhysicalConnection.java:1157)
+	at oracle.jdbc.driver.T4CDriverExtension.getConnection(T4CDriverExtension.java:104)
+	at oracle.jdbc.driver.OracleDriver.connect(OracleDriver.java:825)
+	at oracle.jdbc.driver.OracleDriver.connect(OracleDriver.java:651)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:550)
+	... 13 common frames omitted
+Caused by: oracle.net.ns.NetException: ORA-12170: Cannot connect. TCP connect timeout of 3000ms for host 10.19.68.61 port 1521. (CONNECTION_ID=nWgIPnPfRC6Yz4MsqXfFhw==)
+https://docs.oracle.com/error-help/db/ora-12170/
+	at oracle.net.nt.TcpNTAdapter.establishSocket(TcpNTAdapter.java:280)
+	at oracle.net.nt.TcpNTAdapter.connect(TcpNTAdapter.java:222)
+	at oracle.net.nt.ConnOption.connect(ConnOption.java:327)
+	at oracle.net.nt.ConnStrategy.executeConnOption(ConnStrategy.java:1144)
+	at oracle.net.nt.ConnStrategy.execute(ConnStrategy.java:718)
+	at oracle.net.resolver.AddrResolution.resolveAndExecute(AddrResolution.java:707)
+	at oracle.net.ns.NSProtocol.establishConnection(NSProtocol.java:938)
+	at oracle.net.ns.NSProtocol.connect(NSProtocol.java:327)
+	at oracle.jdbc.driver.T4CConnection.connectNetworkSessionProtocol(T4CConnection.java:3185)
+	at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:926)
+	... 22 common frames omitted

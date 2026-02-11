@@ -14,11 +14,12 @@
     <module>core</module>
     <module>db</module>
     <module>cli</module>
+    <module>test-analysis</module>
     <!-- web module will be added later -->
   </modules>
 
   <properties>
-    <java.version>17</java.version>
+    <java.version>11</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
 
     <slf4j.version>2.0.13</slf4j.version>
@@ -26,6 +27,7 @@
     <hikaricp.version>5.1.0</hikaricp.version>
     <picocli.version>4.7.6</picocli.version>
     <junit.version>5.10.3</junit.version>
+    <jackson.version>2.16.0</jackson.version>
 
     <!-- Oracle JDBC driver. If your org distributes ojdbc via an internal repo, change this version accordingly. -->
     <ojdbc.version>23.3.0.23.09</ojdbc.version>
@@ -62,6 +64,17 @@
         <version>${ojdbc.version}</version>
       </dependency>
 
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.fasterxml.jackson.datatype</groupId>
+        <artifactId>jackson-datatype-jsr310</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
 
       <dependency>
         <groupId>info.picocli</groupId>

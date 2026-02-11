@@ -43,5 +43,11 @@ target/
 *.iml
 INSTRUCTIONS.md
 
+### Database Analysis (Temporary) ###
+db-dumps/
+test-analysis/
+DATABASE-ANALYSIS-GUIDE.md
+DATABASE-ANALYSIS-READY.md
+
 ### Mac OS ###
 .DS_Store

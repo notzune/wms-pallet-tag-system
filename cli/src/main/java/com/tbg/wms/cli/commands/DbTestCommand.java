@@ -12,6 +12,7 @@ import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.exception.WmsConfigException;
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
 import com.tbg.wms.db.DbConnectionPool;
+import com.tbg.wms.db.DbConnectivityDiagnostics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -75,7 +76,7 @@ public final class DbTestCommand implements Callable<Integer> {
 
             // Test connectivity
             System.out.println("Testing connectivity...");
-            DbConnectionPool.DbConnectivityDiagnostics diag = pool.testConnectivity();
+            DbConnectivityDiagnostics diag = pool.testConnectivity();
 
             pool.close();
 
@@ -137,7 +138,7 @@ public final class DbTestCommand implements Callable<Integer> {
         System.out.println();
     }
 
-    private void printSuccess(DbConnectionPool.DbConnectivityDiagnostics diag) {
+    private void printSuccess(DbConnectivityDiagnostics diag) {
         System.out.println();
         System.out.println("✓ Database connectivity verified!");
         System.out.println();

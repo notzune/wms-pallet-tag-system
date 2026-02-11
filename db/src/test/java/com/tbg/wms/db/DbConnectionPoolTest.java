@@ -62,8 +62,8 @@ class DbConnectionPoolTest {
 
     @Test
     void testConnectivityDiagnosticsRecord() {
-        // Test the record structure
-        DbConnectionPool.DbConnectivityDiagnostics diag = new DbConnectionPool.DbConnectivityDiagnostics(
+        // Test the diagnostic class
+        DbConnectivityDiagnostics diag = new DbConnectivityDiagnostics(
             true,
             150,
             2,

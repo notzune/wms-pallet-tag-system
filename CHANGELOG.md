@@ -7,30 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added (Sprint 2 - Minimal WMS Data Pull)
-- Domain models: Shipment, Lpn, LineItem POJOs with proper serialization and immutability
-- DbQueryRepository interface defining WMS data query contract for repository pattern
-- NormalizationService utility for data cleaning, trimming, and transformation
-- SnapshotService for capturing and loading normalized data to/from JSON files
-- Snapshot structure with metadata (jobId, timestamp, schema version, input key)
-- Schema versioning for forward compatibility and replay validation
-- Unit tests for domain models validating construction, immutability, and edge cases
-- Jackson JSON serialization with pretty printing and ISO-8601 date format
-- Deterministic snapshot filenames for organization and debugging
+### Added (Test-Analysis Module - Database Discovery)
+- test-analysis Maven module for WMS schema discovery and validation
+- WmsSchemaAnalyzer utility for read-only database introspection
+- Schema discovery methods: tables, columns, data types
+- Pattern-based table/column search
+- Query validation and result mapping
+- Column candidate finding (shipment ID, LPN, staging location)
+- Comprehensive test coverage for analyzer (15+ test methods)
+- Package documentation for analysis package
 
-### Technical Improvements
-- Added jackson-databind dependency for JSON serialization
-- Immutable POJOs with defensive copying for data integrity
-- ObjectMapper configured with JavaTimeModule for LocalDateTime support
-- Comprehensive error handling with IOException and validation
+### Added (Sprint 3 - ZPL Label Generation)
+- LabelTemplate class for ZPL template representation
+- Placeholder extraction and validation at template construction
+- Placeholder name validation (alphanumeric + underscore only)
+- ZplTemplateEngine for template-driven label generation
+- Template field substitution with validation
+- Special character escaping for ZPL safety (^, ~, {, })
+- Field length validation (maximum 255 characters per ZPL spec)
+- ZPL output validation (checks for ^XA start and ^XZ end markers)
+- Deterministic label generation (same input → same output)
+- Comprehensive template and engine test coverage (40+ test methods)
+- Package documentation (package-info.java) for template package
 
-### Planned for Sprint 2 (Phase 2)
-- OracleDbQueryRepository implementation with actual SQL queries
-- DbQueryRepository integration tests with mocked data
-- Enhanced run command with --write-snapshot flag for capturing normalized data
-- Snapshot replay mode for regenerating data without database access
+### Design Highlights (Sprint 3)
+- Immutable template design prevents accidental modification
+- Stateless engine methods for thread-safe operation
+- Type-safe validation at template construction time
+- Comprehensive error messages for invalid templates/fields
+- Zero external dependencies (Java standard library only)
 
-### Planned for Sprint 3
+### Planned for Sprint 4
 - ZPL label template engine with placeholder mapping and substitution
 - Template-driven generation supporting static elements and dynamic fields
 - Barcode generation (Code128 or QR codes as specified)

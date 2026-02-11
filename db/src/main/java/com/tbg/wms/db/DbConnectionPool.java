@@ -215,17 +215,5 @@ public final class DbConnectionPool implements AutoCloseable {
             dataSource.close();
         }
     }
-
-    /**
-     * Diagnostic information returned by {@link #testConnectivity()}.
-     */
-    public record DbConnectivityDiagnostics(
-        boolean isConnected,
-        long durationMs,
-        int activeConnections,
-        int idleConnections,
-        String databaseVersion,
-        String errorMessage
-    ) {}
 }
 
