@@ -122,17 +122,21 @@ public final class ZplTemplateEngine {
      * Escapes special characters in field values for ZPL format.
      *
      * ZPL special characters that need escaping:
+     * - ~ (tilde) - ZPL control character (must escape first!)
      * - ^ (caret) - ZPL command prefix
-     * - ~ (tilde) - ZPL control character
      * - { } (braces) - Our template markers
+     *
+     * CRITICAL: Tilde MUST be escaped first, before caret. Otherwise:
+     * 1. Escape caret: "^" → "~~^"
+     * 2. Escape tilde (sees the ~~ we just added): "~~^" → "~~~~^" (WRONG!)
      *
      * @param value the raw field value
      * @return escaped value safe for ZPL
      */
     private static String escapeZpl(String value) {
         return value
-                .replace("^", "~~^")  // Escape caret
-                .replace("~", "~~")   // Escape tilde (must be done after caret)
+                .replace("~", "~~")   // Escape tilde FIRST
+                .replace("^", "~~^")  // Then escape caret
                 .replace("{", "{{")   // Escape opening brace
                 .replace("}", "}}");  // Escape closing brace
     }
