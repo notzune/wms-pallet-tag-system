@@ -14,7 +14,6 @@
     <module>core</module>
     <module>db</module>
     <module>cli</module>
-    <module>test-analysis</module>
     <!-- web module will be added later -->
   </modules>
 
