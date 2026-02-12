@@ -36,16 +36,33 @@ class SnapshotServiceTest {
     @BeforeEach
     void setUp() {
         // Create a test shipment with LPNs and line items
-        LineItem item1 = new LineItem("1", "SKU001", "Product A", 10, 25.5, "LB");
-        LineItem item2 = new LineItem("2", "SKU002", "Product B", 20, 50.0, "LB");
+        LineItem item1 = new LineItem(
+                "1", "0", "SKU001", "Product A", null,
+                "ORD456", null, null,
+                10, 0, "LB", 25.5,
+                null, null, null
+        );
+        LineItem item2 = new LineItem(
+                "2", "0", "SKU002", "Product B", null,
+                "ORD456", null, null,
+                20, 0, "LB", 50.0,
+                null, null, null
+        );
 
-        Lpn lpn1 = new Lpn("LPN001", "SHIP123", "123456789012", 5, 30, 75.5, "ROSSI", List.of(item1));
-        Lpn lpn2 = new Lpn("LPN002", "SHIP123", "123456789013", 4, 20, 50.0, "ROSSI", List.of(item2));
+        Lpn lpn1 = new Lpn("LPN001", "SHIP123", "123456789012", 5, 30, 75.5, "ROSSI",
+                "LOT001", "SLOT001", java.time.LocalDate.now(), java.time.LocalDate.now(), List.of(item1));
+        Lpn lpn2 = new Lpn("LPN002", "SHIP123", "123456789013", 4, 20, 50.0, "ROSSI",
+                "LOT002", "SLOT002", java.time.LocalDate.now(), java.time.LocalDate.now(), List.of(item2));
 
+        LocalDateTime now = LocalDateTime.of(2026, 2, 10, 10, 30, 0);
         testShipment = new Shipment(
-                "SHIP123", "ORD456", "Acme Corp", "123 Main St",
-                "Springfield", "IL", "62701", "UPS", "GND",
-                LocalDateTime.of(2026, 2, 10, 10, 30, 0),
+                "SHIP123", "EXT123", "ORD456", "3002",
+                "Acme Corp", "123 Main St", null, null,
+                "Springfield", "IL", "62701", "USA", "555-1234",
+                "UPS", "GND", "BOL123", "TRACK123", "ROSSI",
+                "PO123", "LOC123", "DEPT1",
+                "STOP1", 1, "MOVE1", "PRO123", "BOL123",
+                "R", now.minusDays(1), now.plusDays(3), now,
                 List.of(lpn1, lpn2)
         );
     }
@@ -157,12 +174,12 @@ class SnapshotServiceTest {
         assertEquals("SHIP123", loaded.getShipmentId());
         assertEquals("ORD456", loaded.getOrderId());
         assertEquals("Acme Corp", loaded.getShipToName());
-        assertEquals("123 Main St", loaded.getShipToAddress());
+        assertEquals("123 Main St", loaded.getShipToAddress1());
         assertEquals("Springfield", loaded.getShipToCity());
         assertEquals("IL", loaded.getShipToState());
         assertEquals("62701", loaded.getShipToZip());
         assertEquals("UPS", loaded.getCarrierCode());
-        assertEquals("GND", loaded.getServiceCode());
+        assertEquals("GND", loaded.getServiceLevel());
     }
 
     @Test
@@ -201,11 +218,18 @@ class SnapshotServiceTest {
     @Test
     void testMultipleSnapshotsWithDifferentShipments() throws IOException {
         // Create second shipment
-        Lpn lpn3 = new Lpn("LPN003", "SHIP999", "999999999999", 1, 5, 10.0, "OFFICE", List.of());
+        Lpn lpn3 = new Lpn("LPN003", "SHIP999", "999999999999", 1, 5, 10.0, "OFFICE",
+                "LOT003", "SLOT003", java.time.LocalDate.now(), java.time.LocalDate.now(), List.of());
+
+        LocalDateTime now = LocalDateTime.now();
         Shipment secondShipment = new Shipment(
-                "SHIP999", "ORD789", "BigCo", "456 Oak Ave",
-                "Shelbyville", "KY", "40065", "FEDEX", "OVR",
-                LocalDateTime.now(),
+                "SHIP999", "EXT999", "ORD789", "3002",
+                "BigCo", "456 Oak Ave", null, null,
+                "Shelbyville", "KY", "40065", "USA", "555-5678",
+                "FEDEX", "OVR", "BOL456", "TRACK456", "OFFICE",
+                "PO456", "LOC456", "DEPT2",
+                "STOP2", 2, "MOVE2", "PRO456", "BOL456",
+                "R", now.minusDays(1), now.plusDays(3), now,
                 List.of(lpn3)
         );
 

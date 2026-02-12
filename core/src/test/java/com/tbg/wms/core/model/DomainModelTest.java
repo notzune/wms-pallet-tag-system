@@ -23,7 +23,12 @@ class DomainModelTest {
 
     @Test
     void testLineItemCreation() {
-        LineItem item = new LineItem("1", "SKU123", "Product A", 10, 25.5, "LB");
+        LineItem item = new LineItem(
+                "1", "0", "SKU123", "Product A", null,
+                "ORD456", null, null,
+                10, 0, "LB", 25.5,
+                null, null, null
+        );
 
         assertEquals("1", item.getLineNumber());
         assertEquals("SKU123", item.getSku());
@@ -35,8 +40,17 @@ class DomainModelTest {
 
     @Test
     void testLpnCreation() {
-        LineItem item = new LineItem("1", "SKU123", "Product A", 10, 25.5, "LB");
-        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI", List.of(item));
+        LineItem item = new LineItem(
+                "1", "0", "SKU123", "Product A", null,
+                "ORD456", null, null,
+                10, 0, "LB", 25.5,
+                null, null, null
+        );
+        java.time.LocalDate mfgDate = java.time.LocalDate.now().minusDays(30);
+        java.time.LocalDate expDate = java.time.LocalDate.now().plusMonths(6);
+
+        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI",
+                "LOT001", "SLOT001", mfgDate, expDate, List.of(item));
 
         assertEquals("LPN001", lpn.getLpnId());
         assertEquals("SHIP123", lpn.getShipmentId());
@@ -50,9 +64,15 @@ class DomainModelTest {
 
     @Test
     void testLpnImmutability() {
-        LineItem item = new LineItem("1", "SKU123", "Product A", 10, 25.5, "LB");
+        LineItem item = new LineItem(
+                "1", "0", "SKU123", "Product A", null,
+                "ORD456", null, null,
+                10, 0, "LB", 25.5,
+                null, null, null
+        );
         List<LineItem> originalList = new ArrayList<>(List.of(item));
-        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI", originalList);
+        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI",
+                "LOT001", "SLOT001", java.time.LocalDate.now(), java.time.LocalDate.now(), originalList);
 
         originalList.clear();
         assertEquals(1, lpn.getLineItems().size(), "LPN should maintain copy of line items");
@@ -63,24 +83,35 @@ class DomainModelTest {
 
     @Test
     void testShipmentCreation() {
-        LineItem item = new LineItem("1", "SKU123", "Product A", 10, 25.5, "LB");
-        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI", List.of(item));
+        LineItem item = new LineItem(
+                "1", "0", "SKU123", "Product A", null,
+                "ORD456", null, null,
+                10, 0, "LB", 25.5,
+                null, null, null
+        );
+        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI",
+                "LOT001", "SLOT001", java.time.LocalDate.now(), java.time.LocalDate.now(), List.of(item));
         LocalDateTime now = LocalDateTime.now();
 
         Shipment shipment = new Shipment(
-                "SHIP123", "ORD456", "Acme Corp", "123 Main St",
-                "Springfield", "IL", "62701", "UPS", "GND", now, List.of(lpn)
+                "SHIP123", "EXT123", "ORD456", "3002",
+                "Acme Corp", "123 Main St", null, null,
+                "Springfield", "IL", "62701", "USA", "555-1234",
+                "UPS", "GND", "BOL123", "TRACK123", "STAGE1",
+                "PO123", "LOC123", "DEPT1",
+                "STOP1", 1, "MOVE1", "PRO123", "BOL123",
+                "R", now.minusDays(1), now.plusDays(3), now, List.of(lpn)
         );
 
         assertEquals("SHIP123", shipment.getShipmentId());
         assertEquals("ORD456", shipment.getOrderId());
         assertEquals("Acme Corp", shipment.getShipToName());
-        assertEquals("123 Main St", shipment.getShipToAddress());
+        assertEquals("123 Main St", shipment.getShipToAddress1());
         assertEquals("Springfield", shipment.getShipToCity());
         assertEquals("IL", shipment.getShipToState());
         assertEquals("62701", shipment.getShipToZip());
         assertEquals("UPS", shipment.getCarrierCode());
-        assertEquals("GND", shipment.getServiceCode());
+        assertEquals("GND", shipment.getServiceLevel());
         assertEquals(now, shipment.getCreatedDate());
         assertEquals(1, shipment.getLpnCount());
         assertEquals(1, shipment.getLpns().size());
@@ -88,13 +119,24 @@ class DomainModelTest {
 
     @Test
     void testShipmentImmutability() {
-        LineItem item = new LineItem("1", "SKU123", "Product A", 10, 25.5, "LB");
-        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI", List.of(item));
+        LineItem item = new LineItem(
+                "1", "0", "SKU123", "Product A", null,
+                "ORD456", null, null,
+                10, 0, "LB", 25.5,
+                null, null, null
+        );
+        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI",
+                "LOT001", "SLOT001", java.time.LocalDate.now(), java.time.LocalDate.now(), List.of(item));
         List<Lpn> originalList = new ArrayList<>(List.of(lpn));
 
         Shipment shipment = new Shipment(
-                "SHIP123", "ORD456", "Acme Corp", "123 Main St",
-                "Springfield", "IL", "62701", "UPS", "GND", LocalDateTime.now(), originalList
+                "SHIP123", "EXT123", "ORD456", "3002",
+                "Acme Corp", "123 Main St", null, null,
+                "Springfield", "IL", "62701", "USA", "555-1234",
+                "UPS", "GND", "BOL123", "TRACK123", "STAGE1",
+                "PO123", "LOC123", "DEPT1",
+                "STOP1", 1, "MOVE1", "PRO123", "BOL123",
+                "R", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(3), LocalDateTime.now(), originalList
         );
 
         originalList.clear();
@@ -107,8 +149,13 @@ class DomainModelTest {
     @Test
     void testShipmentWithNullLpns() {
         Shipment shipment = new Shipment(
-                "SHIP123", "ORD456", "Acme Corp", "123 Main St",
-                "Springfield", "IL", "62701", "UPS", "GND", LocalDateTime.now(), null
+                "SHIP123", "EXT123", "ORD456", "3002",
+                "Acme Corp", "123 Main St", null, null,
+                "Springfield", "IL", "62701", "USA", "555-1234",
+                "UPS", "GND", "BOL123", "TRACK123", "STAGE1",
+                "PO123", "LOC123", "DEPT1",
+                "STOP1", 1, "MOVE1", "PRO123", "BOL123",
+                "R", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(3), LocalDateTime.now(), null
         );
 
         assertEquals(0, shipment.getLpnCount());
@@ -117,7 +164,12 @@ class DomainModelTest {
 
     @Test
     void testLineItemToString() {
-        LineItem item = new LineItem("1", "SKU123", "Product A", 10, 25.5, "LB");
+        LineItem item = new LineItem(
+                "1", "0", "SKU123", "Product A", null,
+                "ORD456", null, null,
+                10, 0, "LB", 25.5,
+                null, null, null
+        );
         String str = item.toString();
 
         assertTrue(str.contains("SKU123"));
@@ -126,7 +178,8 @@ class DomainModelTest {
 
     @Test
     void testLpnToString() {
-        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI", List.of());
+        Lpn lpn = new Lpn("LPN001", "SHIP123", "123456789012", 5, 50, 127.5, "ROSSI",
+                "LOT001", "SLOT001", java.time.LocalDate.now(), java.time.LocalDate.now(), List.of());
         String str = lpn.toString();
 
         assertTrue(str.contains("LPN001"));
@@ -136,8 +189,13 @@ class DomainModelTest {
     @Test
     void testShipmentToString() {
         Shipment shipment = new Shipment(
-                "SHIP123", "ORD456", "Acme Corp", "123 Main St",
-                "Springfield", "IL", "62701", "UPS", "GND", LocalDateTime.now(), List.of()
+                "SHIP123", "EXT123", "ORD456", "3002",
+                "Acme Corp", "123 Main St", null, null,
+                "Springfield", "IL", "62701", "USA", "555-1234",
+                "UPS", "GND", "BOL123", "TRACK123", "STAGE1",
+                "PO123", "LOC123", "DEPT1",
+                "STOP1", 1, "MOVE1", "PRO123", "BOL123",
+                "R", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(3), LocalDateTime.now(), List.of()
         );
         String str = shipment.toString();
 
