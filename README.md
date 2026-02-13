@@ -1,5 +1,7 @@
 # WMS Pallet Tag System
 
+Licensed under the terms in the `LICENSE` file at the root of this repository. See `LICENSE` for usage restrictions and contact information.
+
 A production-grade Java system for generating and printing Zebra ZPL pallet/shipping labels from WMS (Oracle) data. Built with a modular Maven architecture to support current CLI operations and future extensions as background workers and web GUI.
 
 ## Features

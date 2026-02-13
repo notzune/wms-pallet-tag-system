@@ -3,6 +3,8 @@
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
+ * @role WMS Analyst, Tropicana Brands Group
+ * @manager Fredrico Sanchez
  * @since 1.0.0
  */
 

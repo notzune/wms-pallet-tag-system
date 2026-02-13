@@ -105,6 +105,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Daemon mode preparation (connection pool lifecycle, per-job isolation)
 - Integration with centralized logging (optional Splunk/ELK support)
 
+### Added
+- LICENSE: non-commercial license and ownership terms for Zeyad Rashed (Tropicana internal use granted)
+
+### Changed
+- Added company and role metadata to Javadoc headers across Java source files (author: Zeyad Rashed; role: WMS Analyst; manager: Fredrico Sanchez)
+- Added `INSTRUCTIONS.md` to `.gitignore` and untracked it from git (local only)
+
 ## [Sprint 1] - 2026-02-10
 
 ### Database Connectivity and Structured Logging
@@ -205,7 +212,3 @@ Sprint 0 established the foundational project structure and configuration handli
 - All unit tests pass without failures
 - Configuration via .env file or environment variables with proper precedence
 - CLI executes with proper exit codes for success and various error conditions
-
-
-
-
