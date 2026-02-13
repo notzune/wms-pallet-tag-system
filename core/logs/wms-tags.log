@@ -1,0 +1,88 @@
+2026-02-12 01:39:53.836 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:39:53.861 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:39:53.867 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-12 01:39:53.867 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-12 01:39:53.871 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-12 01:39:53.871 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - No routing rules matched, using default printer: OFFICE
+2026-02-12 01:39:53.872 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 1 rules
+2026-02-12 01:39:53.876 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-12 01:39:53.877 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:40:04.431 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:40:04.456 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:40:04.462 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-12 01:40:04.462 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-12 01:40:04.467 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-12 01:40:04.467 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - No routing rules matched, using default printer: OFFICE
+2026-02-12 01:40:04.468 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 1 rules
+2026-02-12 01:40:04.471 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-12 01:40:04.473 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:40:20.400 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit14972720735714121834/sku-mapping.csv
+2026-02-12 01:40:20.426 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.434 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit1776289906387136297/sku-mapping.csv
+2026-02-12 01:40:20.434 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.436 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit17926684187203486584/sku-mapping.csv
+2026-02-12 01:40:20.437 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.439 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit12385774261309068824/sku-mapping.csv
+2026-02-12 01:40:20.440 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.443 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit12799468901350604168/sku-mapping.csv
+2026-02-12 01:40:20.443 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.445 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit12099847996834598027/sku-mapping.csv
+2026-02-12 01:40:20.445 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.445 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.447 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit14321785948795170659/sku-mapping.csv
+2026-02-12 01:40:20.447 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.448 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit17503973537887072201/sku-mapping.csv
+2026-02-12 01:40:20.449 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.450 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit11115500635669940723/sku-mapping.csv
+2026-02-12 01:40:20.450 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.450 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.452 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit2572459278487053772/sku-mapping.csv
+2026-02-12 01:40:20.452 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.452 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.453 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit16706390521614726768/sku-mapping.csv
+2026-02-12 01:40:20.454 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-12 01:40:20.468 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit16318147980066205514/sku-mapping.csv
+2026-02-12 01:40:20.470 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit14181642969303064951/sku-mapping.csv
+2026-02-12 01:40:20.538 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: abc
+2026-02-12 01:40:20.538 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: invalid
+2026-02-12 01:40:20.540 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: abc
+2026-02-12 01:40:20.540 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: 12.5
+2026-02-12 01:40:21.619 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP123_job123.json (2 LPNs)
+2026-02-12 01:40:21.804 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP123_job1.json (2 LPNs)
+2026-02-12 01:40:21.804 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP999_job2.json (1 LPNs)
+2026-02-12 01:40:21.813 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP123_job123ab.json (2 LPNs)
+2026-02-12 01:40:21.817 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP123_job123.json (2 LPNs)
+2026-02-12 01:40:21.819 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP123_job123.json (2 LPNs)
+2026-02-12 01:40:21.821 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP123_job123.json (2 LPNs)
+2026-02-12 01:40:21.826 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP123_job123.json (2 LPNs)
+2026-02-12 01:40:21.834 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260212_014021_SHIP123_job123.json (2 LPNs)
+2026-02-12 01:40:21.854 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:40:21.855 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:40:21.856 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-12 01:40:21.856 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-12 01:40:21.859 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-12 01:40:21.859 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - No routing rules matched, using default printer: OFFICE
+2026-02-12 01:40:21.859 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 1 rules
+2026-02-12 01:40:21.860 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-12 01:40:21.861 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-12 01:40:21.872 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit18392533454945643516/sku-mapping.csv
+2026-02-12 01:40:21.875 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit2802559455375051315/sku-mapping.csv
+2026-02-12 01:40:21.876 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit2925352101532966778/sku-mapping.csv
+2026-02-12 01:40:21.878 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit9680026633057068911/sku-mapping.csv
+2026-02-12 01:40:21.879 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit1481103557193074046/sku-mapping.csv
+2026-02-12 01:40:21.881 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit14777351266784839631/sku-mapping.csv
+2026-02-12 01:40:21.882 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit11357031393330014184/sku-mapping.csv
+2026-02-12 01:40:21.882 [WARN ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 3 - insufficient fields: incomplete
+2026-02-12 01:40:21.882 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 2 SKU mappings from /tmp/junit11357031393330014184/bad.csv
+2026-02-12 01:40:21.883 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit6410407731784020617/sku-mapping.csv
+2026-02-12 01:40:21.884 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 0 SKU mappings from /tmp/junit6410407731784020617/empty.csv
+2026-02-12 01:40:21.886 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit13209007632868877294/sku-mapping.csv
+2026-02-12 01:40:21.887 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit5909648449243886811/sku-mapping.csv
+2026-02-12 01:40:21.888 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit2210130089163041686/sku-mapping.csv
+2026-02-12 01:40:21.891 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit8087879011706501713/sku-mapping.csv
+2026-02-12 01:40:21.892 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit14138322305131538708/sku-mapping.csv
+2026-02-12 01:40:21.894 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit3417318111179062675/sku-mapping.csv
+2026-02-12 01:40:21.895 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit2990327386378779354/sku-mapping.csv
+2026-02-12 01:40:21.897 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit11101005173833914159/sku-mapping.csv
+2026-02-12 01:40:21.899 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit12937067278523427950/sku-mapping.csv
+2026-02-12 01:40:21.900 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit1686818176644994208/sku-mapping.csv

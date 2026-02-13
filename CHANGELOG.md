@@ -7,7 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added (Test-Analysis Module - Database Discovery)
+### Added (Sprint 4 - Printer Routing and Network Printing)
+- PrinterConfig class for printer configuration with network endpoints
+- RoutingRule class for rule-based printer selection with EQUALS, STARTS_WITH, and CONTAINS operators
+- PrinterRoutingService for YAML-driven printer routing configuration
+- NetworkPrintService for TCP 9100 RAW socket printing to Zebra printers
+- WmsPrintException for print operation failures with exit code 5
+- Retry logic with exponential backoff (default 3 retries, configurable timeouts)
+- Connection timeout and read timeout configuration (default 5s/10s)
+- Printer routing based on staging location from WMS database
+- Manual printer override via --printer CLI flag
+- YAML configuration loading for printers and routing rules
+- Jackson YAML dependency for configuration parsing
+- Package documentation for print package
+- Comprehensive unit tests for printer routing (16 test methods)
+- Full integration of printing into RunCommand with error handling
+
+### Changed (Sprint 4)
+- RunCommand now uses actual printer routing and network printing instead of placeholder
+- RunCommand loads PrinterRoutingService from site-specific YAML configuration
+- RunCommand queries staging location for automatic routing decisions
+- Staging location routing context passed to printer selection
+- Print failures are now gracefully handled with warnings and continue processing remaining labels
+- Added HashMap import to RunCommand for routing context
+- Updated imports in RunCommand to include all print services
+
+### Design Highlights (Sprint 4)
+- YAML-driven configuration for printers and routing rules
+- Immutable configuration after loading
+- Thread-safe routing and print services (stateless operations)
+- Clean separation between routing logic and network printing
+- Robust retry mechanism prevents transient network failures
+- Actionable error messages with remediation hints
+- Printer override capability for testing and manual control
+- Dry-run mode honors routing without actual network transmission
+
+### Planned for Sprint 5
 - test-analysis Maven module for WMS schema discovery and validation
 - WmsSchemaAnalyzer utility for read-only database introspection
 - Schema discovery methods: tables, columns, data types
