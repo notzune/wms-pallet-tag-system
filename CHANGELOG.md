@@ -5,7 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-BETA] - 2026-02-18
+
+### 🎉 Release Summary
+WMS Pallet Tag System v1.0.0-BETA is officially released with comprehensive documentation, portable packaging, and a clear roadmap for v1.1.0. All core features are production-ready and have been tested in staging environments.
+
+### ✅ Production-Ready Features
+- **Oracle WMS Integration:** Read-only database access with HikariCP connection pooling
+- **Label Generation:** ZPL template engine with Walmart Canada label template (4x6 @203 DPI)
+- **Printer Integration:** YAML-driven printer routing and TCP 9100 network printing with retry logic
+- **SKU Mapping:** CSV-based Walmart item field population with intelligent matching
+- **Pallet Planning:** Footprint-based calculation with virtual pallet fallback for SKU-only shipments
+- **CLI Commands:** `config`, `db-test`, `run`, `gui` fully implemented and tested
+- **GUI Workflow:** Desktop application with shipment preview and confirm-print functionality
+- **Safety Features:** Read-only database mode, dry-run option, structured logging
+
+### 📦 Documentation & Packaging
+- **BETA-RELEASE-NOTES.md:** Complete release information with known limitations
+- **PORTABLE-INSTALLATION.md:** Installation guide for Windows/Linux/macOS with troubleshooting
+- **README.md:** Enhanced with complete project file tree and architecture overview
+- **Portable Bundle:** Distributions with bundled Java 21 JRE (~150MB)
+- **Build Scripts:** PowerShell scripts for creating portable distributions
+
+### ⚠️ Known Limitations (Beta)
+- GUI window may not appear in foreground on some systems (workaround: click taskbar)
+- Printer timeout on unstable networks (configurable backoff strategy)
+- Some historical shipments may lack footprint data (auto-fallback to virtual pallets)
+
+### ✓ Tested Scenarios
+- Walmart Canada orders (primary use case)
+- Multi-pallet shipments with accurate SSCC-18 barcode generation
+- Printer routing with fallback and manual override
+- Dry-run mode for safe label generation
+- Database connectivity failures with graceful error handling
+
+### 🗺️ Roadmap for v1.1.0
+- Implement `template` command for blank template generation
+- Implement `manual` command with GUI for manual label entry
+- Implement `replay` command for shipment replay from JSON snapshots
+- Enhanced printer failover logic with configurable strategies
+- Web-based admin dashboard for configuration and monitoring
+- Batch shipment processing capabilities
+- Label audit trail database
+- Multi-site printer management
+
+### Installation Options
+1. **Development:** Clone repo + `mvnw clean package`
+2. **Standalone JAR:** `java -jar cli-1.0.0-BETA.jar`
+3. **Portable Bundle:** Extract ZIP with bundled JRE (recommended for production)
+
+See PORTABLE-INSTALLATION.md for complete setup guide.
+
+---
+
 ## [Unreleased]
+
+### Changed
+- Set runtime default to `WMS_ENV=PROD` and updated `.env.example` accordingly.
+- Enabled read-only JDBC sessions in `DbConnectionPool` for safer production operation.
+- Registered `run` as an active CLI subcommand under `RootCommand`.
+- Added Maven Wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper`) for reproducible builds.
+- Rewrote `README.md` to match current implemented command surface and removed stale command docs.
+
+### Added
+- Shipment footprint query path (`PRTFTP` / `PRTFTP_DTL`) and pallet planning summary logic.
+- New planning/domain types:
+  - `ShipmentSkuFootprint`
+  - `PalletPlanningService`
+- Additional tests for pallet planning and label representative SKU selection behavior.
+
+### Fixed
+- Improved PRTNUM to Walmart matrix matching (`SkuMappingService.findByPrtnum`) using robust embedded-digit matching.
+- Stabilized snapshot deserialization for immutable domain models by adding explicit JSON creators/properties.
+- Configured snapshot deserialization to ignore unknown properties for backward compatibility.
+- Ensured non-matching Walmart SKUs leave the Walmart item label field blank.
 
 ### Added (Sprint 4 - Printer Routing and Network Printing)
 - PrinterConfig class for printer configuration with network endpoints
