@@ -11,7 +11,7 @@ package com.tbg.wms.core.model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
+import java.util.Locale;
 
 /**
  * Service for normalizing and transforming WMS data.
@@ -44,7 +44,7 @@ public final class NormalizationService {
      */
     public static String normalizeToUppercase(String value) {
         String normalized = normalizeString(value);
-        return normalized.isEmpty() ? normalized : normalized.toUpperCase();
+        return normalized.isEmpty() ? normalized : normalized.toUpperCase(Locale.ROOT);
     }
 
     /**

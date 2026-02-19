@@ -196,8 +196,9 @@ public final class LabelWorkflowService {
         int printedCount = 0;
         for (int i = 0; i < job.getLpnsForLabels().size(); i++) {
             Lpn lpn = job.getLpnsForLabels().get(i);
-            Map<String, String> labelData = new HashMap<>(builder.build(job.getShipment(), lpn, i, LabelType.WALMART_CANADA_GRID));
+            Map<String, String> labelData = builder.build(job.getShipment(), lpn, i, LabelType.WALMART_CANADA_GRID);
             if (job.getShipment().getLpnCount() == 0) {
+                labelData = new HashMap<>(labelData);
                 labelData.put("palletSeq", String.valueOf(i + 1));
                 labelData.put("palletTotal", String.valueOf(job.getLpnsForLabels().size()));
             }

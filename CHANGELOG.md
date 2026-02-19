@@ -34,10 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GUI print-to-file output now saves under the JAR-relative `out/` directory.
 - Barcode orientation documentation updated to use `^PON` + field rotation instead of printer rotation.
 - Setup and bundle scripts now default to `cli-1.2.1.jar`.
+- Barcode landscape rendering now uses field rotation (`^PON` + `^FWR` + rotated `^BC`) for printer-safe output.
+- YAML routing and snapshot parsing paths were refactored to typed models for maintainability and safer validation.
+- String normalization paths now use locale-stable uppercase conversion (`Locale.ROOT`).
 
 ### Fixed
 - Javadoc warnings from unescaped characters and ambiguous tag markers.
 - Development documentation now explicitly requires a JDK for Maven builds and documents the `No compiler is provided in this environment` remediation.
+- Removed unchecked/raw-type deserialization in snapshot loading and reduced avoidable allocations in CLI/GUI label loops.
+- Repository hygiene: `wms-tags.log` files are now ignored globally and no longer tracked; `.ai/` is ignored.
 
 ## [1.2.0] - 2026-02-19
 ### Added

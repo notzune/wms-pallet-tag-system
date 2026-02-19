@@ -21,6 +21,7 @@ import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -100,7 +101,7 @@ public final class AppConfig {
         if (value == null || value.isBlank()) {
             value = "PROD";
         }
-        return value.trim().toUpperCase();
+        return value.trim().toUpperCase(Locale.ROOT);
     }
 
     /**
@@ -433,45 +434,49 @@ public final class AppConfig {
     }
 
     private Map<String, String> loadEnvStyleReader(BufferedReader reader) throws IOException {
-        List<String> lines = new ArrayList<>();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            lines.add(line);
+        Map<String, String> values = new HashMap<>();
+        String rawLine;
+        while ((rawLine = reader.readLine()) != null) {
+            parseEnvStyleLine(values, rawLine);
         }
-        return loadEnvStyleLines(lines);
+        return values;
     }
 
     private Map<String, String> loadEnvStyleLines(List<String> lines) {
         Map<String, String> values = new HashMap<>();
         for (String rawLine : lines) {
-            if (rawLine == null) {
-                continue;
-            }
-
-            String line = rawLine.trim();
-            if (line.isEmpty() || line.startsWith("#")) {
-                continue;
-            }
-
-            if (line.startsWith("export ")) {
-                line = line.substring("export ".length()).trim();
-            }
-
-            int sep = line.indexOf('=');
-            if (sep <= 0) {
-                continue;
-            }
-
-            String key = line.substring(0, sep).trim();
-            String value = line.substring(sep + 1).trim();
-            if (key.isEmpty()) {
-                continue;
-            }
-
-            values.put(key, stripQuotes(value));
+            parseEnvStyleLine(values, rawLine);
         }
 
         return values;
+    }
+
+    private void parseEnvStyleLine(Map<String, String> values, String rawLine) {
+        if (rawLine == null) {
+            return;
+        }
+
+        String line = rawLine.trim();
+        if (line.isEmpty() || line.startsWith("#")) {
+            return;
+        }
+
+        if (line.startsWith("export ")) {
+            line = line.substring("export ".length()).trim();
+        }
+
+        int sep = line.indexOf('=');
+        if (sep <= 0) {
+            return;
+        }
+
+        String key = line.substring(0, sep).trim();
+        String value = line.substring(sep + 1).trim();
+        if (key.isEmpty()) {
+            return;
+        }
+
+        values.put(key, stripQuotes(value));
     }
 
     private String stripQuotes(String value) {

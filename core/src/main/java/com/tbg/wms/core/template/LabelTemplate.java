@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Represents a ZPL label template with placeholders for dynamic field substitution.
@@ -29,6 +30,8 @@ import java.util.Objects;
  * </pre>
  */
 public final class LabelTemplate {
+
+    private static final Pattern PLACEHOLDER_NAME_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
 
     private final String name;
     private final String templateContent;
@@ -79,7 +82,7 @@ public final class LabelTemplate {
                 throw new IllegalArgumentException("Empty placeholder at position " + position);
             }
 
-            if (!placeholderName.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+            if (!PLACEHOLDER_NAME_PATTERN.matcher(placeholderName).matches()) {
                 throw new IllegalArgumentException("Invalid placeholder name: " + placeholderName);
             }
 
@@ -172,4 +175,3 @@ public final class LabelTemplate {
                 '}';
     }
 }
-

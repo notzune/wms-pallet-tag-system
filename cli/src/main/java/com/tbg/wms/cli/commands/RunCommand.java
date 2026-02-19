@@ -226,8 +226,9 @@ public final class RunCommand implements Callable<Integer> {
                     log.debug("Processing pallet {}/{}: {}", i + 1, lpns.size(), lpn.getLpnId());
 
                     // Build label data
-                    Map<String, String> labelData = new HashMap<>(builder.build(shipment, lpn, i, LabelType.WALMART_CANADA_GRID));
+                    Map<String, String> labelData = builder.build(shipment, lpn, i, LabelType.WALMART_CANADA_GRID);
                     if (shipment.getLpnCount() == 0) {
+                        labelData = new HashMap<>(labelData);
                         labelData.put("palletSeq", String.valueOf(i + 1));
                         labelData.put("palletTotal", String.valueOf(lpns.size()));
                     }
@@ -257,8 +258,10 @@ public final class RunCommand implements Callable<Integer> {
                                             "Printer not found or disabled: " + printerOverride));
                         } else {
                             // Routing based on staging location
-                            Map<String, String> routingContext = new HashMap<>();
-                            routingContext.put("stagingLocation", stagingLocation != null ? stagingLocation : "UNKNOWN");
+                            Map<String, String> routingContext = Map.of(
+                                    "stagingLocation",
+                                    stagingLocation != null ? stagingLocation : "UNKNOWN"
+                            );
                             printer = routing.selectPrinter(routingContext);
                         }
 

@@ -44,7 +44,7 @@ public final class LabelingSupport {
      */
     public static Path resolveSkuMatrixCsv() {
         for (Path candidate : SKU_MATRIX_CANDIDATES) {
-            if (Files.exists(candidate)) {
+            if (Files.isRegularFile(candidate)) {
                 return candidate;
             }
         }
@@ -92,7 +92,7 @@ public final class LabelingSupport {
             Integer unitsPerPallet = row.getUnitsPerPallet();
             boolean hasPalletUnits = unitsPerPallet != null && unitsPerPallet > 0;
             int palletsForSku = hasPalletUnits
-                    ? totalUnits / unitsPerPallet + (totalUnits % unitsPerPallet == 0 ? 0 : 1)
+                    ? (totalUnits + unitsPerPallet - 1) / unitsPerPallet
                     : 1;
 
             for (int palletIndex = 0; palletIndex < palletsForSku; palletIndex++) {

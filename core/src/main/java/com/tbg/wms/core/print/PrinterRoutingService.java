@@ -91,50 +91,51 @@ public final class PrinterRoutingService {
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
-        // Load printers
-        Map<String, Object> printersYaml = mapper.readValue(printersFile.toFile(), Map.class);
-        List<Map<String, Object>> printersList = (List<Map<String, Object>>) printersYaml.get("printers");
+        PrintersYaml printersYaml = mapper.readValue(printersFile.toFile(), PrintersYaml.class);
+        List<PrinterEntry> printersList = printersYaml.printers == null ? List.of() : printersYaml.printers;
         Map<String, PrinterConfig> printers = new LinkedHashMap<>();
 
-        for (Map<String, Object> p : printersList) {
-            String id = (String) p.get("id");
-            String name = (String) p.get("name");
-            String ip = (String) p.get("ip");
-            int port = p.containsKey("port") ? (Integer) p.get("port") : 9100;
-            List<String> tags = (List<String>) p.getOrDefault("tags", Collections.emptyList());
-            String locationHint = (String) p.get("locationHint");
-            boolean enabled = p.containsKey("enabled") ? (Boolean) p.get("enabled") : true;
+        for (PrinterEntry printerEntry : printersList) {
+            String id = requireYamlValue(printerEntry.id, "printers[].id", printersFile);
+            String name = requireYamlValue(printerEntry.name, "printers[].name", printersFile);
+            String ip = requireYamlValue(printerEntry.ip, "printers[].ip", printersFile);
+            int port = printerEntry.port == null ? 9100 : printerEntry.port;
+            List<String> tags = printerEntry.tags == null ? Collections.emptyList() : printerEntry.tags;
+            String locationHint = printerEntry.locationHint;
+            boolean enabled = printerEntry.enabled == null || printerEntry.enabled;
 
             PrinterConfig printer = new PrinterConfig(id, name, ip, port, tags, locationHint, enabled);
             printers.put(id, printer);
             log.debug("Loaded printer: {}", printer);
         }
 
-        // Load routing rules
-        Map<String, Object> routingYaml = mapper.readValue(routingFile.toFile(), Map.class);
-        String defaultPrinterId = (String) routingYaml.get("defaultPrinterId");
-        List<Map<String, Object>> rulesList = (List<Map<String, Object>>) routingYaml.get("rules");
+        RoutingYaml routingYaml = mapper.readValue(routingFile.toFile(), RoutingYaml.class);
+        String defaultPrinterId = requireYamlValue(routingYaml.defaultPrinterId, "defaultPrinterId", routingFile);
+        List<RuleEntry> rulesList = routingYaml.rules == null ? List.of() : routingYaml.rules;
         List<RoutingRule> rules = new ArrayList<>();
 
-        for (Map<String, Object> r : rulesList) {
-            String id = (String) r.get("id");
-            boolean enabled = r.containsKey("enabled") ? (Boolean) r.get("enabled") : true;
-            Map<String, Object> when = (Map<String, Object>) r.get("when");
-            Map<String, Object> then = (Map<String, Object>) r.get("then");
+        for (RuleEntry ruleEntry : rulesList) {
+            String id = requireYamlValue(ruleEntry.id, "rules[].id", routingFile);
+            boolean enabled = ruleEntry.enabled == null || ruleEntry.enabled;
 
-            // Parse condition (currently supports "all" with single field condition)
-            List<Map<String, Object>> conditions = (List<Map<String, Object>>) when.get("all");
+            List<RuleConditionEntry> conditions = ruleEntry.when == null || ruleEntry.when.all == null
+                    ? List.of()
+                    : ruleEntry.when.all;
             if (conditions.isEmpty()) {
                 log.warn("Skipping rule {} with no conditions", id);
                 continue;
             }
 
             // For now, support single condition per rule
-            Map<String, Object> condition = conditions.get(0);
-            String field = (String) condition.get("field");
-            String operator = (String) condition.get("op");
-            String value = (String) condition.get("value");
-            String printerId = (String) then.get("printerId");
+            RuleConditionEntry condition = conditions.get(0);
+            String field = requireYamlValue(condition.field, "rules[].when.all[].field", routingFile);
+            String operator = requireYamlValue(condition.op, "rules[].when.all[].op", routingFile);
+            String value = requireYamlValue(condition.value, "rules[].when.all[].value", routingFile);
+            String printerId = requireYamlValue(
+                    ruleEntry.then == null ? null : ruleEntry.then.printerId,
+                    "rules[].then.printerId",
+                    routingFile
+            );
 
             RoutingRule rule = new RoutingRule(id, enabled, field, operator, value, printerId);
             rules.add(rule);
@@ -218,6 +219,53 @@ public final class PrinterRoutingService {
 
     public String getSiteCode() {
         return siteCode;
+    }
+
+    private static String requireYamlValue(String value, String field, Path sourceFile) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing required field '" + field + "' in " + sourceFile);
+        }
+        return value;
+    }
+
+    private static final class PrintersYaml {
+        public List<PrinterEntry> printers;
+    }
+
+    private static final class PrinterEntry {
+        public String id;
+        public String name;
+        public String ip;
+        public Integer port;
+        public List<String> tags;
+        public String locationHint;
+        public Boolean enabled;
+    }
+
+    private static final class RoutingYaml {
+        public String defaultPrinterId;
+        public List<RuleEntry> rules;
+    }
+
+    private static final class RuleEntry {
+        public String id;
+        public Boolean enabled;
+        public RuleWhen when;
+        public RuleThen then;
+    }
+
+    private static final class RuleWhen {
+        public List<RuleConditionEntry> all;
+    }
+
+    private static final class RuleConditionEntry {
+        public String field;
+        public String op;
+        public String value;
+    }
+
+    private static final class RuleThen {
+        public String printerId;
     }
 }
 

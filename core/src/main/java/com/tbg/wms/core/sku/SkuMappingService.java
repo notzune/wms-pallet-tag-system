@@ -35,6 +35,7 @@ import java.util.Objects;
 public final class SkuMappingService {
 
     private static final Logger log = LoggerFactory.getLogger(SkuMappingService.class);
+    private static final int MIN_SKU_LENGTH = 5;
 
     // Map: TBG SKU# → WalmartSkuMapping
     private final Map<String, WalmartSkuMapping> mappingByTbgSku;
@@ -66,10 +67,11 @@ public final class SkuMappingService {
      * @return WalmartSkuMapping, or null if not found
      */
     public WalmartSkuMapping findByTbgSku(String tbgSku) {
-        if (tbgSku == null || tbgSku.trim().isEmpty()) {
+        String normalized = normalizeLookupKey(tbgSku);
+        if (normalized == null) {
             return null;
         }
-        return mappingByTbgSku.get(tbgSku.trim());
+        return mappingByTbgSku.get(normalized);
     }
 
     /**
@@ -79,10 +81,11 @@ public final class SkuMappingService {
      * @return WalmartSkuMapping, or null if not found
      */
     public WalmartSkuMapping findByWalmartItem(String walmartItemNo) {
-        if (walmartItemNo == null || walmartItemNo.trim().isEmpty()) {
+        String normalized = normalizeLookupKey(walmartItemNo);
+        if (normalized == null) {
             return null;
         }
-        return mappingByWalmartItem.get(walmartItemNo.trim());
+        return mappingByWalmartItem.get(normalized);
     }
 
     /**
@@ -100,23 +103,22 @@ public final class SkuMappingService {
      * @return WalmartSkuMapping, or null if extraction fails
      */
     public WalmartSkuMapping findByPrtnum(String prtnum) {
-        if (prtnum == null || prtnum.trim().isEmpty()) {
+        String normalizedPrtnum = normalizeLookupKey(prtnum);
+        if (normalizedPrtnum == null) {
             return null;
         }
 
-        prtnum = prtnum.trim();
-
         // Strategy 1: Try direct match (in case it's already short format)
-        WalmartSkuMapping mapping = findByTbgSku(prtnum);
+        WalmartSkuMapping mapping = findByTbgSku(normalizedPrtnum);
         if (mapping != null) {
             return mapping;
         }
 
         // Strategy 2: Sliding windows (5-N digits) with optional leading-zero trim.
         // This is resilient to mixed site encodings where the TBG SKU appears embedded in PRTNUM.
-        String digits = prtnum.replaceAll("\\D", "");
+        String digits = extractDigits(normalizedPrtnum);
         if (!digits.isEmpty()) {
-            for (int len = digits.length(); len >= 5; len--) {
+            for (int len = digits.length(); len >= MIN_SKU_LENGTH; len--) {
                 if (digits.length() < len) {
                     continue;
                 }
@@ -141,9 +143,10 @@ public final class SkuMappingService {
             }
         }
 
-        log.debug("No SKU mapping found for PRTNUM: {}", prtnum);
+        log.debug("No SKU mapping found for PRTNUM: {}", normalizedPrtnum);
         return null;
     }
+
     /**
      * Gets the total number of loaded mappings.
      *
@@ -186,7 +189,7 @@ public final class SkuMappingService {
                 lineNum++;
 
                 // Skip empty lines and header
-                if (lineNum == 1 || line.trim().isEmpty()) {
+                if (lineNum == 1 || line.isBlank()) {
                     continue;
                 }
 
@@ -202,7 +205,7 @@ public final class SkuMappingService {
      * @param lineNum line number (for error reporting)
      */
     private void parseCsvLine(String line, int lineNum) {
-        String[] fields = line.split(",");
+        String[] fields = line.split(",", 4);
 
         if (fields.length < 2) {
             log.warn("Skipping line {} - insufficient fields: {}", lineNum, line);
@@ -232,6 +235,25 @@ public final class SkuMappingService {
         return "SkuMappingService{" +
                 "mappingCount=" + mappingByTbgSku.size() +
                 '}';
+    }
+
+    private static String normalizeLookupKey(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static String extractDigits(String value) {
+        StringBuilder digits = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+        return digits.toString();
     }
 }
 

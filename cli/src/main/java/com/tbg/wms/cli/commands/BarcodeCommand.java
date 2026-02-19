@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.regex.Pattern;
 
 /**
  * Generates a standalone barcode label and optionally prints it.
@@ -42,6 +43,7 @@ public final class BarcodeCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(BarcodeCommand.class);
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
 
     @Option(
             names = {"-d", "--data"},
@@ -263,7 +265,7 @@ public final class BarcodeCommand implements Callable<Integer> {
         if (value == null) {
             return "data";
         }
-        String slug = value.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
         if (slug.isEmpty()) {
             return "data";
         }

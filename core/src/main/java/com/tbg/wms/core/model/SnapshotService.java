@@ -11,6 +11,7 @@ package com.tbg.wms.core.model;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,18 +149,19 @@ public final class SnapshotService {
         }
 
         try {
-            Map<String, Object> snapshot = objectMapper.readValue(snapshotFile.toFile(), Map.class);
+            JsonNode snapshot = objectMapper.readTree(snapshotFile.toFile());
 
-            // Validate schema version
-            Map<String, Object> metadata = (Map<String, Object>) snapshot.get("metadata");
-            String version = (String) metadata.get("schemaVersion");
+            JsonNode metadata = snapshot.path("metadata");
+            String version = metadata.path("schemaVersion").asText(null);
             if (!SCHEMA_VERSION.equals(version)) {
                 log.warn("Snapshot schema version mismatch: expected {}, got {}", SCHEMA_VERSION, version);
             }
 
-            // Extract and deserialize shipment
-            Map<String, Object> shipmentData = (Map<String, Object>) snapshot.get("shipment");
-            Shipment shipment = objectMapper.convertValue(shipmentData, Shipment.class);
+            JsonNode shipmentNode = snapshot.path("shipment");
+            if (shipmentNode.isMissingNode() || shipmentNode.isNull()) {
+                throw new IOException("Snapshot is missing shipment payload: " + snapshotFile);
+            }
+            Shipment shipment = objectMapper.treeToValue(shipmentNode, Shipment.class);
 
             log.info("Snapshot loaded: {} ({} LPNs)", snapshotFile.getFileName(), shipment.getLpnCount());
             return shipment;

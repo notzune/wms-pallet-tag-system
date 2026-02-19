@@ -58,8 +58,9 @@ public class BarcodeZplBuilderTest {
         );
 
         String zpl = BarcodeZplBuilder.build(request);
-        assertTrue(zpl.contains("^POL"));
-        assertTrue(zpl.contains("^BCN"));
+        assertTrue(zpl.contains("^PON"));
+        assertTrue(zpl.contains("^FWR"));
+        assertTrue(zpl.contains("^BCR"));
     }
 
     @Test

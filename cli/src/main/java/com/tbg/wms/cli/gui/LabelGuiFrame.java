@@ -28,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Swing-based GUI for shipment preview and label printing.
@@ -45,6 +46,7 @@ public final class LabelGuiFrame extends JFrame {
 
     // Synthetic printer option used to enable print-to-file from the dropdown.
     private static final String FILE_PRINTER_ID = "FILE";
+    private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
 
     private final AppConfig config = new AppConfig();
     private final LabelWorkflowService service = new LabelWorkflowService(config);
@@ -601,7 +603,7 @@ public final class LabelGuiFrame extends JFrame {
         if (value == null) {
             return "data";
         }
-        String slug = value.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
         if (slug.isEmpty()) {
             return "data";
         }

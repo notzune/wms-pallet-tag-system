@@ -53,3 +53,5 @@ DATABASE-ANALYSIS-READY.md
 .DS_Store
 core/logs/wms-tags.log
 db/logs/wms-tags.log
+.ai/
+**/wms-tags.log

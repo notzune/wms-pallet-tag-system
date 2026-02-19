@@ -134,13 +134,14 @@ public final class BarcodeZplBuilder {
      */
     public static String build(BarcodeRequest request) {
         Objects.requireNonNull(request, "request cannot be null");
+        boolean landscape = request.getOrientation() == Orientation.LANDSCAPE;
 
         StringBuilder zpl = new StringBuilder(256);
         zpl.append("^XA\n");
-        zpl.append(request.getOrientation() == Orientation.LANDSCAPE ? "^POL\n" : "^PON\n");
+        zpl.append("^PON\n");
         zpl.append("^PW").append(request.getLabelWidthDots()).append('\n');
         zpl.append("^LL").append(request.getLabelHeightDots()).append('\n');
-        zpl.append("^FWN\n");
+        zpl.append(landscape ? "^FWR\n" : "^FWN\n");
         zpl.append("^BY")
                 .append(request.getModuleWidth())
                 .append(',')
@@ -154,7 +155,7 @@ public final class BarcodeZplBuilder {
                 .append(request.getOriginY())
                 .append('\n');
         zpl.append("^BC")
-                .append("N")
+                .append(landscape ? "R" : "N")
                 .append(',')
                 .append(request.getBarcodeHeight())
                 .append(',')

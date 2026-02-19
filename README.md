@@ -3,6 +3,7 @@
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
+Current release: `1.2.1` (2026-02-19).
 
 ## Current Scope
 

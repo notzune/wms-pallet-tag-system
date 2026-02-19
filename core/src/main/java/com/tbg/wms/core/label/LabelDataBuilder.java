@@ -266,7 +266,7 @@ public final class LabelDataBuilder {
         if (date == null) {
             return null;
         }
-        return date.format(DateTimeFormatter.ofPattern("MM.dd.yyyy"));
+        return date.format(DATE_FORMAT);
     }
 
     /**

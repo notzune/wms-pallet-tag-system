@@ -85,20 +85,18 @@ public final class NetworkPrintService {
 
         log.info("Sending label {} to printer {} ({})", labelId, printer.getId(), printer.getEndpoint());
 
-        int attempt = 0;
         Exception lastException = null;
 
-        while (attempt <= maxRetries) {
+        for (int attempt = 1; attempt <= maxRetries + 1; attempt++) {
             try {
                 sendToPrinter(printer, zplContent);
                 log.info("Successfully sent label {} to printer {}", labelId, printer.getId());
                 return;
             } catch (IOException e) {
                 lastException = e;
-                attempt++;
 
                 if (attempt <= maxRetries) {
-                    int delay = retryDelayMs * (int) Math.pow(2, attempt - 1);
+                    int delay = computeRetryDelay(attempt);
                     log.warn("Print attempt {} failed for label {}, retrying in {}ms: {}",
                             attempt, labelId, delay, e.getMessage());
 
@@ -126,6 +124,14 @@ public final class NetworkPrintService {
                 String.format("Check printer status: %s (%s). Verify network connectivity and printer power.",
                         printer.getName(), printer.getEndpoint())
         );
+    }
+
+    private int computeRetryDelay(int attempt) {
+        // attempt starts at 1, so first retry uses base delay.
+        int shift = Math.max(0, attempt - 1);
+        int cappedShift = Math.min(shift, 30);
+        long delay = ((long) retryDelayMs) << cappedShift;
+        return delay >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) delay;
     }
 
     /**

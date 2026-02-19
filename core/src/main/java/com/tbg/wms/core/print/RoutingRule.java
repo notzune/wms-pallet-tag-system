@@ -8,6 +8,7 @@
 
 package com.tbg.wms.core.print;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -67,13 +68,15 @@ public final class RoutingRule {
             return false;
         }
 
-        switch (operator.toUpperCase()) {
+        String actual = contextValue.toUpperCase(Locale.ROOT);
+        String expected = value.toUpperCase(Locale.ROOT);
+        switch (operator.toUpperCase(Locale.ROOT)) {
             case "EQUALS":
-                return value.equalsIgnoreCase(contextValue);
+                return expected.equals(actual);
             case "STARTS_WITH":
-                return contextValue.toUpperCase().startsWith(value.toUpperCase());
+                return actual.startsWith(expected);
             case "CONTAINS":
-                return contextValue.toUpperCase().contains(value.toUpperCase());
+                return actual.contains(expected);
             default:
                 throw new IllegalStateException("Unsupported operator: " + operator);
         }
