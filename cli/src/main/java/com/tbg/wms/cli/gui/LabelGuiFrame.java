@@ -9,14 +9,25 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.barcode.BarcodeZplBuilder;
+import com.tbg.wms.core.barcode.BarcodeZplBuilder.BarcodeRequest;
+import com.tbg.wms.core.barcode.BarcodeZplBuilder.Orientation;
+import com.tbg.wms.core.barcode.BarcodeZplBuilder.Symbology;
+import com.tbg.wms.core.print.NetworkPrintService;
+import com.tbg.wms.core.print.PrinterConfig;
+import com.tbg.wms.core.print.PrinterRoutingService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -29,12 +40,14 @@ public final class LabelGuiFrame extends JFrame {
     private final JButton previewButton = new JButton("Preview");
     private final JButton clearButton = new JButton("Clear");
     private final JButton printButton = new JButton("Confirm Print");
-    private final JCheckBox printToFileCheck = new JCheckBox("Print to file");
     private final JTextArea shipmentArea = new JTextArea();
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
 
-    private final LabelWorkflowService service = new LabelWorkflowService(new AppConfig());
+    private final JCheckBoxMenuItem printToFileMenuItem = new JCheckBoxMenuItem("Print to file");
+
+    private final AppConfig config = new AppConfig();
+    private final LabelWorkflowService service = new LabelWorkflowService(config);
     private LabelWorkflowService.PreparedJob preparedJob;
 
     public LabelGuiFrame() {
@@ -44,13 +57,38 @@ public final class LabelGuiFrame extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(8, 8));
 
-        add(buildTopPanel(), BorderLayout.NORTH);
+        JPanel topContainer = new JPanel(new BorderLayout());
+        topContainer.add(buildToolBar(), BorderLayout.NORTH);
+        topContainer.add(buildTopPanel(), BorderLayout.SOUTH);
+        add(topContainer, BorderLayout.NORTH);
         add(buildCenterPanel(), BorderLayout.CENTER);
         add(buildBottomPanel(), BorderLayout.SOUTH);
 
         wireActions();
+        wireShortcuts();
         loadPrintersAsync();
         printButton.setEnabled(false);
+    }
+
+    private JComponent buildToolBar() {
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+
+        JButton toolsButton = new JButton("Tools");
+        toolsButton.setFocusable(false);
+        toolBar.add(toolsButton);
+
+        JPopupMenu toolsMenu = new JPopupMenu();
+        JMenuItem barcodeItem = new JMenuItem("Barcode Generator...");
+        barcodeItem.addActionListener(e -> openBarcodeDialog());
+        toolsMenu.add(barcodeItem);
+        toolsMenu.addSeparator();
+        toolsMenu.add(printToFileMenuItem);
+
+        toolsButton.addActionListener(e ->
+                toolsMenu.show(toolsButton, 0, toolsButton.getHeight()));
+
+        return toolBar;
     }
 
     private JComponent buildTopPanel() {
@@ -85,9 +123,6 @@ public final class LabelGuiFrame extends JFrame {
         gbc.gridx = 6;
         panel.add(printButton, gbc);
 
-        gbc.gridx = 7;
-        panel.add(printToFileCheck, gbc);
-
         return panel;
     }
 
@@ -115,6 +150,18 @@ public final class LabelGuiFrame extends JFrame {
         previewButton.addActionListener(e -> previewJob());
         clearButton.addActionListener(e -> clearForm());
         printButton.addActionListener(e -> confirmAndPrint());
+    }
+
+    private void wireShortcuts() {
+        InputMap inputMap = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = getRootPane().getActionMap();
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "preview");
+        actionMap.put("preview", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                previewJob();
+            }
+        });
     }
 
     private void loadPrintersAsync() {
@@ -238,12 +285,12 @@ public final class LabelGuiFrame extends JFrame {
         }
 
         LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        if (!printToFileCheck.isSelected() && selected == null) {
+        if (!printToFileMenuItem.isSelected() && selected == null) {
             showError("Select a printer.");
             return;
         }
 
-        if (!printToFileCheck.isSelected()) {
+        if (!printToFileMenuItem.isSelected()) {
             int choice = JOptionPane.showConfirmDialog(
                     this,
                     "Print " + job.getLpnsForLabels().size() + " labels to " + selected + "?",
@@ -267,7 +314,7 @@ public final class LabelGuiFrame extends JFrame {
                 Path outDir = Paths.get("out", "gui-" + job.getShipmentId() + "-" +
                         DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()));
                 String printerId = selected == null ? null : selected.getId();
-                return service.print(job, printerId, outDir, printToFileCheck.isSelected());
+                return service.print(job, printerId, outDir, printToFileMenuItem.isSelected());
             }
 
             @Override
@@ -349,5 +396,185 @@ public final class LabelGuiFrame extends JFrame {
 
     private String value(String v) {
         return (v == null || v.isBlank()) ? "-" : v;
+    }
+
+    private void openBarcodeDialog() {
+        JDialog dialog = new JDialog(this, "Barcode Generator", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setLayout(new BorderLayout(8, 8));
+
+        JPanel form = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JTextField dataField = new JTextField(24);
+        JComboBox<Symbology> typeCombo = new JComboBox<>(Symbology.values());
+        JComboBox<Orientation> orientationCombo = new JComboBox<>(Orientation.values());
+        JSpinner labelWidth = new JSpinner(new SpinnerNumberModel(812, 1, 10000, 1));
+        JSpinner labelHeight = new JSpinner(new SpinnerNumberModel(1218, 1, 20000, 1));
+        JSpinner originX = new JSpinner(new SpinnerNumberModel(40, 0, 10000, 1));
+        JSpinner originY = new JSpinner(new SpinnerNumberModel(40, 0, 10000, 1));
+        JSpinner moduleWidth = new JSpinner(new SpinnerNumberModel(2, 1, 20, 1));
+        JSpinner moduleRatio = new JSpinner(new SpinnerNumberModel(3, 1, 10, 1));
+        JSpinner barcodeHeight = new JSpinner(new SpinnerNumberModel(120, 1, 2000, 1));
+        JCheckBox humanReadable = new JCheckBox("Human readable", true);
+        JSpinner copies = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+        JTextField outputDir = new JTextField(defaultBarcodeOutputDir());
+        JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
+        printerSelect.setModel(printerCombo.getModel());
+
+        int row = 0;
+        addFormRow(form, gbc, row++, "Data", dataField);
+        addFormRow(form, gbc, row++, "Type", typeCombo);
+        addFormRow(form, gbc, row++, "Orientation", orientationCombo);
+        addFormRow(form, gbc, row++, "Label Width (dots)", labelWidth);
+        addFormRow(form, gbc, row++, "Label Height (dots)", labelHeight);
+        addFormRow(form, gbc, row++, "Origin X", originX);
+        addFormRow(form, gbc, row++, "Origin Y", originY);
+        addFormRow(form, gbc, row++, "Module Width", moduleWidth);
+        addFormRow(form, gbc, row++, "Module Ratio", moduleRatio);
+        addFormRow(form, gbc, row++, "Barcode Height", barcodeHeight);
+        addFormRow(form, gbc, row++, "Copies", copies);
+        addFormRow(form, gbc, row++, "Output Dir", outputDir);
+        addFormRow(form, gbc, row++, "Printer", printerSelect);
+
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        form.add(humanReadable, gbc);
+
+        JButton generateButton = new JButton("Generate");
+        JButton closeButton = new JButton("Close");
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttons.add(generateButton);
+        buttons.add(closeButton);
+
+        generateButton.addActionListener(e -> {
+            String data = dataField.getText().trim();
+            if (data.isEmpty()) {
+                showError("Barcode data is required.");
+                return;
+            }
+
+            BarcodeRequest request = new BarcodeRequest(
+                    data,
+                    (Symbology) typeCombo.getSelectedItem(),
+                    (Orientation) orientationCombo.getSelectedItem(),
+                    (int) labelWidth.getValue(),
+                    (int) labelHeight.getValue(),
+                    (int) originX.getValue(),
+                    (int) originY.getValue(),
+                    (int) moduleWidth.getValue(),
+                    (int) moduleRatio.getValue(),
+                    (int) barcodeHeight.getValue(),
+                    humanReadable.isSelected(),
+                    (int) copies.getValue()
+            );
+
+            String zpl = BarcodeZplBuilder.build(request);
+            Path outputPath = resolveOutputPath(outputDir.getText(), data);
+            try {
+                Files.createDirectories(outputPath.getParent());
+                Files.writeString(outputPath, zpl);
+            } catch (Exception ex) {
+                showError("Failed to write ZPL file: " + ex.getMessage());
+                return;
+            }
+
+            if (printToFileMenuItem.isSelected()) {
+                JOptionPane.showMessageDialog(
+                        dialog,
+                        "ZPL saved to " + outputPath,
+                        "Barcode Generated",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                return;
+            }
+
+            LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
+            if (printer == null) {
+                showError("Select a printer or enable Print to file.");
+                return;
+            }
+
+            try {
+                PrinterRoutingService routing = PrinterRoutingService.load(
+                        config.activeSiteCode(), Paths.get("config"));
+                PrinterConfig printerConfig = routing.findPrinter(printer.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Printer not found: " + printer.getId()));
+                new NetworkPrintService().print(printerConfig, zpl, "barcode");
+            } catch (Exception ex) {
+                showError("Failed to print barcode: " + rootMessage(ex));
+                return;
+            }
+
+            JOptionPane.showMessageDialog(
+                    dialog,
+                    "Printed barcode label.\nZPL saved to " + outputPath,
+                    "Barcode Printed",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        });
+
+        closeButton.addActionListener(e -> dialog.dispose());
+
+        dialog.add(form, BorderLayout.CENTER);
+        dialog.add(buttons, BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private static void addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.0;
+        form.add(new JLabel(label + ":"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        form.add(field, gbc);
+    }
+
+    private static Path resolveOutputPath(String outputDir, String data) {
+        String dir = (outputDir == null || outputDir.isBlank()) ? defaultBarcodeOutputDir() : outputDir.trim();
+        Path outputPath = Paths.get(dir);
+        String fileName = String.format("barcode-%s-%s.zpl",
+                DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()),
+                safeSlug(data));
+        return outputPath.resolve(fileName);
+    }
+
+    private static String defaultBarcodeOutputDir() {
+        Path baseDir = resolveJarOutputDir();
+        return baseDir.resolve("barcodes").toString();
+    }
+
+    private static Path resolveJarOutputDir() {
+        try {
+            Path codeSource = Paths.get(Objects.requireNonNull(LabelGuiFrame.class
+                    .getProtectionDomain()
+                    .getCodeSource())
+                    .getLocation()
+                    .toURI());
+            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
+            return baseDir.resolve("out");
+        } catch (Exception e) {
+            return Paths.get("out");
+        }
+    }
+
+    private static String safeSlug(String value) {
+        if (value == null) {
+            return "data";
+        }
+        String slug = value.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+        if (slug.isEmpty()) {
+            return "data";
+        }
+        return slug.length() > 40 ? slug.substring(0, 40) : slug;
     }
 }
