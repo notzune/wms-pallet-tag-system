@@ -16,3 +16,33 @@
 2026-02-18 21:23:47.674 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving shipment SHIP123: Connection refused
 2026-02-18 21:23:47.679 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving staging location for SHIP123: Invalid username/password
 2026-02-18 21:23:47.683 [WARN ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - No staging location found for shipment: SHIP999
+2026-02-18 22:45:34.583 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 22:45:37.204 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error checking shipment existence for SHIP123: Service not found
+2026-02-18 22:45:37.219 [INFO ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: SHIP123
+2026-02-18 22:45:37.220 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving shipment SHIP123: Connection refused
+2026-02-18 22:45:37.226 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving staging location for SHIP123: Invalid username/password
+2026-02-18 22:45:37.229 [WARN ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - No staging location found for shipment: SHIP999
+2026-02-18 22:47:14.536 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 22:47:16.941 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error checking shipment existence for SHIP123: Service not found
+2026-02-18 22:47:16.958 [INFO ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: SHIP123
+2026-02-18 22:47:16.959 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving shipment SHIP123: Connection refused
+2026-02-18 22:47:16.964 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving staging location for SHIP123: Invalid username/password
+2026-02-18 22:47:16.967 [WARN ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - No staging location found for shipment: SHIP999
+2026-02-18 23:01:28.409 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 23:01:30.899 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error checking shipment existence for SHIP123: Service not found
+2026-02-18 23:01:30.916 [INFO ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: SHIP123
+2026-02-18 23:01:30.917 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving shipment SHIP123: Connection refused
+2026-02-18 23:01:30.921 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving staging location for SHIP123: Invalid username/password
+2026-02-18 23:01:30.925 [WARN ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - No staging location found for shipment: SHIP999
+2026-02-18 23:02:01.673 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 23:02:04.014 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error checking shipment existence for SHIP123: Service not found
+2026-02-18 23:02:04.033 [INFO ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: SHIP123
+2026-02-18 23:02:04.033 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving shipment SHIP123: Connection refused
+2026-02-18 23:02:04.039 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving staging location for SHIP123: Invalid username/password
+2026-02-18 23:02:04.043 [WARN ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - No staging location found for shipment: SHIP999
+2026-02-18 23:05:16.807 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 23:05:19.534 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error checking shipment existence for SHIP123: Service not found
+2026-02-18 23:05:19.551 [INFO ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: SHIP123
+2026-02-18 23:05:19.551 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving shipment SHIP123: Connection refused
+2026-02-18 23:05:19.556 [ERROR] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving staging location for SHIP123: Invalid username/password
+2026-02-18 23:05:19.560 [WARN ] [] [:] com.tbg.wms.db.OracleDbQueryRepository   - No staging location found for shipment: SHIP999

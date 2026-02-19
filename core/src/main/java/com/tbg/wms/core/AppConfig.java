@@ -154,6 +154,36 @@ public final class AppConfig {
     }
 
     /**
+     * Returns the ship-from name for the given site.
+     *
+     * @param siteCode the site code (e.g., {@code TBG3002})
+     * @return ship-from company name
+     */
+    public String siteShipFromName(String siteCode) {
+        return get("SITE_" + siteCode + "_SHIP_FROM_NAME", "TROPICANA PRODUCTS, INC.");
+    }
+
+    /**
+     * Returns the ship-from street address for the given site.
+     *
+     * @param siteCode the site code (e.g., {@code TBG3002})
+     * @return ship-from street address
+     */
+    public String siteShipFromAddress(String siteCode) {
+        return get("SITE_" + siteCode + "_SHIP_FROM_ADDRESS", "9 Linden Ave E");
+    }
+
+    /**
+     * Returns the ship-from city/state/zip for the given site.
+     *
+     * @param siteCode the site code (e.g., {@code TBG3002})
+     * @return ship-from city/state/zip line
+     */
+    public String siteShipFromCityStateZip(String siteCode) {
+        return get("SITE_" + siteCode + "_SHIP_FROM_CITY_STATE_ZIP", "Jersey City, NJ 07305");
+    }
+
+    /**
      * Returns the Oracle database host for a given site and environment.
      *
      * <p><strong>Key lookup order:</strong></p>

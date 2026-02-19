@@ -1,0 +1,77 @@
+name: Javadoc Pages
+
+on:
+  push:
+    branches: ["main", "dev"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "javadoc-pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "11"
+          cache: "maven"
+      - name: Build Javadoc
+        run: mvn -B -DskipTests javadoc:aggregate
+      - name: Ensure Javadoc artifact path
+        run: |
+          if [ ! -d "target/site/apidocs" ]; then
+            mkdir -p target/site/apidocs
+            for module in core db cli; do
+              if [ -d "$module/target/site/apidocs" ]; then
+                mkdir -p "target/site/apidocs/$module"
+                cp -R "$module/target/site/apidocs/." "target/site/apidocs/$module/"
+              fi
+            done
+            {
+              printf '%s\n' '<!doctype html>' \
+                '<html lang="en">' \
+                '  <head>' \
+                '    <meta charset="utf-8" />' \
+                '    <title>WMS Pallet Tag System Javadoc</title>' \
+                '  </head>' \
+                '  <body>' \
+                '    <h1>WMS Pallet Tag System Javadoc</h1>' \
+                '    <ul>' \
+                '      <li><a href="core/">core</a></li>' \
+                '      <li><a href="db/">db</a></li>' \
+                '      <li><a href="cli/">cli</a></li>' \
+                '    </ul>' \
+                '  </body>' \
+                '</html>'
+            } > target/site/apidocs/index.html
+          fi
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/site/apidocs
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -11,6 +11,7 @@ Implemented and supported:
 - `db-test` command (database connectivity diagnostics)
 - `run` command (shipment label generation and printing)
 - `gui` command (desktop workflow with shipment preview and confirm-print)
+- `barcode` command (standalone barcode ZPL generation and optional printing)
 - Oracle read-only access
 - Printer routing via site YAML
 - Walmart SKU matrix lookup for Walmart item field
@@ -97,6 +98,7 @@ Key settings:
 - `ACTIVE_SITE=TBG3002`
 - `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `ORACLE_PORT`, `ORACLE_SERVICE`
 - `SITE_<CODE>_<ENV>_HOST` (example `SITE_TBG3002_PROD_HOST`)
+- `SITE_<CODE>_SHIP_FROM_NAME`, `SITE_<CODE>_SHIP_FROM_ADDRESS`, `SITE_<CODE>_SHIP_FROM_CITY_STATE_ZIP`
 - `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
 
 ## Run Command
@@ -110,6 +112,35 @@ Options:
 - `--dry-run`
 - `--output-dir <DIR>` (default `./labels`)
 - `--printer <ID>`
+- `--print-to-file` or `--ptf` (write ZPL to `/out` next to the JAR and skip printing)
+
+## Barcode Command
+
+```bash
+java -jar cli/target/cli-*.jar barcode --data <PAYLOAD> [OPTIONS]
+```
+
+Options:
+- `--data <PAYLOAD>` (required)
+- `--type CODE128|GS1_128` (default `CODE128`)
+- `--orientation PORTRAIT|LANDSCAPE` (default `PORTRAIT`)
+- `--label-width-dots <N>` (default `812`)
+- `--label-height-dots <N>` (default `1218`)
+- `--origin-x <N>` (default `40`)
+- `--origin-y <N>` (default `40`)
+- `--module-width <N>` (default `2`)
+- `--module-ratio <N>` (default `3`)
+- `--barcode-height <N>` (default `120`)
+- `--human-readable <true|false>` (default `true`)
+- `--copies <N>` (default `1`)
+- `--output-dir <DIR>` (default `./barcodes`)
+- `--dry-run` (skip printing)
+- `--printer <ID>` (required unless `--dry-run`)
+- `--print-to-file` or `--ptf` (write ZPL to `/out` next to the JAR and skip printing)
+
+Notes:
+- Portrait is the default.
+- Landscape uses ZPL printer orientation (`^POL`) to switch the printer into landscape.
 
 ## GUI Workflow
 
@@ -118,6 +149,7 @@ Options:
 - Click `Preview` to load shipment details and pallet math (`full`, `partial`, `total pallets`).
 - Verify summary and counts.
 - Click `Confirm Print` to send labels and save generated ZPL artifacts under `out/gui-<shipment>-<timestamp>/`.
+- Toggle `Print to file` to save ZPL under the same `out/` path without printing.
 
 ## Walmart SKU Behavior
 
@@ -138,6 +170,40 @@ Options:
 mvnw.cmd test
 mvnw.cmd -pl cli -am package
 ```
+
+## Javadoc
+
+Generate aggregated Javadoc locally:
+
+```bash
+mvnw.cmd -DskipTests javadoc:aggregate
+```
+
+Output is written to `target/site/apidocs`.
+
+The `Javadoc Pages` GitHub Actions workflow publishes the aggregated site to GitHub Pages when enabled in repository settings.
+
+## CI Workflows
+
+### Javadoc Pages (`.github/workflows/javadoc-pages.yml`)
+
+Triggers on pushes to `main` and `dev`, plus manual dispatch.
+
+- Builds aggregated Javadoc with `mvn javadoc:aggregate`.
+- Publishes `target/site/apidocs` to GitHub Pages.
+
+### Release Bundle (`.github/workflows/release.yml`)
+
+Triggers on:
+- PRs targeting `main` (builds and uploads a portable ZIP as a workflow artifact).
+- Tag pushes matching `v*.*.*` (creates a GitHub Release).
+
+Behavior:
+- Builds the CLI JAR.
+- Builds the portable bundle using `dist/temurin11-jre.zip`.
+- PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from `cli/target/maven-archiver/pom.properties`.
+- Tags: attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
+- Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
 ## Project Structure
 

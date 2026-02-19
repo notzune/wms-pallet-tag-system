@@ -35,10 +35,10 @@ import java.util.concurrent.Callable;
  *
  * <p>Exit codes:</p>
  * <ul>
- *   <li>0 – DB connectivity verified</li>
- *   <li>2 – Configuration error (missing env vars, invalid settings)</li>
- *   <li>3 – Database connectivity error (DNS, port, service, auth)</li>
- *   <li>10 – Unexpected internal error</li>
+ *   <li>0 - DB connectivity verified</li>
+ *   <li>2 - Configuration error (missing env vars, invalid settings)</li>
+ *   <li>3 - Database connectivity error (DNS, port, service, auth)</li>
+ *   <li>10 - Unexpected internal error</li>
  * </ul>
  */
 @Command(
@@ -95,7 +95,7 @@ public final class DbTestCommand implements Callable<Integer> {
         } catch (Exception e) {
             log.error("Unexpected error during db-test", e);
             System.err.println();
-            System.err.println("✗ UNEXPECTED ERROR");
+            System.err.println("ERROR");
             System.err.println();
             System.err.println("Error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             if (e.getCause() != null) {
@@ -115,9 +115,9 @@ public final class DbTestCommand implements Callable<Integer> {
 
     private void printHeader() {
         System.out.println();
-        System.out.println("╔══════════════════════════════════════════════════════════╗");
-        System.out.println("║         Database Connectivity Test                       ║");
-        System.out.println("╚══════════════════════════════════════════════════════════╝");
+        System.out.println("==========================================================");
+        System.out.println("         Database Connectivity Test                       ");
+        System.out.println("==========================================================");
         System.out.println();
     }
 
@@ -140,7 +140,7 @@ public final class DbTestCommand implements Callable<Integer> {
 
     private void printSuccess(DbConnectivityDiagnostics diag) {
         System.out.println();
-        System.out.println("✓ Database connectivity verified!");
+        System.out.println("Database connectivity verified!");
         System.out.println();
         System.out.println("Test Results:");
         System.out.println("  Duration:        " + diag.durationMs() + " ms");
@@ -157,7 +157,7 @@ public final class DbTestCommand implements Callable<Integer> {
 
     private void printConfigError(WmsConfigException e) {
         System.err.println();
-        System.err.println("✗ Configuration Error");
+        System.err.println("Configuration Error");
         System.err.println();
         System.err.println("Error: " + e.getMessage());
         System.err.println();
@@ -175,7 +175,7 @@ public final class DbTestCommand implements Callable<Integer> {
 
     private void printConnectivityError(WmsDbConnectivityException e) {
         System.err.println();
-        System.err.println("✗ Database Connectivity Failed");
+        System.err.println("Database Connectivity Failed");
         System.err.println();
         System.err.println("Error: " + e.getMessage());
         System.err.println();

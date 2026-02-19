@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.tbg.wms</groupId>
         <artifactId>wms-pallet-tag-system</artifactId>
-    <version>1.1.0-BETA</version>
+        <version>1.2.0</version>
     </parent>
 
     <artifactId>db</artifactId>
