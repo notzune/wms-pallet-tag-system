@@ -1,6 +1,9 @@
 name: Release Bundle
 
 on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened]
   push:
     tags:
       - "v*.*.*"
@@ -73,7 +76,15 @@ jobs:
           $body = $lines[$startIndex..$endIndex] -join "`n"
           Set-Content -LiteralPath "release-notes.txt" -Value $body
 
+      - name: Upload Bundle Artifact (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wms-pallet-tag-system-${{ github.sha }}-portable
+          path: dist/wms-pallet-tag-system-*-portable.zip
+
       - name: Create Release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.txt

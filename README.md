@@ -194,12 +194,16 @@ Triggers on pushes to `main` and `dev`, plus manual dispatch.
 
 ### Release Bundle (`.github/workflows/release.yml`)
 
-Triggers on tag pushes matching `v*.*.*`.
+Triggers on:
+- PRs targeting `main` (builds and uploads a portable ZIP as a workflow artifact).
+- Tag pushes matching `v*.*.*` (creates a GitHub Release).
 
+Behavior:
 - Builds the CLI JAR.
 - Builds the portable bundle using `dist/temurin11-jre.zip`.
-- Attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
-- Uses the matching section from `CHANGELOG.md` for the release body.
+- PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact.
+- Tags: attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
+- Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
 ## Project Structure
 
