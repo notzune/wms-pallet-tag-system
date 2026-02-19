@@ -139,6 +139,7 @@ public final class LabelWorkflowService {
             List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(normalizedShipmentId);
             Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
             PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
+            // Fallback to virtual rows only when WMS returns no physical LPNs.
             List<Lpn> lpnsForLabels = resolveLpnsForLabeling(shipment, footprintRows);
             boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
             String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
@@ -198,6 +199,7 @@ public final class LabelWorkflowService {
             Lpn lpn = job.getLpnsForLabels().get(i);
             Map<String, String> labelData = builder.build(job.getShipment(), lpn, i, LabelType.WALMART_CANADA_GRID);
             if (job.getShipment().getLpnCount() == 0) {
+                // Virtual labels must override sequence totals to match generated rows, not physical LPN count.
                 labelData = new HashMap<>(labelData);
                 labelData.put("palletSeq", String.valueOf(i + 1));
                 labelData.put("palletTotal", String.valueOf(job.getLpnsForLabels().size()));

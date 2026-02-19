@@ -153,6 +153,7 @@ public final class SnapshotService {
 
             JsonNode metadata = snapshot.path("metadata");
             String version = metadata.path("schemaVersion").asText(null);
+            // Keep replay backward-compatible: warn on schema drift but still attempt to deserialize.
             if (!SCHEMA_VERSION.equals(version)) {
                 log.warn("Snapshot schema version mismatch: expected {}, got {}", SCHEMA_VERSION, version);
             }

@@ -462,6 +462,7 @@ public final class AppConfig {
         }
 
         if (line.startsWith("export ")) {
+            // Accept shell-style .env files that prefix entries with `export`.
             line = line.substring("export ".length()).trim();
         }
 

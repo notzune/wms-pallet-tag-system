@@ -546,6 +546,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                                          String vcDestId,
                                          String shipToName,
                                          String adrHostExtId) {
+        // Prefer explicit order-level destination first; downstream fallbacks are heuristic.
         String destination = NormalizationService.normalizeString(destNum);
         if (!destination.isBlank()) {
             return destination;
@@ -604,7 +605,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
             return available;
         }
 
-        // Fallback for restricted dictionary visibility: probe columns directly.
+        // Fallback for restricted dictionary visibility: probe each candidate with a direct SELECT.
         for (String candidate : preferredOrder) {
             if (canSelectPrtmstColumn(conn, candidate)) {
                 available.add(candidate);
@@ -617,6 +618,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         String sql = "SELECT " + column + " FROM WMSP.PRTMST WHERE ROWNUM = 1";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
+            // If execution succeeds, the column is accessible even if the table currently has no rows.
             return rs.next() || !rs.isBeforeFirst();
         } catch (SQLException e) {
             return false;
@@ -669,6 +671,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                 "FETCH FIRST 1 ROWS ONLY";
 
         for (String skuCandidate : buildSkuCandidates(sku)) {
+            // Probe most specific keys first (real client/warehouse), then wildcard placeholders.
             for (String clientCandidate : clientCandidates) {
                 for (String whCandidate : whCandidates) {
                     String colVal = skuCandidate + "|" + clientCandidate + "|" + whCandidate;
@@ -720,6 +723,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
+                        // Honor preferred column order (SHORT_DSC before longer alternates).
                         for (String column : descriptionColumns) {
                             String value = NormalizationService.normalizeString(rs.getString(column));
                             if (isHumanReadableDescription(value)) {

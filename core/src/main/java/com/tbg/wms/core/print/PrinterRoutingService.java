@@ -99,6 +99,7 @@ public final class PrinterRoutingService {
             String id = requireYamlValue(printerEntry.id, "printers[].id", printersFile);
             String name = requireYamlValue(printerEntry.name, "printers[].name", printersFile);
             String ip = requireYamlValue(printerEntry.ip, "printers[].ip", printersFile);
+            // Match historical behavior: YAML omits these often, so keep deterministic defaults.
             int port = printerEntry.port == null ? 9100 : printerEntry.port;
             List<String> tags = printerEntry.tags == null ? Collections.emptyList() : printerEntry.tags;
             String locationHint = printerEntry.locationHint;
@@ -126,7 +127,7 @@ public final class PrinterRoutingService {
                 continue;
             }
 
-            // For now, support single condition per rule
+            // For now, preserve one-condition semantics used by existing routing configs.
             RuleConditionEntry condition = conditions.get(0);
             String field = requireYamlValue(condition.field, "rules[].when.all[].field", routingFile);
             String operator = requireYamlValue(condition.op, "rules[].when.all[].op", routingFile);

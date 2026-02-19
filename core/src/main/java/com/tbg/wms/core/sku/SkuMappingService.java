@@ -118,6 +118,7 @@ public final class SkuMappingService {
         // This is resilient to mixed site encodings where the TBG SKU appears embedded in PRTNUM.
         String digits = extractDigits(normalizedPrtnum);
         if (!digits.isEmpty()) {
+            // Start with the longest substrings first to prefer the most specific match.
             for (int len = digits.length(); len >= MIN_SKU_LENGTH; len--) {
                 if (digits.length() < len) {
                     continue;
@@ -205,6 +206,7 @@ public final class SkuMappingService {
      * @param lineNum line number (for error reporting)
      */
     private void parseCsvLine(String line, int lineNum) {
+        // Limit split count so trailing description commas are preserved in the last field.
         String[] fields = line.split(",", 4);
 
         if (fields.length < 2) {
