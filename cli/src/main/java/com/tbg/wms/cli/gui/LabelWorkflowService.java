@@ -357,15 +357,7 @@ public final class LabelWorkflowService {
     }
 
     private boolean isHumanReadable(String value) {
-        if (value == null || value.isBlank()) {
-            return false;
-        }
-        for (int i = 0; i < value.length(); i++) {
-            if (Character.isLetter(value.charAt(i))) {
-                return true;
-            }
-        }
-        return false;
+        return value != null && value.chars().anyMatch(Character::isLetter);
     }
 
     private SiteConfig createSiteConfig(String siteCode) {

@@ -270,8 +270,8 @@ public final class RunCommand implements Callable<Integer> {
 
                         try {
                             printService.print(printer, zpl, lpn.getLpnId());
-                            System.out.println(String.format("  Printed label %d/%d to %s",
-                                    i + 1, lpns.size(), printer.getName()));
+                            System.out.printf("  Printed label %d/%d to %s%n",
+                                    i + 1, lpns.size(), printer.getName());
                         } catch (WmsPrintException e) {
                             log.error("Failed to print label {}: {}", lpn.getLpnId(), e.getMessage());
                             System.err.println("Warning: Failed to print label " + lpn.getLpnId() + ": " + e.getMessage());
@@ -481,15 +481,7 @@ public final class RunCommand implements Callable<Integer> {
     }
 
     private boolean isHumanReadableDescription(String value) {
-        if (value == null || value.isBlank()) {
-            return false;
-        }
-        for (int i = 0; i < value.length(); i++) {
-            if (Character.isLetter(value.charAt(i))) {
-                return true;
-            }
-        }
-        return false;
+        return value != null && value.chars().anyMatch(Character::isLetter);
     }
 
     /**
