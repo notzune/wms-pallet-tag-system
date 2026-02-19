@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Loads and manages runtime configuration from environment variables and `.env` file.
@@ -62,10 +63,23 @@ public final class AppConfig {
      * If `.env` does not exist, configuration falls back to environment variables and defaults.
      */
     public AppConfig() {
-        this.envVars = System.getenv();
+        this(System.getenv(), null);
+    }
+
+    /**
+     * Creates a configuration instance using a provided environment map and optional explicit config file.
+     *
+     * <p>Primarily intended for deterministic tests where host process environment and working-directory
+     * `.env` files must be ignored.</p>
+     *
+     * @param envVars environment key/value pairs to use for resolution precedence
+     * @param explicitConfigFile explicit env-style config file, or {@code null} to use normal discovery
+     */
+    AppConfig(Map<String, String> envVars, Path explicitConfigFile) {
+        this.envVars = Map.copyOf(Objects.requireNonNull(envVars, "envVars cannot be null"));
         this.classpathDefaults = loadClasspathDefaults();
 
-        Path explicitPath = resolveExplicitConfigPath();
+        Path explicitPath = explicitConfigFile != null ? validateConfigFile(explicitConfigFile) : resolveExplicitConfigPath();
         Path selectedFile = explicitPath != null ? explicitPath : discoverConfigFile();
         this.fileValues = selectedFile == null ? Map.of() : loadEnvStyleFile(selectedFile);
         this.loadedConfigFile = selectedFile == null ? null : selectedFile.toAbsolutePath().toString();
@@ -364,11 +378,14 @@ public final class AppConfig {
             return null;
         }
 
-        Path path = Paths.get(explicit.trim());
+        return validateConfigFile(Paths.get(explicit.trim()));
+    }
+
+    private Path validateConfigFile(Path path) {
         if (Files.exists(path) && Files.isRegularFile(path)) {
             return path;
         }
-        throw new IllegalStateException("Configured file not found: " + explicit.trim());
+        throw new IllegalStateException("Configured file not found: " + path);
     }
 
     private Path discoverConfigFile() {

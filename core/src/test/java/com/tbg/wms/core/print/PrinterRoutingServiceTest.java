@@ -29,21 +29,23 @@ class PrinterRoutingServiceTest {
         // Arrange
         Path siteDir = Files.createDirectories(tempDir.resolve("TBG3002"));
 
-        Files.writeString(siteDir.resolve("printers.yaml"), """
-                version: 1
-                siteCode: TBG3002
-                printers:
-                  - id: OFFICE
-                    name: Office_Test
-                    ip: 10.19.64.106
-                """, StandardCharsets.UTF_8);
+        Files.writeString(siteDir.resolve("printers.yaml"), String.join("\n",
+                "version: 1",
+                "siteCode: TBG3002",
+                "printers:",
+                "  - id: OFFICE",
+                "    name: Office_Test",
+                "    ip: 10.19.64.106",
+                ""
+        ), StandardCharsets.UTF_8);
 
-        Files.writeString(siteDir.resolve("printer-routing.yaml"), """
-                version: 1
-                siteCode: TBG3002
-                defaultPrinterId: OFFICE
-                rules: []
-                """, StandardCharsets.UTF_8);
+        Files.writeString(siteDir.resolve("printer-routing.yaml"), String.join("\n",
+                "version: 1",
+                "siteCode: TBG3002",
+                "defaultPrinterId: OFFICE",
+                "rules: []",
+                ""
+        ), StandardCharsets.UTF_8);
 
         // Act
         PrinterRoutingService service = PrinterRoutingService.load("TBG3002", tempDir);
@@ -52,6 +54,51 @@ class PrinterRoutingServiceTest {
         assertEquals("TBG3002", service.getSiteCode());
         assertEquals("OFFICE", service.getDefaultPrinterId());
         assertTrue(service.findPrinter("OFFICE").isPresent());
+    }
+
+    @Test
+    void load_shouldIgnoreUnknownYamlFields(@TempDir Path tempDir) throws Exception {
+        // Arrange
+        Path siteDir = Files.createDirectories(tempDir.resolve("TBG3002"));
+
+        Files.writeString(siteDir.resolve("printers.yaml"), String.join("\n",
+                "version: 1",
+                "siteCode: TBG3002",
+                "metadata:",
+                "  owner: ops-team",
+                "printers:",
+                "  - id: OFFICE",
+                "    name: Office_Test",
+                "    ip: 10.19.64.106",
+                "    unexpectedField: ignored",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        Files.writeString(siteDir.resolve("printer-routing.yaml"), String.join("\n",
+                "version: 1",
+                "siteCode: TBG3002",
+                "defaultPrinterId: OFFICE",
+                "rules:",
+                "  - id: fallback",
+                "    enabled: true",
+                "    when:",
+                "      all:",
+                "        - field: stagingLocation",
+                "          op: EQUALS",
+                "          value: UNKNOWN",
+                "          extra: ignored",
+                "    then:",
+                "      printerId: OFFICE",
+                "      note: ignored",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        // Act
+        PrinterRoutingService service = PrinterRoutingService.load("TBG3002", tempDir);
+
+        // Assert
+        assertEquals(1, service.getPrinters().size());
+        assertEquals(1, service.getRules().size());
     }
 
     @Test

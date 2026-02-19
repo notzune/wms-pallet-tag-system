@@ -176,7 +176,7 @@ public final class DbConnectionPool implements AutoCloseable {
      */
     private String mapSqlErrorToRemediationHint(SQLException e) {
         String sqlState = e.getSQLState();
-        String message = e.getMessage();
+        String message = e.getMessage() == null ? "" : e.getMessage();
 
         if (sqlState == null) {
             return "Check network connectivity, firewall, and VPN settings.";
@@ -197,7 +197,9 @@ public final class DbConnectionPool implements AutoCloseable {
         if (message.contains("Invalid username/password")) {
             return "Authentication failed: verify ORACLE_USERNAME and ORACLE_PASSWORD are correct.";
         }
-        if (e.getCause() != null && e.getCause().getMessage().contains("connection timed out")) {
+        if (e.getCause() != null
+                && e.getCause().getMessage() != null
+                && e.getCause().getMessage().contains("connection timed out")) {
             return "Connection timed out: check DB_HOST is reachable (ping), port " + config.oraclePort() +
                    " is open, and firewall allows traffic. Increase DB_POOL_CONN_TIMEOUT_MS if needed.";
         }

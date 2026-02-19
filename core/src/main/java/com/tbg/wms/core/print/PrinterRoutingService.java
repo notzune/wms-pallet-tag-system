@@ -8,6 +8,7 @@
 
 package com.tbg.wms.core.print;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.slf4j.Logger;
@@ -244,12 +245,14 @@ public final class PrinterRoutingService {
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static final class PrintersYaml {
         public Integer version;
         public String siteCode;
         public List<PrinterEntry> printers;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static final class PrinterEntry {
         public String id;
         public String name;
@@ -260,6 +263,7 @@ public final class PrinterRoutingService {
         public Boolean enabled;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static final class RoutingYaml {
         public Integer version;
         public String siteCode;
@@ -267,6 +271,7 @@ public final class PrinterRoutingService {
         public List<RuleEntry> rules;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static final class RuleEntry {
         public String id;
         public Boolean enabled;
@@ -274,16 +279,19 @@ public final class PrinterRoutingService {
         public RuleThen then;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static final class RuleWhen {
         public List<RuleConditionEntry> all;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static final class RuleConditionEntry {
         public String field;
         public String op;
         public String value;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static final class RuleThen {
         public String printerId;
     }

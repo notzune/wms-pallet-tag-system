@@ -9,10 +9,12 @@
 package com.tbg.wms.core;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,17 +24,22 @@ import static org.junit.jupiter.api.Assertions.*;
 class AppConfigTest {
 
     @Test
-    void testMissingRequiredKey() {
+    void testMissingRequiredKey(@TempDir Path tempDir) throws Exception {
+        Path emptyConfig = Files.createFile(tempDir.resolve("empty.env"));
+
         // Use a deterministic missing key independent of local .env presence.
+        AppConfig cfg = new AppConfig(Map.of(), emptyConfig);
         assertThrows(IllegalStateException.class, () -> {
-            new AppConfig().siteName("NON_EXISTENT_SITE");
+            cfg.siteName("NON_EXISTENT_SITE");
         }, "Should throw for unknown required site key");
     }
 
     @Test
-    void testDefaultValues() {
+    void testDefaultValues(@TempDir Path tempDir) throws Exception {
+        Path emptyConfig = Files.createFile(tempDir.resolve("empty.env"));
+
         // These should not throw even without .env, since they have defaults.
-        AppConfig cfg = new AppConfig();
+        AppConfig cfg = new AppConfig(Map.of(), emptyConfig);
 
         // WMS_ENV defaults to PROD
         assertEquals("PROD", cfg.wmsEnvironment());
@@ -51,7 +58,7 @@ class AppConfigTest {
     }
 
     @Test
-    void testLoadsExplicitConfigFileFromSystemProperty() throws Exception {
+    void testLoadsExplicitConfigFileFromConstructor() throws Exception {
         Path tempConfig = Files.createTempFile("wms-tags-test", ".env");
         Files.writeString(tempConfig, String.join("\n",
                 "ACTIVE_SITE=TBG9999",
@@ -61,11 +68,8 @@ class AppConfigTest {
                 "ORACLE_PASSWORD=test_pass"
         ), StandardCharsets.UTF_8);
 
-        String key = "wms.config.file";
-        String previous = System.getProperty(key);
-        System.setProperty(key, tempConfig.toString());
         try {
-            AppConfig cfg = new AppConfig();
+            AppConfig cfg = new AppConfig(Map.of(), tempConfig);
             assertEquals("TBG9999", cfg.activeSiteCode());
             assertEquals("Test Site", cfg.siteName("TBG9999"));
             assertEquals("10.0.0.9", cfg.siteHost("TBG9999"));
@@ -73,11 +77,6 @@ class AppConfigTest {
             assertEquals("test_pass", cfg.oraclePassword());
             assertNotNull(cfg.loadedConfigFileOrNull());
         } finally {
-            if (previous == null) {
-                System.clearProperty(key);
-            } else {
-                System.setProperty(key, previous);
-            }
             Files.deleteIfExists(tempConfig);
         }
     }

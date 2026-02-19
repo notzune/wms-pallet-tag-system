@@ -670,12 +670,12 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                 "WHERE COLNAM = 'prtnum|prt_client_id|wh_id_tmpl' AND COLVAL = ? " +
                 "FETCH FIRST 1 ROWS ONLY";
 
-        for (String skuCandidate : buildSkuCandidates(sku)) {
-            // Probe most specific keys first (real client/warehouse), then wildcard placeholders.
-            for (String clientCandidate : clientCandidates) {
-                for (String whCandidate : whCandidates) {
-                    String colVal = skuCandidate + "|" + clientCandidate + "|" + whCandidate;
-                    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (String skuCandidate : buildSkuCandidates(sku)) {
+                // Probe most specific keys first (real client/warehouse), then wildcard placeholders.
+                for (String clientCandidate : clientCandidates) {
+                    for (String whCandidate : whCandidates) {
+                        String colVal = skuCandidate + "|" + clientCandidate + "|" + whCandidate;
                         stmt.setString(1, colVal);
                         try (ResultSet rs = stmt.executeQuery()) {
                             if (rs.next()) {
@@ -689,11 +689,11 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                                 }
                             }
                         }
-                    } catch (SQLException e) {
-                        log.debug("Could not query PRTDSC for SKU {}: {}", sku, e.getMessage());
                     }
                 }
             }
+        } catch (SQLException e) {
+            log.debug("Could not query PRTDSC for SKU {}: {}", sku, e.getMessage());
         }
         return null;
     }
@@ -707,17 +707,15 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         }
 
         String selectCols = String.join(", ", descriptionColumns);
-        for (String skuCandidate : buildSkuCandidates(sku)) {
-            String sql;
-            if (prtClientId == null || prtClientId.isBlank()) {
-                sql = "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? FETCH FIRST 3 ROWS ONLY";
-            } else {
-                sql = "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? AND PRT_CLIENT_ID = ? FETCH FIRST 3 ROWS ONLY";
-            }
+        boolean hasClientId = prtClientId != null && !prtClientId.isBlank();
+        String sql = hasClientId
+                ? "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? AND PRT_CLIENT_ID = ? FETCH FIRST 3 ROWS ONLY"
+                : "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? FETCH FIRST 3 ROWS ONLY";
 
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (String skuCandidate : buildSkuCandidates(sku)) {
                 stmt.setString(1, skuCandidate);
-                if (prtClientId != null && !prtClientId.isBlank()) {
+                if (hasClientId) {
                     stmt.setString(2, prtClientId);
                 }
 
@@ -732,9 +730,9 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                         }
                     }
                 }
-            } catch (SQLException e) {
-                log.debug("Could not resolve PRTMST description for SKU {} candidate {}: {}", sku, skuCandidate, e.getMessage());
             }
+        } catch (SQLException e) {
+            log.debug("Could not resolve PRTMST description for SKU {}: {}", sku, e.getMessage());
         }
         return null;
     }
