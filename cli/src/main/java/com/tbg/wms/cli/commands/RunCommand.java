@@ -14,9 +14,9 @@ import com.tbg.wms.core.exception.WmsPrintException;
 import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.label.SiteConfig;
+import com.tbg.wms.core.labeling.LabelingSupport;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.PalletPlanningService;
-import com.tbg.wms.core.model.LineItem;
 import com.tbg.wms.core.model.Shipment;
 import com.tbg.wms.core.model.ShipmentSkuFootprint;
 import com.tbg.wms.core.print.NetworkPrintService;
@@ -37,12 +37,9 @@ import picocli.CommandLine.Option;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -143,7 +140,7 @@ public final class RunCommand implements Callable<Integer> {
 
             // ── Step 1: Load SKU Mapping ──
             log.info("Loading Walmart SKU mapping CSV...");
-            Path csvPath = resolveSkuMatrixCsv();
+            Path csvPath = LabelingSupport.resolveSkuMatrixCsv();
             if (csvPath == null) {
                 log.error("SKU mapping CSV not found: {}", csvPath);
                 System.err.println("Error: SKU mapping CSV not found. Expected one of:");
@@ -195,7 +192,7 @@ public final class RunCommand implements Callable<Integer> {
 
                 // ── Step 6: Pull footprint + planning data ──
                 List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(shipmentId);
-                Map<String, ShipmentSkuFootprint> footprintBySku = buildFootprintMap(footprintRows);
+                Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
                 PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
 
                 printPlanSummary(planResult, shipment.getLpnCount());
@@ -326,38 +323,6 @@ public final class RunCommand implements Callable<Integer> {
         }
     }
 
-    private Path resolveSkuMatrixCsv() {
-        List<Path> candidates = List.of(
-                Paths.get("config/walmart-sku-matrix.csv"),
-                Paths.get("config/walmart_sku_matrix.csv"),
-                Paths.get("config/TBG3002/walmart-sku-matrix.csv"),
-                Paths.get("config/TBG3002/walmart_sku_matrix.csv"),
-                Paths.get("walmart-sku-matrix.csv"),
-                Paths.get("walmart_sku_matrix.csv")
-        );
-
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate)) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    private Map<String, ShipmentSkuFootprint> buildFootprintMap(List<ShipmentSkuFootprint> rows) {
-        if (rows == null || rows.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, ShipmentSkuFootprint> bySku = new HashMap<>();
-        for (ShipmentSkuFootprint row : rows) {
-            if (row != null && row.getSku() != null && !row.getSku().isBlank()) {
-                bySku.put(row.getSku(), row);
-            }
-        }
-        return bySku;
-    }
-
     private void printPlanSummary(PalletPlanningService.PlanResult planResult, int actualPallets) {
         System.out.println();
         System.out.println("=== Pallet Planning Summary ===");
@@ -383,7 +348,7 @@ public final class RunCommand implements Callable<Integer> {
             return lpns;
         }
 
-        List<Lpn> virtualLpns = buildVirtualLpnsFromFootprints(shipment, footprintRows);
+        List<Lpn> virtualLpns = LabelingSupport.buildVirtualLpnsFromFootprints(shipment, footprintRows);
         if (!virtualLpns.isEmpty()) {
             log.warn("Shipment {} has no LPNs. Using {} virtual SKU-based labels.", shipment.getShipmentId(), virtualLpns.size());
             System.out.println("Warning: Shipment has no LPNs. Generating SKU-based labels without LPN dependency.");
@@ -393,96 +358,6 @@ public final class RunCommand implements Callable<Integer> {
         return lpns;
     }
 
-    private List<Lpn> buildVirtualLpnsFromFootprints(Shipment shipment, List<ShipmentSkuFootprint> footprintRows) {
-        if (footprintRows == null || footprintRows.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<Lpn> virtualLpns = new ArrayList<>();
-        int seq = 0;
-
-        for (ShipmentSkuFootprint row : footprintRows) {
-            if (row == null || row.getSku() == null || row.getSku().isBlank()) {
-                continue;
-            }
-
-            int totalUnits = Math.max(0, row.getTotalUnits());
-            if (totalUnits == 0) {
-                continue;
-            }
-
-            Integer unitsPerPallet = row.getUnitsPerPallet();
-            int palletsForSku;
-            if (unitsPerPallet == null || unitsPerPallet <= 0) {
-                // Missing footprint: fall back to a single pallet label.
-                palletsForSku = 1;
-            } else {
-                // One label per pallet: full pallets + one partial if remainder exists.
-                palletsForSku = totalUnits / unitsPerPallet;
-                if (totalUnits % unitsPerPallet != 0) {
-                    palletsForSku += 1;
-                }
-            }
-
-            for (int palletIndex = 0; palletIndex < palletsForSku; palletIndex++) {
-                int palletUnits;
-                if (unitsPerPallet == null || unitsPerPallet <= 0) {
-                    palletUnits = totalUnits;
-                } else if (palletIndex < palletsForSku - 1) {
-                    palletUnits = unitsPerPallet;
-                } else {
-                    int remainder = totalUnits % unitsPerPallet;
-                    // The last pallet carries the remainder.
-                    palletUnits = remainder == 0 ? unitsPerPallet : remainder;
-                }
-
-                seq++;
-                LineItem item = new LineItem(
-                        String.valueOf(seq),
-                        "0",
-                        row.getSku(),
-                        isHumanReadableDescription(row.getItemDescription()) ? row.getItemDescription() : null,
-                        null,
-                        shipment.getOrderId(),
-                        null,
-                        null,
-                        palletUnits,
-                        row.getUnitsPerCase() != null ? row.getUnitsPerCase() : 0,
-                        "EA",
-                        0.0,
-                        null,
-                        null,
-                        null
-                );
-
-                String syntheticLpnId = "NO_LPN_" + seq;
-                String syntheticSscc = String.format("%018d", seq);
-
-                Lpn virtualLpn = new Lpn(
-                        syntheticLpnId,
-                        shipment.getShipmentId(),
-                        syntheticSscc,
-                        0,
-                        palletUnits,
-                        0.0,
-                        shipment.getDestinationLocation(),
-                        null,
-                        null,
-                        LocalDate.now(),
-                        LocalDate.now(),
-                        List.of(item)
-                );
-
-                virtualLpns.add(virtualLpn);
-            }
-        }
-
-        return virtualLpns;
-    }
-
-    private boolean isHumanReadableDescription(String value) {
-        return value != null && value.chars().anyMatch(Character::isLetter);
-    }
 
     /**
      * Creates site-specific configuration based on site code.

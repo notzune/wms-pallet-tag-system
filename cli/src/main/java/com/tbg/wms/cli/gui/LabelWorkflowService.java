@@ -12,7 +12,7 @@ import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.label.SiteConfig;
-import com.tbg.wms.core.model.LineItem;
+import com.tbg.wms.core.labeling.LabelingSupport;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.PalletPlanningService;
 import com.tbg.wms.core.model.Shipment;
@@ -31,11 +31,9 @@ import com.tbg.wms.db.OracleDbQueryRepository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +47,7 @@ import java.util.Objects;
 public final class LabelWorkflowService {
 
     private final AppConfig config;
+    private final Map<String, PrinterRoutingService> routingCache = new HashMap<>();
 
     public LabelWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
@@ -61,7 +60,7 @@ public final class LabelWorkflowService {
      * @throws Exception when routing config cannot be loaded
      */
     public List<PrinterOption> loadPrinters() throws Exception {
-        PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), Paths.get("config"));
+        PrinterRoutingService routing = loadRouting(config.activeSiteCode());
         List<PrinterOption> options = new ArrayList<>();
         for (PrinterConfig printer : routing.getPrinters().values()) {
             if (printer.isEnabled()) {
@@ -85,7 +84,7 @@ public final class LabelWorkflowService {
         }
 
         String normalizedShipmentId = shipmentId.trim();
-        Path csvPath = resolveSkuMatrixCsv();
+        Path csvPath = LabelingSupport.resolveSkuMatrixCsv();
         if (csvPath == null) {
             throw new IllegalStateException("SKU mapping CSV not found.");
         }
@@ -99,7 +98,7 @@ public final class LabelWorkflowService {
 
         String siteCode = config.activeSiteCode();
         SiteConfig siteConfig = createSiteConfig(siteCode);
-        PrinterRoutingService routing = PrinterRoutingService.load(siteCode, Paths.get("config"));
+        PrinterRoutingService routing = loadRouting(siteCode);
 
         try (DbConnectionPool pool = new DbConnectionPool(config)) {
             DbQueryRepository queryRepo = new OracleDbQueryRepository(pool.getDataSource());
@@ -113,7 +112,7 @@ public final class LabelWorkflowService {
             }
 
             List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(normalizedShipmentId);
-            Map<String, ShipmentSkuFootprint> footprintBySku = buildFootprintMap(footprintRows);
+            Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
             PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
             List<Lpn> lpnsForLabels = resolveLpnsForLabeling(shipment, footprintRows);
             boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
@@ -233,131 +232,27 @@ public final class LabelWorkflowService {
         return mathRows;
     }
 
-    private Path resolveSkuMatrixCsv() {
-        List<Path> candidates = List.of(
-                Paths.get("config/walmart-sku-matrix.csv"),
-                Paths.get("config/walmart_sku_matrix.csv"),
-                Paths.get("config/TBG3002/walmart-sku-matrix.csv"),
-                Paths.get("config/TBG3002/walmart_sku_matrix.csv"),
-                Paths.get("walmart-sku-matrix.csv"),
-                Paths.get("walmart_sku_matrix.csv")
-        );
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate)) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    private Map<String, ShipmentSkuFootprint> buildFootprintMap(List<ShipmentSkuFootprint> rows) {
-        if (rows == null || rows.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, ShipmentSkuFootprint> bySku = new HashMap<>();
-        for (ShipmentSkuFootprint row : rows) {
-            if (row != null && row.getSku() != null && !row.getSku().isBlank()) {
-                bySku.put(row.getSku(), row);
-            }
-        }
-        return bySku;
-    }
-
     private List<Lpn> resolveLpnsForLabeling(Shipment shipment, List<ShipmentSkuFootprint> footprintRows) {
         List<Lpn> lpns = shipment.getLpns();
         if (!lpns.isEmpty()) {
             return lpns;
         }
-        List<Lpn> virtual = buildVirtualLpnsFromFootprints(shipment, footprintRows);
+        List<Lpn> virtual = LabelingSupport.buildVirtualLpnsFromFootprints(shipment, footprintRows);
         return virtual.isEmpty() ? lpns : virtual;
     }
 
-    private List<Lpn> buildVirtualLpnsFromFootprints(Shipment shipment, List<ShipmentSkuFootprint> footprintRows) {
-        if (footprintRows == null || footprintRows.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<Lpn> virtualLpns = new ArrayList<>();
-        int seq = 0;
-
-        for (ShipmentSkuFootprint row : footprintRows) {
-            if (row == null || row.getSku() == null || row.getSku().isBlank()) {
-                continue;
-            }
-
-            int totalUnits = Math.max(0, row.getTotalUnits());
-            if (totalUnits == 0) {
-                continue;
-            }
-
-            Integer unitsPerPallet = row.getUnitsPerPallet();
-            int palletsForSku;
-            if (unitsPerPallet == null || unitsPerPallet <= 0) {
-                // Missing footprint: fall back to a single pallet label.
-                palletsForSku = 1;
-            } else {
-                // One label per pallet: full pallets + one partial if remainder exists.
-                palletsForSku = totalUnits / unitsPerPallet;
-                if (totalUnits % unitsPerPallet != 0) {
-                    palletsForSku += 1;
-                }
-            }
-
-            for (int palletIndex = 0; palletIndex < palletsForSku; palletIndex++) {
-                int palletUnits;
-                if (unitsPerPallet == null || unitsPerPallet <= 0) {
-                    palletUnits = totalUnits;
-                } else if (palletIndex < palletsForSku - 1) {
-                    palletUnits = unitsPerPallet;
-                } else {
-                    int remainder = totalUnits % unitsPerPallet;
-                    // The last pallet carries the remainder.
-                    palletUnits = remainder == 0 ? unitsPerPallet : remainder;
-                }
-
-                seq++;
-                String description = isHumanReadable(row.getItemDescription()) ? row.getItemDescription() : null;
-                LineItem item = new LineItem(
-                        String.valueOf(seq),
-                        "0",
-                        row.getSku(),
-                        description,
-                        null,
-                        shipment.getOrderId(),
-                        null,
-                        null,
-                        palletUnits,
-                        row.getUnitsPerCase() != null ? row.getUnitsPerCase() : 0,
-                        "EA",
-                        0.0,
-                        null,
-                        null,
-                        null
-                );
-
-                Lpn virtualLpn = new Lpn(
-                        "NO_LPN_" + seq,
-                        shipment.getShipmentId(),
-                        String.format("%018d", seq),
-                        0,
-                        palletUnits,
-                        0.0,
-                        shipment.getDestinationLocation(),
-                        null,
-                        null,
-                        LocalDate.now(),
-                        LocalDate.now(),
-                        List.of(item)
-                );
-                virtualLpns.add(virtualLpn);
-            }
-        }
-        return virtualLpns;
+    private boolean isHumanReadable(String value) {
+        return LabelingSupport.isHumanReadable(value);
     }
 
-    private boolean isHumanReadable(String value) {
-        return value != null && value.chars().anyMatch(Character::isLetter);
+    private PrinterRoutingService loadRouting(String siteCode) throws Exception {
+        PrinterRoutingService cached = routingCache.get(siteCode);
+        if (cached != null) {
+            return cached;
+        }
+        PrinterRoutingService routing = PrinterRoutingService.load(siteCode, Paths.get("config"));
+        routingCache.put(siteCode, routing);
+        return routing;
     }
 
     private SiteConfig createSiteConfig(String siteCode) {
