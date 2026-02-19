@@ -10,33 +10,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PalletPlanningServiceTest {
 
     @Test
-    void testPlanComputesEstimatedPalletsFromUnitsPerPallet() {
-        PalletPlanningService service = new PalletPlanningService();
-
+    void testPlanComputesFullAndPartialPallets() {
         List<ShipmentSkuFootprint> rows = List.of(
                 new ShipmentSkuFootprint("SKU-A", 120, 12, 60, 48.0, 40.0, 60.0),
                 new ShipmentSkuFootprint("SKU-B", 61, 6, 30, 48.0, 40.0, 60.0)
         );
 
-        PalletPlanningService.PlanResult result = service.plan(rows);
+        PalletPlanningService.PlanResult result = new PalletPlanningService().plan(rows);
 
         assertEquals(181, result.getTotalUnits());
-        assertEquals(5, result.getEstimatedPallets()); // 120/60=2, 61/30=3
+        assertEquals(4, result.getFullPallets());
+        assertEquals(1, result.getPartialPallets());
+        assertEquals(5, result.getEstimatedPallets());
         assertTrue(result.getSkusMissingFootprint().isEmpty());
     }
 
     @Test
     void testPlanReportsMissingFootprintForSkuWithUnits() {
-        PalletPlanningService service = new PalletPlanningService();
-
         List<ShipmentSkuFootprint> rows = List.of(
                 new ShipmentSkuFootprint("SKU-A", 100, 10, null, null, null, null)
         );
 
-        PalletPlanningService.PlanResult result = service.plan(rows);
+        PalletPlanningService.PlanResult result = new PalletPlanningService().plan(rows);
 
         assertEquals(100, result.getTotalUnits());
-        assertEquals(0, result.getEstimatedPallets());
+        assertEquals(0, result.getFullPallets());
+        assertEquals(1, result.getPartialPallets());
+        assertEquals(1, result.getEstimatedPallets());
         assertEquals(List.of("SKU-A"), result.getSkusMissingFootprint());
     }
 }

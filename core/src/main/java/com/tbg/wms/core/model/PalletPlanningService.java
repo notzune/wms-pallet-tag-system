@@ -1,31 +1,42 @@
+/*
+ * Copyright © 2026 Zeyad Rashed
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.0.0
+ */
+
 package com.tbg.wms.core.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
- * Calculates pallet requirements from shipment SKU totals and footprint setup.
+ * Calculates pallet planning summary metrics from SKU footprint data.
+ *
+ * <p>Guidance: keep the planning logic explicit and easy to audit. The output
+ * is used for label counts and must match the per-pallet labeling rules.</p>
  */
 public final class PalletPlanningService {
 
     /**
-     * Computes pallet planning details per SKU and for the full shipment.
+     * Produces a pallet plan summary for a shipment footprint dataset.
      *
-     * @param skuFootprints aggregated shipment SKU rows from WMS
-     * @return immutable planning result
+     * @param footprintRows shipment SKU footprint rows (one per SKU)
+     * @return plan result with totals and missing-footprint diagnostics
      */
-    public PlanResult plan(List<ShipmentSkuFootprint> skuFootprints) {
-        Objects.requireNonNull(skuFootprints, "skuFootprints cannot be null");
+    public PlanResult plan(List<ShipmentSkuFootprint> footprintRows) {
+        if (footprintRows == null || footprintRows.isEmpty()) {
+            return new PlanResult(0, 0, 0, 0, List.of());
+        }
 
-        List<SkuPlan> skuPlans = new ArrayList<>();
-        List<String> missingFootprints = new ArrayList<>();
-
-        int estimatedPallets = 0;
         int totalUnits = 0;
+        int fullPallets = 0;
+        int partialPallets = 0;
+        List<String> missing = new ArrayList<>();
 
-        for (ShipmentSkuFootprint row : skuFootprints) {
+        for (ShipmentSkuFootprint row : footprintRows) {
             if (row == null) {
                 continue;
             }
@@ -34,78 +45,69 @@ public final class PalletPlanningService {
             totalUnits += units;
 
             Integer unitsPerPallet = row.getUnitsPerPallet();
-            int skuPallets = 0;
-
-            if (units > 0 && unitsPerPallet != null && unitsPerPallet > 0) {
-                skuPallets = divideRoundUp(units, unitsPerPallet);
-                estimatedPallets += skuPallets;
-            } else if (units > 0) {
-                missingFootprints.add(row.getSku());
+            if (unitsPerPallet == null || unitsPerPallet <= 0) {
+                // Missing footprint: treat as one partial pallet for visibility.
+                if (units > 0 && row.getSku() != null && !row.getSku().isBlank()) {
+                    missing.add(row.getSku());
+                    partialPallets += 1;
+                }
+                continue;
             }
 
-            skuPlans.add(new SkuPlan(row, skuPallets));
+            int full = units / unitsPerPallet;
+            int remainder = units % unitsPerPallet;
+            fullPallets += full;
+            if (remainder > 0) {
+                partialPallets += 1;
+            }
         }
 
-        return new PlanResult(
-                Collections.unmodifiableList(skuPlans),
-                Collections.unmodifiableList(missingFootprints),
-                totalUnits,
-                estimatedPallets
-        );
+        int estimatedPallets = fullPallets + partialPallets;
+        return new PlanResult(totalUnits, fullPallets, partialPallets, estimatedPallets, missing);
     }
 
-    private int divideRoundUp(int numerator, int denominator) {
-        return (numerator + denominator - 1) / denominator;
-    }
-
+    /**
+     * Summary metrics used by CLI/GUI previews.
+     */
     public static final class PlanResult {
-        private final List<SkuPlan> skuPlans;
-        private final List<String> skusMissingFootprint;
         private final int totalUnits;
+        private final int fullPallets;
+        private final int partialPallets;
         private final int estimatedPallets;
+        private final List<String> skusMissingFootprint;
 
-        private PlanResult(List<SkuPlan> skuPlans,
-                           List<String> skusMissingFootprint,
-                           int totalUnits,
-                           int estimatedPallets) {
-            this.skuPlans = skuPlans;
-            this.skusMissingFootprint = skusMissingFootprint;
+        private PlanResult(int totalUnits,
+                           int fullPallets,
+                           int partialPallets,
+                           int estimatedPallets,
+                           List<String> skusMissingFootprint) {
             this.totalUnits = totalUnits;
+            this.fullPallets = fullPallets;
+            this.partialPallets = partialPallets;
             this.estimatedPallets = estimatedPallets;
-        }
-
-        public List<SkuPlan> getSkuPlans() {
-            return skuPlans;
-        }
-
-        public List<String> getSkusMissingFootprint() {
-            return skusMissingFootprint;
+            this.skusMissingFootprint = skusMissingFootprint == null
+                    ? List.of()
+                    : Collections.unmodifiableList(new ArrayList<>(skusMissingFootprint));
         }
 
         public int getTotalUnits() {
             return totalUnits;
         }
 
-        public int getEstimatedPallets() {
-            return estimatedPallets;
-        }
-    }
-
-    public static final class SkuPlan {
-        private final ShipmentSkuFootprint footprint;
-        private final int estimatedPallets;
-
-        private SkuPlan(ShipmentSkuFootprint footprint, int estimatedPallets) {
-            this.footprint = footprint;
-            this.estimatedPallets = estimatedPallets;
+        public int getFullPallets() {
+            return fullPallets;
         }
 
-        public ShipmentSkuFootprint getFootprint() {
-            return footprint;
+        public int getPartialPallets() {
+            return partialPallets;
         }
 
         public int getEstimatedPallets() {
             return estimatedPallets;
+        }
+
+        public List<String> getSkusMissingFootprint() {
+            return skusMissingFootprint;
         }
     }
 }

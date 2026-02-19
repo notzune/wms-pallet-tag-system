@@ -336,6 +336,8 @@ public final class RunCommand implements Callable<Integer> {
         System.out.println("=== Pallet Planning Summary ===");
         System.out.println("Total units across shipment: " + planResult.getTotalUnits());
         System.out.println("Estimated pallets from footprint setup: " + planResult.getEstimatedPallets());
+        System.out.println("  Full pallets: " + planResult.getFullPallets());
+        System.out.println("  Partial pallets: " + planResult.getPartialPallets());
         System.out.println("Actual LPNs in shipment: " + actualPallets);
 
         if (!planResult.getSkusMissingFootprint().isEmpty()) {
@@ -377,44 +379,75 @@ public final class RunCommand implements Callable<Integer> {
                 continue;
             }
 
-            seq++;
-            LineItem item = new LineItem(
-                    String.valueOf(seq),
-                    "0",
-                    row.getSku(),
-                    isHumanReadableDescription(row.getItemDescription()) ? row.getItemDescription() : null,
-                    null,
-                    shipment.getOrderId(),
-                    null,
-                    null,
-                    row.getTotalUnits(),
-                    row.getUnitsPerCase() != null ? row.getUnitsPerCase() : 0,
-                    "EA",
-                    0.0,
-                    null,
-                    null,
-                    null
-            );
+            int totalUnits = Math.max(0, row.getTotalUnits());
+            if (totalUnits == 0) {
+                continue;
+            }
 
-            String syntheticLpnId = "NO_LPN_" + seq;
-            String syntheticSscc = String.format("%018d", seq);
+            Integer unitsPerPallet = row.getUnitsPerPallet();
+            int palletsForSku;
+            if (unitsPerPallet == null || unitsPerPallet <= 0) {
+                // Missing footprint: fall back to a single pallet label.
+                palletsForSku = 1;
+            } else {
+                // One label per pallet: full pallets + one partial if remainder exists.
+                palletsForSku = totalUnits / unitsPerPallet;
+                if (totalUnits % unitsPerPallet != 0) {
+                    palletsForSku += 1;
+                }
+            }
 
-            Lpn virtualLpn = new Lpn(
-                    syntheticLpnId,
-                    shipment.getShipmentId(),
-                    syntheticSscc,
-                    0,
-                    row.getTotalUnits(),
-                    0.0,
-                    shipment.getDestinationLocation(),
-                    null,
-                    null,
-                    LocalDate.now(),
-                    LocalDate.now(),
-                    List.of(item)
-            );
+            for (int palletIndex = 0; palletIndex < palletsForSku; palletIndex++) {
+                int palletUnits;
+                if (unitsPerPallet == null || unitsPerPallet <= 0) {
+                    palletUnits = totalUnits;
+                } else if (palletIndex < palletsForSku - 1) {
+                    palletUnits = unitsPerPallet;
+                } else {
+                    int remainder = totalUnits % unitsPerPallet;
+                    // The last pallet carries the remainder.
+                    palletUnits = remainder == 0 ? unitsPerPallet : remainder;
+                }
 
-            virtualLpns.add(virtualLpn);
+                seq++;
+                LineItem item = new LineItem(
+                        String.valueOf(seq),
+                        "0",
+                        row.getSku(),
+                        isHumanReadableDescription(row.getItemDescription()) ? row.getItemDescription() : null,
+                        null,
+                        shipment.getOrderId(),
+                        null,
+                        null,
+                        palletUnits,
+                        row.getUnitsPerCase() != null ? row.getUnitsPerCase() : 0,
+                        "EA",
+                        0.0,
+                        null,
+                        null,
+                        null
+                );
+
+                String syntheticLpnId = "NO_LPN_" + seq;
+                String syntheticSscc = String.format("%018d", seq);
+
+                Lpn virtualLpn = new Lpn(
+                        syntheticLpnId,
+                        shipment.getShipmentId(),
+                        syntheticSscc,
+                        0,
+                        palletUnits,
+                        0.0,
+                        shipment.getDestinationLocation(),
+                        null,
+                        null,
+                        LocalDate.now(),
+                        LocalDate.now(),
+                        List.of(item)
+                );
+
+                virtualLpns.add(virtualLpn);
+            }
         }
 
         return virtualLpns;

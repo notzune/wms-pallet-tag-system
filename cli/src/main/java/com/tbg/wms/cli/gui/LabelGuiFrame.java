@@ -1,3 +1,11 @@
+/*
+ * Copyright © 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.0.0
+ */
+
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
@@ -11,6 +19,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Swing-based GUI for shipment preview and label printing.
+ */
 public final class LabelGuiFrame extends JFrame {
 
     private final JTextField shipmentField = new JTextField(16);
@@ -188,6 +199,8 @@ public final class LabelGuiFrame extends JFrame {
         summary.append(" - Virtual Labels Used: ").append(job.isUsingVirtualLabels() ? "YES" : "NO").append('\n');
         summary.append(" - Total Units: ").append(job.getPlanResult().getTotalUnits()).append('\n');
         summary.append(" - Estimated Pallets (Footprint): ").append(job.getPlanResult().getEstimatedPallets()).append('\n');
+        summary.append(" - Full Pallets (Footprint): ").append(job.getPlanResult().getFullPallets()).append('\n');
+        summary.append(" - Partial Pallets (Footprint): ").append(job.getPlanResult().getPartialPallets()).append('\n');
         summary.append(" - Missing Footprint SKUs: ")
                 .append(job.getPlanResult().getSkusMissingFootprint().isEmpty()
                         ? "None"

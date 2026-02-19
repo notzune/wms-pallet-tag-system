@@ -1,3 +1,11 @@
+/*
+ * Copyright © 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.0.0
+ */
+
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
@@ -34,6 +42,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * GUI workflow service that loads shipment data, builds preview math,
+ * and executes label printing.
+ */
 public final class LabelWorkflowService {
 
     private final AppConfig config;
@@ -42,6 +54,12 @@ public final class LabelWorkflowService {
         this.config = Objects.requireNonNull(config, "config cannot be null");
     }
 
+    /**
+     * Loads enabled printers from routing configuration.
+     *
+     * @return list of available printers sorted by ID
+     * @throws Exception when routing config cannot be loaded
+     */
     public List<PrinterOption> loadPrinters() throws Exception {
         PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), Paths.get("config"));
         List<PrinterOption> options = new ArrayList<>();
@@ -54,6 +72,13 @@ public final class LabelWorkflowService {
         return options;
     }
 
+    /**
+     * Loads shipment data and prepares the label plan for GUI preview.
+     *
+     * @param shipmentId WMS shipment identifier
+     * @return prepared job with shipment, labels, and planning results
+     * @throws Exception when data is missing or cannot be loaded
+     */
     public PreparedJob prepareJob(String shipmentId) throws Exception {
         if (shipmentId == null || shipmentId.isBlank()) {
             throw new IllegalArgumentException("Shipment ID is required.");
@@ -112,6 +137,15 @@ public final class LabelWorkflowService {
         }
     }
 
+    /**
+     * Generates ZPL output and prints labels for the prepared job.
+     *
+     * @param job prepared job from preview
+     * @param printerId printer identifier to use
+     * @param outputDir output directory for ZPL artifacts
+     * @return summary of labels printed and output path
+     * @throws Exception when printing fails
+     */
     public PrintResult print(PreparedJob job, String printerId, Path outputDir) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         if (printerId == null || printerId.isBlank()) {
@@ -243,41 +277,72 @@ public final class LabelWorkflowService {
                 continue;
             }
 
-            seq++;
-            String description = isHumanReadable(row.getItemDescription()) ? row.getItemDescription() : null;
-            LineItem item = new LineItem(
-                    String.valueOf(seq),
-                    "0",
-                    row.getSku(),
-                    description,
-                    null,
-                    shipment.getOrderId(),
-                    null,
-                    null,
-                    row.getTotalUnits(),
-                    row.getUnitsPerCase() != null ? row.getUnitsPerCase() : 0,
-                    "EA",
-                    0.0,
-                    null,
-                    null,
-                    null
-            );
+            int totalUnits = Math.max(0, row.getTotalUnits());
+            if (totalUnits == 0) {
+                continue;
+            }
 
-            Lpn virtualLpn = new Lpn(
-                    "NO_LPN_" + seq,
-                    shipment.getShipmentId(),
-                    String.format("%018d", seq),
-                    0,
-                    row.getTotalUnits(),
-                    0.0,
-                    shipment.getDestinationLocation(),
-                    null,
-                    null,
-                    LocalDate.now(),
-                    LocalDate.now(),
-                    List.of(item)
-            );
-            virtualLpns.add(virtualLpn);
+            Integer unitsPerPallet = row.getUnitsPerPallet();
+            int palletsForSku;
+            if (unitsPerPallet == null || unitsPerPallet <= 0) {
+                // Missing footprint: fall back to a single pallet label.
+                palletsForSku = 1;
+            } else {
+                // One label per pallet: full pallets + one partial if remainder exists.
+                palletsForSku = totalUnits / unitsPerPallet;
+                if (totalUnits % unitsPerPallet != 0) {
+                    palletsForSku += 1;
+                }
+            }
+
+            for (int palletIndex = 0; palletIndex < palletsForSku; palletIndex++) {
+                int palletUnits;
+                if (unitsPerPallet == null || unitsPerPallet <= 0) {
+                    palletUnits = totalUnits;
+                } else if (palletIndex < palletsForSku - 1) {
+                    palletUnits = unitsPerPallet;
+                } else {
+                    int remainder = totalUnits % unitsPerPallet;
+                    // The last pallet carries the remainder.
+                    palletUnits = remainder == 0 ? unitsPerPallet : remainder;
+                }
+
+                seq++;
+                String description = isHumanReadable(row.getItemDescription()) ? row.getItemDescription() : null;
+                LineItem item = new LineItem(
+                        String.valueOf(seq),
+                        "0",
+                        row.getSku(),
+                        description,
+                        null,
+                        shipment.getOrderId(),
+                        null,
+                        null,
+                        palletUnits,
+                        row.getUnitsPerCase() != null ? row.getUnitsPerCase() : 0,
+                        "EA",
+                        0.0,
+                        null,
+                        null,
+                        null
+                );
+
+                Lpn virtualLpn = new Lpn(
+                        "NO_LPN_" + seq,
+                        shipment.getShipmentId(),
+                        String.format("%018d", seq),
+                        0,
+                        palletUnits,
+                        0.0,
+                        shipment.getDestinationLocation(),
+                        null,
+                        null,
+                        LocalDate.now(),
+                        LocalDate.now(),
+                        List.of(item)
+                );
+                virtualLpns.add(virtualLpn);
+            }
         }
         return virtualLpns;
     }
