@@ -51,15 +51,14 @@
  *
  * Exit Codes:
  * <ul>
- *   <li>0 - Success
- *   <li>2 - Configuration error (use WmsConfigException)
- *   <li>3 - Database connectivity error (use WmsDbConnectivityException)
- *   <li>10 - Unexpected internal error (use WmsException)
+ *   <li>0 - Success</li>
+ *   <li>2 - Configuration error (use WmsConfigException)</li>
+ *   <li>3 - Database connectivity error (use WmsDbConnectivityException)</li>
+ *   <li>10 - Unexpected internal error (use WmsException)</li>
  * </ul>
  *
  * @author Zeyad Rashed
- * @version 1.0
+ * @version 1.1
  * @since 1.0.0
  */
 package com.tbg.wms.core.exception;
-

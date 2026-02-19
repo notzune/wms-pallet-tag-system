@@ -14,11 +14,11 @@
  *
  * Key Components:
  * <ul>
- *   <li>{@link com.tbg.wms.core.model.Shipment} - Top-level shipment container
- *   <li>{@link com.tbg.wms.core.model.Lpn} - License plate number (pallet)
- *   <li>{@link com.tbg.wms.core.model.LineItem} - SKU and quantity details
- *   <li>{@link com.tbg.wms.core.model.NormalizationService} - Data transformation utility
- *   <li>{@link com.tbg.wms.core.model.SnapshotService} - JSON snapshot persistence
+ *   <li>{@link com.tbg.wms.core.model.Shipment} - Top-level shipment container</li>
+ *   <li>{@link com.tbg.wms.core.model.Lpn} - License plate number (pallet)</li>
+ *   <li>{@link com.tbg.wms.core.model.LineItem} - SKU and quantity details</li>
+ *   <li>{@link com.tbg.wms.core.model.NormalizationService} - Data transformation utility</li>
+ *   <li>{@link com.tbg.wms.core.model.SnapshotService} - JSON snapshot persistence</li>
  * </ul>
  *
  * Usage:
@@ -38,15 +38,14 @@
  *
  * Design Principles:
  * <ul>
- *   <li>Immutable domain models prevent accidental mutation
- *   <li>Stateless services for reusable transformations
- *   <li>Type-safe error handling with checked exceptions
- *   <li>JSON serialization for snapshot capture and replay
+ *   <li>Immutable domain models prevent accidental mutation</li>
+ *   <li>Stateless services for reusable transformations</li>
+ *   <li>Type-safe error handling for domain services</li>
+ *   <li>JSON serialization for snapshot capture and replay</li>
  * </ul>
  *
  * @author Zeyad Rashed
- * @version 1.0
+ * @version 1.1
  * @since 1.0.0
  */
 package com.tbg.wms.core.model;
-

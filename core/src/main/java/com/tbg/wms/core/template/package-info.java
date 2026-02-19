@@ -60,10 +60,10 @@
  *
  * Special Character Escaping:
  * <ul>
- *   <li>^ (caret) - ZPL command prefix → ~~^
- *   <li>~ (tilde) - ZPL control character → ~~
- *   <li>{ (brace) - Template marker → {{
- *   <li>} (brace) - Template marker → }}
+ *   <li>^ (caret) - ZPL command prefix -> ~~^</li>
+ *   <li>~ (tilde) - ZPL control character -> ~~</li>
+ *   <li>{ (brace) - Template marker -> {{</li>
+ *   <li>} (brace) - Template marker -> }}</li>
  * </ul>
  *
  * Design Properties:
@@ -75,8 +75,7 @@
  * </ul>
  *
  * @author Zeyad Rashed
- * @version 1.0
+ * @version 1.1
  * @since 1.0.0
  */
 package com.tbg.wms.core.template;
-

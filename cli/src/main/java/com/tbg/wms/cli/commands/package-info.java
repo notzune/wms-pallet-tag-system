@@ -14,18 +14,11 @@
  *
  * Implemented Commands:
  * <ul>
- *   <li>{@link com.tbg.wms.cli.commands.RootCommand} - Root command with subcommands
- *   <li>{@link com.tbg.wms.cli.commands.ShowConfigCommand} - Display effective config
- *   <li>{@link com.tbg.wms.cli.commands.DbTestCommand} - Test DB connectivity
- * </ul>
- *
- * Planned Commands:
- * <ul>
- *   <li>RunCommand - Generate and print labels from shipment
- *   <li>TemplateCommand - Generate blank label templates
- *   <li>PrintTemplateCommand - Print templates to printer
- *   <li>ManualCommand - Manual label entry mode
- *   <li>ValidateCommand - Validate snapshots
+ *   <li>{@link com.tbg.wms.cli.commands.RootCommand} - Root command with subcommands</li>
+ *   <li>{@link com.tbg.wms.cli.commands.ShowConfigCommand} - Display effective config</li>
+ *   <li>{@link com.tbg.wms.cli.commands.DbTestCommand} - Test DB connectivity</li>
+ *   <li>{@link com.tbg.wms.cli.commands.RunCommand} - Generate and print labels</li>
+ *   <li>{@link com.tbg.wms.cli.commands.GuiCommand} - Launch GUI workflow</li>
  * </ul>
  *
  * Command Pattern:
@@ -44,13 +37,13 @@
  *
  * Exit Code Convention:
  * <ul>
- *   <li>0 - Success
- *   <li>2 - Configuration/user input error
- *   <li>3 - Database connectivity error
- *   <li>4 - Database query error
- *   <li>5 - Validation error
- *   <li>6 - Print/network error
- *   <li>10 - Unexpected error
+ *   <li>0 - Success</li>
+ *   <li>2 - Configuration or user input error</li>
+ *   <li>3 - Database connectivity error</li>
+ *   <li>4 - Database query error</li>
+ *   <li>5 - Validation error</li>
+ *   <li>6 - Print or network error</li>
+ *   <li>10 - Unexpected error</li>
  * </ul>
  *
  * Logging Pattern:
@@ -88,8 +81,7 @@
  * </ul>
  *
  * @author Zeyad Rashed
- * @version 1.0
+ * @version 1.1
  * @since 1.0.0
  */
 package com.tbg.wms.cli.commands;
-
