@@ -41,7 +41,8 @@ import java.util.concurrent.Callable;
                 DbTestCommand.class,
                 RunCommand.class,
                 GuiCommand.class,
-                BarcodeCommand.class
+                BarcodeCommand.class,
+                VersionCommand.class
         }
 )
 public final class RootCommand implements Callable<Integer> {
