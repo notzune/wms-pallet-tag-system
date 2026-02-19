@@ -8,7 +8,20 @@
 
 package com.tbg.wms.core;
 
-import io.github.cdimascio.dotenv.Dotenv;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.CodeSource;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Loads and manages runtime configuration from environment variables and `.env` file.
@@ -34,14 +47,27 @@ import io.github.cdimascio.dotenv.Dotenv;
  */
 public final class AppConfig {
 
-    private final Dotenv env;
+    private static final String CONFIG_FILE_ENV = "WMS_CONFIG_FILE";
+    private static final String CONFIG_FILE_PROP = "wms.config.file";
+    private static final String DEFAULT_FILE_NAME = "wms-tags.env";
+
+    private final Map<String, String> envVars;
+    private final Map<String, String> fileValues;
+    private final Map<String, String> classpathDefaults;
+    private final String loadedConfigFile;
 
     /**
      * Creates a new configuration instance, loading values from environment and `.env` file.
      * If `.env` does not exist, configuration falls back to environment variables and defaults.
      */
     public AppConfig() {
-        this.env = Dotenv.configure().ignoreIfMissing().load();
+        this.envVars = System.getenv();
+        this.classpathDefaults = loadClasspathDefaults();
+
+        Path explicitPath = resolveExplicitConfigPath();
+        Path selectedFile = explicitPath != null ? explicitPath : discoverConfigFile();
+        this.fileValues = selectedFile == null ? Map.of() : loadEnvStyleFile(selectedFile);
+        this.loadedConfigFile = selectedFile == null ? null : selectedFile.toAbsolutePath().toString();
     }
 
     /**
@@ -58,10 +84,23 @@ public final class AppConfig {
     /**
      * Returns the WMS environment (QA or PROD).
      *
-     * @return the WMS environment from {@code WMS_ENV} (default: {@code QA})
+     * @return the WMS environment from {@code WMS_ENV} (default: {@code PROD})
      */
     public String wmsEnvironment() {
-        return get("WMS_ENV", "QA").toUpperCase();
+        String value = rawFromEnvOrFile("WMS_ENV");
+        if (value == null || value.isBlank()) {
+            value = rawFromEnvOrFile("ACTIVE_ENV");
+        }
+        if (value == null || value.isBlank()) {
+            value = raw("WMS_ENV");
+        }
+        if (value == null || value.isBlank()) {
+            value = raw("ACTIVE_ENV");
+        }
+        if (value == null || value.isBlank()) {
+            value = "PROD";
+        }
+        return value.trim().toUpperCase();
     }
 
     /**
@@ -131,7 +170,7 @@ public final class AppConfig {
         String wmsEnv = wmsEnvironment();
 
         String scopedKey = "SITE_" + siteCode + "_" + wmsEnv + "_HOST";
-        String scoped = env.get(scopedKey);
+        String scoped = raw(scopedKey);
         if (scoped != null && !scoped.isBlank()) {
             return scoped.trim();
         }
@@ -146,6 +185,20 @@ public final class AppConfig {
      * @return the JDBC connection string
      */
     public String oracleJdbcUrl() {
+        String explicitJdbc = raw("ORACLE_JDBC_URL");
+        if (explicitJdbc != null && !explicitJdbc.isBlank()) {
+            return explicitJdbc.trim();
+        }
+
+        String dsn = raw("ORACLE_DSN");
+        if (dsn != null && !dsn.isBlank()) {
+            String trimmed = dsn.trim();
+            if (trimmed.startsWith("jdbc:")) {
+                return trimmed;
+            }
+            return "jdbc:oracle:thin:@" + trimmed;
+        }
+
         String site = activeSiteCode();
         return "jdbc:oracle:thin:@//" + siteHost(site) + ":" + oraclePort() + "/" + oracleService();
     }
@@ -202,8 +255,17 @@ public final class AppConfig {
      * @return the forced printer ID from {@code PRINTER_FORCE_ID}, or {@code null}
      */
     public String forcedPrinterIdOrNull() {
-        String v = env.get("PRINTER_FORCE_ID");
+        String v = raw("PRINTER_FORCE_ID");
         return (v == null || v.isBlank()) ? null : v.trim();
+    }
+
+    /**
+     * Returns the resolved external configuration file path, if one was found.
+     *
+     * @return absolute path of the loaded config file, or {@code null} if none
+     */
+    public String loadedConfigFileOrNull() {
+        return loadedConfigFile;
     }
 
     /**
@@ -214,9 +276,10 @@ public final class AppConfig {
      * @throws IllegalStateException if the key is not set or is blank
      */
     private String required(String key) {
-        String v = env.get(key);
+        String v = raw(key);
         if (v == null || v.isBlank()) {
-            throw new IllegalStateException("Missing required .env key: " + key);
+            throw new IllegalStateException("Missing required config key: " + key
+                    + " (set env var, or define in " + DEFAULT_FILE_NAME + "/.env)");
         }
         return v.trim();
     }
@@ -229,7 +292,167 @@ public final class AppConfig {
      * @return the trimmed value, or the default
      */
     private String get(String key, String def) {
-        String v = env.get(key);
+        String v = raw(key);
         return (v == null || v.isBlank()) ? def : v.trim();
+    }
+
+    private String raw(String key) {
+        String fromEnv = envVars.get(key);
+        if (fromEnv != null && !fromEnv.isBlank()) {
+            return fromEnv.trim();
+        }
+
+        String fromFile = fileValues.get(key);
+        if (fromFile != null && !fromFile.isBlank()) {
+            return fromFile.trim();
+        }
+
+        String fromDefaults = classpathDefaults.get(key);
+        return (fromDefaults == null || fromDefaults.isBlank()) ? null : fromDefaults.trim();
+    }
+
+    private String rawFromEnvOrFile(String key) {
+        String fromEnv = envVars.get(key);
+        if (fromEnv != null && !fromEnv.isBlank()) {
+            return fromEnv.trim();
+        }
+
+        String fromFile = fileValues.get(key);
+        if (fromFile != null && !fromFile.isBlank()) {
+            return fromFile.trim();
+        }
+        return null;
+    }
+
+    private Path resolveExplicitConfigPath() {
+        String explicit = System.getProperty(CONFIG_FILE_PROP);
+        if (explicit == null || explicit.isBlank()) {
+            explicit = System.getenv(CONFIG_FILE_ENV);
+        }
+        if (explicit == null || explicit.isBlank()) {
+            return null;
+        }
+
+        Path path = Paths.get(explicit.trim());
+        if (Files.exists(path) && Files.isRegularFile(path)) {
+            return path;
+        }
+        throw new IllegalStateException("Configured file not found: " + explicit.trim());
+    }
+
+    private Path discoverConfigFile() {
+        List<Path> candidates = new ArrayList<>();
+        candidates.add(Paths.get(DEFAULT_FILE_NAME));
+        candidates.add(Paths.get(".env"));
+        candidates.add(Paths.get("config", DEFAULT_FILE_NAME));
+
+        Path executableDir = resolveExecutableDirectory();
+        if (executableDir != null) {
+            candidates.add(executableDir.resolve(DEFAULT_FILE_NAME));
+            candidates.add(executableDir.resolve(".env"));
+            candidates.add(executableDir.resolve("config").resolve(DEFAULT_FILE_NAME));
+        }
+
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate) && Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private Path resolveExecutableDirectory() {
+        try {
+            CodeSource codeSource = AppConfig.class.getProtectionDomain().getCodeSource();
+            if (codeSource == null) {
+                return null;
+            }
+
+            URI locationUri = codeSource.getLocation().toURI();
+            Path location = Paths.get(locationUri);
+            if (Files.isDirectory(location)) {
+                return location;
+            }
+            Path parent = location.getParent();
+            return parent == null ? null : parent;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Map<String, String> loadClasspathDefaults() {
+        InputStream stream = AppConfig.class.getClassLoader().getResourceAsStream("wms-defaults.properties");
+        if (stream == null) {
+            return Map.of();
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            return loadEnvStyleReader(reader);
+        } catch (Exception ignored) {
+            return Map.of();
+        }
+    }
+
+    private Map<String, String> loadEnvStyleFile(Path path) {
+        try {
+            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            return loadEnvStyleLines(lines);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to read config file: " + path, e);
+        }
+    }
+
+    private Map<String, String> loadEnvStyleReader(BufferedReader reader) throws IOException {
+        List<String> lines = new ArrayList<>();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            lines.add(line);
+        }
+        return loadEnvStyleLines(lines);
+    }
+
+    private Map<String, String> loadEnvStyleLines(List<String> lines) {
+        Map<String, String> values = new HashMap<>();
+        for (String rawLine : lines) {
+            if (rawLine == null) {
+                continue;
+            }
+
+            String line = rawLine.trim();
+            if (line.isEmpty() || line.startsWith("#")) {
+                continue;
+            }
+
+            if (line.startsWith("export ")) {
+                line = line.substring("export ".length()).trim();
+            }
+
+            int sep = line.indexOf('=');
+            if (sep <= 0) {
+                continue;
+            }
+
+            String key = line.substring(0, sep).trim();
+            String value = line.substring(sep + 1).trim();
+            if (key.isEmpty()) {
+                continue;
+            }
+
+            values.put(key, stripQuotes(value));
+        }
+
+        return values;
+    }
+
+    private String stripQuotes(String value) {
+        if (value == null || value.length() < 2) {
+            return value;
+        }
+        char first = value.charAt(0);
+        char last = value.charAt(value.length() - 1);
+        if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+            return value.substring(1, value.length() - 1);
+        }
+        return value;
     }
 }

@@ -11,6 +11,7 @@ package com.tbg.wms.core.label;
 import com.tbg.wms.core.model.LineItem;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.Shipment;
+import com.tbg.wms.core.model.ShipmentSkuFootprint;
 import com.tbg.wms.core.model.WalmartSkuMapping;
 import com.tbg.wms.core.sku.SkuMappingService;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +51,7 @@ public final class LabelDataBuilder {
 
     private final SkuMappingService skuMapping;
     private final SiteConfig siteConfig;
+    private final Map<String, ShipmentSkuFootprint> footprintBySku;
 
     /**
      * Creates a new LabelDataBuilder.
@@ -57,8 +60,22 @@ public final class LabelDataBuilder {
      * @param siteConfig site-specific configuration (ship-from address, etc.)
      */
     public LabelDataBuilder(SkuMappingService skuMapping, SiteConfig siteConfig) {
+        this(skuMapping, siteConfig, Collections.emptyMap());
+    }
+
+    /**
+     * Creates a new LabelDataBuilder with optional per-SKU footprint metadata.
+     *
+     * @param skuMapping service for Walmart SKU code lookups
+     * @param siteConfig site-specific configuration (ship-from address, etc.)
+     * @param footprintBySku shipment footprint map keyed by SKU
+     */
+    public LabelDataBuilder(SkuMappingService skuMapping,
+                            SiteConfig siteConfig,
+                            Map<String, ShipmentSkuFootprint> footprintBySku) {
         this.skuMapping = Objects.requireNonNull(skuMapping, "skuMapping cannot be null");
         this.siteConfig = Objects.requireNonNull(siteConfig, "siteConfig cannot be null");
+        this.footprintBySku = footprintBySku == null ? Map.of() : Collections.unmodifiableMap(new HashMap<>(footprintBySku));
     }
 
     /**
@@ -103,6 +120,7 @@ public final class LabelDataBuilder {
 
         // ── Carrier and shipping info ──
         fields.put("carrierCode", require(shipment.getCarrierCode(), "carrierCode"));
+        fields.put("carrierMoveId", orDefault(shipment.getCarrierMoveId(), SPACE_SAFE_DEFAULT));
         fields.put("serviceLevel", orDefault(shipment.getServiceLevel(), SPACE_SAFE_DEFAULT));
         fields.put("documentNumber", orDefault(shipment.getDocumentNumber(), SPACE_SAFE_DEFAULT));
         fields.put("trackingNumber", orDefault(shipment.getTrackingNumber(), SPACE_SAFE_DEFAULT));
@@ -138,7 +156,7 @@ public final class LabelDataBuilder {
 
         // ── Product/line item data (from first line item on this pallet) ──
         if (!lpn.getLineItems().isEmpty()) {
-            LineItem item = lpn.getLineItems().get(0);
+            LineItem item = selectRepresentativeItem(lpn);
 
             fields.put("tbgSku", require(item.getSku(), "tbgSku"));
             fields.put("quantity", String.valueOf(item.getQuantity()));
@@ -150,16 +168,28 @@ public final class LabelDataBuilder {
                 fields.put("walmartItemNumber", mapping.getWalmartItemNo());
                 fields.put("itemDescription", mapping.getDescription());
             } else {
-                // Fallback to database value if not in CSV
-                fields.put("walmartItemNumber", orDefault(item.getWalmartItemNumber(), SPACE_SAFE_DEFAULT));
+                // Non-Walmart orders or missing mappings should render Walmart field blank.
+                fields.put("walmartItemNumber", SPACE_SAFE_DEFAULT);
                 fields.put("itemDescription", orDefault(item.getDescription(), SPACE_SAFE_DEFAULT));
-                log.warn("Walmart item code not found for SKU {} (shipment {})",
+                log.info("Walmart item code not found in matrix for SKU {} (shipment {})",
                         item.getSku(), shipment.getShipmentId());
             }
 
             // Alternate barcodes (if available from database)
             fields.put("gtinBarcode", orDefault(item.getGtinBarcode(), SPACE_SAFE_DEFAULT));
             fields.put("upcCode", orDefault(item.getUpcCode(), SPACE_SAFE_DEFAULT));
+
+            ShipmentSkuFootprint footprint = footprintBySku.get(item.getSku());
+            fields.put("unitsPerCase", footprint != null && footprint.getUnitsPerCase() != null
+                    ? String.valueOf(footprint.getUnitsPerCase()) : SPACE_SAFE_DEFAULT);
+            fields.put("unitsPerPallet", footprint != null && footprint.getUnitsPerPallet() != null
+                    ? String.valueOf(footprint.getUnitsPerPallet()) : SPACE_SAFE_DEFAULT);
+            fields.put("palletLength", footprint != null && footprint.getPalletLength() != null
+                    ? String.valueOf(footprint.getPalletLength()) : SPACE_SAFE_DEFAULT);
+            fields.put("palletWidth", footprint != null && footprint.getPalletWidth() != null
+                    ? String.valueOf(footprint.getPalletWidth()) : SPACE_SAFE_DEFAULT);
+            fields.put("palletHeight", footprint != null && footprint.getPalletHeight() != null
+                    ? String.valueOf(footprint.getPalletHeight()) : SPACE_SAFE_DEFAULT);
         } else {
             // No line items on this pallet - use safe defaults
             fields.put("tbgSku", SPACE_SAFE_DEFAULT);
@@ -169,6 +199,11 @@ public final class LabelDataBuilder {
             fields.put("itemDescription", SPACE_SAFE_DEFAULT);
             fields.put("gtinBarcode", SPACE_SAFE_DEFAULT);
             fields.put("upcCode", SPACE_SAFE_DEFAULT);
+            fields.put("unitsPerCase", SPACE_SAFE_DEFAULT);
+            fields.put("unitsPerPallet", SPACE_SAFE_DEFAULT);
+            fields.put("palletLength", SPACE_SAFE_DEFAULT);
+            fields.put("palletWidth", SPACE_SAFE_DEFAULT);
+            fields.put("palletHeight", SPACE_SAFE_DEFAULT);
         }
 
         // ── Staging location (for diagnostics / printer routing) ──
@@ -242,6 +277,20 @@ public final class LabelDataBuilder {
      */
     private String str(Object obj) {
         return obj == null ? null : obj.toString();
+    }
+
+    /**
+     * Selects a line item for label identity fields.
+     *
+     * <p>Prefer a SKU that exists in Walmart mapping, otherwise fallback to first item.</p>
+     */
+    private LineItem selectRepresentativeItem(Lpn lpn) {
+        for (LineItem item : lpn.getLineItems()) {
+            if (item != null && item.getSku() != null && skuMapping.findByPrtnum(item.getSku()) != null) {
+                return item;
+            }
+        }
+        return lpn.getLineItems().get(0);
     }
 }
 

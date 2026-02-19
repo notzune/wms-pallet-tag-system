@@ -8,6 +8,9 @@
 
 package com.tbg.wms.core.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,9 +56,19 @@ public final class Lpn {
      * @param bestByDate best-by/expiration date (INVDTL.EXPIRE_DTE)
      * @param lineItems list of line items contained in this pallet
      */
-    public Lpn(String lpnId, String shipmentId, String sscc, int caseCount, int unitCount,
-               double weight, String stagingLocation, String warehouseLot, String customerLot,
-               LocalDate manufactureDate, LocalDate bestByDate, List<LineItem> lineItems) {
+    @JsonCreator
+    public Lpn(@JsonProperty("lpnId") String lpnId,
+               @JsonProperty("shipmentId") String shipmentId,
+               @JsonProperty("sscc") String sscc,
+               @JsonProperty("caseCount") int caseCount,
+               @JsonProperty("unitCount") int unitCount,
+               @JsonProperty("weight") double weight,
+               @JsonProperty("stagingLocation") String stagingLocation,
+               @JsonProperty("warehouseLot") String warehouseLot,
+               @JsonProperty("customerLot") String customerLot,
+               @JsonProperty("manufactureDate") LocalDate manufactureDate,
+               @JsonProperty("bestByDate") LocalDate bestByDate,
+               @JsonProperty("lineItems") List<LineItem> lineItems) {
         this.lpnId = lpnId;
         this.shipmentId = shipmentId;
         this.sscc = sscc;

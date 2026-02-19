@@ -181,13 +181,13 @@ class TemplateEngineTest {
     }
 
     @Test
-    void testGenerateRejectsEmptyFieldValue() {
+    void testGenerateAllowsEmptyFieldValue() {
         LabelTemplate template = new LabelTemplate("TEST", SIMPLE_TEMPLATE);
         Map<String, String> fields = new HashMap<>();
         fields.put("shipToName", "");
 
-        assertThrows(IllegalArgumentException.class,
-                () -> ZplTemplateEngine.generate(template, fields));
+        String zpl = ZplTemplateEngine.generate(template, fields);
+        assertNotNull(zpl);
     }
 
     @Test

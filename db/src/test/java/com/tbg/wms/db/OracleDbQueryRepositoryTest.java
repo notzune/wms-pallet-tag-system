@@ -93,7 +93,7 @@ class OracleDbQueryRepositoryTest {
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
         when(mockStatement.executeQuery()).thenReturn(mockResultSet);
         when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("lpn_count")).thenReturn(0);
+        when(mockResultSet.getInt("shipment_count")).thenReturn(0);
 
         boolean exists = repository.shipmentExists("SHIP123");
 
@@ -107,7 +107,7 @@ class OracleDbQueryRepositoryTest {
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
         when(mockStatement.executeQuery()).thenReturn(mockResultSet);
         when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("lpn_count")).thenReturn(3);
+        when(mockResultSet.getInt("shipment_count")).thenReturn(3);
 
         boolean exists = repository.shipmentExists("SHIP123");
 
@@ -120,7 +120,7 @@ class OracleDbQueryRepositoryTest {
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
         when(mockStatement.executeQuery()).thenReturn(mockResultSet);
         when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getString("staging_location")).thenReturn("rossi");
+        when(mockResultSet.getString("DSTLOC")).thenReturn("rossi");
 
         String location = repository.getStagingLocation("SHIP123");
 

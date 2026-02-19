@@ -8,6 +8,9 @@
 
 package com.tbg.wms.core.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Represents a line item within a shipment.
  *
@@ -61,10 +64,22 @@ public final class LineItem {
      * @param gtinBarcode GTIN barcode (from ALT_PRTMST)
      * @param upcCode UPC code (from ALT_PRTMST)
      */
-    public LineItem(String lineNumber, String lineSubNumber, String sku, String description,
-                    String customerPartNumber, String orderNumber, String consolidationBatch,
-                    String salesOrderNumber, int quantity, int unitsPerCase, String uom,
-                    double weight, String walmartItemNumber, String gtinBarcode, String upcCode) {
+    @JsonCreator
+    public LineItem(@JsonProperty("lineNumber") String lineNumber,
+                    @JsonProperty("lineSubNumber") String lineSubNumber,
+                    @JsonProperty("sku") String sku,
+                    @JsonProperty("description") String description,
+                    @JsonProperty("customerPartNumber") String customerPartNumber,
+                    @JsonProperty("orderNumber") String orderNumber,
+                    @JsonProperty("consolidationBatch") String consolidationBatch,
+                    @JsonProperty("salesOrderNumber") String salesOrderNumber,
+                    @JsonProperty("quantity") int quantity,
+                    @JsonProperty("unitsPerCase") int unitsPerCase,
+                    @JsonProperty("uom") String uom,
+                    @JsonProperty("weight") double weight,
+                    @JsonProperty("walmartItemNumber") String walmartItemNumber,
+                    @JsonProperty("gtinBarcode") String gtinBarcode,
+                    @JsonProperty("upcCode") String upcCode) {
         this.lineNumber = lineNumber;
         this.lineSubNumber = lineSubNumber;
         this.sku = sku;

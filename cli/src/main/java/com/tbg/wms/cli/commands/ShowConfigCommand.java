@@ -39,6 +39,7 @@ public final class ShowConfigCommand implements Callable<Integer> {
             System.out.println();
             System.out.println("WMS Environment:");
             System.out.println("  Environment:     " + cfg.wmsEnvironment());
+            System.out.println("  Config File:     " + (cfg.loadedConfigFileOrNull() == null ? "(none)" : cfg.loadedConfigFileOrNull()));
             System.out.println();
             System.out.println("Database Configuration:");
             System.out.println("  Host:            " + cfg.siteHost(site));

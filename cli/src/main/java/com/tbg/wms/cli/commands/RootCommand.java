@@ -38,7 +38,9 @@ import java.util.concurrent.Callable;
         description = "WMS Pallet Tag System – Generate and print shipping labels from WMS data",
         subcommands = {
                 ShowConfigCommand.class,
-                DbTestCommand.class
+                DbTestCommand.class,
+                RunCommand.class,
+                GuiCommand.class
         }
 )
 public final class RootCommand implements Callable<Integer> {
