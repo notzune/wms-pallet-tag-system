@@ -28,6 +28,16 @@ jobs:
       - name: Build JAR
         run: mvn -B -DskipTests clean package
 
+      - name: Download Temurin 11 JRE
+        shell: pwsh
+        run: |
+          $runtimeZip = Join-Path $env:GITHUB_WORKSPACE "dist\temurin11-jre.zip"
+          New-Item -ItemType Directory -Path (Split-Path $runtimeZip) -Force | Out-Null
+          if (-not (Test-Path -LiteralPath $runtimeZip)) {
+            $url = "https://api.adoptium.net/v3/binary/latest/11/ga/windows/x64/jre/hotspot/normal/eclipse"
+            Invoke-WebRequest -Uri $url -OutFile $runtimeZip
+          }
+
       - name: Build Portable Bundle
         shell: pwsh
         run: |
