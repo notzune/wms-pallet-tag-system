@@ -51,3 +51,5 @@ DATABASE-ANALYSIS-READY.md
 
 ### Mac OS ###
 .DS_Store
+core/logs/wms-tags.log
+db/logs/wms-tags.log
