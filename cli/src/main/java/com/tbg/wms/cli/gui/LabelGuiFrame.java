@@ -29,6 +29,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JButton previewButton = new JButton("Preview");
     private final JButton clearButton = new JButton("Clear");
     private final JButton printButton = new JButton("Confirm Print");
+    private final JCheckBox printToFileCheck = new JCheckBox("Print to file");
     private final JTextArea shipmentArea = new JTextArea();
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
@@ -83,6 +84,9 @@ public final class LabelGuiFrame extends JFrame {
 
         gbc.gridx = 6;
         panel.add(printButton, gbc);
+
+        gbc.gridx = 7;
+        panel.add(printToFileCheck, gbc);
 
         return panel;
     }
@@ -234,20 +238,22 @@ public final class LabelGuiFrame extends JFrame {
         }
 
         LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        if (selected == null) {
+        if (!printToFileCheck.isSelected() && selected == null) {
             showError("Select a printer.");
             return;
         }
 
-        int choice = JOptionPane.showConfirmDialog(
-                this,
-                "Print " + job.getLpnsForLabels().size() + " labels to " + selected + "?",
-                "Confirm Print",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
-        if (choice != JOptionPane.YES_OPTION) {
-            return;
+        if (!printToFileCheck.isSelected()) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Print " + job.getLpnsForLabels().size() + " labels to " + selected + "?",
+                    "Confirm Print",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+            );
+            if (choice != JOptionPane.YES_OPTION) {
+                return;
+            }
         }
 
         setBusy("Printing...");
@@ -260,7 +266,8 @@ public final class LabelGuiFrame extends JFrame {
             protected LabelWorkflowService.PrintResult doInBackground() throws Exception {
                 Path outDir = Paths.get("out", "gui-" + job.getShipmentId() + "-" +
                         DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()));
-                return service.print(job, selected.getId(), outDir);
+                String printerId = selected == null ? null : selected.getId();
+                return service.print(job, printerId, outDir, printToFileCheck.isSelected());
             }
 
             @Override
@@ -270,14 +277,24 @@ public final class LabelGuiFrame extends JFrame {
                 clearButton.setEnabled(true);
                 try {
                     LabelWorkflowService.PrintResult result = get();
-                    setReady("Printed " + result.getLabelsPrinted() + " labels to " + result.getPrinterId() +
-                            " (" + result.getPrinterEndpoint() + ")");
-                    JOptionPane.showMessageDialog(
-                            LabelGuiFrame.this,
-                            "Printed " + result.getLabelsPrinted() + " labels.\nOutput: " + result.getOutputDirectory(),
-                            "Print Complete",
-                            JOptionPane.INFORMATION_MESSAGE
-                    );
+                    if (result.isPrintToFile()) {
+                        setReady("Saved " + result.getLabelsPrinted() + " labels to " + result.getOutputDirectory());
+                        JOptionPane.showMessageDialog(
+                                LabelGuiFrame.this,
+                                "Saved " + result.getLabelsPrinted() + " labels.\nOutput: " + result.getOutputDirectory(),
+                                "Print Complete",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                    } else {
+                        setReady("Printed " + result.getLabelsPrinted() + " labels to " + result.getPrinterId() +
+                                " (" + result.getPrinterEndpoint() + ")");
+                        JOptionPane.showMessageDialog(
+                                LabelGuiFrame.this,
+                                "Printed " + result.getLabelsPrinted() + " labels.\nOutput: " + result.getOutputDirectory(),
+                                "Print Complete",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                    }
                 } catch (Exception ex) {
                     setReady("Print failed.");
                     showError(rootMessage(ex));
@@ -291,6 +308,7 @@ public final class LabelGuiFrame extends JFrame {
         statusLabel.setText(message);
         previewButton.setEnabled(false);
         clearButton.setEnabled(false);
+        printButton.setEnabled(false);
     }
 
     private void setReady(String message) {

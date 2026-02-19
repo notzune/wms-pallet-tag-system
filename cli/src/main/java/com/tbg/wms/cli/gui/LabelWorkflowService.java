@@ -143,12 +143,13 @@ public final class LabelWorkflowService {
      * @param job prepared job from preview
      * @param printerId printer identifier to use
      * @param outputDir output directory for ZPL artifacts
+     * @param printToFile when true, skip network printing
      * @return summary of labels printed and output path
      * @throws Exception when printing fails
      */
-    public PrintResult print(PreparedJob job, String printerId, Path outputDir) throws Exception {
+    public PrintResult print(PreparedJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
-        if (printerId == null || printerId.isBlank()) {
+        if (!printToFile && (printerId == null || printerId.isBlank())) {
             throw new IllegalArgumentException("Printer is required.");
         }
 
@@ -157,9 +158,12 @@ public final class LabelWorkflowService {
                 : outputDir;
         Files.createDirectories(targetDir);
 
-        PrinterConfig printer = job.getRouting()
-                .findPrinter(printerId.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + printerId));
+        PrinterConfig printer = null;
+        if (!printToFile) {
+            printer = job.getRouting()
+                    .findPrinter(printerId.trim())
+                    .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + printerId));
+        }
 
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
         NetworkPrintService printService = new NetworkPrintService();
@@ -178,10 +182,15 @@ public final class LabelWorkflowService {
                     job.getShipmentId(), lpn.getLpnId(), i + 1, job.getLpnsForLabels().size());
             Path zplFile = targetDir.resolve(fileName);
             Files.writeString(zplFile, zpl);
-            printService.print(printer, zpl, lpn.getLpnId());
+            if (!printToFile) {
+                printService.print(printer, zpl, lpn.getLpnId());
+            }
             printedCount++;
         }
 
+        if (printToFile) {
+            return PrintResult.printToFile(printedCount, targetDir.toAbsolutePath());
+        }
         return new PrintResult(printedCount, targetDir.toAbsolutePath(), printer.getId(), printer.getEndpoint());
     }
 
@@ -360,10 +369,11 @@ public final class LabelWorkflowService {
     }
 
     private SiteConfig createSiteConfig(String siteCode) {
-        if ("TBG3002".equalsIgnoreCase(siteCode)) {
-            return new SiteConfig("TROPICANA PRODUCTS, INC.", "155 Broad Street", "Jersey City, NJ 07302");
-        }
-        return new SiteConfig("TROPICANA PRODUCTS, INC.", "155 Broad Street", "Jersey City, NJ 07302");
+        return new SiteConfig(
+                config.siteShipFromName(siteCode),
+                config.siteShipFromAddress(siteCode),
+                config.siteShipFromCityStateZip(siteCode)
+        );
     }
 
     public static final class PrinterOption {
@@ -529,12 +539,22 @@ public final class LabelWorkflowService {
         private final Path outputDirectory;
         private final String printerId;
         private final String printerEndpoint;
+        private final boolean printToFile;
 
         public PrintResult(int labelsPrinted, Path outputDirectory, String printerId, String printerEndpoint) {
             this.labelsPrinted = labelsPrinted;
             this.outputDirectory = outputDirectory;
             this.printerId = printerId;
             this.printerEndpoint = printerEndpoint;
+            this.printToFile = false;
+        }
+
+        private PrintResult(int labelsPrinted, Path outputDirectory) {
+            this.labelsPrinted = labelsPrinted;
+            this.outputDirectory = outputDirectory;
+            this.printerId = "FILE";
+            this.printerEndpoint = "FILE";
+            this.printToFile = true;
         }
 
         public int getLabelsPrinted() {
@@ -551,6 +571,14 @@ public final class LabelWorkflowService {
 
         public String getPrinterEndpoint() {
             return printerEndpoint;
+        }
+
+        public boolean isPrintToFile() {
+            return printToFile;
+        }
+
+        public static PrintResult printToFile(int labelsPrinted, Path outputDirectory) {
+            return new PrintResult(labelsPrinted, outputDirectory);
         }
     }
 }

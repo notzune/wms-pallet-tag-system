@@ -24,6 +24,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None.
 
+## [1.2.0] - 2026-02-19
+### Added
+- GitHub Actions workflow to build aggregated Javadoc and publish to GitHub Pages.
+- Standalone barcode ZPL builder and CLI command for barcode generation/printing.
+- New consolidated `INSTRUCTIONS.md` with updated requirements and roadmap.
+- `barcode --print-to-file` option to export ZPL under `/out` next to the JAR.
+- `run --print-to-file` option and GUI toggle to export ZPL under `/out` next to the JAR.
+- Configurable ship-from address keys for site-specific labels.
+
+### Changed
+- Barcode landscape output now switches printer orientation using `^POL` in ZPL.
+- Updated setup script default jar path to `cli-1.2.0.jar`.
+
+### Deprecated
+- None.
+
+### Removed
+- None.
+
+### Fixed
+- None.
+
+### Security
+- None.
+
 ## [1.1.0-BETA] - 2026-02-18
 ### Added
 - None.

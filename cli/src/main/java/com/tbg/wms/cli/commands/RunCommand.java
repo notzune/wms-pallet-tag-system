@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -108,6 +109,13 @@ public final class RunCommand implements Callable<Integer> {
     )
     private String outputDir;
 
+    @Option(
+            names = {"--print-to-file", "--ptf"},
+            description = "Write ZPL to /out next to the JAR and skip printing",
+            defaultValue = "false"
+    )
+    private boolean printToFile;
+
     @Override
     public Integer call() {
         // Generate unique job ID
@@ -122,6 +130,11 @@ public final class RunCommand implements Callable<Integer> {
             AppConfig config = RootCommand.config();
             String site = config.activeSiteCode();
             MDC.put("site", site);
+
+            if (printToFile) {
+                dryRun = true;
+                outputDir = resolveJarOutputDir().toString();
+            }
 
             // Create output directory
             Path outputPath = Paths.get(outputDir);
@@ -299,6 +312,20 @@ public final class RunCommand implements Callable<Integer> {
         }
     }
 
+    private static Path resolveJarOutputDir() {
+        try {
+            Path codeSource = Paths.get(Objects.requireNonNull(RunCommand.class
+                    .getProtectionDomain()
+                    .getCodeSource())
+                    .getLocation()
+                    .toURI());
+            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
+            return baseDir.resolve("out");
+        } catch (Exception e) {
+            return Paths.get("out");
+        }
+    }
+
     private Path resolveSkuMatrixCsv() {
         List<Path> candidates = List.of(
                 Paths.get("config/walmart-sku-matrix.csv"),
@@ -472,20 +499,11 @@ public final class RunCommand implements Callable<Integer> {
      * @return SiteConfig with ship-from address
      */
     private SiteConfig createSiteConfig(String siteCode) {
-        // For now, hardcode TBG3002 (Jersey City). In production, load from config file.
-        if ("TBG3002".equalsIgnoreCase(siteCode)) {
-            return new SiteConfig(
-                    "TROPICANA PRODUCTS, INC.",
-                    "155 Broad Street",
-                    "Jersey City, NJ 07302"
-            );
-        }
-
-        // Default for other sites
+        AppConfig config = RootCommand.config();
         return new SiteConfig(
-                "TROPICANA PRODUCTS, INC.",
-                "155 Broad Street",
-                "Jersey City, NJ 07302"
+                config.siteShipFromName(siteCode),
+                config.siteShipFromAddress(siteCode),
+                config.siteShipFromCityStateZip(siteCode)
         );
     }
 }

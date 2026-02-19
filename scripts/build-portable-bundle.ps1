@@ -2,7 +2,8 @@
 param(
     [string]$BundleDir,
     [string]$JarPath,
-    [string]$SourceRoot
+    [string]$SourceRoot,
+    [string]$RuntimeSource
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,9 +21,19 @@ function Get-JavaInfo {
     }
 
     $javaExe = $cmd.Source
-    $versionOutput = (& java --version 2>&1) | Out-String
+    $prevErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $versionOutput = (& java --version 2>&1) | Out-String
+    } catch {
+        $versionOutput = ""
+    }
+    $ErrorActionPreference = $prevErrorAction
     if (-not $versionOutput.Trim()) {
+        $prevErrorAction = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         $versionOutput = (& java -version 2>&1) | Out-String
+        $ErrorActionPreference = $prevErrorAction
     }
 
     $match = [regex]::Match($versionOutput, '"(?<version>\d+(?:\.\d+){0,2}).*"')
@@ -61,22 +72,28 @@ if (-not $BundleDir) {
 }
 
 if (-not $JarPath) {
-    $JarPath = Join-Path $SourceRoot "cli\target\cli-1.0.0-SNAPSHOT.jar"
+    $JarPath = Join-Path $SourceRoot "cli\target\cli-1.2.0.jar"
 }
 
 if (-not (Test-Path -LiteralPath $JarPath)) {
     throw "Jar not found: $JarPath. Build first with .\mvnw.cmd -DskipTests package"
 }
 
-$javaInfo = Get-JavaInfo
-if (-not $javaInfo.Exists) {
-    throw "Java not found on build machine. Install Java 21+, then rerun."
-}
-if (-not $javaInfo.Major -or $javaInfo.Major -lt 21) {
-    throw "Java 21+ required on build machine. Found: $($javaInfo.Version)"
-}
-if (-not (Test-Path -LiteralPath (Join-Path $javaInfo.JavaHomePath "bin\java.exe"))) {
-    throw "Could not resolve Java home from installed java.exe: $($javaInfo.JavaExePath)"
+if (-not $RuntimeSource) {
+    $javaInfo = Get-JavaInfo
+    if (-not $javaInfo.Exists) {
+        throw "Java not found on build machine. Install Java 17+ or pass -RuntimeSource."
+    }
+    if (-not $javaInfo.Major -or $javaInfo.Major -lt 17) {
+        throw "Java 17+ required on build machine. Found: $($javaInfo.Version). Use -RuntimeSource to override."
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $javaInfo.JavaHomePath \"bin\\java.exe\"))) {
+        throw \"Could not resolve Java home from installed java.exe: $($javaInfo.JavaExePath)\"
+    }
+} else {
+    if (-not (Test-Path -LiteralPath $RuntimeSource)) {
+        throw \"RuntimeSource not found: $RuntimeSource\"
+    }
 }
 
 Write-Host "Creating portable bundle at: $BundleDir"
@@ -102,17 +119,36 @@ if (Test-Path -LiteralPath $runtimeTarget) {
     Remove-Item -LiteralPath $runtimeTarget -Recurse -Force
 }
 
-Write-Host "Copying bundled runtime from: $($javaInfo.JavaHomePath)"
-Copy-Item -LiteralPath $javaInfo.JavaHomePath -Destination $runtimeTarget -Recurse -Force
+if ($RuntimeSource) {
+    Write-Host \"Copying bundled runtime from: $RuntimeSource\"
+    Copy-Item -LiteralPath $RuntimeSource -Destination $runtimeTarget -Recurse -Force
+} else {
+    Write-Host \"Copying bundled runtime from: $($javaInfo.JavaHomePath)\"
+    Copy-Item -LiteralPath $javaInfo.JavaHomePath -Destination $runtimeTarget -Recurse -Force
+}
 
-$jarHash = (Get-FileHash -LiteralPath (Join-Path $BundleDir "wms-tags.jar") -Algorithm SHA256).Hash
+$jarPathResolved = Join-Path $BundleDir "wms-tags.jar"
+$jarHashCmd = Get-Command Get-FileHash -ErrorAction SilentlyContinue
+if ($jarHashCmd) {
+    $jarHash = (Get-FileHash -LiteralPath $jarPathResolved -Algorithm SHA256).Hash
+} else {
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $stream = [System.IO.File]::OpenRead($jarPathResolved)
+    try {
+        $hashBytes = $sha256.ComputeHash($stream)
+        $jarHash = [BitConverter]::ToString($hashBytes).Replace("-", "")
+    } finally {
+        $stream.Dispose()
+        $sha256.Dispose()
+    }
+}
 $manifest = [pscustomobject]@{
     BuiltAt = (Get-Date).ToString("s")
     BuiltBy = "$env:USERDOMAIN\$env:USERNAME"
     BuildComputer = $env:COMPUTERNAME
     JarSha256 = $jarHash
-    JavaVersion = $javaInfo.Version
-    JavaHomeSource = $javaInfo.JavaHomePath
+    JavaVersion = if ($RuntimeSource) { "runtime-source" } else { $javaInfo.Version }
+    JavaHomeSource = if ($RuntimeSource) { $RuntimeSource } else { $javaInfo.JavaHomePath }
     BundleDir = $BundleDir
 }
 $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $BundleDir "bundle-manifest.json") -Encoding UTF8

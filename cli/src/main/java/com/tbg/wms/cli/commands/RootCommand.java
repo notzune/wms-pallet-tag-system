@@ -34,13 +34,14 @@ import java.util.concurrent.Callable;
 @Command(
         name = "wms-tags",
         mixinStandardHelpOptions = true,
-        version = "1.0.0-SNAPSHOT",
+        version = "1.2.0",
         description = "WMS Pallet Tag System – Generate and print shipping labels from WMS data",
         subcommands = {
                 ShowConfigCommand.class,
                 DbTestCommand.class,
                 RunCommand.class,
-                GuiCommand.class
+                GuiCommand.class,
+                BarcodeCommand.class
         }
 )
 public final class RootCommand implements Callable<Integer> {
