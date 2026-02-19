@@ -112,30 +112,38 @@ public final class SkuMappingService {
             return mapping;
         }
 
-        // Strategy 2: Try last 6 digits
-        if (prtnum.length() >= 6) {
-            String last6 = prtnum.substring(prtnum.length() - 6);
-            mapping = findByTbgSku(last6);
-            if (mapping != null) {
-                log.debug("Found mapping via last 6 digits of PRTNUM: {} → {}", prtnum, mapping.getWalmartItemNo());
-                return mapping;
-            }
-        }
+        // Strategy 2: Sliding windows (5-N digits) with optional leading-zero trim.
+        // This is resilient to mixed site encodings where the TBG SKU appears embedded in PRTNUM.
+        String digits = prtnum.replaceAll("\\D", "");
+        if (!digits.isEmpty()) {
+            for (int len = digits.length(); len >= 5; len--) {
+                if (digits.length() < len) {
+                    continue;
+                }
+                for (int i = 0; i <= digits.length() - len; i++) {
+                    String candidate = digits.substring(i, i + len);
 
-        // Strategy 3: Try middle portion (digits 5-11, 0-indexed: 4-10)
-        if (prtnum.length() >= 11) {
-            String middle = prtnum.substring(4, 10);
-            mapping = findByTbgSku(middle);
-            if (mapping != null) {
-                log.debug("Found mapping via middle digits of PRTNUM: {} → {}", prtnum, mapping.getWalmartItemNo());
-                return mapping;
+                    mapping = findByTbgSku(candidate);
+                    if (mapping != null) {
+                        log.debug("Found mapping via embedded PRTNUM segment: {} -> {}", prtnum, mapping.getWalmartItemNo());
+                        return mapping;
+                    }
+
+                    String noLeadingZeros = candidate.replaceFirst("^0+(?!$)", "");
+                    if (!noLeadingZeros.equals(candidate)) {
+                        mapping = findByTbgSku(noLeadingZeros);
+                        if (mapping != null) {
+                            log.debug("Found mapping via zero-trimmed PRTNUM segment: {} -> {}", prtnum, mapping.getWalmartItemNo());
+                            return mapping;
+                        }
+                    }
+                }
             }
         }
 
         log.debug("No SKU mapping found for PRTNUM: {}", prtnum);
         return null;
     }
-
     /**
      * Gets the total number of loaded mappings.
      *
@@ -226,4 +234,5 @@ public final class SkuMappingService {
                 '}';
     }
 }
+
 

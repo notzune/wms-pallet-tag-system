@@ -90,11 +90,6 @@ public final class ZplTemplateEngine {
             if (!fields.containsKey(placeholderName)) {
                 throw new IllegalArgumentException("Missing required field: " + placeholderName);
             }
-
-            String value = fields.get(placeholderName);
-            if (value == null || value.trim().isEmpty()) {
-                throw new IllegalArgumentException("Field cannot be empty: " + placeholderName);
-            }
         }
     }
 

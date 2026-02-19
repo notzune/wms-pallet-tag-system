@@ -257,5 +257,30 @@ class LabelDataBuilderTest {
 
         assertEquals(fields1, fields2, "Same input should produce same output");
     }
+
+    @Test
+    void testBuildPrefersMappedSkuWhenFirstLineHasNoMapping() {
+        LineItem unmappedFirst = new LineItem(
+                "1", "0", "NO_MATCH_SKU", "UNMAPPED", null,
+                "8000141715", null, "1000000001",
+                10, 1, "EA", 10.0,
+                null, null, null
+        );
+
+        LineItem mappedSecond = new LineItem(
+                "2", "0", "10048500205641000", "MAPPED", null,
+                "8000141715", null, "1000000001",
+                20, 1, "EA", 20.0,
+                null, null, null
+        );
+
+        Lpn mixedLpn = new Lpn("LPN003", "8000141715", "123456789012345681", 0, 0, 30.0, "ROSSI",
+                "LOT004", "SLOT004", LocalDate.now(), LocalDate.now(), List.of(unmappedFirst, mappedSecond));
+
+        Map<String, String> fields = builder.build(testShipment, mixedLpn, 0, LabelType.WALMART_CANADA_GRID);
+
+        assertEquals("30081705", fields.get("walmartItemNumber"));
+        assertEquals("10048500205641000", fields.get("tbgSku"));
+    }
 }
 

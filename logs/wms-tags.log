@@ -1,35 +1,1348 @@
-2026-02-11 01:45:43.275 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - WMS Database Analysis Tool
-2026-02-11 01:45:43.279 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Dump Directory: ../db-dumps
-2026-02-11 01:45:43.283 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Phase: all
-2026-02-11 01:45:43.283 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - 
-2026-02-11 01:45:43.284 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Using dump directory: /mnt/c/Users/zrash/OneDrive/Documents/GitHub/wms-pallet-tag-system/../db-dumps
-2026-02-11 01:45:43.284 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - 
-2026-02-11 01:45:43.284 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Loading configuration...
-2026-02-11 01:45:43.305 [INFO ] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Creating database connection pool...
-2026-02-11 01:45:43.330 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle - Starting...
-2026-02-11 01:45:48.024 [ERROR] [] [:] c.tbg.wms.analysis.DatabaseAnalysisCli   - Error during analysis: Failed to initialize pool: ORA-12170: Cannot connect. TCP connect timeout of 3000ms for host 10.19.68.61 port 1521. (CONNECTION_ID=nWgIPnPfRC6Yz4MsqXfFhw==)
-https://docs.oracle.com/error-help/db/ora-12170/
-com.zaxxer.hikari.pool.HikariPool$PoolInitializationException: Failed to initialize pool: ORA-12170: Cannot connect. TCP connect timeout of 3000ms for host 10.19.68.61 port 1521. (CONNECTION_ID=nWgIPnPfRC6Yz4MsqXfFhw==)
-https://docs.oracle.com/error-help/db/ora-12170/
+2026-02-18 15:48:29.865 [INFO ] [5d97b897] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000211863
+2026-02-18 15:48:29.881 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 15:48:29.886 [WARN ] [5d97b897] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 15:48:29.886 [WARN ] [5d97b897] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 15:48:29.886 [WARN ] [5d97b897] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 15:48:29.886 [WARN ] [5d97b897] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 15:48:29.886 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 15:48:29.886 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 15:48:29.886 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 15:48:29.890 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 19 placeholders
+2026-02-18 15:48:29.890 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 15:48:29.902 [INFO ] [5d97b897] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 15:48:30.615 [INFO ] [5d97b897] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@7d898981
+2026-02-18 15:48:30.617 [INFO ] [5d97b897] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 15:48:30.617 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 15:48:30.618 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 15:48:30.660 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 15:48:30.661 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000211863
+2026-02-18 15:48:30.946 [INFO ] [5d97b897] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 15:48:30.947 [INFO ] [5d97b897] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 15:48:30.969 [INFO ] [5d97b897] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 15:48:30.970 [ERROR] [5d97b897] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Unexpected error during label generation
+java.lang.IllegalArgumentException: Required field 'stagingLocation' is empty
+	at com.tbg.wms.core.model.NormalizationService.requireNonEmpty(NormalizationService.java:95)
+	at com.tbg.wms.core.model.NormalizationService.normalizeStagingLocation(NormalizationService.java:135)
+	at com.tbg.wms.db.OracleDbQueryRepository.fetchShipmentHeader(OracleDbQueryRepository.java:335)
+	at com.tbg.wms.db.OracleDbQueryRepository.findShipmentWithLpnsAndLineItems(OracleDbQueryRepository.java:72)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:169)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:72)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2045)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2465)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2457)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2419)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2421)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at com.tbg.wms.cli.CliMain.main(CliMain.java:53)
+2026-02-18 15:49:00.764 [INFO ] [1b05a9c1] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000211863
+2026-02-18 15:49:00.776 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 15:49:00.778 [WARN ] [1b05a9c1] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 15:49:00.778 [WARN ] [1b05a9c1] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 15:49:00.779 [WARN ] [1b05a9c1] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 15:49:00.779 [WARN ] [1b05a9c1] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 15:49:00.779 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 15:49:00.779 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 15:49:00.779 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 15:49:00.783 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 19 placeholders
+2026-02-18 15:49:00.783 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 15:49:00.796 [INFO ] [1b05a9c1] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 15:49:01.428 [INFO ] [1b05a9c1] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@3e74829
+2026-02-18 15:49:01.430 [INFO ] [1b05a9c1] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 15:49:01.431 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 15:49:01.432 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 15:49:01.475 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 15:49:01.475 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000211863
+2026-02-18 15:49:01.780 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 15:49:01.813 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 15:49:01.818 [INFO ] [1b05a9c1] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 15:49:01.941 [INFO ] [1b05a9c1] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 15:49:01.941 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 15:49:01.941 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 15:49:01.950 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 15:49:01.950 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 0 labels for shipment 8000211863
+2026-02-18 15:49:01.950 [INFO ] [1b05a9c1] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 15:49:01.950 [INFO ] [1b05a9c1] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 15:49:02.000 [INFO ] [1b05a9c1] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 15:51:28.324 [INFO ] [3d97e48b] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000211863
+2026-02-18 15:51:28.336 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 15:51:28.338 [WARN ] [3d97e48b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 15:51:28.338 [WARN ] [3d97e48b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 15:51:28.338 [WARN ] [3d97e48b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 15:51:28.338 [WARN ] [3d97e48b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 15:51:28.339 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 15:51:28.339 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 15:51:28.339 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 15:51:28.343 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 19 placeholders
+2026-02-18 15:51:28.343 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 15:51:28.356 [INFO ] [3d97e48b] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 15:51:28.949 [INFO ] [3d97e48b] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@5965be2d
+2026-02-18 15:51:28.951 [INFO ] [3d97e48b] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 15:51:28.952 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 15:51:28.953 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 15:51:28.994 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 15:51:28.994 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000211863
+2026-02-18 15:51:29.264 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 15:51:29.271 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 15:51:29.275 [INFO ] [3d97e48b] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 15:51:29.397 [INFO ] [3d97e48b] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 15:51:29.397 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 15:51:29.397 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 15:51:29.401 [WARN ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000211863 has no LPNs. Using 2 virtual SKU-based labels.
+2026-02-18 15:51:29.408 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 15:51:29.410 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500202019000 (shipment 8000211863)
+2026-02-18 15:51:29.411 [INFO ] [3d97e48b] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 15:51:29.412 [INFO ] [3d97e48b] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 15:51:29.518 [INFO ] [3d97e48b] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 15:51:29.519 [ERROR] [3d97e48b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Unexpected error during label generation
+java.lang.IllegalArgumentException: Field cannot be empty: stopSequence
+	at com.tbg.wms.core.template.ZplTemplateEngine.validateRequiredFields(ZplTemplateEngine.java:96)
+	at com.tbg.wms.core.template.ZplTemplateEngine.generate(ZplTemplateEngine.java:53)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:219)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:75)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2045)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2465)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2457)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2419)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2421)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at com.tbg.wms.cli.CliMain.main(CliMain.java:53)
+2026-02-18 15:52:32.958 [INFO ] [fc2e046b] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000211863
+2026-02-18 15:52:32.970 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 15:52:32.972 [WARN ] [fc2e046b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 15:52:32.972 [WARN ] [fc2e046b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 15:52:32.972 [WARN ] [fc2e046b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 15:52:32.972 [WARN ] [fc2e046b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 15:52:32.972 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 15:52:32.972 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 15:52:32.972 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 15:52:32.975 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 19 placeholders
+2026-02-18 15:52:32.976 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 15:52:32.987 [INFO ] [fc2e046b] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 15:52:33.584 [INFO ] [fc2e046b] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@5965be2d
+2026-02-18 15:52:33.586 [INFO ] [fc2e046b] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 15:52:33.586 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 15:52:33.587 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 15:52:33.635 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 15:52:33.635 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000211863
+2026-02-18 15:52:33.851 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 15:52:33.859 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 15:52:33.861 [INFO ] [fc2e046b] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 15:52:33.973 [INFO ] [fc2e046b] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 15:52:33.973 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 15:52:33.974 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 15:52:33.976 [WARN ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000211863 has no LPNs. Using 2 virtual SKU-based labels.
+2026-02-18 15:52:33.981 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 15:52:33.983 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500202019000 (shipment 8000211863)
+2026-02-18 15:52:33.987 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000211863_NO_LPN_1_1_of_2.zpl
+2026-02-18 15:52:33.988 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201296000 (shipment 8000211863)
+2026-02-18 15:52:33.990 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000211863_NO_LPN_2_2_of_2.zpl
+2026-02-18 15:52:33.990 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 2 labels for shipment 8000211863
+2026-02-18 15:52:33.991 [INFO ] [fc2e046b] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 15:52:33.991 [INFO ] [fc2e046b] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 15:52:34.045 [INFO ] [fc2e046b] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 15:54:07.266 [INFO ] [e5894fdb] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 15:54:07.278 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 15:54:07.281 [WARN ] [e5894fdb] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 15:54:07.281 [WARN ] [e5894fdb] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 15:54:07.281 [WARN ] [e5894fdb] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 15:54:07.281 [WARN ] [e5894fdb] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 15:54:07.281 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 15:54:07.281 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 15:54:07.281 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 15:54:07.285 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 19 placeholders
+2026-02-18 15:54:07.285 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 15:54:07.300 [INFO ] [e5894fdb] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 15:54:07.899 [INFO ] [e5894fdb] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@5965be2d
+2026-02-18 15:54:07.902 [INFO ] [e5894fdb] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 15:54:07.902 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 15:54:07.903 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 15:54:07.941 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 15:54:07.941 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 15:54:08.188 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 15:54:08.199 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 15:54:08.202 [INFO ] [e5894fdb] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 15:54:08.318 [INFO ] [e5894fdb] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 15:54:08.318 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 15:54:08.319 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 15:54:08.320 [WARN ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 15:54:08.325 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 15:54:08.328 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 15:54:08.332 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 15:54:08.333 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 15:54:08.335 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 15:54:08.336 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 15:54:08.339 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 15:54:08.340 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 15:54:08.342 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 15:54:08.342 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 15:54:08.342 [INFO ] [e5894fdb] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 15:54:08.342 [INFO ] [e5894fdb] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 15:54:08.414 [INFO ] [e5894fdb] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 15:54:51.153 [INFO ] [a399828d] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 15:54:51.165 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 15:54:51.167 [WARN ] [a399828d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 15:54:51.167 [WARN ] [a399828d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 15:54:51.167 [WARN ] [a399828d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 15:54:51.168 [WARN ] [a399828d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 15:54:51.168 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 15:54:51.168 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 15:54:51.168 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 15:54:51.171 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 19 placeholders
+2026-02-18 15:54:51.171 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 15:54:51.193 [INFO ] [a399828d] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 15:54:51.879 [INFO ] [a399828d] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 15:54:51.881 [INFO ] [a399828d] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 15:54:51.881 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 15:54:51.882 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 15:54:51.934 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 15:54:51.934 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 15:54:52.176 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 15:54:52.188 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 15:54:52.192 [INFO ] [a399828d] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 15:54:52.339 [INFO ] [a399828d] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 15:54:52.339 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 15:54:52.340 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 15:54:52.342 [WARN ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 15:54:52.348 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 15:54:52.350 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 15:54:52.355 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 15:54:52.355 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 15:54:52.359 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_1 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 15:54:52.359 [INFO ] [a399828d] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_1 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 15:54:52.373 [INFO ] [a399828d] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_1 to printer OFFICE
+2026-02-18 15:54:52.375 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 15:54:52.379 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 15:54:52.380 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 15:54:52.381 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_2 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 15:54:52.381 [INFO ] [a399828d] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_2 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 15:54:52.385 [INFO ] [a399828d] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_2 to printer OFFICE
+2026-02-18 15:54:52.387 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 15:54:52.390 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 15:54:52.390 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 15:54:52.390 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_3 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 15:54:52.390 [INFO ] [a399828d] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_3 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 15:54:52.405 [INFO ] [a399828d] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_3 to printer OFFICE
+2026-02-18 15:54:52.406 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 15:54:52.409 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 15:54:52.409 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 15:54:52.409 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_4 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 15:54:52.409 [INFO ] [a399828d] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_4 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 15:54:52.413 [INFO ] [a399828d] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_4 to printer OFFICE
+2026-02-18 15:54:52.413 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 15:54:52.414 [INFO ] [a399828d] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 15:54:52.414 [INFO ] [a399828d] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 15:54:52.563 [INFO ] [a399828d] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 15:58:55.866 [INFO ] [63b77480] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000023514
+2026-02-18 15:58:55.879 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 15:58:55.882 [WARN ] [63b77480] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 15:58:55.882 [WARN ] [63b77480] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 15:58:55.882 [WARN ] [63b77480] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 15:58:55.882 [WARN ] [63b77480] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 15:58:55.883 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 15:58:55.883 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 15:58:55.883 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 15:58:55.886 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 19 placeholders
+2026-02-18 15:58:55.886 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 15:58:55.906 [INFO ] [63b77480] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 15:58:56.573 [INFO ] [63b77480] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 15:58:56.575 [INFO ] [63b77480] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 15:58:56.576 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 15:58:56.577 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 15:58:56.625 [WARN ] [63b77480] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment not found: 8000023514
+2026-02-18 15:58:56.626 [INFO ] [63b77480] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 15:58:56.626 [INFO ] [63b77480] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 15:58:56.635 [INFO ] [63b77480] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:07:14.001 [INFO ] [143ee1c9] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000551715
+2026-02-18 16:07:14.015 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:07:14.018 [WARN ] [143ee1c9] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:07:14.018 [WARN ] [143ee1c9] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:07:14.018 [WARN ] [143ee1c9] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:07:14.019 [WARN ] [143ee1c9] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:07:14.019 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:07:14.019 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:07:14.019 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:07:14.021 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:07:14.021 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:07:14.040 [INFO ] [143ee1c9] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:07:14.846 [INFO ] [143ee1c9] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:07:14.848 [INFO ] [143ee1c9] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:07:14.849 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:07:14.850 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:07:14.915 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:07:14.916 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000551715
+2026-02-18 16:07:15.193 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:07:15.234 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:07:15.237 [INFO ] [143ee1c9] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:07:15.389 [INFO ] [143ee1c9] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:07:15.389 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:07:15.390 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:07:15.394 [WARN ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000551715 has no LPNs. Using 20 virtual SKU-based labels.
+2026-02-18 16:07:15.410 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:07:15.412 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 48500207253000 (shipment 8000551715)
+2026-02-18 16:07:15.414 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_1_1_of_20.zpl
+2026-02-18 16:07:15.415 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012057000 (shipment 8000551715)
+2026-02-18 16:07:15.417 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_2_2_of_20.zpl
+2026-02-18 16:07:15.418 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012064000 (shipment 8000551715)
+2026-02-18 16:07:15.420 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_3_3_of_20.zpl
+2026-02-18 16:07:15.421 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021047000 (shipment 8000551715)
+2026-02-18 16:07:15.423 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_4_4_of_20.zpl
+2026-02-18 16:07:15.424 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631237003 (shipment 8000551715)
+2026-02-18 16:07:15.425 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_5_5_of_20.zpl
+2026-02-18 16:07:15.426 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592011487001 (shipment 8000551715)
+2026-02-18 16:07:15.427 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_6_6_of_20.zpl
+2026-02-18 16:07:15.429 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205799000 (shipment 8000551715)
+2026-02-18 16:07:15.430 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_7_7_of_20.zpl
+2026-02-18 16:07:15.431 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021061000 (shipment 8000551715)
+2026-02-18 16:07:15.432 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_8_8_of_20.zpl
+2026-02-18 16:07:15.433 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021276000 (shipment 8000551715)
+2026-02-18 16:07:15.434 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_9_9_of_20.zpl
+2026-02-18 16:07:15.435 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021283000 (shipment 8000551715)
+2026-02-18 16:07:15.436 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_10_10_of_20.zpl
+2026-02-18 16:07:15.437 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 48500207192000 (shipment 8000551715)
+2026-02-18 16:07:15.438 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_11_11_of_20.zpl
+2026-02-18 16:07:15.439 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021238000 (shipment 8000551715)
+2026-02-18 16:07:15.440 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_12_12_of_20.zpl
+2026-02-18 16:07:15.441 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500206567000 (shipment 8000551715)
+2026-02-18 16:07:15.442 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_13_13_of_20.zpl
+2026-02-18 16:07:15.443 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631268003 (shipment 8000551715)
+2026-02-18 16:07:15.445 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_14_14_of_20.zpl
+2026-02-18 16:07:15.445 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631206003 (shipment 8000551715)
+2026-02-18 16:07:15.446 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_15_15_of_20.zpl
+2026-02-18 16:07:15.447 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012040000 (shipment 8000551715)
+2026-02-18 16:07:15.449 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_16_16_of_20.zpl
+2026-02-18 16:07:15.449 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021078000 (shipment 8000551715)
+2026-02-18 16:07:15.450 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_17_17_of_20.zpl
+2026-02-18 16:07:15.451 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205720000 (shipment 8000551715)
+2026-02-18 16:07:15.452 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_18_18_of_20.zpl
+2026-02-18 16:07:15.453 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631244004 (shipment 8000551715)
+2026-02-18 16:07:15.454 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_19_19_of_20.zpl
+2026-02-18 16:07:15.455 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205805000 (shipment 8000551715)
+2026-02-18 16:07:15.456 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_20_20_of_20.zpl
+2026-02-18 16:07:15.456 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 20 labels for shipment 8000551715
+2026-02-18 16:07:15.456 [INFO ] [143ee1c9] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:07:15.457 [INFO ] [143ee1c9] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:07:15.611 [INFO ] [143ee1c9] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:07:48.095 [INFO ] [75eeffb0] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000551715
+2026-02-18 16:07:48.105 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:07:48.107 [WARN ] [75eeffb0] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:07:48.107 [WARN ] [75eeffb0] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:07:48.107 [WARN ] [75eeffb0] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:07:48.107 [WARN ] [75eeffb0] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:07:48.107 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:07:48.107 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:07:48.107 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:07:48.110 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:07:48.110 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:07:48.125 [INFO ] [75eeffb0] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:07:48.826 [INFO ] [75eeffb0] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:07:48.828 [INFO ] [75eeffb0] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:07:48.829 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:07:48.830 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:07:48.877 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:07:48.877 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000551715
+2026-02-18 16:07:49.092 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:07:49.116 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:07:49.119 [INFO ] [75eeffb0] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:07:49.240 [INFO ] [75eeffb0] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:07:49.240 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:07:49.240 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:07:49.243 [WARN ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000551715 has no LPNs. Using 20 virtual SKU-based labels.
+2026-02-18 16:07:49.252 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:07:49.254 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 48500207253000 (shipment 8000551715)
+2026-02-18 16:07:49.257 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_1_1_of_20.zpl
+2026-02-18 16:07:49.258 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012057000 (shipment 8000551715)
+2026-02-18 16:07:49.259 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_2_2_of_20.zpl
+2026-02-18 16:07:49.260 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012064000 (shipment 8000551715)
+2026-02-18 16:07:49.263 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_3_3_of_20.zpl
+2026-02-18 16:07:49.264 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021047000 (shipment 8000551715)
+2026-02-18 16:07:49.265 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_4_4_of_20.zpl
+2026-02-18 16:07:49.266 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631237003 (shipment 8000551715)
+2026-02-18 16:07:49.267 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_5_5_of_20.zpl
+2026-02-18 16:07:49.268 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592011487001 (shipment 8000551715)
+2026-02-18 16:07:49.269 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_6_6_of_20.zpl
+2026-02-18 16:07:49.270 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205799000 (shipment 8000551715)
+2026-02-18 16:07:49.272 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_7_7_of_20.zpl
+2026-02-18 16:07:49.273 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021061000 (shipment 8000551715)
+2026-02-18 16:07:49.274 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_8_8_of_20.zpl
+2026-02-18 16:07:49.274 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021276000 (shipment 8000551715)
+2026-02-18 16:07:49.275 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_9_9_of_20.zpl
+2026-02-18 16:07:49.276 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021283000 (shipment 8000551715)
+2026-02-18 16:07:49.277 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_10_10_of_20.zpl
+2026-02-18 16:07:49.277 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 48500207192000 (shipment 8000551715)
+2026-02-18 16:07:49.278 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_11_11_of_20.zpl
+2026-02-18 16:07:49.279 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021238000 (shipment 8000551715)
+2026-02-18 16:07:49.280 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_12_12_of_20.zpl
+2026-02-18 16:07:49.281 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500206567000 (shipment 8000551715)
+2026-02-18 16:07:49.282 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_13_13_of_20.zpl
+2026-02-18 16:07:49.283 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631268003 (shipment 8000551715)
+2026-02-18 16:07:49.284 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_14_14_of_20.zpl
+2026-02-18 16:07:49.285 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631206003 (shipment 8000551715)
+2026-02-18 16:07:49.286 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_15_15_of_20.zpl
+2026-02-18 16:07:49.286 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012040000 (shipment 8000551715)
+2026-02-18 16:07:49.288 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_16_16_of_20.zpl
+2026-02-18 16:07:49.289 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021078000 (shipment 8000551715)
+2026-02-18 16:07:49.290 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_17_17_of_20.zpl
+2026-02-18 16:07:49.291 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205720000 (shipment 8000551715)
+2026-02-18 16:07:49.292 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_18_18_of_20.zpl
+2026-02-18 16:07:49.292 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631244004 (shipment 8000551715)
+2026-02-18 16:07:49.294 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_19_19_of_20.zpl
+2026-02-18 16:07:49.294 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205805000 (shipment 8000551715)
+2026-02-18 16:07:49.295 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_20_20_of_20.zpl
+2026-02-18 16:07:49.295 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 20 labels for shipment 8000551715
+2026-02-18 16:07:49.296 [INFO ] [75eeffb0] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:07:49.296 [INFO ] [75eeffb0] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:07:49.390 [INFO ] [75eeffb0] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:07:59.208 [INFO ] [0a6609e5] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000551715
+2026-02-18 16:07:59.220 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:07:59.223 [WARN ] [0a6609e5] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:07:59.223 [WARN ] [0a6609e5] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:07:59.223 [WARN ] [0a6609e5] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:07:59.223 [WARN ] [0a6609e5] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:07:59.223 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:07:59.223 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:07:59.224 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:07:59.225 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:07:59.226 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:07:59.245 [INFO ] [0a6609e5] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:08:00.017 [INFO ] [0a6609e5] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:08:00.020 [INFO ] [0a6609e5] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:08:00.020 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:08:00.021 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:08:00.065 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:08:00.065 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000551715
+2026-02-18 16:08:00.292 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:08:00.313 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:08:00.315 [INFO ] [0a6609e5] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:08:00.436 [INFO ] [0a6609e5] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:08:00.436 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:08:00.437 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:08:00.440 [WARN ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000551715 has no LPNs. Using 20 virtual SKU-based labels.
+2026-02-18 16:08:00.446 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:08:00.449 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 48500207253000 (shipment 8000551715)
+2026-02-18 16:08:00.453 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_1_1_of_20.zpl
+2026-02-18 16:08:00.453 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:00.456 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_1 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.456 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_1 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.470 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_1 to printer OFFICE
+2026-02-18 16:08:00.471 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012057000 (shipment 8000551715)
+2026-02-18 16:08:00.473 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_2_2_of_20.zpl
+2026-02-18 16:08:00.473 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:00.473 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_2 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.473 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_2 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.483 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_2 to printer OFFICE
+2026-02-18 16:08:00.484 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012064000 (shipment 8000551715)
+2026-02-18 16:08:00.486 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_3_3_of_20.zpl
+2026-02-18 16:08:00.486 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:00.486 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_3 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.486 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_3 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.495 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_3 to printer OFFICE
+2026-02-18 16:08:00.496 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021047000 (shipment 8000551715)
+2026-02-18 16:08:00.497 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_4_4_of_20.zpl
+2026-02-18 16:08:00.497 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:00.497 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_4 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.497 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_4 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.501 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_4 to printer OFFICE
+2026-02-18 16:08:00.502 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631237003 (shipment 8000551715)
+2026-02-18 16:08:00.504 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_5_5_of_20.zpl
+2026-02-18 16:08:00.504 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:00.504 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_5 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:00.504 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_5 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:01.523 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_5 to printer OFFICE
+2026-02-18 16:08:01.524 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592011487001 (shipment 8000551715)
+2026-02-18 16:08:01.524 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_6_6_of_20.zpl
+2026-02-18 16:08:01.525 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:01.525 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_6 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:01.525 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_6 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:01.528 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_6 to printer OFFICE
+2026-02-18 16:08:01.529 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205799000 (shipment 8000551715)
+2026-02-18 16:08:01.530 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_7_7_of_20.zpl
+2026-02-18 16:08:01.530 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:01.530 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_7 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:01.530 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_7 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:01.536 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_7 to printer OFFICE
+2026-02-18 16:08:01.537 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021061000 (shipment 8000551715)
+2026-02-18 16:08:01.538 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_8_8_of_20.zpl
+2026-02-18 16:08:01.538 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:01.538 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_8 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:01.538 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_8 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:02.552 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_8 to printer OFFICE
+2026-02-18 16:08:02.553 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021276000 (shipment 8000551715)
+2026-02-18 16:08:02.554 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_9_9_of_20.zpl
+2026-02-18 16:08:02.554 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:02.554 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_9 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:02.554 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_9 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:02.564 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_9 to printer OFFICE
+2026-02-18 16:08:02.564 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021283000 (shipment 8000551715)
+2026-02-18 16:08:02.565 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_10_10_of_20.zpl
+2026-02-18 16:08:02.565 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:02.565 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_10 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:02.565 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_10 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:02.579 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_10 to printer OFFICE
+2026-02-18 16:08:02.580 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 48500207192000 (shipment 8000551715)
+2026-02-18 16:08:02.581 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_11_11_of_20.zpl
+2026-02-18 16:08:02.581 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:02.581 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_11 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:02.581 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_11 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:03.592 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_11 to printer OFFICE
+2026-02-18 16:08:03.592 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021238000 (shipment 8000551715)
+2026-02-18 16:08:03.594 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_12_12_of_20.zpl
+2026-02-18 16:08:03.594 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:03.595 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_12 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:03.595 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_12 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:03.614 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_12 to printer OFFICE
+2026-02-18 16:08:03.615 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500206567000 (shipment 8000551715)
+2026-02-18 16:08:03.616 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_13_13_of_20.zpl
+2026-02-18 16:08:03.616 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:03.616 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_13 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:03.616 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_13 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:03.622 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_13 to printer OFFICE
+2026-02-18 16:08:03.622 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631268003 (shipment 8000551715)
+2026-02-18 16:08:03.623 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_14_14_of_20.zpl
+2026-02-18 16:08:03.623 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:03.623 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_14 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:03.623 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_14 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:04.634 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_14 to printer OFFICE
+2026-02-18 16:08:04.635 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631206003 (shipment 8000551715)
+2026-02-18 16:08:04.635 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_15_15_of_20.zpl
+2026-02-18 16:08:04.635 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:04.635 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_15 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:04.635 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_15 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:04.646 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_15 to printer OFFICE
+2026-02-18 16:08:04.647 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012040000 (shipment 8000551715)
+2026-02-18 16:08:04.648 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_16_16_of_20.zpl
+2026-02-18 16:08:04.648 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:04.648 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_16 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:04.648 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_16 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:04.653 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_16 to printer OFFICE
+2026-02-18 16:08:04.653 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021078000 (shipment 8000551715)
+2026-02-18 16:08:04.654 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_17_17_of_20.zpl
+2026-02-18 16:08:04.654 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:04.654 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_17 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:04.654 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_17 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:05.671 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_17 to printer OFFICE
+2026-02-18 16:08:05.671 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205720000 (shipment 8000551715)
+2026-02-18 16:08:05.672 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_18_18_of_20.zpl
+2026-02-18 16:08:05.673 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:05.673 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_18 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:05.673 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_18 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:05.680 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_18 to printer OFFICE
+2026-02-18 16:08:05.680 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631244004 (shipment 8000551715)
+2026-02-18 16:08:05.681 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_19_19_of_20.zpl
+2026-02-18 16:08:05.681 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:05.681 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_19 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:05.681 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_19 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:05.685 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_19 to printer OFFICE
+2026-02-18 16:08:05.686 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205805000 (shipment 8000551715)
+2026-02-18 16:08:05.687 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_20_20_of_20.zpl
+2026-02-18 16:08:05.687 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Using manual printer override: OFFICE
+2026-02-18 16:08:05.688 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Printing label NO_LPN_20 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:05.688 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Sending label NO_LPN_20 to printer OFFICE (10.19.64.106:9100)
+2026-02-18 16:08:06.703 [INFO ] [0a6609e5] [TBG3002:] c.tbg.wms.core.print.NetworkPrintService - Successfully sent label NO_LPN_20 to printer OFFICE
+2026-02-18 16:08:06.703 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 20 labels for shipment 8000551715
+2026-02-18 16:08:06.703 [INFO ] [0a6609e5] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:08:06.703 [INFO ] [0a6609e5] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:08:06.759 [INFO ] [0a6609e5] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:14:49.619 [INFO ] [21246b68] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000551715
+2026-02-18 16:14:49.630 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:14:49.632 [WARN ] [21246b68] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:14:49.632 [WARN ] [21246b68] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:14:49.633 [WARN ] [21246b68] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:14:49.633 [WARN ] [21246b68] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:14:49.633 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:14:49.633 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:14:49.633 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:14:49.635 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 14 placeholders
+2026-02-18 16:14:49.635 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:14:49.651 [INFO ] [21246b68] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:14:50.266 [INFO ] [21246b68] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:14:50.267 [INFO ] [21246b68] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:14:50.267 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:14:50.268 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:14:50.312 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:14:50.313 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000551715
+2026-02-18 16:14:50.541 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:14:50.564 [ERROR] [21246b68] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving footprint data for 8000551715: 42000
+2026-02-18 16:14:50.564 [INFO ] [21246b68] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:14:50.565 [INFO ] [21246b68] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:14:50.630 [INFO ] [21246b68] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:14:50.630 [ERROR] [21246b68] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Database connectivity error: Failed to retrieve footprint data: ORA-00904: "P"."LNGDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+com.tbg.wms.core.exception.WmsDbConnectivityException: Failed to retrieve footprint data: ORA-00904: "P"."LNGDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+	at com.tbg.wms.db.OracleDbQueryRepository.findShipmentSkuFootprints(OracleDbQueryRepository.java:255)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:181)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:75)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2045)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2465)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2457)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2419)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2421)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at com.tbg.wms.cli.CliMain.main(CliMain.java:53)
+Caused by: java.sql.SQLSyntaxErrorException: ORA-00904: "P"."LNGDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:702)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:608)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1330)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:1102)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:3940)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1103)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeQuery(ProxyPreparedStatement.java:52)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeQuery(HikariProxyPreparedStatement.java)
+	at com.tbg.wms.db.OracleDbQueryRepository.findShipmentSkuFootprints(OracleDbQueryRepository.java:235)
+	... 11 common frames omitted
+Caused by: oracle.jdbc.OracleDatabaseException: ORA-00904: "P"."LNGDSC": invalid identifier
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:710)
+	... 28 common frames omitted
+2026-02-18 16:15:17.987 [INFO ] [0cfd89cf] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000551715
+2026-02-18 16:15:17.999 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:15:18.002 [WARN ] [0cfd89cf] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:15:18.002 [WARN ] [0cfd89cf] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:15:18.002 [WARN ] [0cfd89cf] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:15:18.002 [WARN ] [0cfd89cf] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:15:18.002 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:15:18.002 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:15:18.003 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:15:18.005 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 14 placeholders
+2026-02-18 16:15:18.006 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:15:18.024 [INFO ] [0cfd89cf] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:15:18.676 [INFO ] [0cfd89cf] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@1921ad94
+2026-02-18 16:15:18.677 [INFO ] [0cfd89cf] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:15:18.677 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:15:18.678 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:15:18.725 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:15:18.725 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000551715
+2026-02-18 16:15:18.932 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:15:18.945 [ERROR] [0cfd89cf] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving footprint data for 8000551715: 42000
+2026-02-18 16:15:18.945 [INFO ] [0cfd89cf] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:15:18.945 [INFO ] [0cfd89cf] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:15:19.029 [INFO ] [0cfd89cf] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:15:19.029 [ERROR] [0cfd89cf] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Database connectivity error: Failed to retrieve footprint data: ORA-00904: "P"."SRTDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+com.tbg.wms.core.exception.WmsDbConnectivityException: Failed to retrieve footprint data: ORA-00904: "P"."SRTDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+	at com.tbg.wms.db.OracleDbQueryRepository.findShipmentSkuFootprints(OracleDbQueryRepository.java:255)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:181)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:75)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2045)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2465)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2457)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2419)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2421)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at com.tbg.wms.cli.CliMain.main(CliMain.java:53)
+Caused by: java.sql.SQLSyntaxErrorException: ORA-00904: "P"."SRTDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:702)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:608)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1330)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:1102)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:3940)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1103)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeQuery(ProxyPreparedStatement.java:52)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeQuery(HikariProxyPreparedStatement.java)
+	at com.tbg.wms.db.OracleDbQueryRepository.findShipmentSkuFootprints(OracleDbQueryRepository.java:235)
+	... 11 common frames omitted
+Caused by: oracle.jdbc.OracleDatabaseException: ORA-00904: "P"."SRTDSC": invalid identifier
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:710)
+	... 28 common frames omitted
+2026-02-18 16:15:55.860 [INFO ] [3c856803] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000551715
+2026-02-18 16:15:55.869 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:15:55.871 [WARN ] [3c856803] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:15:55.871 [WARN ] [3c856803] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:15:55.871 [WARN ] [3c856803] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:15:55.871 [WARN ] [3c856803] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:15:55.871 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:15:55.872 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:15:55.872 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:15:55.874 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 14 placeholders
+2026-02-18 16:15:55.874 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:15:55.893 [INFO ] [3c856803] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:15:56.556 [INFO ] [3c856803] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@1921ad94
+2026-02-18 16:15:56.558 [INFO ] [3c856803] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:15:56.558 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:15:56.559 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:15:56.604 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:15:56.604 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000551715
+2026-02-18 16:15:56.851 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:15:56.878 [ERROR] [3c856803] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Database error retrieving footprint data for 8000551715: 42000
+2026-02-18 16:15:56.878 [INFO ] [3c856803] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:15:56.878 [INFO ] [3c856803] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:15:56.922 [INFO ] [3c856803] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:15:56.922 [ERROR] [3c856803] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Database connectivity error: Failed to retrieve footprint data: ORA-00904: "P"."LNGDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+com.tbg.wms.core.exception.WmsDbConnectivityException: Failed to retrieve footprint data: ORA-00904: "P"."LNGDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+	at com.tbg.wms.db.OracleDbQueryRepository.findShipmentSkuFootprints(OracleDbQueryRepository.java:255)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:181)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:75)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2045)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2465)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2457)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2419)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2421)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at com.tbg.wms.cli.CliMain.main(CliMain.java:53)
+Caused by: java.sql.SQLSyntaxErrorException: ORA-00904: "P"."LNGDSC": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:702)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:608)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1330)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:1102)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:3940)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1103)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeQuery(ProxyPreparedStatement.java:52)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeQuery(HikariProxyPreparedStatement.java)
+	at com.tbg.wms.db.OracleDbQueryRepository.findShipmentSkuFootprints(OracleDbQueryRepository.java:235)
+	... 11 common frames omitted
+Caused by: oracle.jdbc.OracleDatabaseException: ORA-00904: "P"."LNGDSC": invalid identifier
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:710)
+	... 28 common frames omitted
+2026-02-18 16:17:23.357 [INFO ] [52f37ed6] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000551715
+2026-02-18 16:17:23.367 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:17:23.369 [WARN ] [52f37ed6] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:17:23.370 [WARN ] [52f37ed6] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:17:23.370 [WARN ] [52f37ed6] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:17:23.370 [WARN ] [52f37ed6] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:17:23.370 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:17:23.370 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:17:23.370 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:17:23.373 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 14 placeholders
+2026-02-18 16:17:23.373 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:17:23.392 [INFO ] [52f37ed6] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:17:24.046 [INFO ] [52f37ed6] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@1921ad94
+2026-02-18 16:17:24.048 [INFO ] [52f37ed6] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:17:24.048 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:17:24.050 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:17:24.096 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:17:24.096 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000551715
+2026-02-18 16:17:24.350 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:17:24.368 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:17:24.370 [INFO ] [52f37ed6] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:17:24.502 [INFO ] [52f37ed6] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:17:24.502 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:17:24.503 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:17:24.507 [WARN ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000551715 has no LPNs. Using 20 virtual SKU-based labels.
+2026-02-18 16:17:24.513 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:17:24.514 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 48500207253000 (shipment 8000551715)
+2026-02-18 16:17:24.516 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_1_1_of_20.zpl
+2026-02-18 16:17:24.517 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012057000 (shipment 8000551715)
+2026-02-18 16:17:24.518 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_2_2_of_20.zpl
+2026-02-18 16:17:24.519 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012064000 (shipment 8000551715)
+2026-02-18 16:17:24.521 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_3_3_of_20.zpl
+2026-02-18 16:17:24.523 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021047000 (shipment 8000551715)
+2026-02-18 16:17:24.525 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_4_4_of_20.zpl
+2026-02-18 16:17:24.525 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631237003 (shipment 8000551715)
+2026-02-18 16:17:24.527 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_5_5_of_20.zpl
+2026-02-18 16:17:24.528 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592011487001 (shipment 8000551715)
+2026-02-18 16:17:24.529 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_6_6_of_20.zpl
+2026-02-18 16:17:24.531 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205799000 (shipment 8000551715)
+2026-02-18 16:17:24.532 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_7_7_of_20.zpl
+2026-02-18 16:17:24.533 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021061000 (shipment 8000551715)
+2026-02-18 16:17:24.534 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_8_8_of_20.zpl
+2026-02-18 16:17:24.535 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021276000 (shipment 8000551715)
+2026-02-18 16:17:24.536 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_9_9_of_20.zpl
+2026-02-18 16:17:24.537 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021283000 (shipment 8000551715)
+2026-02-18 16:17:24.538 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_10_10_of_20.zpl
+2026-02-18 16:17:24.539 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 48500207192000 (shipment 8000551715)
+2026-02-18 16:17:24.541 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_11_11_of_20.zpl
+2026-02-18 16:17:24.542 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021238000 (shipment 8000551715)
+2026-02-18 16:17:24.543 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_12_12_of_20.zpl
+2026-02-18 16:17:24.544 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500206567000 (shipment 8000551715)
+2026-02-18 16:17:24.545 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_13_13_of_20.zpl
+2026-02-18 16:17:24.546 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631268003 (shipment 8000551715)
+2026-02-18 16:17:24.547 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_14_14_of_20.zpl
+2026-02-18 16:17:24.547 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631206003 (shipment 8000551715)
+2026-02-18 16:17:24.548 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_15_15_of_20.zpl
+2026-02-18 16:17:24.549 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012040000 (shipment 8000551715)
+2026-02-18 16:17:24.551 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_16_16_of_20.zpl
+2026-02-18 16:17:24.552 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500021078000 (shipment 8000551715)
+2026-02-18 16:17:24.553 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_17_17_of_20.zpl
+2026-02-18 16:17:24.554 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205720000 (shipment 8000551715)
+2026-02-18 16:17:24.555 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_18_18_of_20.zpl
+2026-02-18 16:17:24.556 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631244004 (shipment 8000551715)
+2026-02-18 16:17:24.558 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_19_19_of_20.zpl
+2026-02-18 16:17:24.559 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500205805000 (shipment 8000551715)
+2026-02-18 16:17:24.560 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000551715_NO_LPN_20_20_of_20.zpl
+2026-02-18 16:17:24.560 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 20 labels for shipment 8000551715
+2026-02-18 16:17:24.561 [INFO ] [52f37ed6] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:17:24.561 [INFO ] [52f37ed6] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:17:24.621 [INFO ] [52f37ed6] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:19:03.127 [INFO ] [495b550d] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:19:03.138 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:19:03.141 [WARN ] [495b550d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:19:03.141 [WARN ] [495b550d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:19:03.142 [WARN ] [495b550d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:19:03.142 [WARN ] [495b550d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:19:03.142 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:19:03.142 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:19:03.143 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:19:03.145 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 14 placeholders
+2026-02-18 16:19:03.145 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:19:03.166 [INFO ] [495b550d] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:19:03.815 [INFO ] [495b550d] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:19:03.817 [INFO ] [495b550d] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:19:03.817 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:19:03.818 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:19:03.867 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:19:03.867 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:19:04.088 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:19:04.098 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:19:04.103 [INFO ] [495b550d] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:19:04.241 [INFO ] [495b550d] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:19:04.243 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:19:04.243 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:19:04.246 [WARN ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:19:04.251 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:19:04.253 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:19:04.256 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:19:04.258 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:19:04.259 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:19:04.261 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:19:04.263 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:19:04.265 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:19:04.268 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:19:04.268 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:19:04.268 [INFO ] [495b550d] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:19:04.268 [INFO ] [495b550d] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:19:04.328 [INFO ] [495b550d] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:25:03.381 [INFO ] [3f483286] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:25:03.391 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:25:03.393 [WARN ] [3f483286] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:25:03.393 [WARN ] [3f483286] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:25:03.393 [WARN ] [3f483286] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:25:03.393 [WARN ] [3f483286] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:25:03.394 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:25:03.394 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:25:03.394 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:25:03.396 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:25:03.396 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:25:03.416 [INFO ] [3f483286] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:25:04.087 [INFO ] [3f483286] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:25:04.089 [INFO ] [3f483286] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:25:04.089 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:25:04.090 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:25:04.134 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:25:04.134 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:25:04.227 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:25:04.237 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:25:04.240 [INFO ] [3f483286] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:25:04.406 [INFO ] [3f483286] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:25:04.406 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:25:04.407 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:25:04.409 [WARN ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:25:04.425 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:25:04.426 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:25:04.428 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:25:04.430 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:25:04.432 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:25:04.433 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:25:04.435 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:25:04.435 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:25:04.436 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:25:04.436 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:25:04.436 [INFO ] [3f483286] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:25:04.437 [INFO ] [3f483286] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:25:04.532 [INFO ] [3f483286] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:25:48.048 [INFO ] [6186c67e] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:25:48.073 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:25:48.077 [WARN ] [6186c67e] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:25:48.077 [WARN ] [6186c67e] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:25:48.077 [WARN ] [6186c67e] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:25:48.078 [WARN ] [6186c67e] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:25:48.078 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:25:48.078 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:25:48.079 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:25:48.082 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:25:48.082 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:25:48.117 [INFO ] [6186c67e] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:25:49.119 [INFO ] [6186c67e] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:25:49.121 [INFO ] [6186c67e] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:25:49.122 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:25:49.123 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:25:49.197 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:25:49.197 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:25:49.277 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:25:49.303 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:25:49.307 [INFO ] [6186c67e] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:25:49.521 [INFO ] [6186c67e] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:25:49.522 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:25:49.522 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:25:49.525 [WARN ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:25:49.533 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:25:49.538 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:25:49.541 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:25:49.544 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:25:49.546 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:25:49.548 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:25:49.551 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:25:49.553 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:25:49.555 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:25:49.555 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:25:49.555 [INFO ] [6186c67e] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:25:49.556 [INFO ] [6186c67e] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:25:49.674 [INFO ] [6186c67e] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:26:25.748 [INFO ] [e6c70843] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:26:25.764 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:26:25.767 [WARN ] [e6c70843] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:26:25.767 [WARN ] [e6c70843] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:26:25.768 [WARN ] [e6c70843] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:26:25.768 [WARN ] [e6c70843] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:26:25.768 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:26:25.768 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:26:25.768 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:26:25.771 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:26:25.771 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:26:25.800 [INFO ] [e6c70843] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:26:26.647 [INFO ] [e6c70843] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:26:26.649 [INFO ] [e6c70843] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:26:26.650 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:26:26.651 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:26:26.705 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:26:26.705 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:26:26.773 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:26:26.782 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:26:26.785 [INFO ] [e6c70843] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:26:26.989 [INFO ] [e6c70843] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:26:26.989 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:26:26.990 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:26:26.994 [WARN ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:26:27.003 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:26:27.005 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:26:27.009 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:26:27.011 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:26:27.013 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:26:27.015 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:26:27.018 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:26:27.020 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:26:27.022 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:26:27.022 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:26:27.023 [INFO ] [e6c70843] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:26:27.023 [INFO ] [e6c70843] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:26:27.130 [INFO ] [e6c70843] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:33:31.610 [INFO ] [26158ac2] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:33:31.625 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:33:31.628 [WARN ] [26158ac2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:33:31.628 [WARN ] [26158ac2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:33:31.629 [WARN ] [26158ac2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:33:31.629 [WARN ] [26158ac2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:33:31.629 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:33:31.629 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:33:31.630 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:33:31.634 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:33:31.634 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:33:31.658 [INFO ] [26158ac2] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:33:32.495 [INFO ] [26158ac2] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:33:32.497 [INFO ] [26158ac2] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:33:32.497 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:33:32.499 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:33:32.557 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:33:32.557 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:33:32.632 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:33:32.796 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:33:32.803 [INFO ] [26158ac2] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:33:33.026 [INFO ] [26158ac2] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:33:33.027 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:33:33.028 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:33:33.032 [WARN ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:33:33.038 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:33:33.043 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:33:33.047 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:33:33.050 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:33:33.052 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:33:33.053 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:33:33.056 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:33:33.058 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:33:33.061 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:33:33.061 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:33:33.061 [INFO ] [26158ac2] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:33:33.061 [INFO ] [26158ac2] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:33:33.152 [INFO ] [26158ac2] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:34:36.936 [INFO ] [8ed2abb8] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:34:36.950 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:34:36.953 [WARN ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:34:36.953 [WARN ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:34:36.953 [WARN ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:34:36.953 [WARN ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:34:36.953 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:34:36.954 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:34:36.954 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:34:36.956 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:34:36.957 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:34:36.982 [INFO ] [8ed2abb8] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:34:37.780 [INFO ] [8ed2abb8] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:34:37.782 [INFO ] [8ed2abb8] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:34:37.782 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:34:37.784 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:34:37.844 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:34:37.844 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:34:37.933 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:34:38.068 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:34:38.073 [INFO ] [8ed2abb8] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:34:38.222 [INFO ] [8ed2abb8] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:34:38.222 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:34:38.222 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:34:38.224 [WARN ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:34:38.233 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:34:38.235 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:34:38.237 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:34:38.239 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:34:38.240 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:34:38.241 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:34:38.242 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:34:38.243 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:34:38.244 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:34:38.244 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:34:38.245 [INFO ] [8ed2abb8] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:34:38.245 [INFO ] [8ed2abb8] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:34:38.309 [INFO ] [8ed2abb8] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:35:35.809 [INFO ] [1491e73f] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:35:35.826 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:35:35.828 [WARN ] [1491e73f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:35:35.829 [WARN ] [1491e73f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:35:35.829 [WARN ] [1491e73f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:35:35.829 [WARN ] [1491e73f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:35:35.829 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:35:35.829 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:35:35.829 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:35:35.832 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:35:35.832 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:35:35.854 [INFO ] [1491e73f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:35:36.711 [INFO ] [1491e73f] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:35:36.714 [INFO ] [1491e73f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:35:36.714 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:35:36.716 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:35:36.778 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:35:36.779 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:35:36.852 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:35:36.957 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:35:36.961 [INFO ] [1491e73f] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:35:37.109 [INFO ] [1491e73f] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:35:37.109 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:35:37.110 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:35:37.112 [WARN ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:35:37.118 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:35:37.119 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:35:37.122 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:35:37.124 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:35:37.127 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:35:37.129 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:35:37.131 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:35:37.133 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:35:37.136 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:35:37.136 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:35:37.136 [INFO ] [1491e73f] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:35:37.136 [INFO ] [1491e73f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:35:37.238 [INFO ] [1491e73f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:41:43.256 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:41:44.174 [INFO ] [] [:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@1b410b60
+2026-02-18 16:41:44.176 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:41:44.177 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:41:44.329 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:41:44.329 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:41:44.439 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:42:18.161 [INFO ] [1394c93f] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:42:18.176 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:42:18.178 [WARN ] [1394c93f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:42:18.178 [WARN ] [1394c93f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:42:18.179 [WARN ] [1394c93f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:42:18.179 [WARN ] [1394c93f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:42:18.179 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:42:18.179 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:42:18.179 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:42:18.182 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 17 placeholders
+2026-02-18 16:42:18.182 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:42:18.206 [INFO ] [1394c93f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:42:18.983 [INFO ] [1394c93f] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:42:18.986 [INFO ] [1394c93f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:42:18.986 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:42:18.988 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:42:19.040 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:42:19.040 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:42:19.193 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:42:19.269 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:42:19.274 [INFO ] [1394c93f] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:42:19.438 [INFO ] [1394c93f] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:42:19.438 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:42:19.439 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:42:19.441 [WARN ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:42:19.456 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:42:19.460 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:42:19.463 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:42:19.465 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:42:19.468 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:42:19.470 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:42:19.472 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:42:19.473 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:42:19.476 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:42:19.476 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:42:19.477 [INFO ] [1394c93f] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:42:19.477 [INFO ] [1394c93f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:42:19.592 [INFO ] [1394c93f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:43:48.240 [INFO ] [00938ff3] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:43:48.260 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:43:48.263 [WARN ] [00938ff3] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:43:48.263 [WARN ] [00938ff3] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:43:48.263 [WARN ] [00938ff3] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:43:48.263 [WARN ] [00938ff3] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:43:48.263 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:43:48.263 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:43:48.264 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:43:48.267 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 18 placeholders
+2026-02-18 16:43:48.267 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:43:48.292 [INFO ] [00938ff3] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:43:49.131 [INFO ] [00938ff3] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:43:49.133 [INFO ] [00938ff3] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:43:49.133 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:43:49.135 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:43:49.195 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:43:49.196 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:43:49.278 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:43:49.361 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:43:49.365 [INFO ] [00938ff3] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:43:49.545 [INFO ] [00938ff3] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:43:49.545 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:43:49.546 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:43:49.549 [WARN ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:43:49.565 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:43:49.569 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:43:49.573 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:43:49.576 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:43:49.578 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:43:49.579 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:43:49.582 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:43:49.584 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:43:49.586 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:43:49.586 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:43:49.587 [INFO ] [00938ff3] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:43:49.587 [INFO ] [00938ff3] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:43:49.669 [INFO ] [00938ff3] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:44:29.507 [INFO ] [7352fc2f] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000550543
+2026-02-18 16:44:29.519 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:44:29.521 [WARN ] [7352fc2f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:44:29.521 [WARN ] [7352fc2f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:44:29.521 [WARN ] [7352fc2f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:44:29.521 [WARN ] [7352fc2f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:44:29.523 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:44:29.523 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:44:29.523 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:44:29.525 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 18 placeholders
+2026-02-18 16:44:29.525 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:44:29.544 [INFO ] [7352fc2f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:44:30.229 [INFO ] [7352fc2f] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:44:30.232 [INFO ] [7352fc2f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:44:30.232 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:44:30.234 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:44:30.282 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 16:44:30.282 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000550543
+2026-02-18 16:44:30.344 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 16:44:30.428 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 16:44:30.432 [INFO ] [7352fc2f] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 16:44:30.660 [INFO ] [7352fc2f] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 16:44:30.660 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 16:44:30.661 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 16:44:30.668 [WARN ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000550543 has no LPNs. Using 4 virtual SKU-based labels.
+2026-02-18 16:44:30.680 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 16:44:30.685 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500207885000 (shipment 8000550543)
+2026-02-18 16:44:30.690 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_1_1_of_4.zpl
+2026-02-18 16:44:30.692 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500018337004 (shipment 8000550543)
+2026-02-18 16:44:30.695 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_2_2_of_4.zpl
+2026-02-18 16:44:30.697 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201845000 (shipment 8000550543)
+2026-02-18 16:44:30.700 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_3_3_of_4.zpl
+2026-02-18 16:44:30.701 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10048500201838000 (shipment 8000550543)
+2026-02-18 16:44:30.703 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000550543_NO_LPN_4_4_of_4.zpl
+2026-02-18 16:44:30.703 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 4 labels for shipment 8000550543
+2026-02-18 16:44:30.704 [INFO ] [7352fc2f] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:44:30.704 [INFO ] [7352fc2f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:44:30.754 [INFO ] [7352fc2f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 16:50:14.057 [INFO ] [c3e293ff] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000089935
+2026-02-18 16:50:14.071 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 16:50:14.073 [WARN ] [c3e293ff] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 16:50:14.073 [WARN ] [c3e293ff] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 16:50:14.074 [WARN ] [c3e293ff] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 16:50:14.074 [WARN ] [c3e293ff] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 16:50:14.074 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 16:50:14.074 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 16:50:14.074 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 16:50:14.076 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 18 placeholders
+2026-02-18 16:50:14.077 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 16:50:14.099 [INFO ] [c3e293ff] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 16:50:15.052 [INFO ] [c3e293ff] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@10cf09e8
+2026-02-18 16:50:15.056 [INFO ] [c3e293ff] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 16:50:15.057 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 16:50:15.060 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 16:50:15.160 [WARN ] [c3e293ff] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment not found: 8000089935
+2026-02-18 16:50:15.162 [INFO ] [c3e293ff] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 16:50:15.162 [INFO ] [c3e293ff] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 16:50:15.175 [INFO ] [c3e293ff] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 17:06:59.547 [INFO ] [37b066e2] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000546666
+2026-02-18 17:06:59.560 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 17:06:59.563 [WARN ] [37b066e2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 17:06:59.563 [WARN ] [37b066e2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 17:06:59.563 [WARN ] [37b066e2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 17:06:59.563 [WARN ] [37b066e2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 17:06:59.563 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from walmart_sku_matrix.csv
+2026-02-18 17:06:59.564 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 17:06:59.564 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 17:06:59.566 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 18 placeholders
+2026-02-18 17:06:59.566 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 17:06:59.582 [INFO ] [37b066e2] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 17:07:00.262 [INFO ] [37b066e2] [TBG3002:] com.zaxxer.hikari.pool.HikariPool        - wms-tags-oracle-TBG3002 - Added connection oracle.jdbc.driver.T4CConnection@4196c360
+2026-02-18 17:07:00.264 [INFO ] [37b066e2] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-02-18 17:07:00.264 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5
+2026-02-18 17:07:00.266 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Checking shipment existence...
+2026-02-18 17:07:00.301 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Fetching shipment data from WMS...
+2026-02-18 17:07:00.301 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000546666
+2026-02-18 17:07:00.362 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Retrieved shipment with 0 pallets
+2026-02-18 17:07:00.543 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading printer routing configuration...
+2026-02-18 17:07:00.546 [INFO ] [37b066e2] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Loading printer configuration from config\TBG3002
+2026-02-18 17:07:00.661 [INFO ] [37b066e2] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 3 printers and 1 rules
+2026-02-18 17:07:00.661 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 3 printers and 1 routing rules
+2026-02-18 17:07:00.662 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Building labels for 0 pallets...
+2026-02-18 17:07:00.663 [WARN ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment 8000546666 has no LPNs. Using 16 virtual SKU-based labels.
+2026-02-18 17:07:00.670 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Shipment staging location: UNKNOWN
+2026-02-18 17:07:00.673 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 853311003754000 (shipment 8000546666)
+2026-02-18 17:07:00.675 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_1_1_of_16.zpl
+2026-02-18 17:07:00.677 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592727647002 (shipment 8000546666)
+2026-02-18 17:07:00.679 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_2_2_of_16.zpl
+2026-02-18 17:07:00.680 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012064000 (shipment 8000546666)
+2026-02-18 17:07:00.683 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_3_3_of_16.zpl
+2026-02-18 17:07:00.684 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592660647002 (shipment 8000546666)
+2026-02-18 17:07:00.685 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_4_4_of_16.zpl
+2026-02-18 17:07:00.686 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592011487001 (shipment 8000546666)
+2026-02-18 17:07:00.688 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_5_5_of_16.zpl
+2026-02-18 17:07:00.689 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592720648002 (shipment 8000546666)
+2026-02-18 17:07:00.691 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_6_6_of_16.zpl
+2026-02-18 17:07:00.692 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631237003 (shipment 8000546666)
+2026-02-18 17:07:00.693 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_7_7_of_16.zpl
+2026-02-18 17:07:00.694 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 853311003761000 (shipment 8000546666)
+2026-02-18 17:07:00.696 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_8_8_of_16.zpl
+2026-02-18 17:07:00.697 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631268003 (shipment 8000546666)
+2026-02-18 17:07:00.698 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_9_9_of_16.zpl
+2026-02-18 17:07:00.699 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592012040000 (shipment 8000546666)
+2026-02-18 17:07:00.700 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_10_10_of_16.zpl
+2026-02-18 17:07:00.701 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631206003 (shipment 8000546666)
+2026-02-18 17:07:00.703 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_11_11_of_16.zpl
+2026-02-18 17:07:00.704 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 853311003969000 (shipment 8000546666)
+2026-02-18 17:07:00.706 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_12_12_of_16.zpl
+2026-02-18 17:07:00.706 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592011572001 (shipment 8000546666)
+2026-02-18 17:07:00.708 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_13_13_of_16.zpl
+2026-02-18 17:07:00.708 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 82592631244004 (shipment 8000546666)
+2026-02-18 17:07:00.709 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_14_14_of_16.zpl
+2026-02-18 17:07:00.710 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 853311003952000 (shipment 8000546666)
+2026-02-18 17:07:00.711 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_15_15_of_16.zpl
+2026-02-18 17:07:00.712 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found in matrix for SKU 10082592194647002 (shipment 8000546666)
+2026-02-18 17:07:00.714 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Saved ZPL file: 8000546666_NO_LPN_16_16_of_16.zpl
+2026-02-18 17:07:00.714 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Successfully generated 16 labels for shipment 8000546666
+2026-02-18 17:07:00.714 [INFO ] [37b066e2] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-02-18 17:07:00.715 [INFO ] [37b066e2] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-02-18 17:07:00.802 [INFO ] [37b066e2] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-02-18 17:25:56.588 [INFO ] [5f422299] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000546666
+2026-02-18 17:25:56.592 [INFO ] [5f422299] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 17:25:56.594 [WARN ] [5f422299] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 17:25:56.594 [WARN ] [5f422299] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 17:25:56.594 [WARN ] [5f422299] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 17:25:56.594 [WARN ] [5f422299] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 17:25:56.594 [INFO ] [5f422299] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from config\walmart-sku-matrix.csv
+2026-02-18 17:25:56.595 [INFO ] [5f422299] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 17:25:56.595 [INFO ] [5f422299] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 17:25:56.599 [INFO ] [5f422299] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 18 placeholders
+2026-02-18 17:25:56.599 [INFO ] [5f422299] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 17:25:56.611 [INFO ] [5f422299] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 17:25:59.903 [ERROR] [5f422299] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Database connectivity error: Failed to create connection pool: Failed to initialize pool: ORA-01017: invalid username/password; logon denied
+
+https://docs.oracle.com/error-help/db/ora-01017/
+com.tbg.wms.core.exception.WmsDbConnectivityException: Failed to create connection pool: Failed to initialize pool: ORA-01017: invalid username/password; logon denied
+
+https://docs.oracle.com/error-help/db/ora-01017/
+	at com.tbg.wms.db.DbConnectionPool.<init>(DbConnectionPool.java:73)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:162)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:75)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2045)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2465)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2457)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2419)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2421)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at com.tbg.wms.cli.CliMain.main(CliMain.java:64)
+Caused by: com.zaxxer.hikari.pool.HikariPool$PoolInitializationException: Failed to initialize pool: ORA-01017: invalid username/password; logon denied
+
+https://docs.oracle.com/error-help/db/ora-01017/
 	at com.zaxxer.hikari.pool.HikariPool.throwPoolInitializationException(HikariPool.java:584)
 	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:571)
 	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:98)
 	at com.zaxxer.hikari.HikariDataSource.<init>(HikariDataSource.java:80)
-	at com.tbg.wms.core.db.DataSourceFactory.create(DataSourceFactory.java:73)
-	at com.tbg.wms.analysis.DatabaseAnalysisCli.main(DatabaseAnalysisCli.java:74)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
-	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
-	at org.codehaus.mojo.exec.AbstractExecJavaBase.executeMainMethod(AbstractExecJavaBase.java:402)
-	at org.codehaus.mojo.exec.ExecJavaMojo.executeMainMethod(ExecJavaMojo.java:142)
-	at org.codehaus.mojo.exec.AbstractExecJavaBase.doExecClassLoader(AbstractExecJavaBase.java:377)
-	at org.codehaus.mojo.exec.AbstractExecJavaBase.lambda$execute$0(AbstractExecJavaBase.java:287)
-	at java.base/java.lang.Thread.run(Thread.java:829)
-Caused by: java.sql.SQLTimeoutException: ORA-12170: Cannot connect. TCP connect timeout of 3000ms for host 10.19.68.61 port 1521. (CONNECTION_ID=nWgIPnPfRC6Yz4MsqXfFhw==)
-https://docs.oracle.com/error-help/db/ora-12170/
-	at oracle.jdbc.driver.T4CConnection.handleLogonNetException(T4CConnection.java:1398)
-	at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:991)
+	at com.tbg.wms.db.DbConnectionPool.createDataSource(DbConnectionPool.java:106)
+	at com.tbg.wms.db.DbConnectionPool.<init>(DbConnectionPool.java:68)
+	... 11 common frames omitted
+Caused by: java.sql.SQLException: ORA-01017: invalid username/password; logon denied
+
+https://docs.oracle.com/error-help/db/ora-01017/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:702)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:603)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:598)
+	at oracle.jdbc.driver.T4CTTIfun.processError(T4CTTIfun.java:1795)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.processError(T4CTTIoauthenticate.java:866)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:1102)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.doOAUTH(T4CTTIoauthenticate.java:508)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.doOAUTHWithO5Logon(T4CTTIoauthenticate.java:1676)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.doOAUTH(T4CTTIoauthenticate.java:1421)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.doOAUTH(T4CTTIoauthenticate.java:1368)
+	at oracle.jdbc.driver.T4CConnection.authenticateWithPassword(T4CConnection.java:1821)
+	at oracle.jdbc.driver.T4CConnection.authenticateUserForLogon(T4CConnection.java:1764)
+	at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:976)
 	at oracle.jdbc.driver.PhysicalConnection.connect(PhysicalConnection.java:1157)
 	at oracle.jdbc.driver.T4CDriverExtension.getConnection(T4CDriverExtension.java:104)
 	at oracle.jdbc.driver.OracleDriver.connect(OracleDriver.java:825)
@@ -39,17 +1352,71 @@ https://docs.oracle.com/error-help/db/ora-12170/
 	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
 	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
 	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:550)
-	... 13 common frames omitted
-Caused by: oracle.net.ns.NetException: ORA-12170: Cannot connect. TCP connect timeout of 3000ms for host 10.19.68.61 port 1521. (CONNECTION_ID=nWgIPnPfRC6Yz4MsqXfFhw==)
-https://docs.oracle.com/error-help/db/ora-12170/
-	at oracle.net.nt.TcpNTAdapter.establishSocket(TcpNTAdapter.java:280)
-	at oracle.net.nt.TcpNTAdapter.connect(TcpNTAdapter.java:222)
-	at oracle.net.nt.ConnOption.connect(ConnOption.java:327)
-	at oracle.net.nt.ConnStrategy.executeConnOption(ConnStrategy.java:1144)
-	at oracle.net.nt.ConnStrategy.execute(ConnStrategy.java:718)
-	at oracle.net.resolver.AddrResolution.resolveAndExecute(AddrResolution.java:707)
-	at oracle.net.ns.NSProtocol.establishConnection(NSProtocol.java:938)
-	at oracle.net.ns.NSProtocol.connect(NSProtocol.java:327)
-	at oracle.jdbc.driver.T4CConnection.connectNetworkSessionProtocol(T4CConnection.java:3185)
-	at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:926)
-	... 22 common frames omitted
+	... 15 common frames omitted
+2026-02-18 19:27:57.457 [INFO ] [2372e214] [:] com.tbg.wms.cli.commands.RunCommand      - Starting label generation for shipment: 8000211863
+2026-02-18 19:27:57.463 [INFO ] [2372e214] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading Walmart SKU mapping CSV...
+2026-02-18 19:27:57.466 [WARN ] [2372e214] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 35 - empty SKU or Walmart item number
+2026-02-18 19:27:57.466 [WARN ] [2372e214] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 36 - empty SKU or Walmart item number
+2026-02-18 19:27:57.466 [WARN ] [2372e214] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 37 - empty SKU or Walmart item number
+2026-02-18 19:27:57.466 [WARN ] [2372e214] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 38 - insufficient fields: ,,
+2026-02-18 19:27:57.466 [INFO ] [2372e214] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 33 SKU mappings from config\walmart-sku-matrix.csv
+2026-02-18 19:27:57.466 [INFO ] [2372e214] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded 33 SKU mappings
+2026-02-18 19:27:57.466 [INFO ] [2372e214] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loading ZPL template...
+2026-02-18 19:27:57.470 [INFO ] [2372e214] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Loaded template with 18 placeholders
+2026-02-18 19:27:57.470 [INFO ] [2372e214] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Connecting to WMS database (read-only)...
+2026-02-18 19:27:57.486 [INFO ] [2372e214] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-02-18 19:28:01.283 [ERROR] [2372e214] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Database connectivity error: Failed to create connection pool: Failed to initialize pool: ORA-01017: invalid username/password; logon denied
+
+https://docs.oracle.com/error-help/db/ora-01017/
+com.tbg.wms.core.exception.WmsDbConnectivityException: Failed to create connection pool: Failed to initialize pool: ORA-01017: invalid username/password; logon denied
+
+https://docs.oracle.com/error-help/db/ora-01017/
+	at com.tbg.wms.db.DbConnectionPool.<init>(DbConnectionPool.java:73)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:162)
+	at com.tbg.wms.cli.commands.RunCommand.call(RunCommand.java:75)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:2045)
+	at picocli.CommandLine.access$1500(CommandLine.java:148)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2465)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2457)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2419)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2277)
+	at picocli.CommandLine$RunLast.execute(CommandLine.java:2421)
+	at picocli.CommandLine.execute(CommandLine.java:2174)
+	at com.tbg.wms.cli.CliMain.main(CliMain.java:64)
+Caused by: com.zaxxer.hikari.pool.HikariPool$PoolInitializationException: Failed to initialize pool: ORA-01017: invalid username/password; logon denied
+
+https://docs.oracle.com/error-help/db/ora-01017/
+	at com.zaxxer.hikari.pool.HikariPool.throwPoolInitializationException(HikariPool.java:584)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:571)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:98)
+	at com.zaxxer.hikari.HikariDataSource.<init>(HikariDataSource.java:80)
+	at com.tbg.wms.db.DbConnectionPool.createDataSource(DbConnectionPool.java:106)
+	at com.tbg.wms.db.DbConnectionPool.<init>(DbConnectionPool.java:68)
+	... 11 common frames omitted
+Caused by: java.sql.SQLException: ORA-01017: invalid username/password; logon denied
+
+https://docs.oracle.com/error-help/db/ora-01017/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:702)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:603)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:598)
+	at oracle.jdbc.driver.T4CTTIfun.processError(T4CTTIfun.java:1795)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.processError(T4CTTIoauthenticate.java:866)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:1102)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.doOAUTH(T4CTTIoauthenticate.java:508)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.doOAUTHWithO5Logon(T4CTTIoauthenticate.java:1676)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.doOAUTH(T4CTTIoauthenticate.java:1421)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.doOAUTH(T4CTTIoauthenticate.java:1368)
+	at oracle.jdbc.driver.T4CConnection.authenticateWithPassword(T4CConnection.java:1821)
+	at oracle.jdbc.driver.T4CConnection.authenticateUserForLogon(T4CConnection.java:1764)
+	at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:976)
+	at oracle.jdbc.driver.PhysicalConnection.connect(PhysicalConnection.java:1157)
+	at oracle.jdbc.driver.T4CDriverExtension.getConnection(T4CDriverExtension.java:104)
+	at oracle.jdbc.driver.OracleDriver.connect(OracleDriver.java:825)
+	at oracle.jdbc.driver.OracleDriver.connect(OracleDriver.java:651)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:550)
+	... 15 common frames omitted

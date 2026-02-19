@@ -95,6 +95,7 @@ public final class DbConnectionPool implements AutoCloseable {
 
         hc.setPoolName("wms-tags-oracle-" + config.activeSiteCode());
         hc.setAutoCommit(true);
+        hc.setReadOnly(true);
 
         // Oracle best practice: lightweight validation query
         hc.setConnectionTestQuery("SELECT 1 FROM dual");

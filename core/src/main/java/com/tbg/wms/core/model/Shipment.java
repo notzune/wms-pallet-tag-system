@@ -8,6 +8,9 @@
 
 package com.tbg.wms.core.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -101,15 +104,39 @@ public final class Shipment {
      * @param createdDate shipment creation date
      * @param lpns list of pallets/LPNs in this shipment
      */
+    @JsonCreator
     public Shipment(
-            String shipmentId, String externalId, String orderId, String warehouseId,
-            String shipToName, String shipToAddress1, String shipToAddress2, String shipToAddress3,
-            String shipToCity, String shipToState, String shipToZip, String shipToCountry, String shipToPhone,
-            String carrierCode, String serviceLevel, String documentNumber, String trackingNumber,
-            String destinationLocation, String customerPo, String locationNumber, String departmentNumber,
-            String stopId, Integer stopSequence, String carrierMoveId, String proNumber, String bolNumber,
-            String status, LocalDateTime shipDate, LocalDateTime deliveryDate, LocalDateTime createdDate,
-            List<Lpn> lpns) {
+            @JsonProperty("shipmentId") String shipmentId,
+            @JsonProperty("externalId") String externalId,
+            @JsonProperty("orderId") String orderId,
+            @JsonProperty("warehouseId") String warehouseId,
+            @JsonProperty("shipToName") String shipToName,
+            @JsonProperty("shipToAddress1") String shipToAddress1,
+            @JsonProperty("shipToAddress2") String shipToAddress2,
+            @JsonProperty("shipToAddress3") String shipToAddress3,
+            @JsonProperty("shipToCity") String shipToCity,
+            @JsonProperty("shipToState") String shipToState,
+            @JsonProperty("shipToZip") String shipToZip,
+            @JsonProperty("shipToCountry") String shipToCountry,
+            @JsonProperty("shipToPhone") String shipToPhone,
+            @JsonProperty("carrierCode") String carrierCode,
+            @JsonProperty("serviceLevel") String serviceLevel,
+            @JsonProperty("documentNumber") String documentNumber,
+            @JsonProperty("trackingNumber") String trackingNumber,
+            @JsonProperty("destinationLocation") String destinationLocation,
+            @JsonProperty("customerPo") String customerPo,
+            @JsonProperty("locationNumber") String locationNumber,
+            @JsonProperty("departmentNumber") String departmentNumber,
+            @JsonProperty("stopId") String stopId,
+            @JsonProperty("stopSequence") Integer stopSequence,
+            @JsonProperty("carrierMoveId") String carrierMoveId,
+            @JsonProperty("proNumber") String proNumber,
+            @JsonProperty("bolNumber") String bolNumber,
+            @JsonProperty("status") String status,
+            @JsonProperty("shipDate") LocalDateTime shipDate,
+            @JsonProperty("deliveryDate") LocalDateTime deliveryDate,
+            @JsonProperty("createdDate") LocalDateTime createdDate,
+            @JsonProperty("lpns") List<Lpn> lpns) {
 
         this.shipmentId = shipmentId;
         this.externalId = externalId;

@@ -24,7 +24,7 @@ class NormalizationServiceTest {
     @Test
     void testNormalizeStringTrimsWhitespace() {
         assertEquals("hello", NormalizationService.normalizeString("  hello  "));
-        assertEquals("world", NormalizationService.normalizeString("\thello\nworld\t"));
+        assertEquals("hello\nworld", NormalizationService.normalizeString("\thello\nworld\t"));
     }
 
     @Test
