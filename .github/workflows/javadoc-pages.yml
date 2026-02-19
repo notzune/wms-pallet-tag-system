@@ -39,22 +39,22 @@ jobs:
               fi
             done
             cat > target/site/apidocs/index.html <<'EOF'
-            <!doctype html>
-            <html lang="en">
-              <head>
-                <meta charset="utf-8" />
-                <title>WMS Pallet Tag System Javadoc</title>
-              </head>
-              <body>
-                <h1>WMS Pallet Tag System Javadoc</h1>
-                <ul>
-                  <li><a href="core/">core</a></li>
-                  <li><a href="db/">db</a></li>
-                  <li><a href="cli/">cli</a></li>
-                </ul>
-              </body>
-            </html>
-            EOF
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WMS Pallet Tag System Javadoc</title>
+  </head>
+  <body>
+    <h1>WMS Pallet Tag System Javadoc</h1>
+    <ul>
+      <li><a href="core/">core</a></li>
+      <li><a href="db/">db</a></li>
+      <li><a href="cli/">cli</a></li>
+    </ul>
+  </body>
+</html>
+EOF
           fi
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
