@@ -38,7 +38,7 @@ public final class LabelGuiFrame extends JFrame {
     private LabelWorkflowService.PreparedJob preparedJob;
 
     public LabelGuiFrame() {
-        super("WMS Pallet Tag System");
+        super(buildWindowTitle());
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(1080, 720);
         setLocationRelativeTo(null);
@@ -309,6 +309,13 @@ public final class LabelGuiFrame extends JFrame {
         previewButton.setEnabled(false);
         clearButton.setEnabled(false);
         printButton.setEnabled(false);
+    }
+
+    private static String buildWindowTitle() {
+        String version = com.tbg.wms.cli.commands.RootCommand.class.getAnnotation(
+                picocli.CommandLine.Command.class
+        ).version()[0];
+        return "WMS Pallet Tag System - " + version;
     }
 
     private void setReady(String message) {
