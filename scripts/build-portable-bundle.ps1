@@ -72,7 +72,7 @@ if (-not $BundleDir) {
 }
 
 if (-not $JarPath) {
-    $JarPath = Join-Path $SourceRoot "cli\target\cli-1.2.1.jar"
+    $JarPath = Join-Path $SourceRoot "cli\target\cli-1.2.2.jar"
 }
 
 if (-not (Test-Path -LiteralPath $JarPath)) {
@@ -109,10 +109,15 @@ Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printer-routing.ya
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walmart-sku-matrix.csv") -Destination (Join-Path $BundleDir "config\walmart-sku-matrix.csv") -Force
 Copy-Item -Path (Join-Path $SourceRoot "config\templates\*") -Destination (Join-Path $BundleDir "config\templates") -Recurse -Force
 
-Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\wms-tags.bat") -Destination (Join-Path $BundleDir "wms-tags.bat") -Force
+Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\run.bat") -Destination (Join-Path $BundleDir "run.bat") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\wms-tags-gui.bat") -Destination (Join-Path $BundleDir "wms-tags-gui.bat") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.ps1") -Destination (Join-Path $BundleDir "scripts\verify-wms-tags.ps1") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.bat") -Destination (Join-Path $BundleDir "scripts\verify-wms-tags.bat") -Force
+
+$legacyLauncher = Join-Path $BundleDir "wms-tags.bat"
+if (Test-Path -LiteralPath $legacyLauncher) {
+    Remove-Item -LiteralPath $legacyLauncher -Force
+}
 
 $runtimeTarget = Join-Path $BundleDir "runtime"
 if (Test-Path -LiteralPath $runtimeTarget) {
@@ -157,5 +162,6 @@ Write-Host ""
 Write-Host "Portable bundle ready."
 Write-Host "Bundle folder : $BundleDir"
 Write-Host "Jar SHA256    : $jarHash"
+Write-Host "Run CLI       : $BundleDir\run.bat"
 Write-Host "Launch GUI    : $BundleDir\wms-tags-gui.bat"
 Write-Host "Verify        : $BundleDir\scripts\verify-wms-tags.bat -ShipmentId <SHIP_ID>"

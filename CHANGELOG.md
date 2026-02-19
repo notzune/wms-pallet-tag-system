@@ -24,6 +24,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None.
 
+## [1.2.2] - 2026-02-19
+### Added
+- Persistent GUI settings entry for default print-to-file output directory.
+- Canonical `run.bat` launcher for bundled CLI execution.
+
+### Changed
+- Shipment toolbar layout now preserves practical input width while giving more space back to printer selection.
+- Barcode generator print target now uses the shared printer dropdown model (including print-to-file) for consistency.
+- Portable bundle and setup scripts now default to `cli-1.2.2.jar` and ship `run.bat`.
+
+### Fixed
+- YAML printer routing parsing now tolerates top-level `version` metadata.
+- Barcode generator output directory field is now disabled unless print-to-file is selected.
+
 ## [1.2.1] - 2026-02-19
 ### Added
 - GUI Tools menu entry for the barcode generator dialog.

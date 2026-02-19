@@ -3,7 +3,7 @@
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.2.1` (2026-02-19).
+Current release: `1.2.2` (2026-02-19).
 
 ## Current Scope
 
@@ -71,15 +71,15 @@ copy config\\wms-tags.env.example wms-tags.env
 4. Run:
 
 ```bash
-run.cmd
+run.bat
 ```
 
 For CLI usage:
 
 ```bash
-run.cmd config
-run.cmd db-test
-run.cmd run --shipment-id <SHIP_ID> --dry-run --output-dir out/
+run.bat config
+run.bat db-test
+run.bat run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 ```
 
 On Linux/macOS:

@@ -1,21 +1,14 @@
 @echo off
 setlocal
 set "APP_HOME=%~dp0"
-set "JAVA_EXE=%APP_HOME%runtime\bin\java.exe"
-set "JAR_FILE=%APP_HOME%wms-tags.jar"
+set "RUN_BAT=%APP_HOME%run.bat"
 
-if not exist "%JAVA_EXE%" (
-  echo ERROR: Bundled runtime not found at "%JAVA_EXE%".
-  echo Reinstall using the portable bundle package.
-  exit /b 1
+if exist "%RUN_BAT%" (
+  call "%RUN_BAT%" %*
+  set EXITCODE=%ERRORLEVEL%
+  endlocal & exit /b %EXITCODE%
 )
 
-if not exist "%JAR_FILE%" (
-  echo ERROR: Jar not found at "%JAR_FILE%".
-  echo Reinstall using the portable bundle package.
-  exit /b 1
-)
-
-"%JAVA_EXE%" -jar "%JAR_FILE%" %*
-set EXITCODE=%ERRORLEVEL%
-endlocal & exit /b %EXITCODE%
+echo ERROR: run.bat not found at "%RUN_BAT%".
+echo Reinstall using the portable bundle package.
+exit /b 1

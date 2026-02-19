@@ -83,7 +83,7 @@ if (-not (Test-Path -LiteralPath $SourceRoot)) {
 }
 
 if (-not $JarPath) {
-    $jarCandidate = Join-Path $SourceRoot "cli\target\cli-1.2.1.jar"
+    $jarCandidate = Join-Path $SourceRoot "cli\target\cli-1.2.2.jar"
     if (Test-Path -LiteralPath $jarCandidate) {
         $JarPath = $jarCandidate
     } else {
@@ -158,8 +158,13 @@ Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walmart-sku-matrix.csv") -
 Copy-Item -Path (Join-Path $SourceRoot "config\templates\*") -Destination $targetTemplateDir -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.ps1") -Destination (Join-Path $targetScriptsDir "verify-wms-tags.ps1") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.bat") -Destination (Join-Path $targetScriptsDir "verify-wms-tags.bat") -Force
-Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\wms-tags.bat") -Destination (Join-Path $InstallDir "wms-tags.bat") -Force
+Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\run.bat") -Destination (Join-Path $InstallDir "run.bat") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\wms-tags-gui.bat") -Destination (Join-Path $InstallDir "wms-tags-gui.bat") -Force
+
+$legacyLauncher = Join-Path $InstallDir "wms-tags.bat"
+if (Test-Path -LiteralPath $legacyLauncher) {
+    Remove-Item -LiteralPath $legacyLauncher -Force
+}
 
 $envDest = Join-Path $InstallDir "wms-tags.env"
 if (-not (Test-Path -LiteralPath $envDest)) {

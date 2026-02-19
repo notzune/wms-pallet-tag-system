@@ -21,6 +21,7 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -29,13 +30,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.prefs.Preferences;
 
 /**
  * Swing-based GUI for shipment preview and label printing.
  */
 public final class LabelGuiFrame extends JFrame {
 
-    private final JTextField shipmentField = new JTextField(16);
+    private final JTextField shipmentField = new JTextField(24);
     private final JComboBox<LabelWorkflowService.PrinterOption> printerCombo = new JComboBox<>();
     private final JButton previewButton = new JButton("Preview");
     private final JButton clearButton = new JButton("Clear");
@@ -47,9 +49,15 @@ public final class LabelGuiFrame extends JFrame {
     // Synthetic printer option used to enable print-to-file from the dropdown.
     private static final String FILE_PRINTER_ID = "FILE";
     private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
+    private static final String PREF_PRINT_TO_FILE_DIR = "printToFile.defaultOutputDir";
+    private static final int SHIPMENT_MIN_CHARS = 11;
+    private static final int COMBO_WIDTH_REDUCTION_PX = 12;
+    private static final DateTimeFormatter OUTPUT_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private final Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
 
     private final AppConfig config = new AppConfig();
     private final LabelWorkflowService service = new LabelWorkflowService(config);
+    private List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
     private LabelWorkflowService.PreparedJob preparedJob;
 
     public LabelGuiFrame() {
@@ -68,6 +76,7 @@ public final class LabelGuiFrame extends JFrame {
 
         wireActions();
         wireShortcuts();
+        applyTopRowSizing();
         loadPrintersAsync();
         printButton.setEnabled(false);
     }
@@ -84,6 +93,10 @@ public final class LabelGuiFrame extends JFrame {
         JMenuItem barcodeItem = new JMenuItem("Barcode Generator...");
         barcodeItem.addActionListener(e -> openBarcodeDialog());
         toolsMenu.add(barcodeItem);
+        JMenuItem settingsItem = new JMenuItem("Settings...");
+        settingsItem.addActionListener(e -> openSettingsDialog());
+        toolsMenu.addSeparator();
+        toolsMenu.add(settingsItem);
 
         toolsButton.addActionListener(e ->
                 toolsMenu.show(toolsButton, 0, toolsButton.getHeight()));
@@ -102,14 +115,18 @@ public final class LabelGuiFrame extends JFrame {
         panel.add(new JLabel("Shipment ID:"), gbc);
 
         gbc.gridx = 1;
+        gbc.weightx = 0.35;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(shipmentField, gbc);
 
         gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         panel.add(new JLabel("Printer:"), gbc);
 
         gbc.gridx = 3;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
+        gbc.weightx = 0.65;
         panel.add(printerCombo, gbc);
 
         gbc.gridx = 4;
@@ -176,17 +193,11 @@ public final class LabelGuiFrame extends JFrame {
             protected void done() {
                 try {
                     List<LabelWorkflowService.PrinterOption> printers = get();
-                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
-                    for (LabelWorkflowService.PrinterOption printer : printers) {
-                        model.addElement(printer);
-                    }
+                    loadedPrinters = List.copyOf(printers);
+                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = buildPrintTargetModel(true);
                     int printerCount = printers.size();
-                    model.addElement(new LabelWorkflowService.PrinterOption(
-                            FILE_PRINTER_ID,
-                            "Print to file",
-                            resolveJarOutputDir().toString()
-                    ));
                     printerCombo.setModel(model);
+                    applyTopRowSizing();
                     if (model.getSize() > 0) {
                         printerCombo.setSelectedIndex(0);
                         if (printerCount == 0) {
@@ -322,8 +333,8 @@ public final class LabelGuiFrame extends JFrame {
         SwingWorker<LabelWorkflowService.PrintResult, Void> worker = new SwingWorker<>() {
             @Override
             protected LabelWorkflowService.PrintResult doInBackground() throws Exception {
-                Path outDir = resolveJarOutputDir().resolve("gui-" + job.getShipmentId() + "-" +
-                        DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()));
+                Path outDir = defaultPrintToFileOutputDir().resolve("gui-" + job.getShipmentId() + "-" +
+                        OUTPUT_TS.format(LocalDateTime.now()));
                 String printerId = printToFile ? null : (selected == null ? null : selected.getId());
                 return service.print(job, printerId, outDir, printToFile);
             }
@@ -396,6 +407,23 @@ public final class LabelGuiFrame extends JFrame {
         setReady("Cleared. Enter the next shipment ID.");
     }
 
+    private void applyTopRowSizing() {
+        FontMetrics metrics = shipmentField.getFontMetrics(shipmentField.getFont());
+        int shipmentMinWidth = (metrics.charWidth('0') * SHIPMENT_MIN_CHARS) + 20;
+
+        Dimension shipmentPreferred = shipmentField.getPreferredSize();
+        shipmentField.setPreferredSize(new Dimension(
+                Math.max(shipmentPreferred.width, shipmentMinWidth),
+                shipmentPreferred.height));
+        shipmentField.setMinimumSize(new Dimension(shipmentMinWidth, shipmentPreferred.height));
+
+        Dimension comboPreferred = printerCombo.getPreferredSize();
+        int comboWidth = Math.max(280, comboPreferred.width - COMBO_WIDTH_REDUCTION_PX);
+        int comboMinWidth = Math.max(220, comboWidth - 80);
+        printerCombo.setPreferredSize(new Dimension(comboWidth, comboPreferred.height));
+        printerCombo.setMinimumSize(new Dimension(comboMinWidth, comboPreferred.height));
+    }
+
     private String rootMessage(Throwable throwable) {
         Throwable cursor = Objects.requireNonNullElse(throwable, new RuntimeException("Unknown error"));
         while (cursor.getCause() != null) {
@@ -432,10 +460,10 @@ public final class LabelGuiFrame extends JFrame {
         JSpinner barcodeHeight = new JSpinner(new SpinnerNumberModel(120, 1, 2000, 1));
         JCheckBox humanReadable = new JCheckBox("Human readable", true);
         JSpinner copies = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
-        JCheckBox printToFileCheck = new JCheckBox("Print to file", true);
-        JTextField outputDir = new JTextField(defaultBarcodeOutputDir());
+        JTextField outputDir = new JTextField(defaultPrintToFileOutputDir().toString());
+        outputDir.setColumns(40);
         JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
-        printerSelect.setModel(buildPrinterModel(false));
+        printerSelect.setModel(buildPrintTargetModel(true));
 
         int row = 0;
         addFormRow(form, gbc, row++, "Data", dataField);
@@ -449,16 +477,23 @@ public final class LabelGuiFrame extends JFrame {
         addFormRow(form, gbc, row++, "Module Ratio", moduleRatio);
         addFormRow(form, gbc, row++, "Barcode Height", barcodeHeight);
         addFormRow(form, gbc, row++, "Copies", copies);
-        addFormRow(form, gbc, row++, "Output Dir", outputDir);
+        JLabel outputDirLabel = addFormRow(form, gbc, row++, "Output Dir", outputDir);
         addFormRow(form, gbc, row++, "Printer", printerSelect);
 
         gbc.gridx = 1;
         gbc.gridy = row;
         gbc.gridwidth = 2;
         form.add(humanReadable, gbc);
-        row++;
-        gbc.gridy = row;
-        form.add(printToFileCheck, gbc);
+
+        Runnable syncOutputState = () -> {
+            LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
+            boolean printToFile = isPrintToFileSelected(selected);
+            outputDir.setEnabled(printToFile);
+            outputDir.setEditable(printToFile);
+            outputDirLabel.setEnabled(printToFile);
+        };
+        printerSelect.addActionListener(e -> syncOutputState.run());
+        syncOutputState.run();
 
         JButton generateButton = new JButton("Generate");
         JButton closeButton = new JButton("Close");
@@ -490,7 +525,9 @@ public final class LabelGuiFrame extends JFrame {
             );
 
             String zpl = BarcodeZplBuilder.build(request);
-            Path outputPath = resolveOutputPath(outputDir.getText(), data);
+            LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
+            boolean printToFile = isPrintToFileSelected(printer);
+            Path outputPath = resolveOutputPath(outputDir.getText(), data, printToFile);
             try {
                 Files.createDirectories(outputPath.getParent());
                 Files.writeString(outputPath, zpl);
@@ -499,7 +536,7 @@ public final class LabelGuiFrame extends JFrame {
                 return;
             }
 
-            if (printToFileCheck.isSelected()) {
+            if (printToFile) {
                 JOptionPane.showMessageDialog(
                         dialog,
                         "ZPL saved to " + outputPath,
@@ -509,9 +546,8 @@ public final class LabelGuiFrame extends JFrame {
                 return;
             }
 
-            LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
             if (printer == null) {
-                showError("Select a printer or enable Print to file.");
+                showError("Select a print target.");
                 return;
             }
 
@@ -543,42 +579,155 @@ public final class LabelGuiFrame extends JFrame {
         dialog.setVisible(true);
     }
 
-    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrinterModel(boolean includeFileOption) {
+    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption) {
         DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
-        ComboBoxModel<LabelWorkflowService.PrinterOption> baseModel = printerCombo.getModel();
-        for (int i = 0; i < baseModel.getSize(); i++) {
-            LabelWorkflowService.PrinterOption option = baseModel.getElementAt(i);
-            if (!includeFileOption && FILE_PRINTER_ID.equals(option.getId())) {
-                continue;
-            }
+        for (LabelWorkflowService.PrinterOption option : loadedPrinters) {
             model.addElement(option);
+        }
+        if (includeFileOption) {
+            model.addElement(new LabelWorkflowService.PrinterOption(
+                    FILE_PRINTER_ID,
+                    "Print to file",
+                    defaultPrintToFileOutputDir().toString()
+            ));
         }
         return model;
     }
 
-    private static void addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
+    private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0.0;
-        form.add(new JLabel(label + ":"), gbc);
+        JLabel rowLabel = new JLabel(label + ":");
+        form.add(rowLabel, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         form.add(field, gbc);
+        return rowLabel;
     }
 
-    private static Path resolveOutputPath(String outputDir, String data) {
-        String dir = (outputDir == null || outputDir.isBlank()) ? defaultBarcodeOutputDir() : outputDir.trim();
+    private Path resolveOutputPath(String outputDir, String data, boolean printToFileSelected) {
+        String dir;
+        if (printToFileSelected) {
+            dir = (outputDir == null || outputDir.isBlank())
+                    ? defaultPrintToFileOutputDir().toString()
+                    : outputDir.trim();
+        } else {
+            dir = defaultPrintToFileOutputDir().toString();
+        }
         Path outputPath = Paths.get(dir);
         String fileName = String.format("barcode-%s-%s.zpl",
-                DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()),
+                OUTPUT_TS.format(LocalDateTime.now()),
                 safeSlug(data));
         return outputPath.resolve(fileName);
     }
 
-    private static String defaultBarcodeOutputDir() {
-        Path baseDir = resolveJarOutputDir();
-        return baseDir.resolve("barcodes").toString();
+    private Path defaultPrintToFileOutputDir() {
+        String configured = preferences.get(PREF_PRINT_TO_FILE_DIR, "");
+        if (configured != null && !configured.isBlank()) {
+            try {
+                return Paths.get(configured.trim());
+            } catch (InvalidPathException ignored) {
+                // Fallback to runtime-derived default if persisted value is invalid.
+            }
+        }
+        return resolveJarOutputDir();
+    }
+
+    private void openSettingsDialog() {
+        JDialog dialog = new JDialog(this, "Settings", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setLayout(new BorderLayout(8, 8));
+
+        JPanel content = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JTextField outputDirField = new JTextField(defaultPrintToFileOutputDir().toString(), 40);
+        JButton browseButton = new JButton("Browse...");
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.0;
+        content.add(new JLabel("Default print-to-file output dir:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        content.add(outputDirField, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        content.add(browseButton, gbc);
+
+        JButton saveButton = new JButton("Save");
+        JButton cancelButton = new JButton("Cancel");
+        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonRow.add(saveButton);
+        buttonRow.add(cancelButton);
+
+        browseButton.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser(outputDirField.getText());
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            chooser.setDialogTitle("Select default print-to-file output directory");
+            if (chooser.showOpenDialog(dialog) == JFileChooser.APPROVE_OPTION) {
+                outputDirField.setText(chooser.getSelectedFile().toPath().toString());
+            }
+        });
+
+        saveButton.addActionListener(e -> {
+            String raw = outputDirField.getText();
+            if (raw == null || raw.isBlank()) {
+                showError("Default output directory is required.");
+                return;
+            }
+
+            Path configuredPath;
+            try {
+                configuredPath = Paths.get(raw.trim()).toAbsolutePath().normalize();
+            } catch (InvalidPathException ex) {
+                showError("Invalid output directory path.");
+                return;
+            }
+
+            preferences.put(PREF_PRINT_TO_FILE_DIR, configuredPath.toString());
+            LabelWorkflowService.PrinterOption previousSelection =
+                    (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
+            printerCombo.setModel(buildPrintTargetModel(true));
+            applyTopRowSizing();
+            restoreSelection(previousSelection);
+            setReady("Settings saved.");
+            dialog.dispose();
+        });
+
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        dialog.add(content, BorderLayout.CENTER);
+        dialog.add(buttonRow, BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void restoreSelection(LabelWorkflowService.PrinterOption previousSelection) {
+        if (previousSelection == null) {
+            if (printerCombo.getItemCount() > 0) {
+                printerCombo.setSelectedIndex(0);
+            }
+            return;
+        }
+        for (int i = 0; i < printerCombo.getItemCount(); i++) {
+            LabelWorkflowService.PrinterOption candidate = printerCombo.getItemAt(i);
+            if (Objects.equals(candidate.getId(), previousSelection.getId())) {
+                printerCombo.setSelectedIndex(i);
+                return;
+            }
+        }
+        if (printerCombo.getItemCount() > 0) {
+            printerCombo.setSelectedIndex(0);
+        }
     }
 
     private static Path resolveJarOutputDir() {
