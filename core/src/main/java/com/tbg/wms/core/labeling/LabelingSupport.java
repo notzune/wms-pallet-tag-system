@@ -3,7 +3,7 @@
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
- * @since 1.2.0
+ * @since 1.2.1
  */
 
 package com.tbg.wms.core.labeling;
@@ -52,7 +52,7 @@ public final class LabelingSupport {
     }
 
     /**
-     * Builds a map of SKU -> footprint row.
+     * Builds a map of SKU to footprint row.
      */
     public static Map<String, ShipmentSkuFootprint> buildFootprintMap(List<ShipmentSkuFootprint> rows) {
         if (rows == null || rows.isEmpty()) {
@@ -90,19 +90,14 @@ public final class LabelingSupport {
             }
 
             Integer unitsPerPallet = row.getUnitsPerPallet();
-            int palletsForSku;
-            if (unitsPerPallet == null || unitsPerPallet <= 0) {
-                palletsForSku = 1;
-            } else {
-                palletsForSku = totalUnits / unitsPerPallet;
-                if (totalUnits % unitsPerPallet != 0) {
-                    palletsForSku += 1;
-                }
-            }
+            boolean hasPalletUnits = unitsPerPallet != null && unitsPerPallet > 0;
+            int palletsForSku = hasPalletUnits
+                    ? totalUnits / unitsPerPallet + (totalUnits % unitsPerPallet == 0 ? 0 : 1)
+                    : 1;
 
             for (int palletIndex = 0; palletIndex < palletsForSku; palletIndex++) {
                 int palletUnits;
-                if (unitsPerPallet == null || unitsPerPallet <= 0) {
+                if (!hasPalletUnits) {
                     palletUnits = totalUnits;
                 } else if (palletIndex < palletsForSku - 1) {
                     palletUnits = unitsPerPallet;

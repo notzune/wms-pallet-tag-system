@@ -43,6 +43,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
 
+    // Synthetic printer option used to enable print-to-file from the dropdown.
     private static final String FILE_PRINTER_ID = "FILE";
 
     private final AppConfig config = new AppConfig();
@@ -177,6 +178,7 @@ public final class LabelGuiFrame extends JFrame {
                     for (LabelWorkflowService.PrinterOption printer : printers) {
                         model.addElement(printer);
                     }
+                    int printerCount = printers.size();
                     model.addElement(new LabelWorkflowService.PrinterOption(
                             FILE_PRINTER_ID,
                             "Print to file",
@@ -185,7 +187,11 @@ public final class LabelGuiFrame extends JFrame {
                     printerCombo.setModel(model);
                     if (model.getSize() > 0) {
                         printerCombo.setSelectedIndex(0);
-                        setReady("Printers loaded.");
+                        if (printerCount == 0) {
+                            setReady("No enabled printers found. Print to file available.");
+                        } else {
+                            setReady("Printers loaded.");
+                        }
                     } else {
                         setReady("No enabled printers found in routing config.");
                     }
@@ -314,7 +320,7 @@ public final class LabelGuiFrame extends JFrame {
         SwingWorker<LabelWorkflowService.PrintResult, Void> worker = new SwingWorker<>() {
             @Override
             protected LabelWorkflowService.PrintResult doInBackground() throws Exception {
-                Path outDir = Paths.get("out", "gui-" + job.getShipmentId() + "-" +
+                Path outDir = resolveJarOutputDir().resolve("gui-" + job.getShipmentId() + "-" +
                         DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()));
                 String printerId = printToFile ? null : (selected == null ? null : selected.getId());
                 return service.print(job, printerId, outDir, printToFile);

@@ -55,7 +55,7 @@
  *    └── Convert to domain models (Shipment, Lpn, LineItem)
  *
  * 3. Error Handling
- *    ├── SQLException → WmsDbConnectivityException
+ *    ├── SQLException maps to WmsDbConnectivityException
  *    └── Include remediation hints for user guidance
  * </pre>
  *
@@ -76,10 +76,10 @@
  *
  * Error Handling:
  * <ul>
- *   <li>Connection refused -> Check host, port, or VPN</li>
- *   <li>Service not found -> Check service name or SID</li>
- *   <li>Auth failed -> Check credentials</li>
- *   <li>Query failed -> Check schema and table names</li>
+ *   <li>Connection refused: Check host, port, or VPN</li>
+ *   <li>Service not found: Check service name or SID</li>
+ *   <li>Auth failed: Check credentials</li>
+ *   <li>Query failed: Check schema and table names</li>
  * </ul>
  *
  * @author Zeyad Rashed

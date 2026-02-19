@@ -60,10 +60,10 @@
  *
  * Special Character Escaping:
  * <ul>
- *   <li>^ (caret) - ZPL command prefix -> ~~^</li>
- *   <li>~ (tilde) - ZPL control character -> ~~</li>
- *   <li>{ (brace) - Template marker -> {{</li>
- *   <li>} (brace) - Template marker -> }}</li>
+ *   <li>{@code ^} (caret) - ZPL command prefix maps to {@code ~~^}</li>
+ *   <li>{@code ~} (tilde) - ZPL control character maps to {@code ~~}</li>
+ *   <li>&#123; (left brace) - Template marker maps to &#123;&#123;</li>
+ *   <li>&#125; (right brace) - Template marker maps to &#125;&#125;</li>
  * </ul>
  *
  * Design Properties:

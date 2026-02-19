@@ -30,7 +30,7 @@ import java.util.Objects;
  *
  * This is the critical architectural bridge between the database-populated domain
  * models (Shipment, Lpn, LineItem) and the generic ZplTemplateEngine which requires
- * a Map<String, String> for field substitution.
+ * a {@code Map<String, String>} for field substitution.
  *
  * Different label formats need different subsets of fields. The builder handles:
  * - Required fields (throw if missing)
@@ -89,7 +89,7 @@ public final class LabelDataBuilder {
      * @param lpn the specific pallet (LPN) to label
      * @param palletIndex 0-based index (will be converted to 1-based "1 of N" format)
      * @param labelType the label format type (WALMART_CANADA, etc.)
-     * @return Map<String, String> ready for ZplTemplateEngine
+     * @return {@code Map<String, String>} ready for ZplTemplateEngine
      * @throws IllegalArgumentException if required fields are missing
      */
     public Map<String, String> build(Shipment shipment, Lpn lpn, int palletIndex, LabelType labelType) {

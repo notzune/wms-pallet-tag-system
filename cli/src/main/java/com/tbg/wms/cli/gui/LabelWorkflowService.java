@@ -46,8 +46,12 @@ import java.util.Objects;
  */
 public final class LabelWorkflowService {
 
+    private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+
     private final AppConfig config;
+    // Cache routing configs by site code to avoid repeated disk reads.
     private final Map<String, PrinterRoutingService> routingCache = new HashMap<>();
+    // Cache resolved printers by ID to avoid repeated lookups.
     private final Map<String, PrinterConfig> printerCache = new HashMap<>();
 
     public LabelWorkflowService(AppConfig config) {
@@ -169,20 +173,21 @@ public final class LabelWorkflowService {
      */
     public PrintResult print(PreparedJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
-        if (!printToFile && (printerId == null || printerId.isBlank())) {
+        String resolvedPrinterId = printerId == null ? "" : printerId.trim();
+        if (!printToFile && resolvedPrinterId.isEmpty()) {
             throw new IllegalArgumentException("Printer is required.");
         }
 
         Path targetDir = outputDir == null
-                ? Paths.get("out", "gui-" + job.getShipmentId() + "-" + DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()))
+                ? Paths.get("out", "gui-" + job.getShipmentId() + "-" + TIMESTAMP.format(LocalDateTime.now()))
                 : outputDir;
         Files.createDirectories(targetDir);
 
         PrinterConfig printer = null;
         if (!printToFile) {
             printer = job.getRouting()
-                    .findPrinter(printerId.trim())
-                    .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + printerId));
+                    .findPrinter(resolvedPrinterId)
+                    .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + resolvedPrinterId));
         }
 
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
@@ -217,7 +222,12 @@ public final class LabelWorkflowService {
     private List<SkuMathRow> buildSkuMathRows(List<ShipmentSkuFootprint> rows, SkuMappingService skuMapping) {
         List<SkuMathRow> mathRows = new ArrayList<>();
         for (ShipmentSkuFootprint row : rows) {
-            if (row == null || row.getSku() == null || row.getSku().isBlank()) {
+            if (row == null) {
+                continue;
+            }
+
+            String sku = row.getSku();
+            if (sku == null || sku.isBlank()) {
                 continue;
             }
 
@@ -234,14 +244,14 @@ public final class LabelWorkflowService {
 
             String description = row.getItemDescription();
             if (!isHumanReadable(description)) {
-                WalmartSkuMapping mapping = skuMapping.findByPrtnum(row.getSku());
+                WalmartSkuMapping mapping = skuMapping.findByPrtnum(sku);
                 if (mapping != null && isHumanReadable(mapping.getDescription())) {
                     description = mapping.getDescription();
                 }
             }
 
             mathRows.add(new SkuMathRow(
-                    row.getSku(),
+                    sku,
                     description == null ? "" : description,
                     units,
                     upp,

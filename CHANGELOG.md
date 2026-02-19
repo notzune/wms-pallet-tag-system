@@ -24,6 +24,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None.
 
+## [1.2.1] - 2026-02-19
+### Added
+- GUI Tools menu entry for the barcode generator dialog.
+- Printer dropdown option for print-to-file in the GUI (aligned with CLI `--print-to-file`).
+- Ctrl+F shortcut in the GUI to trigger preview.
+
+### Changed
+- GUI print-to-file output now saves under the JAR-relative `out/` directory.
+- Barcode orientation documentation updated to use `^PON` + field rotation instead of printer rotation.
+
+### Fixed
+- Javadoc warnings from unescaped characters and ambiguous tag markers.
+
 ## [1.2.0] - 2026-02-19
 ### Added
 - GitHub Actions workflow to build aggregated Javadoc and publish to GitHub Pages.

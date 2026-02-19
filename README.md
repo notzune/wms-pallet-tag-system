@@ -140,7 +140,8 @@ Options:
 
 Notes:
 - Portrait is the default.
-- Landscape uses ZPL printer orientation (`^POL`) to switch the printer into landscape.
+- Landscape rotates barcode fields in ZPL (`^FWR` and rotated `^BC`) while keeping the printer in portrait mode (`^PON`).
+- Printer-level landscape must be configured on the device if true landscape output is required.
 
 ## GUI Workflow
 
@@ -149,7 +150,8 @@ Notes:
 - Click `Preview` to load shipment details and pallet math (`full`, `partial`, `total pallets`).
 - Verify summary and counts.
 - Click `Confirm Print` to send labels and save generated ZPL artifacts under `out/gui-<shipment>-<timestamp>/`.
-- Toggle `Print to file` to save ZPL under the same `out/` path without printing.
+- Select `Print to file` from the printer dropdown to save ZPL under the same `out/` path without printing.
+- Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
 
 ## Walmart SKU Behavior
 
