@@ -15,7 +15,6 @@ import com.tbg.wms.core.barcode.BarcodeZplBuilder.Orientation;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.Symbology;
 import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
-import com.tbg.wms.core.print.PrinterRoutingService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -428,7 +427,7 @@ public final class LabelGuiFrame extends JFrame {
         JCheckBox printToFileCheck = new JCheckBox("Print to file", true);
         JTextField outputDir = new JTextField(defaultBarcodeOutputDir());
         JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
-        printerSelect.setModel(printerCombo.getModel());
+        printerSelect.setModel(buildPrinterModel(false));
 
         int row = 0;
         addFormRow(form, gbc, row++, "Data", dataField);
@@ -503,16 +502,16 @@ public final class LabelGuiFrame extends JFrame {
             }
 
             LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-            if (printer == null || FILE_PRINTER_ID.equals(printer.getId())) {
+            if (printer == null) {
                 showError("Select a printer or enable Print to file.");
                 return;
             }
 
             try {
-                PrinterRoutingService routing = PrinterRoutingService.load(
-                        config.activeSiteCode(), Paths.get("config"));
-                PrinterConfig printerConfig = routing.findPrinter(printer.getId())
-                        .orElseThrow(() -> new IllegalArgumentException("Printer not found: " + printer.getId()));
+                PrinterConfig printerConfig = service.resolvePrinter(printer.getId());
+                if (printerConfig == null) {
+                    throw new IllegalArgumentException("Printer not found: " + printer.getId());
+                }
                 new NetworkPrintService().print(printerConfig, zpl, "barcode");
             } catch (Exception ex) {
                 showError("Failed to print barcode: " + rootMessage(ex));
@@ -534,6 +533,19 @@ public final class LabelGuiFrame extends JFrame {
         dialog.pack();
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
+    }
+
+    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrinterModel(boolean includeFileOption) {
+        DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
+        ComboBoxModel<LabelWorkflowService.PrinterOption> baseModel = printerCombo.getModel();
+        for (int i = 0; i < baseModel.getSize(); i++) {
+            LabelWorkflowService.PrinterOption option = baseModel.getElementAt(i);
+            if (!includeFileOption && FILE_PRINTER_ID.equals(option.getId())) {
+                continue;
+            }
+            model.addElement(option);
+        }
+        return model;
     }
 
     private static void addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {

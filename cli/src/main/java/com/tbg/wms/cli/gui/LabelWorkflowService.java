@@ -48,6 +48,7 @@ public final class LabelWorkflowService {
 
     private final AppConfig config;
     private final Map<String, PrinterRoutingService> routingCache = new HashMap<>();
+    private final Map<String, PrinterConfig> printerCache = new HashMap<>();
 
     public LabelWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
@@ -69,6 +70,26 @@ public final class LabelWorkflowService {
         }
         options.sort(Comparator.comparing(PrinterOption::getId));
         return options;
+    }
+
+    /**
+     * Resolves a printer config by ID using cached routing data.
+     */
+    public PrinterConfig resolvePrinter(String printerId) throws Exception {
+        if (printerId == null || printerId.isBlank()) {
+            return null;
+        }
+        PrinterConfig cached = printerCache.get(printerId);
+        if (cached != null) {
+            return cached;
+        }
+        PrinterRoutingService routing = loadRouting(config.activeSiteCode());
+        PrinterConfig printer = routing.findPrinter(printerId)
+                .orElse(null);
+        if (printer != null) {
+            printerCache.put(printerId, printer);
+        }
+        return printer;
     }
 
     /**
