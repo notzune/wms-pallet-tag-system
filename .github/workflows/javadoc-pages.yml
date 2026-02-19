@@ -27,7 +27,11 @@ jobs:
           java-version: "11"
           cache: "maven"
       - name: Build Javadoc
-        run: mvn -B -DskipTests javadoc:aggregate
+        run: |
+          mvn -B -DskipTests javadoc:aggregate || true
+          if [ ! -d "target/site/apidocs" ]; then
+            mvn -B -DskipTests -pl core,db,cli javadoc:javadoc
+          fi
       - name: Ensure Javadoc artifact path
         run: |
           if [ ! -d "target/site/apidocs" ]; then
