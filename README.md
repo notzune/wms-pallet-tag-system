@@ -183,6 +183,24 @@ Output is written to `target/site/apidocs`.
 
 The `Javadoc Pages` GitHub Actions workflow publishes the aggregated site to GitHub Pages when enabled in repository settings.
 
+## CI Workflows
+
+### Javadoc Pages (`.github/workflows/javadoc-pages.yml`)
+
+Triggers on pushes to `main` and `dev`, plus manual dispatch.
+
+- Builds aggregated Javadoc with `mvn javadoc:aggregate`.
+- Publishes `target/site/apidocs` to GitHub Pages.
+
+### Release Bundle (`.github/workflows/release.yml`)
+
+Triggers on tag pushes matching `v*.*.*`.
+
+- Builds the CLI JAR.
+- Builds the portable bundle using `dist/temurin11-jre.zip`.
+- Attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
+- Uses the matching section from `CHANGELOG.md` for the release body.
+
 ## Project Structure
 
 ```
