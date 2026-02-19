@@ -3,13 +3,18 @@
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
+ * @role WMS Analyst, Tropicana Brands Group
+ * @manager Fredrico Sanchez
  * @since 1.0.0
  */
 
 package com.tbg.wms.cli;
 
 import com.tbg.wms.cli.commands.RootCommand;
+import com.tbg.wms.cli.gui.LabelGuiFrame;
 import picocli.CommandLine;
+
+import javax.swing.SwingUtilities;
 
 /**
  * CLI entry point for the WMS Pallet Tag System.
@@ -48,6 +53,14 @@ public final class CliMain {
      * @param args command-line arguments
      */
     public static void main(String[] args) {
+        if (args == null || args.length == 0) {
+            SwingUtilities.invokeLater(() -> {
+                LabelGuiFrame frame = new LabelGuiFrame();
+                frame.setVisible(true);
+            });
+            return;
+        }
+
         int code = new CommandLine(new RootCommand()).execute(args);
         System.exit(code);
     }

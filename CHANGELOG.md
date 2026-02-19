@@ -5,9 +5,117 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-BETA] - 2026-02-18
+
+### 🎉 Release Summary
+WMS Pallet Tag System v1.0.0-BETA is officially released with comprehensive documentation, portable packaging, and a clear roadmap for v1.1.0. All core features are production-ready and have been tested in staging environments.
+
+### ✅ Production-Ready Features
+- **Oracle WMS Integration:** Read-only database access with HikariCP connection pooling
+- **Label Generation:** ZPL template engine with Walmart Canada label template (4x6 @203 DPI)
+- **Printer Integration:** YAML-driven printer routing and TCP 9100 network printing with retry logic
+- **SKU Mapping:** CSV-based Walmart item field population with intelligent matching
+- **Pallet Planning:** Footprint-based calculation with virtual pallet fallback for SKU-only shipments
+- **CLI Commands:** `config`, `db-test`, `run`, `gui` fully implemented and tested
+- **GUI Workflow:** Desktop application with shipment preview and confirm-print functionality
+- **Safety Features:** Read-only database mode, dry-run option, structured logging
+
+### 📦 Documentation & Packaging
+- **BETA-RELEASE-NOTES.md:** Complete release information with known limitations
+- **PORTABLE-INSTALLATION.md:** Installation guide for Windows/Linux/macOS with troubleshooting
+- **README.md:** Enhanced with complete project file tree and architecture overview
+- **Portable Bundle:** Distributions with bundled Java 21 JRE (~150MB)
+- **Build Scripts:** PowerShell scripts for creating portable distributions
+
+### ⚠️ Known Limitations (Beta)
+- GUI window may not appear in foreground on some systems (workaround: click taskbar)
+- Printer timeout on unstable networks (configurable backoff strategy)
+- Some historical shipments may lack footprint data (auto-fallback to virtual pallets)
+
+### ✓ Tested Scenarios
+- Walmart Canada orders (primary use case)
+- Multi-pallet shipments with accurate SSCC-18 barcode generation
+- Printer routing with fallback and manual override
+- Dry-run mode for safe label generation
+- Database connectivity failures with graceful error handling
+
+### 🗺️ Roadmap for v1.1.0
+- Implement `template` command for blank template generation
+- Implement `manual` command with GUI for manual label entry
+- Implement `replay` command for shipment replay from JSON snapshots
+- Enhanced printer failover logic with configurable strategies
+- Web-based admin dashboard for configuration and monitoring
+- Batch shipment processing capabilities
+- Label audit trail database
+- Multi-site printer management
+
+### Installation Options
+1. **Development:** Clone repo + `mvnw clean package`
+2. **Standalone JAR:** `java -jar cli-1.0.0-BETA.jar`
+3. **Portable Bundle:** Extract ZIP with bundled JRE (recommended for production)
+
+See PORTABLE-INSTALLATION.md for complete setup guide.
+
+---
+
 ## [Unreleased]
 
-### Added (Test-Analysis Module - Database Discovery)
+### Changed
+- Set runtime default to `WMS_ENV=PROD` and updated `.env.example` accordingly.
+- Enabled read-only JDBC sessions in `DbConnectionPool` for safer production operation.
+- Registered `run` as an active CLI subcommand under `RootCommand`.
+- Added Maven Wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper`) for reproducible builds.
+- Rewrote `README.md` to match current implemented command surface and removed stale command docs.
+
+### Added
+- Shipment footprint query path (`PRTFTP` / `PRTFTP_DTL`) and pallet planning summary logic.
+- New planning/domain types:
+  - `ShipmentSkuFootprint`
+  - `PalletPlanningService`
+- Additional tests for pallet planning and label representative SKU selection behavior.
+
+### Fixed
+- Improved PRTNUM to Walmart matrix matching (`SkuMappingService.findByPrtnum`) using robust embedded-digit matching.
+- Stabilized snapshot deserialization for immutable domain models by adding explicit JSON creators/properties.
+- Configured snapshot deserialization to ignore unknown properties for backward compatibility.
+- Ensured non-matching Walmart SKUs leave the Walmart item label field blank.
+
+### Added (Sprint 4 - Printer Routing and Network Printing)
+- PrinterConfig class for printer configuration with network endpoints
+- RoutingRule class for rule-based printer selection with EQUALS, STARTS_WITH, and CONTAINS operators
+- PrinterRoutingService for YAML-driven printer routing configuration
+- NetworkPrintService for TCP 9100 RAW socket printing to Zebra printers
+- WmsPrintException for print operation failures with exit code 5
+- Retry logic with exponential backoff (default 3 retries, configurable timeouts)
+- Connection timeout and read timeout configuration (default 5s/10s)
+- Printer routing based on staging location from WMS database
+- Manual printer override via --printer CLI flag
+- YAML configuration loading for printers and routing rules
+- Jackson YAML dependency for configuration parsing
+- Package documentation for print package
+- Comprehensive unit tests for printer routing (16 test methods)
+- Full integration of printing into RunCommand with error handling
+
+### Changed (Sprint 4)
+- RunCommand now uses actual printer routing and network printing instead of placeholder
+- RunCommand loads PrinterRoutingService from site-specific YAML configuration
+- RunCommand queries staging location for automatic routing decisions
+- Staging location routing context passed to printer selection
+- Print failures are now gracefully handled with warnings and continue processing remaining labels
+- Added HashMap import to RunCommand for routing context
+- Updated imports in RunCommand to include all print services
+
+### Design Highlights (Sprint 4)
+- YAML-driven configuration for printers and routing rules
+- Immutable configuration after loading
+- Thread-safe routing and print services (stateless operations)
+- Clean separation between routing logic and network printing
+- Robust retry mechanism prevents transient network failures
+- Actionable error messages with remediation hints
+- Printer override capability for testing and manual control
+- Dry-run mode honors routing without actual network transmission
+
+### Planned for Sprint 5
 - test-analysis Maven module for WMS schema discovery and validation
 - WmsSchemaAnalyzer utility for read-only database introspection
 - Schema discovery methods: tables, columns, data types
@@ -69,6 +177,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive retry policies with metrics and instrumentation
 - Daemon mode preparation (connection pool lifecycle, per-job isolation)
 - Integration with centralized logging (optional Splunk/ELK support)
+
+### Added
+- LICENSE: non-commercial license and ownership terms for Zeyad Rashed (Tropicana internal use granted)
+
+### Changed
+- Added company and role metadata to Javadoc headers across Java source files (author: Zeyad Rashed; role: WMS Analyst; manager: Fredrico Sanchez)
+- Added `INSTRUCTIONS.md` to `.gitignore` and untracked it from git (local only)
 
 ## [Sprint 1] - 2026-02-10
 
@@ -170,7 +285,3 @@ Sprint 0 established the foundational project structure and configuration handli
 - All unit tests pass without failures
 - Configuration via .env file or environment variables with proper precedence
 - CLI executes with proper exit codes for success and various error conditions
-
-
-
-

@@ -1,0 +1,259 @@
+2026-02-13 02:07:42.631 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit17082915857211030035/sku-mapping.csv
+2026-02-13 02:07:42.667 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.678 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit4947383780014595926/sku-mapping.csv
+2026-02-13 02:07:42.678 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.680 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit3112174134694663621/sku-mapping.csv
+2026-02-13 02:07:42.681 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.683 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit6086477800786130871/sku-mapping.csv
+2026-02-13 02:07:42.684 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.690 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit7334451495277206542/sku-mapping.csv
+2026-02-13 02:07:42.690 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.692 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit14135502455166690088/sku-mapping.csv
+2026-02-13 02:07:42.693 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.693 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.696 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit4358617256978869888/sku-mapping.csv
+2026-02-13 02:07:42.697 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.699 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit12129528909961564237/sku-mapping.csv
+2026-02-13 02:07:42.699 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.702 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit404252285830505600/sku-mapping.csv
+2026-02-13 02:07:42.702 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.703 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.705 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit9070974720821526335/sku-mapping.csv
+2026-02-13 02:07:42.706 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.706 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.709 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit3513766754534909403/sku-mapping.csv
+2026-02-13 02:07:42.709 [WARN ] [] [:] com.tbg.wms.core.label.LabelDataBuilder  - Walmart item code not found for SKU 10048500205641000 (shipment 8000141715)
+2026-02-13 02:07:42.728 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit6683644657142892043/sku-mapping.csv
+2026-02-13 02:07:42.732 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from /tmp/junit17877528111052966759/sku-mapping.csv
+2026-02-13 02:07:42.806 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: abc
+2026-02-13 02:07:42.807 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: invalid
+2026-02-13 02:07:42.809 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: abc
+2026-02-13 02:07:42.809 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: 12.5
+2026-02-13 02:07:44.069 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020743_SHIP123_job123.json (2 LPNs)
+2026-02-13 02:07:44.267 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020744_SHIP123_job1.json (2 LPNs)
+2026-02-13 02:07:44.267 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020744_SHIP999_job2.json (1 LPNs)
+2026-02-13 02:07:44.275 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020744_SHIP123_job123ab.json (2 LPNs)
+2026-02-13 02:07:44.279 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020744_SHIP123_job123.json (2 LPNs)
+2026-02-13 02:07:44.281 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020744_SHIP123_job123.json (2 LPNs)
+2026-02-13 02:07:44.285 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020744_SHIP123_job123.json (2 LPNs)
+2026-02-13 02:07:44.292 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020744_SHIP123_job123.json (2 LPNs)
+2026-02-13 02:07:44.302 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260213_020744_SHIP123_job123.json (2 LPNs)
+2026-02-13 02:07:44.320 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-13 02:07:44.321 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-13 02:07:44.322 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-13 02:07:44.322 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-13 02:07:44.324 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-13 02:07:44.324 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - No routing rules matched, using default printer: OFFICE
+2026-02-13 02:07:44.325 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 1 rules
+2026-02-13 02:07:44.326 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-13 02:07:44.327 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-13 02:07:44.337 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit12289066067691298265/sku-mapping.csv
+2026-02-13 02:07:44.339 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit11034995178115788470/sku-mapping.csv
+2026-02-13 02:07:44.341 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit14614321731849621429/sku-mapping.csv
+2026-02-13 02:07:44.342 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit6624182998814061094/sku-mapping.csv
+2026-02-13 02:07:44.344 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit14173586085240123861/sku-mapping.csv
+2026-02-13 02:07:44.346 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit927187163763633417/sku-mapping.csv
+2026-02-13 02:07:44.347 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit4284934364519134328/sku-mapping.csv
+2026-02-13 02:07:44.348 [WARN ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 3 - insufficient fields: incomplete
+2026-02-13 02:07:44.348 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 2 SKU mappings from /tmp/junit4284934364519134328/bad.csv
+2026-02-13 02:07:44.350 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit14470609005249832258/sku-mapping.csv
+2026-02-13 02:07:44.350 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 0 SKU mappings from /tmp/junit14470609005249832258/empty.csv
+2026-02-13 02:07:44.351 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit5240531369443260745/sku-mapping.csv
+2026-02-13 02:07:44.352 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit15895675801248265200/sku-mapping.csv
+2026-02-13 02:07:44.354 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit1154867631941648340/sku-mapping.csv
+2026-02-13 02:07:44.356 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit10841845055203720554/sku-mapping.csv
+2026-02-13 02:07:44.357 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit2244102578625290573/sku-mapping.csv
+2026-02-13 02:07:44.358 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit3470972237649482911/sku-mapping.csv
+2026-02-13 02:07:44.360 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit13898972051546517415/sku-mapping.csv
+2026-02-13 02:07:44.362 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit3512274770779685864/sku-mapping.csv
+2026-02-13 02:07:44.363 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit17296498855724319568/sku-mapping.csv
+2026-02-13 02:07:44.365 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from /tmp/junit6754278538237880633/sku-mapping.csv
+2026-02-18 15:52:13.033 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7010073527995752352\sku-mapping.csv
+2026-02-18 15:52:13.048 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit1278459261839946678\sku-mapping.csv
+2026-02-18 15:52:13.058 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7054501466314720408\sku-mapping.csv
+2026-02-18 15:52:13.066 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7266781757240471365\sku-mapping.csv
+2026-02-18 15:52:13.073 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit1282404746830414805\sku-mapping.csv
+2026-02-18 15:52:13.082 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit13371328527158790288\sku-mapping.csv
+2026-02-18 15:52:13.088 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7040176576043556828\sku-mapping.csv
+2026-02-18 15:52:13.095 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit16750105265454041085\sku-mapping.csv
+2026-02-18 15:52:13.101 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit4808858617657750942\sku-mapping.csv
+2026-02-18 15:52:13.108 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit14922330184592052510\sku-mapping.csv
+2026-02-18 15:52:13.114 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit10440418693035776731\sku-mapping.csv
+2026-02-18 15:52:13.120 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit16725091209262655760\sku-mapping.csv
+2026-02-18 15:52:13.125 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit5811390081055393499\sku-mapping.csv
+2026-02-18 15:52:13.132 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7587692275155786965\sku-mapping.csv
+2026-02-18 15:52:13.217 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: abc
+2026-02-18 15:52:13.217 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: invalid
+2026-02-18 15:52:13.223 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: abc
+2026-02-18 15:52:13.223 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: 12.5
+2026-02-18 15:52:13.469 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.540 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.554 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP123_job1.json (2 LPNs)
+2026-02-18 15:52:13.557 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP999_job2.json (1 LPNs)
+2026-02-18 15:52:13.563 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_155213_SHIP123_job1.json (2 LPNs)
+2026-02-18 15:52:13.565 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_155213_SHIP999_job2.json (1 LPNs)
+2026-02-18 15:52:13.577 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP123_job123ab.json (2 LPNs)
+2026-02-18 15:52:13.591 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.598 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.601 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.606 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.609 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.621 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.624 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.636 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_155213_SHIP123_job123.json (2 LPNs)
+2026-02-18 15:52:13.646 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 15:52:13.648 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 15:52:13.649 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-18 15:52:13.649 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-18 15:52:13.653 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-18 15:52:13.653 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - No routing rules matched, using default printer: OFFICE
+2026-02-18 15:52:13.654 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 1 rules
+2026-02-18 15:52:13.654 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-18 15:52:13.656 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 15:52:13.680 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit10011300960064615645\sku-mapping.csv
+2026-02-18 15:52:13.686 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit8756731711870331250\sku-mapping.csv
+2026-02-18 15:52:13.691 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit3433146432757265621\sku-mapping.csv
+2026-02-18 15:52:13.696 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit16760855996641133027\sku-mapping.csv
+2026-02-18 15:52:13.702 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit6120370385385369573\sku-mapping.csv
+2026-02-18 15:52:13.707 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit9187543555803856674\sku-mapping.csv
+2026-02-18 15:52:13.712 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit17324875471804317485\sku-mapping.csv
+2026-02-18 15:52:13.714 [WARN ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 3 - insufficient fields: incomplete
+2026-02-18 15:52:13.714 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 2 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit17324875471804317485\bad.csv
+2026-02-18 15:52:13.719 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit11393332818709201851\sku-mapping.csv
+2026-02-18 15:52:13.721 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 0 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit11393332818709201851\empty.csv
+2026-02-18 15:52:13.725 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit2173362392272533637\sku-mapping.csv
+2026-02-18 15:52:13.731 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit5470938455202739748\sku-mapping.csv
+2026-02-18 15:52:13.736 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit1979490295887972357\sku-mapping.csv
+2026-02-18 15:52:13.742 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit15478733006090262214\sku-mapping.csv
+2026-02-18 15:52:13.747 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit18160387942969540457\sku-mapping.csv
+2026-02-18 15:52:13.753 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit2366592967421861814\sku-mapping.csv
+2026-02-18 15:52:13.758 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit10719038598467517320\sku-mapping.csv
+2026-02-18 15:52:13.763 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit1374964985284334857\sku-mapping.csv
+2026-02-18 15:52:13.768 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit4122461040825359445\sku-mapping.csv
+2026-02-18 15:52:13.773 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit736798967973103796\sku-mapping.csv
+2026-02-18 17:00:06.454 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit14524827627739489676\sku-mapping.csv
+2026-02-18 17:00:06.478 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit3307341811745023868\sku-mapping.csv
+2026-02-18 17:00:06.493 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit15023364323122421370\sku-mapping.csv
+2026-02-18 17:00:06.503 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit12323246143231676591\sku-mapping.csv
+2026-02-18 17:00:06.512 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit675674221102693382\sku-mapping.csv
+2026-02-18 17:00:06.522 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit15250166836378931266\sku-mapping.csv
+2026-02-18 17:00:06.533 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit2980779927313138913\sku-mapping.csv
+2026-02-18 17:00:06.543 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit2647769253332348259\sku-mapping.csv
+2026-02-18 17:00:06.551 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit16651174398136546645\sku-mapping.csv
+2026-02-18 17:00:06.560 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit4589374447995558977\sku-mapping.csv
+2026-02-18 17:00:06.569 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7943432520625880661\sku-mapping.csv
+2026-02-18 17:00:06.576 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit12419300248866951789\sku-mapping.csv
+2026-02-18 17:00:06.585 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit2690125223304612155\sku-mapping.csv
+2026-02-18 17:00:06.593 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit3325062642281815724\sku-mapping.csv
+2026-02-18 17:00:06.677 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: abc
+2026-02-18 17:00:06.677 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: invalid
+2026-02-18 17:00:06.683 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: abc
+2026-02-18 17:00:06.684 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: 12.5
+2026-02-18 17:00:07.088 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170006_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.185 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_170006_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.194 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170007_SHIP123_job1.json (2 LPNs)
+2026-02-18 17:00:07.197 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170007_SHIP999_job2.json (1 LPNs)
+2026-02-18 17:00:07.201 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_170007_SHIP123_job1.json (2 LPNs)
+2026-02-18 17:00:07.203 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_170007_SHIP999_job2.json (1 LPNs)
+2026-02-18 17:00:07.216 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170007_SHIP123_job123ab.json (2 LPNs)
+2026-02-18 17:00:07.231 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170007_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.238 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170007_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.241 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_170007_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.247 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170007_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.250 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_170007_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.263 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170007_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.266 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_170007_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.279 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_170007_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:00:07.290 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 17:00:07.292 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 17:00:07.293 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-18 17:00:07.293 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-18 17:00:07.296 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-18 17:00:07.296 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - No routing rules matched, using default printer: OFFICE
+2026-02-18 17:00:07.297 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 1 rules
+2026-02-18 17:00:07.298 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-18 17:00:07.300 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 17:00:07.324 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit10753115254684073761\sku-mapping.csv
+2026-02-18 17:00:07.332 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit16263089760200792181\sku-mapping.csv
+2026-02-18 17:00:07.338 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit944543760210958067\sku-mapping.csv
+2026-02-18 17:00:07.345 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit9153186600850338767\sku-mapping.csv
+2026-02-18 17:00:07.350 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit4119746689706032087\sku-mapping.csv
+2026-02-18 17:00:07.356 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit5839482278247504118\sku-mapping.csv
+2026-02-18 17:00:07.362 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit13956961764122994580\sku-mapping.csv
+2026-02-18 17:00:07.364 [WARN ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 3 - insufficient fields: incomplete
+2026-02-18 17:00:07.364 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 2 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit13956961764122994580\bad.csv
+2026-02-18 17:00:07.370 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit14239824582821009941\sku-mapping.csv
+2026-02-18 17:00:07.372 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 0 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit14239824582821009941\empty.csv
+2026-02-18 17:00:07.378 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit17635556748472296682\sku-mapping.csv
+2026-02-18 17:00:07.384 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit11090576426318511639\sku-mapping.csv
+2026-02-18 17:00:07.391 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit10774321796274273376\sku-mapping.csv
+2026-02-18 17:00:07.398 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit9087546798657682915\sku-mapping.csv
+2026-02-18 17:00:07.404 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit9465596376188248851\sku-mapping.csv
+2026-02-18 17:00:07.411 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7018439297266333906\sku-mapping.csv
+2026-02-18 17:00:07.418 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7765807819034950965\sku-mapping.csv
+2026-02-18 17:00:07.424 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit8563176804106395709\sku-mapping.csv
+2026-02-18 17:00:07.430 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit5728526255548073036\sku-mapping.csv
+2026-02-18 17:00:07.437 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit3287451210073293064\sku-mapping.csv
+2026-02-18 17:33:31.486 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit16331149350780634465\sku-mapping.csv
+2026-02-18 17:33:31.514 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit9529200651301464236\sku-mapping.csv
+2026-02-18 17:33:31.526 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit12817342501612758143\sku-mapping.csv
+2026-02-18 17:33:31.536 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit1008932629711253877\sku-mapping.csv
+2026-02-18 17:33:31.547 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit1961219517983954398\sku-mapping.csv
+2026-02-18 17:33:31.559 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit12837080957130995678\sku-mapping.csv
+2026-02-18 17:33:31.568 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit18135605407698880720\sku-mapping.csv
+2026-02-18 17:33:31.578 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit12248150656117786482\sku-mapping.csv
+2026-02-18 17:33:31.587 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit16414473287267234230\sku-mapping.csv
+2026-02-18 17:33:31.597 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit2746924542144303574\sku-mapping.csv
+2026-02-18 17:33:31.606 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit10752617191743445749\sku-mapping.csv
+2026-02-18 17:33:31.616 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit4078023926131941930\sku-mapping.csv
+2026-02-18 17:33:31.625 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7648037271924444113\sku-mapping.csv
+2026-02-18 17:33:31.634 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 1 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit1020592200209894541\sku-mapping.csv
+2026-02-18 17:33:31.749 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: abc
+2026-02-18 17:33:31.749 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse double from value: invalid
+2026-02-18 17:33:31.753 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: abc
+2026-02-18 17:33:31.753 [WARN ] [] [:] c.t.wms.core.model.NormalizationService  - Failed to parse integer from value: 12.5
+2026-02-18 17:33:32.215 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.320 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.330 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP123_job1.json (2 LPNs)
+2026-02-18 17:33:32.333 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP999_job2.json (1 LPNs)
+2026-02-18 17:33:32.337 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_173332_SHIP123_job1.json (2 LPNs)
+2026-02-18 17:33:32.339 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_173332_SHIP999_job2.json (1 LPNs)
+2026-02-18 17:33:32.350 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP123_job123ab.json (2 LPNs)
+2026-02-18 17:33:32.365 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.372 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.375 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.382 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.384 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.401 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.404 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot loaded: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.416 [INFO ] [] [:] com.tbg.wms.core.model.SnapshotService   - Snapshot captured: snapshot_20260218_173332_SHIP123_job123.json (2 LPNs)
+2026-02-18 17:33:32.428 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 17:33:32.430 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 17:33:32.432 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-18 17:33:32.432 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-18 17:33:32.435 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 2 printers and 1 rules
+2026-02-18 17:33:32.435 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - No routing rules matched, using default printer: OFFICE
+2026-02-18 17:33:32.436 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 1 rules
+2026-02-18 17:33:32.436 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Routing rule matched: staging-rossi-dispatch -> printer DISPATCH
+2026-02-18 17:33:32.437 [INFO ] [] [:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 1 printers and 0 rules
+2026-02-18 17:33:32.462 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit6242269515526474524\sku-mapping.csv
+2026-02-18 17:33:32.467 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit18138516584356500891\sku-mapping.csv
+2026-02-18 17:33:32.474 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit2552522667831029771\sku-mapping.csv
+2026-02-18 17:33:32.481 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit11013107394549326409\sku-mapping.csv
+2026-02-18 17:33:32.488 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit797283025629272484\sku-mapping.csv
+2026-02-18 17:33:32.494 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit4597716506498345855\sku-mapping.csv
+2026-02-18 17:33:32.500 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit17470685947638176584\sku-mapping.csv
+2026-02-18 17:33:32.503 [WARN ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Skipping line 3 - insufficient fields: incomplete
+2026-02-18 17:33:32.503 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 2 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit17470685947638176584\bad.csv
+2026-02-18 17:33:32.509 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit18043726732974809507\sku-mapping.csv
+2026-02-18 17:33:32.512 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 0 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit18043726732974809507\empty.csv
+2026-02-18 17:33:32.517 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit7775105887136024481\sku-mapping.csv
+2026-02-18 17:33:32.523 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit15365218538378931960\sku-mapping.csv
+2026-02-18 17:33:32.530 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit16390741829066917876\sku-mapping.csv
+2026-02-18 17:33:32.536 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit11340413333777944873\sku-mapping.csv
+2026-02-18 17:33:32.542 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit13254916807615378881\sku-mapping.csv
+2026-02-18 17:33:32.547 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit13034123139461627416\sku-mapping.csv
+2026-02-18 17:33:32.553 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit4581134182004707050\sku-mapping.csv
+2026-02-18 17:33:32.560 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit4504271968234830881\sku-mapping.csv
+2026-02-18 17:33:32.566 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit14547476983554237297\sku-mapping.csv
+2026-02-18 17:33:32.573 [INFO ] [] [:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 3 SKU mappings from C:\Users\zrashed\AppData\Local\Temp\junit812582092024990703\sku-mapping.csv

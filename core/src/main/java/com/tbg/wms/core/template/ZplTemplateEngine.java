@@ -1,8 +1,10 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright © 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
+ * @role WMS Analyst, Tropicana Brands Group
+ * @manager Fredrico Sanchez
  * @since 1.0.0
  */
 
@@ -88,11 +90,6 @@ public final class ZplTemplateEngine {
             if (!fields.containsKey(placeholderName)) {
                 throw new IllegalArgumentException("Missing required field: " + placeholderName);
             }
-
-            String value = fields.get(placeholderName);
-            if (value == null || value.trim().isEmpty()) {
-                throw new IllegalArgumentException("Field cannot be empty: " + placeholderName);
-            }
         }
     }
 
@@ -122,17 +119,21 @@ public final class ZplTemplateEngine {
      * Escapes special characters in field values for ZPL format.
      *
      * ZPL special characters that need escaping:
+     * - ~ (tilde) - ZPL control character (must escape first!)
      * - ^ (caret) - ZPL command prefix
-     * - ~ (tilde) - ZPL control character
      * - { } (braces) - Our template markers
+     *
+     * CRITICAL: Tilde MUST be escaped first, before caret. Otherwise:
+     * 1. Escape caret: "^" → "~~^"
+     * 2. Escape tilde (sees the ~~ we just added): "~~^" → "~~~~^" (WRONG!)
      *
      * @param value the raw field value
      * @return escaped value safe for ZPL
      */
     private static String escapeZpl(String value) {
         return value
-                .replace("^", "~~^")  // Escape caret
-                .replace("~", "~~")   // Escape tilde (must be done after caret)
+                .replace("~", "~~")   // Escape tilde FIRST
+                .replace("^", "~~^")  // Then escape caret
                 .replace("{", "{{")   // Escape opening brace
                 .replace("}", "}}");  // Escape closing brace
     }
@@ -158,4 +159,3 @@ public final class ZplTemplateEngine {
         // Utility class - prevent instantiation
     }
 }
-

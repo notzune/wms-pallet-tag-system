@@ -8,7 +8,10 @@
 
 package com.tbg.wms.db;
 
+import com.tbg.wms.core.model.ShipmentSkuFootprint;
 import com.tbg.wms.core.model.Shipment;
+
+import java.util.List;
 
 /**
  * Repository interface for querying WMS data from Oracle database.
@@ -64,6 +67,17 @@ public interface DbQueryRepository {
      * @throws IllegalArgumentException if shipmentId is null or empty
      */
     String getStagingLocation(String shipmentId);
+
+    /**
+     * Retrieves shipment-level SKU totals with footprint maintenance data.
+     *
+     * <p>Data is sourced from shipment lines plus PRTFTP / PRTFTP_DTL to provide
+     * units-per-case, units-per-pallet, and pallet dimensions for planning.</p>
+     *
+     * @param shipmentId the shipment identifier
+     * @return one row per SKU in the shipment
+     */
+    List<ShipmentSkuFootprint> findShipmentSkuFootprints(String shipmentId);
 
     /**
      * Closes the repository and releases any resources.

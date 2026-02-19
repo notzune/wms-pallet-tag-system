@@ -119,7 +119,7 @@ public final class NormalizationService {
      * @throws IllegalArgumentException if SKU is empty
      */
     public static String normalizeSku(String sku) {
-        return requireNonEmpty(sku, "SKU");
+        return requireNonEmpty(normalizeToUppercase(sku), "SKU");
     }
 
     /**
@@ -133,6 +133,17 @@ public final class NormalizationService {
      */
     public static String normalizeStagingLocation(String location) {
         return requireNonEmpty(normalizeToUppercase(location), "stagingLocation");
+    }
+
+    /**
+     * Normalizes an optional staging location for scenarios where WMS may omit it.
+     *
+     * @param location raw location value
+     * @return uppercase trimmed location, or null when input is null/blank
+     */
+    public static String normalizeOptionalStagingLocation(String location) {
+        String normalized = normalizeToUppercase(location);
+        return normalized.isEmpty() ? null : normalized;
     }
 
     /**
