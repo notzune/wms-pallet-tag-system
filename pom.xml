@@ -20,6 +20,8 @@
   <properties>
     <java.version>11</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <slf4j.version>2.0.13</slf4j.version>
     <dotenv.version>3.0.0</dotenv.version>
