@@ -44,7 +44,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
 
-    private final JCheckBoxMenuItem printToFileMenuItem = new JCheckBoxMenuItem("Print to file");
+    private static final String FILE_PRINTER_ID = "FILE";
 
     private final AppConfig config = new AppConfig();
     private final LabelWorkflowService service = new LabelWorkflowService(config);
@@ -82,8 +82,6 @@ public final class LabelGuiFrame extends JFrame {
         JMenuItem barcodeItem = new JMenuItem("Barcode Generator...");
         barcodeItem.addActionListener(e -> openBarcodeDialog());
         toolsMenu.add(barcodeItem);
-        toolsMenu.addSeparator();
-        toolsMenu.add(printToFileMenuItem);
 
         toolsButton.addActionListener(e ->
                 toolsMenu.show(toolsButton, 0, toolsButton.getHeight()));
@@ -180,6 +178,11 @@ public final class LabelGuiFrame extends JFrame {
                     for (LabelWorkflowService.PrinterOption printer : printers) {
                         model.addElement(printer);
                     }
+                    model.addElement(new LabelWorkflowService.PrinterOption(
+                            FILE_PRINTER_ID,
+                            "Print to file",
+                            resolveJarOutputDir().toString()
+                    ));
                     printerCombo.setModel(model);
                     if (model.getSize() > 0) {
                         printerCombo.setSelectedIndex(0);
@@ -285,12 +288,13 @@ public final class LabelGuiFrame extends JFrame {
         }
 
         LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        if (!printToFileMenuItem.isSelected() && selected == null) {
+        boolean printToFile = isPrintToFileSelected(selected);
+        if (!printToFile && selected == null) {
             showError("Select a printer.");
             return;
         }
 
-        if (!printToFileMenuItem.isSelected()) {
+        if (!printToFile) {
             int choice = JOptionPane.showConfirmDialog(
                     this,
                     "Print " + job.getLpnsForLabels().size() + " labels to " + selected + "?",
@@ -313,8 +317,8 @@ public final class LabelGuiFrame extends JFrame {
             protected LabelWorkflowService.PrintResult doInBackground() throws Exception {
                 Path outDir = Paths.get("out", "gui-" + job.getShipmentId() + "-" +
                         DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()));
-                String printerId = selected == null ? null : selected.getId();
-                return service.print(job, printerId, outDir, printToFileMenuItem.isSelected());
+                String printerId = printToFile ? null : (selected == null ? null : selected.getId());
+                return service.print(job, printerId, outDir, printToFile);
             }
 
             @Override
@@ -421,6 +425,7 @@ public final class LabelGuiFrame extends JFrame {
         JSpinner barcodeHeight = new JSpinner(new SpinnerNumberModel(120, 1, 2000, 1));
         JCheckBox humanReadable = new JCheckBox("Human readable", true);
         JSpinner copies = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+        JCheckBox printToFileCheck = new JCheckBox("Print to file", true);
         JTextField outputDir = new JTextField(defaultBarcodeOutputDir());
         JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
         printerSelect.setModel(printerCombo.getModel());
@@ -444,6 +449,9 @@ public final class LabelGuiFrame extends JFrame {
         gbc.gridy = row;
         gbc.gridwidth = 2;
         form.add(humanReadable, gbc);
+        row++;
+        gbc.gridy = row;
+        form.add(printToFileCheck, gbc);
 
         JButton generateButton = new JButton("Generate");
         JButton closeButton = new JButton("Close");
@@ -484,7 +492,7 @@ public final class LabelGuiFrame extends JFrame {
                 return;
             }
 
-            if (printToFileMenuItem.isSelected()) {
+            if (printToFileCheck.isSelected()) {
                 JOptionPane.showMessageDialog(
                         dialog,
                         "ZPL saved to " + outputPath,
@@ -495,7 +503,7 @@ public final class LabelGuiFrame extends JFrame {
             }
 
             LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-            if (printer == null) {
+            if (printer == null || FILE_PRINTER_ID.equals(printer.getId())) {
                 showError("Select a printer or enable Print to file.");
                 return;
             }
@@ -565,6 +573,10 @@ public final class LabelGuiFrame extends JFrame {
         } catch (Exception e) {
             return Paths.get("out");
         }
+    }
+
+    private static boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
+        return selected != null && FILE_PRINTER_ID.equals(selected.getId());
     }
 
     private static String safeSlug(String value) {
