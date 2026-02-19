@@ -291,7 +291,7 @@ public final class LabelGuiFrame extends JFrame {
                     row.getUnits(),
                     row.getUnitsPerPallet() == null ? "-" : row.getUnitsPerPallet().toString(),
                     row.getFullPallets(),
-                    row.getPartialUnits(),
+                    row.getPartialPallets(),
                     row.getEstimatedPallets(),
                     value(row.getDescription())));
         }

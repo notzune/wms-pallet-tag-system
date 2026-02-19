@@ -20,10 +20,12 @@ import java.nio.file.Paths;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Loads and manages runtime configuration from environment variables and `.env` file.
@@ -246,6 +248,64 @@ public final class AppConfig {
 
         String site = activeSiteCode();
         return "jdbc:oracle:thin:@//" + siteHost(site) + ":" + oraclePort() + "/" + oracleService();
+    }
+
+    /**
+     * Returns JDBC URL candidates ordered for resilient connection fallback.
+     *
+     * <p>Order:</p>
+     * <ol>
+     *   <li>Primary JDBC URL (same value as {@link #oracleJdbcUrl()})</li>
+     *   <li>Oracle Net alias from {@code ORACLE_ODBC_DSN}/{@code ORACLE_NET_SERVICE}/{@code ORACLE_TNS_ALIAS}</li>
+     *   <li>Host/port/service URL fallback</li>
+     * </ol>
+     *
+     * <p>The Oracle Net alias path relies on workstation Oracle client/TNS setup used by ODBC analyzers.</p>
+     *
+     * @return distinct, ordered JDBC URL candidates
+     */
+    public List<String> oracleJdbcUrlCandidates() {
+        Set<String> ordered = new LinkedHashSet<>();
+        ordered.add(oracleJdbcUrl());
+
+        String odbcAlias = oracleOdbcDsnOrNull();
+        if (odbcAlias != null && !odbcAlias.isBlank()) {
+            ordered.add("jdbc:oracle:thin:@" + odbcAlias.trim());
+        }
+
+        String site = activeSiteCode();
+        ordered.add("jdbc:oracle:thin:@//" + siteHost(site) + ":" + oraclePort() + "/" + oracleService());
+        return List.copyOf(ordered);
+    }
+
+    /**
+     * Returns the configured Oracle Net alias (ODBC/TNS-style), or {@code null}.
+     *
+     * <p>Lookup order:</p>
+     * <ol>
+     *   <li>{@code ORACLE_ODBC_DSN}</li>
+     *   <li>{@code ORACLE_NET_SERVICE}</li>
+     *   <li>{@code ORACLE_TNS_ALIAS}</li>
+     * </ol>
+     *
+     * @return Oracle Net alias used for fallback connectivity
+     */
+    public String oracleOdbcDsnOrNull() {
+        String explicit = raw("ORACLE_ODBC_DSN");
+        if (explicit != null && !explicit.isBlank()) {
+            return explicit.trim();
+        }
+
+        String netService = raw("ORACLE_NET_SERVICE");
+        if (netService != null && !netService.isBlank()) {
+            return netService.trim();
+        }
+
+        String tnsAlias = raw("ORACLE_TNS_ALIAS");
+        if (tnsAlias != null && !tnsAlias.isBlank()) {
+            return tnsAlias.trim();
+        }
+        return null;
     }
 
     /**

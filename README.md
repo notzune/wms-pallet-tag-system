@@ -101,9 +101,16 @@ Key settings:
 - `WMS_ENV=PROD` (default)
 - `ACTIVE_SITE=TBG3002`
 - `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `ORACLE_PORT`, `ORACLE_SERVICE`
+- `ORACLE_ODBC_DSN` (optional Oracle Net alias fallback, e.g. `TBG3002`)
+- `ORACLE_DSN` (optional explicit DSN/JDBC descriptor; use carefully to avoid wrong environment)
 - `SITE_<CODE>_<ENV>_HOST` (example `SITE_TBG3002_PROD_HOST`)
 - `SITE_<CODE>_SHIP_FROM_NAME`, `SITE_<CODE>_SHIP_FROM_ADDRESS`, `SITE_<CODE>_SHIP_FROM_CITY_STATE_ZIP`
 - `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
+
+Connection fallback order:
+1. Primary JDBC URL (`ORACLE_JDBC_URL`, then `ORACLE_DSN`, then host/port/service)
+2. Oracle Net alias (`ORACLE_ODBC_DSN` or `ACTIVE_SITE`, e.g. `TBG3002`)
+3. Host/port/service URL
 
 ## Run Command
 

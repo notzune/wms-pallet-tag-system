@@ -77,11 +77,12 @@ public final class DbTestCommand implements Callable<Integer> {
             // Test connectivity
             System.out.println("Testing connectivity...");
             DbConnectivityDiagnostics diag = pool.testConnectivity();
+            String activeJdbcUrl = pool.activeJdbcUrl();
 
             pool.close();
 
             // Success
-            printSuccess(diag);
+            printSuccess(diag, activeJdbcUrl);
             return 0;
 
         } catch (WmsConfigException e) {
@@ -130,6 +131,8 @@ public final class DbTestCommand implements Callable<Integer> {
         System.out.println("  Service Name:    " + config.oracleService());
         System.out.println("  Username:        " + config.oracleUsername());
         System.out.println("  JDBC URL:        " + config.oracleJdbcUrl());
+        System.out.println("  ODBC/TNS Alias:  " + valueOrDash(config.oracleOdbcDsnOrNull()));
+        System.out.println("  JDBC Candidates: " + String.join(" | ", config.oracleJdbcUrlCandidates()));
         System.out.println();
         System.out.println("Pool Configuration:");
         System.out.println("  Max Size:        " + config.dbPoolMaxSize());
@@ -138,13 +141,18 @@ public final class DbTestCommand implements Callable<Integer> {
         System.out.println();
     }
 
-    private void printSuccess(DbConnectivityDiagnostics diag) {
+    private String valueOrDash(String value) {
+        return (value == null || value.isBlank()) ? "-" : value;
+    }
+
+    private void printSuccess(DbConnectivityDiagnostics diag, String activeJdbcUrl) {
         System.out.println();
         System.out.println("Database connectivity verified!");
         System.out.println();
         System.out.println("Test Results:");
         System.out.println("  Duration:        " + diag.durationMs() + " ms");
         System.out.println("  Database Version: " + diag.databaseVersion());
+        System.out.println("  Connected URL:   " + activeJdbcUrl);
         System.out.println("  Pool Statistics: " + diag.activeConnections() + " active, " +
                           diag.idleConnections() + " idle");
         System.out.println();

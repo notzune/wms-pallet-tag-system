@@ -48,6 +48,8 @@ public final class ShowConfigCommand implements Callable<Integer> {
             System.out.println("  Username:        " + cfg.oracleUsername());
             System.out.println("  Password:        " + redact(cfg.oraclePassword()));
             System.out.println("  JDBC URL:        " + cfg.oracleJdbcUrl());
+            System.out.println("  ODBC/TNS Alias:  " + valueOrDash(cfg.oracleOdbcDsnOrNull()));
+            System.out.println("  JDBC Candidates: " + String.join(" | ", cfg.oracleJdbcUrlCandidates()));
             System.out.println();
             System.out.println("Connection Pool:");
             System.out.println("  Max Size:        " + cfg.dbPoolMaxSize());
@@ -82,5 +84,9 @@ public final class ShowConfigCommand implements Callable<Integer> {
             return "(not set)";
         }
         return "***" + (value.length() > 3 ? value.substring(value.length() - 3) : "***");
+    }
+
+    private static String valueOrDash(String value) {
+        return (value == null || value.isBlank()) ? "-" : value;
     }
 }

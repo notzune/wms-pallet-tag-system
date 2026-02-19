@@ -238,11 +238,13 @@ public final class LabelWorkflowService {
             Integer upp = row.getUnitsPerPallet();
             int fullPallets = 0;
             int partialUnits = 0;
+            int partialPallets = 0;
             int estimatedPallets = 0;
             if (upp != null && upp > 0) {
                 fullPallets = units / upp;
                 partialUnits = units % upp;
-                estimatedPallets = fullPallets + (partialUnits > 0 ? 1 : 0);
+                partialPallets = partialUnits > 0 ? 1 : 0;
+                estimatedPallets = fullPallets + partialPallets;
             }
 
             String description = row.getItemDescription();
@@ -259,7 +261,7 @@ public final class LabelWorkflowService {
                     units,
                     upp,
                     fullPallets,
-                    partialUnits,
+                    partialPallets,
                     estimatedPallets
             ));
         }
@@ -324,16 +326,16 @@ public final class LabelWorkflowService {
         private final int units;
         private final Integer unitsPerPallet;
         private final int fullPallets;
-        private final int partialUnits;
+        private final int partialPallets;
         private final int estimatedPallets;
 
-        public SkuMathRow(String sku, String description, int units, Integer unitsPerPallet, int fullPallets, int partialUnits, int estimatedPallets) {
+        public SkuMathRow(String sku, String description, int units, Integer unitsPerPallet, int fullPallets, int partialPallets, int estimatedPallets) {
             this.sku = sku;
             this.description = description;
             this.units = units;
             this.unitsPerPallet = unitsPerPallet;
             this.fullPallets = fullPallets;
-            this.partialUnits = partialUnits;
+            this.partialPallets = partialPallets;
             this.estimatedPallets = estimatedPallets;
         }
 
@@ -357,8 +359,8 @@ public final class LabelWorkflowService {
             return fullPallets;
         }
 
-        public int getPartialUnits() {
-            return partialUnits;
+        public int getPartialPallets() {
+            return partialPallets;
         }
 
         public int getEstimatedPallets() {

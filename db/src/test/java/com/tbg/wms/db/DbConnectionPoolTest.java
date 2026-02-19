@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -46,6 +46,7 @@ class DbConnectionPoolTest {
         // Setup
         when(mockConfig.activeSiteCode()).thenReturn("TBG3002");
         when(mockConfig.oracleJdbcUrl()).thenReturn("jdbc:oracle:thin:@//localhost:1521/WMSP");
+        when(mockConfig.oracleJdbcUrlCandidates()).thenReturn(List.of("jdbc:oracle:thin:@//localhost:1521/WMSP"));
         when(mockConfig.oracleUsername()).thenReturn("RPTADM");
         when(mockConfig.oraclePassword()).thenReturn("password");
         when(mockConfig.dbPoolMaxSize()).thenReturn(5);

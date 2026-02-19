@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Manages the Oracle database connection pool using HikariCP.
@@ -52,6 +54,7 @@ public final class DbConnectionPool implements AutoCloseable {
 
     private final AppConfig config;
     private final HikariDataSource dataSource;
+    private final String activeJdbcUrl;
 
     /**
      * Creates a new connection pool with the given configuration.
@@ -64,17 +67,46 @@ public final class DbConnectionPool implements AutoCloseable {
      */
     public DbConnectionPool(AppConfig config) {
         this.config = config;
-        try {
-            this.dataSource = createDataSource(config);
-            log.info("Connection pool created: poolName={}, maxSize={}",
-                config.activeSiteCode(), config.dbPoolMaxSize());
-        } catch (Exception e) {
+        List<String> errors = new ArrayList<>();
+
+        HikariDataSource selectedDataSource = null;
+        String selectedJdbcUrl = null;
+
+        for (String jdbcUrlCandidate : config.oracleJdbcUrlCandidates()) {
+            HikariDataSource candidate = null;
+            try {
+                candidate = createDataSource(config, jdbcUrlCandidate);
+                try (Connection ignored = candidate.getConnection()) {
+                    selectedDataSource = candidate;
+                    selectedJdbcUrl = jdbcUrlCandidate;
+                    break;
+                }
+            } catch (Exception e) {
+                errors.add(summarizeAttemptFailure(jdbcUrlCandidate, e));
+                log.warn("Database connection attempt failed for JDBC URL candidate: {}", jdbcUrlCandidate);
+                if (isAuthenticationFailure(e)) {
+                    // Prevent account lockout amplification by stopping URL fallbacks on auth failures.
+                    break;
+                }
+                if (candidate != null && !candidate.isClosed()) {
+                    candidate.close();
+                }
+            }
+        }
+
+        if (selectedDataSource == null || selectedJdbcUrl == null) {
+            String details = errors.isEmpty() ? "No connection attempts were executed." : String.join(" | ", errors);
             throw new WmsDbConnectivityException(
-                "Failed to create connection pool: " + e.getMessage(),
-                e,
-                "Check ORACLE_JDBC driver on classpath and JDBC URL format. Verify ORACLE_SERVICE is correct."
+                    "Failed to create connection pool: " + details,
+                    "Verify Oracle credentials, DSN/TNS alias, and site endpoint configuration. " +
+                            "If the account is locked, contact DB admin to unlock ORA-28000."
             );
         }
+
+        this.dataSource = selectedDataSource;
+        this.activeJdbcUrl = selectedJdbcUrl;
+        log.info("Connection pool created: poolName={}, maxSize={}, jdbcUrl={}",
+                config.activeSiteCode(), config.dbPoolMaxSize(), activeJdbcUrl);
     }
 
     /**
@@ -83,15 +115,19 @@ public final class DbConnectionPool implements AutoCloseable {
      * @param config the application configuration
      * @return a configured HikariDataSource
      */
-    private HikariDataSource createDataSource(AppConfig config) {
+    private HikariDataSource createDataSource(AppConfig config, String jdbcUrl) {
         HikariConfig hc = new HikariConfig();
-        hc.setJdbcUrl(config.oracleJdbcUrl());
+        hc.setJdbcUrl(jdbcUrl);
         hc.setUsername(config.oracleUsername());
         hc.setPassword(config.oraclePassword());
 
         hc.setMaximumPoolSize(config.dbPoolMaxSize());
+        // Avoid eager prefill so invalid credentials don't fan out into multiple rapid login failures.
+        hc.setMinimumIdle(0);
         hc.setConnectionTimeout(config.dbPoolConnectionTimeoutMs());
         hc.setValidationTimeout(config.dbPoolValidationTimeoutMs());
+        // Defer physical connection creation until first explicit borrow in constructor validation.
+        hc.setInitializationFailTimeout(-1);
 
         hc.setPoolName("wms-tags-oracle-" + config.activeSiteCode());
         hc.setAutoCommit(true);
@@ -104,6 +140,32 @@ public final class DbConnectionPool implements AutoCloseable {
         hc.setLeakDetectionThreshold(60000);
 
         return new HikariDataSource(hc);
+    }
+
+    private String summarizeAttemptFailure(String jdbcUrl, Exception exception) {
+        Throwable root = exception;
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+        return jdbcUrl + " -> " + root.getClass().getSimpleName() + ": " + root.getMessage();
+    }
+
+    private boolean isAuthenticationFailure(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String lowered = message.toLowerCase();
+                if (lowered.contains("ora-01017")
+                        || lowered.contains("invalid username/password")
+                        || lowered.contains("ora-28000")
+                        || lowered.contains("account is locked")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     /**
@@ -194,8 +256,13 @@ public final class DbConnectionPool implements AutoCloseable {
             return "Service not found: verify ORACLE_SERVICE=" + config.oracleService() + " is correct. " +
                    "Query DB admin for available services.";
         }
-        if (message.contains("Invalid username/password")) {
+        String lowerMessage = message.toLowerCase();
+        if (lowerMessage.contains("invalid username/password") || lowerMessage.contains("ora-01017")) {
             return "Authentication failed: verify ORACLE_USERNAME and ORACLE_PASSWORD are correct.";
+        }
+        if (lowerMessage.contains("ora-28000") || lowerMessage.contains("account is locked")) {
+            return "Oracle account is locked (ORA-28000). " +
+                    "Avoid repeated retries, validate DSN/TNS endpoint, then ask DB admin to unlock the account.";
         }
         if (e.getCause() != null
                 && e.getCause().getMessage() != null
@@ -217,6 +284,15 @@ public final class DbConnectionPool implements AutoCloseable {
             log.info("Closing database connection pool");
             dataSource.close();
         }
+    }
+
+    /**
+     * Returns the JDBC URL that successfully created the pool.
+     *
+     * @return active JDBC URL
+     */
+    public String activeJdbcUrl() {
+        return activeJdbcUrl;
     }
 }
 

@@ -207,38 +207,48 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         String normalizedId = NormalizationService.normalizeString(shipmentId);
         List<ShipmentSkuFootprint> rows = new ArrayList<>();
 
-        String sql = "SELECT " +
-                "ol.PRTNUM AS PRTNUM, " +
-                "MAX(ol.PRT_CLIENT_ID) AS PRT_CLIENT_ID, " +
-                "MAX(s.WH_ID) AS WH_ID, " +
-                "MAX(ol.CSTPRT) AS ITEM_DESCRIPTION, " +
-                "SUM(COALESCE(" +
-                "NULLIF(sl.SHPQTY, 0), " +
-                "NULLIF(sl.STGQTY, 0), " +
-                "NULLIF(sl.PCKQTY, 0), " +
-                "NULLIF(sl.INPQTY, 0), " +
-                "NULLIF(sl.TOT_PLN_QTY, 0), " +
-                "NULLIF(ol.ORDQTY, 0), " +
-                "0)) AS TOTAL_UNITS, " +
-                "MAX(CASE WHEN d.CAS_FLG = 1 THEN d.UNTQTY END) AS UNITS_PER_CASE, " +
-                "MAX(CASE WHEN d.PAL_FLG = 1 THEN d.UNTQTY END) AS UNITS_PER_PALLET, " +
-                "MAX(CASE WHEN d.PAL_FLG = 1 THEN d.LEN END) AS PALLET_LEN, " +
-                "MAX(CASE WHEN d.PAL_FLG = 1 THEN d.WID END) AS PALLET_WID, " +
-                "MAX(CASE WHEN d.PAL_FLG = 1 THEN d.HGT END) AS PALLET_HGT " +
-                "FROM WMSP.SHIPMENT_LINE sl " +
-                "INNER JOIN WMSP.SHIPMENT s ON s.SHIP_ID = sl.SHIP_ID " +
-                "INNER JOIN WMSP.ORD_LINE ol ON sl.ORDNUM = ol.ORDNUM " +
-                "  AND sl.ORDLIN = ol.ORDLIN AND sl.ORDSLN = ol.ORDSLN AND sl.CLIENT_ID = ol.CLIENT_ID " +
-                "LEFT JOIN WMSP.PRTFTP pf ON pf.PRTNUM = ol.PRTNUM " +
-                "  AND pf.PRT_CLIENT_ID = ol.PRT_CLIENT_ID " +
-                "  AND pf.WH_ID = s.WH_ID " +
+        String sql = "WITH sku_units AS (" +
+                "  SELECT " +
+                "    ol.PRTNUM AS PRTNUM, " +
+                "    MAX(ol.PRT_CLIENT_ID) AS PRT_CLIENT_ID, " +
+                "    MAX(s.WH_ID) AS WH_ID, " +
+                "    MAX(ol.CSTPRT) AS ITEM_DESCRIPTION, " +
+                "    SUM(COALESCE(" +
+                "      NULLIF(sl.SHPQTY, 0), " +
+                "      NULLIF(sl.STGQTY, 0), " +
+                "      NULLIF(sl.PCKQTY, 0), " +
+                "      NULLIF(sl.INPQTY, 0), " +
+                "      NULLIF(sl.TOT_PLN_QTY, 0), " +
+                "      NULLIF(ol.ORDQTY, 0), " +
+                "      0)) AS TOTAL_UNITS " +
+                "  FROM WMSP.SHIPMENT_LINE sl " +
+                "  INNER JOIN WMSP.SHIPMENT s ON s.SHIP_ID = sl.SHIP_ID " +
+                "  INNER JOIN WMSP.ORD_LINE ol ON sl.ORDNUM = ol.ORDNUM " +
+                "    AND sl.ORDLIN = ol.ORDLIN AND sl.ORDSLN = ol.ORDSLN AND sl.CLIENT_ID = ol.CLIENT_ID " +
+                "  WHERE sl.SHIP_ID = ? " +
+                "  GROUP BY ol.PRTNUM" +
+                ") " +
+                "SELECT " +
+                "  su.PRTNUM, " +
+                "  su.PRT_CLIENT_ID, " +
+                "  su.WH_ID, " +
+                "  su.ITEM_DESCRIPTION, " +
+                "  su.TOTAL_UNITS, " +
+                "  MAX(CASE WHEN d.CAS_FLG = 1 THEN d.UNTQTY END) AS UNITS_PER_CASE, " +
+                "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.UNTQTY END) AS UNITS_PER_PALLET, " +
+                "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.LEN END) AS PALLET_LEN, " +
+                "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.WID END) AS PALLET_WID, " +
+                "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.HGT END) AS PALLET_HGT " +
+                "FROM sku_units su " +
+                "LEFT JOIN WMSP.PRTFTP pf ON pf.PRTNUM = su.PRTNUM " +
+                "  AND pf.PRT_CLIENT_ID = su.PRT_CLIENT_ID " +
+                "  AND pf.WH_ID = su.WH_ID " +
                 "  AND pf.DEFFTP_FLG = 1 " +
                 "LEFT JOIN WMSP.PRTFTP_DTL d ON d.PRTNUM = pf.PRTNUM " +
                 "  AND d.PRT_CLIENT_ID = pf.PRT_CLIENT_ID " +
                 "  AND d.WH_ID = pf.WH_ID " +
                 "  AND d.FTPCOD = pf.FTPCOD " +
-                "WHERE sl.SHIP_ID = ? " +
-                "GROUP BY ol.PRTNUM";
+                "GROUP BY su.PRTNUM, su.PRT_CLIENT_ID, su.WH_ID, su.ITEM_DESCRIPTION, su.TOTAL_UNITS";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
