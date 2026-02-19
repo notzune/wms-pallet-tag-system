@@ -14,17 +14,21 @@
  *
  * Subpackages:
  * <ul>
- *   <li>{@link com.tbg.wms.core.exception} - Typed exception hierarchy with exit codes
- *   <li>{@link com.tbg.wms.core.model} - Domain models and utility services
+ *   <li>{@link com.tbg.wms.core.exception} - Typed exception hierarchy with exit codes</li>
+ *   <li>{@link com.tbg.wms.core.model} - Domain models and utility services</li>
+ *   <li>{@link com.tbg.wms.core.label} - Label data mapping and enrichment</li>
+ *   <li>{@link com.tbg.wms.core.sku} - SKU mapping and lookup utilities</li>
+ *   <li>{@link com.tbg.wms.core.template} - ZPL template parsing and generation</li>
+ *   <li>{@link com.tbg.wms.core.print} - Printer routing and network printing</li>
+ *   <li>{@link com.tbg.wms.core.db} - Connection pooling and diagnostics</li>
  * </ul>
  *
  * Key Services:
  * <ul>
- *   <li>{@link com.tbg.wms.core.AppConfig} - Configuration loading from .env and env vars
- *   <li>{@link com.tbg.wms.core.model.NormalizationService} - Data transformation
- *   <li>{@link com.tbg.wms.core.model.SnapshotService} - JSON persistence
- *   <li>{@link com.tbg.wms.core.db.DbConnectionPool} - Connection pool management
- *   <li>{@link com.tbg.wms.core.db.DbHealthService} - Connectivity validation
+ *   <li>{@link com.tbg.wms.core.AppConfig} - Configuration loading from .env and env vars</li>
+ *   <li>{@link com.tbg.wms.core.model.NormalizationService} - Data transformation</li>
+ *   <li>{@link com.tbg.wms.core.model.SnapshotService} - JSON persistence</li>
+ *   <li>{@link com.tbg.wms.core.model.PalletPlanningService} - Pallet planning summary</li>
  * </ul>
  *
  * Module Dependencies:
@@ -41,27 +45,18 @@
  * Architecture:
  * <pre>
  * core/
- *   ├── AppConfig - Configuration management
- *   ├── exception/ - Error handling
- *   │   ├── WmsException (base)
- *   │   ├── WmsConfigException
- *   │   └── WmsDbConnectivityException
- *   ├── model/ - Domain objects
- *   │   ├── Shipment, Lpn, LineItem
- *   │   ├── NormalizationService
- *   │   └── SnapshotService
- *   ├── db/ - Database access
- *   │   ├── DbConnectionPool
- *   │   ├── DbHealthService
- *   │   ├── DataSourceFactory
- *   │   └── (legacy components)
- *   └── resources/
- *       └── logback.xml
+ *   AppConfig - Configuration management
+ *   exception/ - Error handling
+ *   model/ - Domain objects and planning services
+ *   label/ - Label data mapping
+ *   sku/ - SKU lookup
+ *   template/ - ZPL template engine
+ *   print/ - Routing and printing
+ *   db/ - Connection pool utilities
  * </pre>
  *
  * @author Zeyad Rashed
- * @version 1.0
+ * @version 1.1
  * @since 1.0.0
  */
 package com.tbg.wms.core;
-

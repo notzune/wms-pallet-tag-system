@@ -38,6 +38,8 @@
  *   <li>{@code printer-routing.yaml} - Routing rules and default printer</li>
  * </ul>
  *
+ * @author Zeyad Rashed
+ * @version 1.1
  * @since 1.0.0
  */
 package com.tbg.wms.core.print;

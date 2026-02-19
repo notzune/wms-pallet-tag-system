@@ -14,9 +14,9 @@
  *
  * Key Components:
  * <ul>
- *   <li>{@link com.tbg.wms.db.DbConnectionPool} - HikariCP connection pool wrapper
- *   <li>{@link com.tbg.wms.db.DbQueryRepository} - Repository interface for queries
- *   <li>{@link com.tbg.wms.db.OracleDbQueryRepository} - Oracle implementation
+ *   <li>{@link com.tbg.wms.db.DbConnectionPool} - HikariCP connection pool wrapper</li>
+ *   <li>{@link com.tbg.wms.db.DbQueryRepository} - Repository interface for queries</li>
+ *   <li>{@link com.tbg.wms.db.OracleDbQueryRepository} - Oracle implementation</li>
  * </ul>
  *
  * Architecture Pattern:
@@ -76,15 +76,14 @@
  *
  * Error Handling:
  * <ul>
- *   <li>Connection refused → Check host/port/VPN
- *   <li>Service not found → Check service name/SID
- *   <li>Auth failed → Check credentials
- *   <li>Query failed → Check schema and table names
+ *   <li>Connection refused -> Check host, port, or VPN</li>
+ *   <li>Service not found -> Check service name or SID</li>
+ *   <li>Auth failed -> Check credentials</li>
+ *   <li>Query failed -> Check schema and table names</li>
  * </ul>
  *
  * @author Zeyad Rashed
- * @version 1.0
+ * @version 1.1
  * @since 1.0.0
  */
 package com.tbg.wms.db;
-

@@ -2,31 +2,35 @@
 
 Licensed under the terms in `LICENSE`.
 
-Production Java CLI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
+Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
 
 ## Current Scope
 
-Implemented and supported now:
+Implemented and supported:
 - `config` command (resolved runtime config with redaction)
 - `db-test` command (database connectivity diagnostics)
-- `run` command (shipment label generation/printing)
-- `gui` command (desktop workflow with shipment preview, pallet math, and confirm-print)
+- `run` command (shipment label generation and printing)
+- `gui` command (desktop workflow with shipment preview and confirm-print)
 - Oracle read-only access
 - Printer routing via site YAML
 - Walmart SKU matrix lookup for Walmart item field
 - Pallet planning summary from footprint maintenance (`PRTFTP` / `PRTFTP_DTL`)
 
-Not implemented in this codebase yet:
+Not implemented yet:
 - `template`, `print-template`, `manual`, `replay` commands
 
 ## Prerequisites
 
-- Java 21 recommended (validated)
+- Java 11+ (21 recommended for development)
 - Maven Wrapper included (`mvnw`, `mvnw.cmd`)
 - Oracle WMS network access
 - Zebra printer network access (for non-dry-run printing)
 
-## Quick Start
+Portable bundles include a JRE and do not require a separate Java install.
+
+## Setup and Quick Start
+
+### Development build
 
 1. Configure environment:
 
@@ -34,45 +38,66 @@ Not implemented in this codebase yet:
 copy .env.example .env
 ```
 
-Alternative for packaged JAR deployments:
-- Place a `wms-tags.env` file in the same folder as the JAR (or working directory).
-- Optional explicit override: set `WMS_CONFIG_FILE=<absolute-or-relative-path>`.
-- Precedence is: environment variables -> `WMS_CONFIG_FILE`/`wms-tags.env`/`.env` -> built-in defaults.
-- Starter template: `config/wms-tags.env.example`.
-- Runtime env key compatibility: `WMS_ENV` and `ACTIVE_ENV` are both supported.
-- DB URL compatibility: if `ORACLE_DSN` (or `ORACLE_JDBC_URL`) is set, it overrides host/port/service assembly.
-
 2. Build and test:
 
 ```bash
 mvnw.cmd test
 ```
 
-3. Show effective config:
+3. Run commands:
 
 ```bash
 java -jar cli/target/cli-*.jar config
-```
-
-4. Test DB connectivity:
-
-```bash
 java -jar cli/target/cli-*.jar db-test
-```
-
-5. Run dry-run label generation:
-
-```bash
 java -jar cli/target/cli-*.jar run --shipment-id <SHIP_ID> --dry-run --output-dir out/
-```
-
-6. Launch GUI:
-
-```bash
-java -jar cli/target/cli-*.jar
-# or explicitly
 java -jar cli/target/cli-*.jar gui
 ```
+
+### Portable bundle (recommended for operators)
+
+1. Extract the ZIP to a folder (example: `C:\wms-pallet-tag-system`).
+2. Copy the template config into place:
+
+```bash
+copy config\\wms-tags.env.example wms-tags.env
+```
+
+3. Edit `wms-tags.env` with Oracle and site credentials.
+4. Run:
+
+```bash
+run.cmd
+```
+
+For CLI usage:
+
+```bash
+run.cmd config
+run.cmd db-test
+run.cmd run --shipment-id <SHIP_ID> --dry-run --output-dir out/
+```
+
+On Linux/macOS:
+
+```bash
+./run.sh
+```
+
+## Configuration
+
+Configuration file precedence:
+1. Environment variables
+2. `WMS_CONFIG_FILE` path, if set
+3. `wms-tags.env` next to the JAR (or working directory)
+4. `.env`
+5. Built-in defaults
+
+Key settings:
+- `WMS_ENV=PROD` (default)
+- `ACTIVE_SITE=TBG3002`
+- `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `ORACLE_PORT`, `ORACLE_SERVICE`
+- `SITE_<CODE>_<ENV>_HOST` (example `SITE_TBG3002_PROD_HOST`)
+- `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
 
 ## Run Command
 
@@ -91,33 +116,15 @@ Options:
 - Enter shipment ID.
 - Select printer.
 - Click `Preview` to load shipment details and pallet math (`full`, `partial`, `total pallets`).
-- Verify summary + counts.
+- Verify summary and counts.
 - Click `Confirm Print` to send labels and save generated ZPL artifacts under `out/gui-<shipment>-<timestamp>/`.
-
-Examples:
-
-```bash
-java -jar cli/target/cli-*.jar run --shipment-id 8000141715 --dry-run --output-dir out/
-java -jar cli/target/cli-*.jar run --shipment-id 8000141715 --output-dir out/
-java -jar cli/target/cli-*.jar run --shipment-id 8000141715 --printer DISPATCH --output-dir out/
-```
 
 ## Walmart SKU Behavior
 
 - The label field `WAL-MART ITEM #` is populated only when SKU matches the Walmart matrix CSV.
-- If SKU does not match (for non-Walmart/non-Canada orders), that field is intentionally left blank on the generated label.
-- If a shipment has no LPN records but has shipment SKU rows, labels are generated from SKU data using virtual pallet rows so LPN absence does not block output.
-
-## Configuration
-
-Environment defaults and examples are in `.env.example`.
-
-Key settings:
-- `WMS_ENV=PROD` (default)
-- `ACTIVE_SITE=TBG3002`
-- `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `ORACLE_PORT`, `ORACLE_SERVICE`
-- `SITE_<CODE>_<ENV>_HOST` (for example `SITE_TBG3002_PROD_HOST`)
-- `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
+- If SKU does not match (for non-Walmart or non-Canada orders), that field is intentionally left blank.
+- If a shipment has no LPN records but has shipment SKU rows, labels are generated from SKU data using virtual pallet rows.
+- Walmart orders are palletized per pallet, so each pallet receives its own label even for identical SKUs.
 
 ## Safety and Data Access
 
@@ -125,17 +132,7 @@ Key settings:
 - Application flow uses SELECT queries only.
 - Printing can be skipped entirely with `--dry-run`.
 
-## Operational Notes
-
-- `run` prints a pallet planning summary before label generation:
-  - total shipment units
-  - estimated pallets from footprint data
-  - actual LPN count
-  - SKUs missing footprint setup
-
-## Build/Test
-
-Use wrapper:
+## Build and Test
 
 ```bash
 mvnw.cmd test
@@ -144,10 +141,30 @@ mvnw.cmd -pl cli -am package
 
 ## Project Structure
 
-- `core/` domain, config, template, label mapping, planning
-- `db/` Oracle repository and connection pool
-- `cli/` Picocli entrypoint and commands
-- `config/` site printers/routing and ZPL templates
+```
+wms-pallet-tag-system/
+├── README.md
+├── CHANGELOG.md
+├── INSTRUCTIONS.md               # Development standards and system requirements
+├── LICENSE
+├── pom.xml
+├── .env.example
+├── config/
+│   ├── wms-tags.env.example
+│   ├── templates/
+│   │   └── walmart-canada-label.zpl
+│   └── TBG3002/
+│       ├── printers.yaml
+│       └── printer-routing.yaml
+├── core/
+├── db/
+├── cli/
+├── scripts/                      # Build and launcher helpers
+├── analysis/                     # Internal analysis notes and DB dumps
+├── dist/                         # Generated portable bundles
+├── logs/                         # Runtime logs
+└── walmart_sku_matrix.csv
+```
 
 ## Troubleshooting
 
