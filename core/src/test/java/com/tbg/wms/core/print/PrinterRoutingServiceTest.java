@@ -9,7 +9,11 @@
 package com.tbg.wms.core.print;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +23,36 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for {@link PrinterRoutingService}.
  */
 class PrinterRoutingServiceTest {
+
+    @Test
+    void load_shouldAcceptTopLevelMetadataFields(@TempDir Path tempDir) throws Exception {
+        // Arrange
+        Path siteDir = Files.createDirectories(tempDir.resolve("TBG3002"));
+
+        Files.writeString(siteDir.resolve("printers.yaml"), """
+                version: 1
+                siteCode: TBG3002
+                printers:
+                  - id: OFFICE
+                    name: Office_Test
+                    ip: 10.19.64.106
+                """, StandardCharsets.UTF_8);
+
+        Files.writeString(siteDir.resolve("printer-routing.yaml"), """
+                version: 1
+                siteCode: TBG3002
+                defaultPrinterId: OFFICE
+                rules: []
+                """, StandardCharsets.UTF_8);
+
+        // Act
+        PrinterRoutingService service = PrinterRoutingService.load("TBG3002", tempDir);
+
+        // Assert
+        assertEquals("TBG3002", service.getSiteCode());
+        assertEquals("OFFICE", service.getDefaultPrinterId());
+        assertTrue(service.findPrinter("OFFICE").isPresent());
+    }
 
     @Test
     void selectPrinter_shouldRouteToDispatch_whenStagingLocationIsROSSI() {

@@ -92,6 +92,7 @@ public final class PrinterRoutingService {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
         PrintersYaml printersYaml = mapper.readValue(printersFile.toFile(), PrintersYaml.class);
+        validateOptionalSiteCode(siteCode, printersYaml.siteCode, printersFile);
         List<PrinterEntry> printersList = printersYaml.printers == null ? List.of() : printersYaml.printers;
         Map<String, PrinterConfig> printers = new LinkedHashMap<>();
 
@@ -111,6 +112,7 @@ public final class PrinterRoutingService {
         }
 
         RoutingYaml routingYaml = mapper.readValue(routingFile.toFile(), RoutingYaml.class);
+        validateOptionalSiteCode(siteCode, routingYaml.siteCode, routingFile);
         String defaultPrinterId = requireYamlValue(routingYaml.defaultPrinterId, "defaultPrinterId", routingFile);
         List<RuleEntry> rulesList = routingYaml.rules == null ? List.of() : routingYaml.rules;
         List<RoutingRule> rules = new ArrayList<>();
@@ -229,7 +231,22 @@ public final class PrinterRoutingService {
         return value;
     }
 
+    private static void validateOptionalSiteCode(String expectedSiteCode, String configuredSiteCode, Path sourceFile) {
+        if (configuredSiteCode == null || configuredSiteCode.isBlank()) {
+            return;
+        }
+
+        if (!expectedSiteCode.equalsIgnoreCase(configuredSiteCode)) {
+            throw new IllegalArgumentException(
+                    "Site code mismatch in " + sourceFile
+                            + ": expected '" + expectedSiteCode + "' but found '" + configuredSiteCode + "'"
+            );
+        }
+    }
+
     private static final class PrintersYaml {
+        public Integer version;
+        public String siteCode;
         public List<PrinterEntry> printers;
     }
 
@@ -244,6 +261,8 @@ public final class PrinterRoutingService {
     }
 
     private static final class RoutingYaml {
+        public Integer version;
+        public String siteCode;
         public String defaultPrinterId;
         public List<RuleEntry> rules;
     }
