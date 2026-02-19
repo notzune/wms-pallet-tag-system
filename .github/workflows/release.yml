@@ -32,9 +32,20 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          if (-not $version -or $version -match 'merge') {
+            $version = (Get-Content -LiteralPath "cli/target/maven-archiver/pom.properties" | Where-Object { $_ -like "version=*" }) -replace "version=", ""
+          }
           $jarPath = Join-Path $env:GITHUB_WORKSPACE "cli\target\cli-$version.jar"
           if (-not (Test-Path -LiteralPath $jarPath)) {
-            throw "CLI jar not found at $jarPath"
+            $fallback = Get-ChildItem -Path "cli/target" -Filter "cli-*.jar" -File |
+              Where-Object { $_.Name -notlike "*original*" } |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+            if ($fallback) {
+              $jarPath = $fallback.FullName
+            } else {
+              throw "CLI jar not found at $jarPath"
+            }
           }
 
           $runtimeZip = Join-Path $env:GITHUB_WORKSPACE "dist\temurin11-jre.zip"

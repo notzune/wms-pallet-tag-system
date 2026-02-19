@@ -201,7 +201,7 @@ Triggers on:
 Behavior:
 - Builds the CLI JAR.
 - Builds the portable bundle using `dist/temurin11-jre.zip`.
-- PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact.
+- PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from `cli/target/maven-archiver/pom.properties`.
 - Tags: attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
 - Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
