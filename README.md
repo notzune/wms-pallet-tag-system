@@ -22,7 +22,8 @@ Not implemented yet:
 
 ## Prerequisites
 
-- Java 11+ (21 recommended for development)
+- JDK 11+ for development builds (`javac` must be available; JRE-only installs will fail Maven compile)
+- Java 11+ runtime for running packaged bundles (JRE is acceptable for runtime only)
 - Maven Wrapper included (`mvnw`, `mvnw.cmd`)
 - Oracle WMS network access
 - Zebra printer network access (for non-dry-run printing)
@@ -44,6 +45,8 @@ copy .env.example .env
 ```bash
 mvnw.cmd test
 ```
+
+If you get `No compiler is provided in this environment`, install a JDK and ensure `JAVA_HOME` points to it.
 
 3. Run commands:
 
@@ -239,6 +242,7 @@ wms-pallet-tag-system/
 - Config check: `java -jar cli/target/cli-*.jar config`
 - DB diagnostics: `java -jar cli/target/cli-*.jar db-test`
 - Safe execution first: `--dry-run`
+- Build failure `No compiler is provided in this environment`: switch from JRE to JDK, then verify with `javac -version` and rerun `mvnw.cmd test`.
 
 ## Contact
 
