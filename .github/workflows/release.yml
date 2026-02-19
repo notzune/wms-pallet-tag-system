@@ -79,6 +79,7 @@ jobs:
           Compress-Archive -Path $bundleDir -DestinationPath $bundleZip
 
       - name: Build Release Notes
+        if: github.event_name == 'push'
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
