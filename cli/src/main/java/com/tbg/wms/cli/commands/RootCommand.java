@@ -35,7 +35,6 @@ import java.util.concurrent.Callable;
         name = "wms-tags",
         mixinStandardHelpOptions = true,
         version = "1.2.0",
-        versionHelpOptions = true,
         description = "WMS Pallet Tag System – Generate and print shipping labels from WMS data",
         subcommands = {
                 ShowConfigCommand.class,
@@ -47,6 +46,13 @@ import java.util.concurrent.Callable;
         }
 )
 public final class RootCommand implements Callable<Integer> {
+
+    @picocli.CommandLine.Option(
+            names = {"-v", "--version"},
+            versionHelp = true,
+            description = "Print version information and exit"
+    )
+    boolean versionRequested;
 
     @Override
     public Integer call() {
