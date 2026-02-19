@@ -87,12 +87,12 @@ if (-not $RuntimeSource) {
     if (-not $javaInfo.Major -or $javaInfo.Major -lt 17) {
         throw "Java 17+ required on build machine. Found: $($javaInfo.Version). Use -RuntimeSource to override."
     }
-    if (-not (Test-Path -LiteralPath (Join-Path $javaInfo.JavaHomePath \"bin\\java.exe\"))) {
-        throw \"Could not resolve Java home from installed java.exe: $($javaInfo.JavaExePath)\"
+    if (-not (Test-Path -LiteralPath (Join-Path $javaInfo.JavaHomePath "bin\\java.exe"))) {
+        throw "Could not resolve Java home from installed java.exe: $($javaInfo.JavaExePath)"
     }
 } else {
     if (-not (Test-Path -LiteralPath $RuntimeSource)) {
-        throw \"RuntimeSource not found: $RuntimeSource\"
+        throw "RuntimeSource not found: $RuntimeSource"
     }
 }
 
@@ -120,10 +120,10 @@ if (Test-Path -LiteralPath $runtimeTarget) {
 }
 
 if ($RuntimeSource) {
-    Write-Host \"Copying bundled runtime from: $RuntimeSource\"
+    Write-Host "Copying bundled runtime from: $RuntimeSource"
     Copy-Item -LiteralPath $RuntimeSource -Destination $runtimeTarget -Recurse -Force
 } else {
-    Write-Host \"Copying bundled runtime from: $($javaInfo.JavaHomePath)\"
+    Write-Host "Copying bundled runtime from: $($javaInfo.JavaHomePath)"
     Copy-Item -LiteralPath $javaInfo.JavaHomePath -Destination $runtimeTarget -Recurse -Force
 }
 
