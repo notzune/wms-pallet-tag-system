@@ -1,0 +1,81 @@
+name: Release Bundle
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "11"
+          cache: "maven"
+
+      - name: Build JAR
+        run: mvn -B -DskipTests clean package
+
+      - name: Build Portable Bundle
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $jarPath = Join-Path $env:GITHUB_WORKSPACE "cli\target\cli-$version.jar"
+          if (-not (Test-Path -LiteralPath $jarPath)) {
+            throw "CLI jar not found at $jarPath"
+          }
+
+          $runtimeZip = Join-Path $env:GITHUB_WORKSPACE "dist\temurin11-jre.zip"
+          if (-not (Test-Path -LiteralPath $runtimeZip)) {
+            throw "Runtime zip not found at $runtimeZip"
+          }
+
+          $runtimeDir = Join-Path $env:RUNNER_TEMP "temurin11-jre"
+          if (Test-Path -LiteralPath $runtimeDir) {
+            Remove-Item -LiteralPath $runtimeDir -Recurse -Force
+          }
+          Expand-Archive -LiteralPath $runtimeZip -DestinationPath $runtimeDir
+
+          $bundleDir = Join-Path $env:GITHUB_WORKSPACE "dist\wms-pallet-tag-system-$version-portable"
+          .\scripts\build-portable-bundle.ps1 -JarPath $jarPath -BundleDir $bundleDir -SourceRoot $env:GITHUB_WORKSPACE -RuntimeSource $runtimeDir
+
+          $bundleZip = Join-Path $env:GITHUB_WORKSPACE "dist\wms-pallet-tag-system-$version-portable.zip"
+          if (Test-Path -LiteralPath $bundleZip) {
+            Remove-Item -LiteralPath $bundleZip -Force
+          }
+          Compress-Archive -Path $bundleDir -DestinationPath $bundleZip
+
+      - name: Build Release Notes
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $lines = Get-Content -LiteralPath "CHANGELOG.md"
+          $startMatch = $lines | Select-String -Pattern "^## \[$([regex]::Escape($version))\]" | Select-Object -First 1
+          if (-not $startMatch) {
+            throw "CHANGELOG entry not found for version $version"
+          }
+          $startIndex = $startMatch.LineNumber - 1
+          $nextMatch = $lines | Select-String -Pattern "^## \[" | Where-Object { $_.LineNumber -gt $startMatch.LineNumber } | Select-Object -First 1
+          if ($nextMatch) {
+            $endIndex = $nextMatch.LineNumber - 2
+          } else {
+            $endIndex = $lines.Length - 1
+          }
+          $body = $lines[$startIndex..$endIndex] -join "`n"
+          Set-Content -LiteralPath "release-notes.txt" -Value $body
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.txt
+          files: |
+            dist/wms-pallet-tag-system-*-portable.zip
