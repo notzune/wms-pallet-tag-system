@@ -8,6 +8,7 @@
 
 package com.tbg.wms.core.label;
 
+import com.tbg.wms.core.location.LocationNumberMappingService;
 import com.tbg.wms.core.model.LineItem;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.Shipment;
@@ -47,6 +48,11 @@ class LabelDataBuilderTest {
                 "205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN\n";
         Files.writeString(csvFile, csvContent);
         SkuMappingService skuMapping = new SkuMappingService(csvFile);
+        Path locationCsv = tempDir.resolve("walm_loc_num_matrix.csv");
+        String locationCsvContent = "Sold-To Name,Location #,Sold-To #\n" +
+                "WAL-MART CANADA 7087R,7087R,0100003434\n";
+        Files.writeString(locationCsv, locationCsvContent);
+        LocationNumberMappingService locationMapping = new LocationNumberMappingService(locationCsv);
 
         // Create test SiteConfig
         SiteConfig siteConfig = new SiteConfig(
@@ -55,7 +61,7 @@ class LabelDataBuilderTest {
                 "Walnut, CA 91789"
         );
 
-        builder = new LabelDataBuilder(skuMapping, siteConfig);
+        builder = new LabelDataBuilder(skuMapping, siteConfig, Map.of(), locationMapping);
 
         // Create test line items
         LineItem item1 = new LineItem(
@@ -256,6 +262,24 @@ class LabelDataBuilderTest {
         Map<String, String> fields2 = builder.build(testShipment, testLpn, 0, LabelType.WALMART_CANADA_GRID);
 
         assertEquals(fields1, fields2, "Same input should produce same output");
+    }
+
+    @Test
+    void testBuildMapsSoldToLocationNumberToDcCode() {
+        LocalDateTime now = LocalDateTime.now();
+        Shipment soldToShipment = new Shipment(
+                "8000141715", "EXT8000141715", "8000141715", "3002",
+                "CJR WHOLESALE GROCERS LTD", "5876 COOPERS AVE", null, null,
+                "MISSISSAUGA", "ON", "L4Z 2B9", "CAN", "555-1234",
+                "MDLE", "TL", "30021144717", "8000141715", "ROSSI",
+                "PO123", "C100003434", "DEPT1",
+                "STOP1", 1, "MOVE1", "PRO123", "BOL123",
+                "R", now.minusDays(1), now.plusDays(3), now,
+                List.of(testLpn)
+        );
+
+        Map<String, String> fields = builder.build(soldToShipment, testLpn, 0, LabelType.WALMART_CANADA_GRID);
+        assertEquals("7087R", fields.get("locationNumber"));
     }
 
     @Test

@@ -8,6 +8,8 @@
 
 package com.tbg.wms.core.label;
 
+import com.tbg.wms.core.labeling.LabelingSupport;
+import com.tbg.wms.core.location.LocationNumberMappingService;
 import com.tbg.wms.core.model.LineItem;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.Shipment;
@@ -52,6 +54,7 @@ public final class LabelDataBuilder {
     private final SkuMappingService skuMapping;
     private final SiteConfig siteConfig;
     private final Map<String, ShipmentSkuFootprint> footprintBySku;
+    private final LocationNumberMappingService locationNumberMapping;
 
     /**
      * Creates a new LabelDataBuilder.
@@ -60,7 +63,7 @@ public final class LabelDataBuilder {
      * @param siteConfig site-specific configuration (ship-from address, etc.)
      */
     public LabelDataBuilder(SkuMappingService skuMapping, SiteConfig siteConfig) {
-        this(skuMapping, siteConfig, Collections.emptyMap());
+        this(skuMapping, siteConfig, Collections.emptyMap(), loadLocationNumberMappingOrNull());
     }
 
     /**
@@ -73,9 +76,17 @@ public final class LabelDataBuilder {
     public LabelDataBuilder(SkuMappingService skuMapping,
                             SiteConfig siteConfig,
                             Map<String, ShipmentSkuFootprint> footprintBySku) {
+        this(skuMapping, siteConfig, footprintBySku, loadLocationNumberMappingOrNull());
+    }
+
+    LabelDataBuilder(SkuMappingService skuMapping,
+                     SiteConfig siteConfig,
+                     Map<String, ShipmentSkuFootprint> footprintBySku,
+                     LocationNumberMappingService locationNumberMapping) {
         this.skuMapping = Objects.requireNonNull(skuMapping, "skuMapping cannot be null");
         this.siteConfig = Objects.requireNonNull(siteConfig, "siteConfig cannot be null");
         this.footprintBySku = footprintBySku == null ? Map.of() : Collections.unmodifiableMap(new HashMap<>(footprintBySku));
+        this.locationNumberMapping = locationNumberMapping;
     }
 
     /**
@@ -127,7 +138,7 @@ public final class LabelDataBuilder {
 
         // ── Order-level fields ──
         fields.put("customerPo", orDefault(shipment.getCustomerPo(), SPACE_SAFE_DEFAULT));
-        fields.put("locationNumber", orDefault(shipment.getLocationNumber(), SPACE_SAFE_DEFAULT));
+        fields.put("locationNumber", orDefault(resolveLocationNumber(shipment), SPACE_SAFE_DEFAULT));
         fields.put("departmentNumber", orDefault(shipment.getDepartmentNumber(), SPACE_SAFE_DEFAULT));
 
         // ── Carrier move / stop details ──
@@ -291,6 +302,27 @@ public final class LabelDataBuilder {
             }
         }
         return lpn.getLineItems().get(0);
+    }
+
+    private String resolveLocationNumber(Shipment shipment) {
+        String raw = shipment.getLocationNumber();
+        if (locationNumberMapping == null) {
+            return raw;
+        }
+        return locationNumberMapping.resolveDcLocation(raw);
+    }
+
+    private static LocationNumberMappingService loadLocationNumberMappingOrNull() {
+        try {
+            java.nio.file.Path matrix = LabelingSupport.resolveLocationMatrixCsv();
+            if (matrix == null) {
+                return null;
+            }
+            return new LocationNumberMappingService(matrix);
+        } catch (Exception e) {
+            log.warn("Location number matrix could not be loaded; sold-to to DC mapping is disabled: {}", e.getMessage());
+            return null;
+        }
     }
 }
 

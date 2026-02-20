@@ -107,6 +107,7 @@ Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -De
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printers.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printers.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printer-routing.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printer-routing.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walmart-sku-matrix.csv") -Destination (Join-Path $BundleDir "config\walmart-sku-matrix.csv") -Force
+Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walm_loc_num_matrix.csv") -Destination (Join-Path $BundleDir "config\walm_loc_num_matrix.csv") -Force
 Copy-Item -Path (Join-Path $SourceRoot "config\templates\*") -Destination (Join-Path $BundleDir "config\templates") -Recurse -Force
 
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\run.bat") -Destination (Join-Path $BundleDir "run.bat") -Force

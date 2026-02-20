@@ -36,6 +36,14 @@ public final class LabelingSupport {
             Paths.get("walmart-sku-matrix.csv"),
             Paths.get("walmart_sku_matrix.csv")
     );
+    private static final List<Path> LOCATION_MATRIX_CANDIDATES = List.of(
+            Paths.get("config/walm_loc_num_matrix.csv"),
+            Paths.get("config/location_no_matrix.csv"),
+            Paths.get("config/location-no-matrix.csv"),
+            Paths.get("walm_loc_num_matrix.csv"),
+            Paths.get("location_no_matrix.csv"),
+            Paths.get("location-no-matrix.csv")
+    );
 
     /**
      * Resolves the Walmart SKU matrix CSV from standard locations.
@@ -44,6 +52,20 @@ public final class LabelingSupport {
      */
     public static Path resolveSkuMatrixCsv() {
         for (Path candidate : SKU_MATRIX_CANDIDATES) {
+            if (Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Resolves the sold-to to DC location matrix CSV from standard locations.
+     *
+     * @return CSV path or null if not found
+     */
+    public static Path resolveLocationMatrixCsv() {
+        for (Path candidate : LOCATION_MATRIX_CANDIDATES) {
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }

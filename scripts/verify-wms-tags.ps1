@@ -91,6 +91,7 @@ $envPath = Join-Path $resolvedInstallDir "wms-tags.env"
 $printersPath = Join-Path $resolvedInstallDir "config\TBG3002\printers.yaml"
 $routingPath = Join-Path $resolvedInstallDir "config\TBG3002\printer-routing.yaml"
 $skuMatrixPath = Join-Path $resolvedInstallDir "config\walmart-sku-matrix.csv"
+$locationMatrixPath = Join-Path $resolvedInstallDir "config\walm_loc_num_matrix.csv"
 $manifestPath = Join-Path $resolvedInstallDir "install-manifest.json"
 $bundleManifestPath = Join-Path $resolvedInstallDir "bundle-manifest.json"
 $javaCmd = Resolve-JavaCommand -InstallDir $resolvedInstallDir
@@ -101,6 +102,7 @@ Add-Result -Check "Env file exists" -Passed (Test-Path -LiteralPath $envPath) -D
 Add-Result -Check "Printers file exists" -Passed (Test-Path -LiteralPath $printersPath) -Details $printersPath
 Add-Result -Check "Routing file exists" -Passed (Test-Path -LiteralPath $routingPath) -Details $routingPath
 Add-Result -Check "SKU matrix exists" -Passed (Test-Path -LiteralPath $skuMatrixPath) -Details $skuMatrixPath
+Add-Result -Check "Location matrix exists" -Passed (Test-Path -LiteralPath $locationMatrixPath) -Details $locationMatrixPath
 
 $javaInfo = Get-JavaInfo -JavaCommand $javaCmd
 if (-not $javaInfo.Exists) {

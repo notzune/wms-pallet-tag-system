@@ -155,6 +155,7 @@ Copy-Item -LiteralPath $JarPath -Destination (Join-Path $InstallDir "wms-tags.ja
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printers.yaml") -Destination (Join-Path $targetSiteDir "printers.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printer-routing.yaml") -Destination (Join-Path $targetSiteDir "printer-routing.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walmart-sku-matrix.csv") -Destination (Join-Path $targetConfigDir "walmart-sku-matrix.csv") -Force
+Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walm_loc_num_matrix.csv") -Destination (Join-Path $targetConfigDir "walm_loc_num_matrix.csv") -Force
 Copy-Item -Path (Join-Path $SourceRoot "config\templates\*") -Destination $targetTemplateDir -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.ps1") -Destination (Join-Path $targetScriptsDir "verify-wms-tags.ps1") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.bat") -Destination (Join-Path $targetScriptsDir "verify-wms-tags.bat") -Force
