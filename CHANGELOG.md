@@ -24,6 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None.
 
+## [1.2.3] - 2026-02-26
+### Added
+- Terminal-style right-click clipboard behavior in GUI text fields: right-click copies selected text, or pastes clipboard at cursor when no text is selected.
+
+### Changed
+- Project/version metadata updated to `1.2.3` across Maven modules, CLI version output, documentation, and setup/bundle script default JAR paths.
+
+### Fixed
+- None.
+
 ## [1.2.2] - 2026-02-19
 ### Added
 - Persistent GUI settings entry for default print-to-file output directory.

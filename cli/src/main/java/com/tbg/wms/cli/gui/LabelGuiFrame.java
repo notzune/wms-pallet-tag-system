@@ -17,9 +17,12 @@ import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 
 import javax.swing.*;
+import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -76,6 +79,7 @@ public final class LabelGuiFrame extends JFrame {
 
         wireActions();
         wireShortcuts();
+        installTerminalLikeMouseClipboardBehavior(shipmentField);
         applyTopRowSizing();
         loadPrintersAsync();
         printButton.setEnabled(false);
@@ -462,6 +466,7 @@ public final class LabelGuiFrame extends JFrame {
         JSpinner copies = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
         JTextField outputDir = new JTextField(defaultPrintToFileOutputDir().toString());
         outputDir.setColumns(40);
+        installTerminalLikeMouseClipboardBehavior(dataField, outputDir);
         JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
         printerSelect.setModel(buildPrintTargetModel(true));
 
@@ -647,6 +652,7 @@ public final class LabelGuiFrame extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         JTextField outputDirField = new JTextField(defaultPrintToFileOutputDir().toString(), 40);
+        installTerminalLikeMouseClipboardBehavior(outputDirField);
         JButton browseButton = new JButton("Browse...");
 
         gbc.gridx = 0;
@@ -757,5 +763,45 @@ public final class LabelGuiFrame extends JFrame {
             return "data";
         }
         return slug.length() > 40 ? slug.substring(0, 40) : slug;
+    }
+
+    private void installTerminalLikeMouseClipboardBehavior(JTextComponent... fields) {
+        for (JTextComponent field : fields) {
+            if (field == null) {
+                continue;
+            }
+            field.setComponentPopupMenu(null);
+            field.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    handleRightClickClipboardAction(e, field);
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    handleRightClickClipboardAction(e, field);
+                }
+            });
+        }
+    }
+
+    private void handleRightClickClipboardAction(MouseEvent event, JTextComponent field) {
+        if (!(event.isPopupTrigger() || SwingUtilities.isRightMouseButton(event))) {
+            return;
+        }
+
+        String selection = field.getSelectedText();
+        if (selection != null && !selection.isEmpty()) {
+            field.copy();
+            event.consume();
+            return;
+        }
+
+        int position = field.viewToModel2D(event.getPoint());
+        if (position >= 0) {
+            field.setCaretPosition(position);
+        }
+        field.paste();
+        event.consume();
     }
 }

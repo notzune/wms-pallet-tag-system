@@ -34,7 +34,7 @@ import java.util.concurrent.Callable;
 @Command(
         name = "wms-tags",
         mixinStandardHelpOptions = true,
-        version = "1.2.2",
+        version = "1.2.3",
         description = "WMS Pallet Tag System – Generate and print shipping labels from WMS data",
         subcommands = {
                 ShowConfigCommand.class,
