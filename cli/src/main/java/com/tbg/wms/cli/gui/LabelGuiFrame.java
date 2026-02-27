@@ -32,7 +32,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.WeakHashMap;
 import java.util.regex.Pattern;
 import java.util.prefs.Preferences;
 
@@ -61,7 +63,13 @@ public final class LabelGuiFrame extends JFrame {
     private static final int SHIPMENT_MIN_CHARS = 11;
     private static final int COMBO_WIDTH_REDUCTION_PX = 12;
     private static final DateTimeFormatter OUTPUT_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final String RIGHT_CLICK_COOLDOWN_PROPERTY = "wms.tags.rightClickCooldownMs";
+    private static final String RIGHT_CLICK_COOLDOWN_ENV = "RIGHT_CLICK_COOLDOWN_MS";
+    private static final String LEGACY_RIGHT_CLICK_COOLDOWN_ENV = "WMS_TAGS_RIGHT_CLICK_COOLDOWN_MS";
+    private static final long DEFAULT_RIGHT_CLICK_COOLDOWN_MS = 250L;
     private final Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
+    private final long rightClickCooldownMs = resolveRightClickCooldownMs();
+    private final Map<JTextComponent, Long> lastRightClickClipboardActionMs = new WeakHashMap<>();
 
     private final AppConfig config = new AppConfig();
     private final LabelWorkflowService service = new LabelWorkflowService(config);
@@ -1238,10 +1246,15 @@ public final class LabelGuiFrame extends JFrame {
         if (!(event.isPopupTrigger() || SwingUtilities.isRightMouseButton(event))) {
             return;
         }
+        if (isWithinRightClickCooldown(field)) {
+            event.consume();
+            return;
+        }
 
         String selection = field.getSelectedText();
         if (selection != null && !selection.isEmpty()) {
             field.copy();
+            markRightClickAction(field);
             event.consume();
             return;
         }
@@ -1251,6 +1264,48 @@ public final class LabelGuiFrame extends JFrame {
             field.setCaretPosition(position);
         }
         field.paste();
+        markRightClickAction(field);
         event.consume();
+    }
+
+    private boolean isWithinRightClickCooldown(JTextComponent field) {
+        Long last = lastRightClickClipboardActionMs.get(field);
+        if (last == null || rightClickCooldownMs <= 0) {
+            return false;
+        }
+        long elapsed = System.currentTimeMillis() - last;
+        return elapsed >= 0 && elapsed < rightClickCooldownMs;
+    }
+
+    private void markRightClickAction(JTextComponent field) {
+        lastRightClickClipboardActionMs.put(field, System.currentTimeMillis());
+    }
+
+    private long resolveRightClickCooldownMs() {
+        String propertyValue = System.getProperty(RIGHT_CLICK_COOLDOWN_PROPERTY);
+        Long parsed = tryParsePositiveLong(propertyValue);
+        if (parsed != null) {
+            return parsed;
+        }
+        String envValue = System.getenv(RIGHT_CLICK_COOLDOWN_ENV);
+        parsed = tryParsePositiveLong(envValue);
+        if (parsed != null) {
+            return parsed;
+        }
+        envValue = System.getenv(LEGACY_RIGHT_CLICK_COOLDOWN_ENV);
+        parsed = tryParsePositiveLong(envValue);
+        return parsed == null ? DEFAULT_RIGHT_CLICK_COOLDOWN_MS : parsed;
+    }
+
+    private Long tryParsePositiveLong(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            long parsed = Long.parseLong(value.trim());
+            return parsed < 0 ? null : parsed;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 }
