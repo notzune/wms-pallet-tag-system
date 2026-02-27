@@ -16,6 +16,8 @@ package com.tbg.wms.core.exception;
  */
 public abstract class WmsException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private final int exitCode;
     private final String remediationHint;
 

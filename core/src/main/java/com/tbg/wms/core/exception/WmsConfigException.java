@@ -22,6 +22,8 @@ package com.tbg.wms.core.exception;
  */
 public final class WmsConfigException extends WmsException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Creates a new configuration exception.
      *

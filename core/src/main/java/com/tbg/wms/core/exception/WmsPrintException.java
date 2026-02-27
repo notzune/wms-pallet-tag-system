@@ -21,6 +21,8 @@ package com.tbg.wms.core.exception;
  */
 public class WmsPrintException extends WmsException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Creates a new print exception.
      *

@@ -20,7 +20,7 @@ import java.util.List;
  * This interface provides clean boundaries for database access and allows
  * for different implementations (real Oracle queries, test mocks, etc.).
  *
- * All queries throw WmsDbException subtypes for proper error handling.
+ * All query failures are surfaced as typed runtime exceptions for consistent CLI/GUI handling.
  */
 public interface DbQueryRepository {
 
@@ -35,8 +35,7 @@ public interface DbQueryRepository {
      *
      * @param shipmentId the shipment identifier
      * @return the complete shipment with all associated data
-     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if database connection fails
-     * @throws com.tbg.wms.core.exception.WmsDbException if query execution fails
+     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
      * @throws IllegalArgumentException if shipmentId is null or empty
      */
     Shipment findShipmentWithLpnsAndLineItems(String shipmentId);
@@ -49,8 +48,7 @@ public interface DbQueryRepository {
      *
      * @param shipmentId the shipment identifier
      * @return true if shipment exists and has at least one LPN, false otherwise
-     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if database connection fails
-     * @throws com.tbg.wms.core.exception.WmsDbException if query execution fails
+     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
      * @throws IllegalArgumentException if shipmentId is null or empty
      */
     boolean shipmentExists(String shipmentId);
@@ -63,8 +61,7 @@ public interface DbQueryRepository {
      *
      * @param shipmentId the shipment identifier
      * @return the staging location (e.g., "ROSSI", "OFFICE"), or null if not found
-     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if database connection fails
-     * @throws com.tbg.wms.core.exception.WmsDbException if query execution fails
+     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
      * @throws IllegalArgumentException if shipmentId is null or empty
      */
     String getStagingLocation(String shipmentId);

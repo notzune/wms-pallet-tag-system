@@ -22,6 +22,8 @@ package com.tbg.wms.core.exception;
  */
 public final class WmsDbConnectivityException extends WmsException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Creates a new connectivity exception.
      *

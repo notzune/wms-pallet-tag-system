@@ -76,11 +76,11 @@ public final class DbConnectionPool implements AutoCloseable {
             HikariDataSource candidate = null;
             try {
                 candidate = createDataSource(config, jdbcUrlCandidate);
-                try (Connection ignored = candidate.getConnection()) {
-                    selectedDataSource = candidate;
-                    selectedJdbcUrl = jdbcUrlCandidate;
-                    break;
-                }
+                Connection validationConnection = candidate.getConnection();
+                validationConnection.close();
+                selectedDataSource = candidate;
+                selectedJdbcUrl = jdbcUrlCandidate;
+                break;
             } catch (Exception e) {
                 errors.add(summarizeAttemptFailure(jdbcUrlCandidate, e));
                 log.warn("Database connection attempt failed for JDBC URL candidate: {}", jdbcUrlCandidate);
