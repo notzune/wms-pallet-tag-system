@@ -328,7 +328,7 @@ public final class LabelGuiFrame extends JFrame {
         StringBuilder math = new StringBuilder();
         math.append("Carrier Move Pallet Math (Full vs Partial)\n");
         math.append(String.format("%-8s %-16s %-10s %-10s %-10s %-10s %-10s %s%n",
-                "Stop", "Shipment", "Units", "Full", "Partial", "TotalPal", "LPNLbls", "Ship To"));
+                "Stop", "Shipment", "Units", "Full", "Partial", "TotalPal", "Labels", "Ship To"));
         math.append("----------------------------------------------------------------------------------------------------------------------\n");
         int totalFull = 0;
         int totalPartial = 0;
@@ -357,7 +357,7 @@ public final class LabelGuiFrame extends JFrame {
             }
         }
         math.append("----------------------------------------------------------------------------------------------------------------------\n");
-        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual LPN Labels: %d%n",
+        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual Labels: %d%n",
                 totalFull, totalPartial, totalLabelsNeeded, totalActualLabels));
         mathArea.setText(math.toString());
         shipmentPreviewPanel.revalidate();
@@ -395,7 +395,7 @@ public final class LabelGuiFrame extends JFrame {
             stopActualLabels += actualLabels;
             section.append("Shipment Summary: ").append(value(shipmentJob.getShipmentId()))
                     .append(" | Labels Needed(Footprint): ").append(labelsNeeded)
-                    .append(" | Actual LPN Labels: ").append(actualLabels)
+                    .append(" | Actual Labels: ").append(actualLabels)
                     .append(" | Full: ").append(full)
                     .append(" | Partial: ").append(partial)
                     .append('\n')
@@ -412,7 +412,7 @@ public final class LabelGuiFrame extends JFrame {
         section.append("Stop Totals -> Full: ").append(stopFull)
                 .append(" | Partial: ").append(stopPartial)
                 .append(" | Labels Needed(Footprint): ").append(stopLabelsNeeded)
-                .append(" | Actual LPN Labels: ").append(stopActualLabels)
+                .append(" | Actual Labels: ").append(stopActualLabels)
                 .append('\n');
         details.setText(section.toString());
 
@@ -482,7 +482,7 @@ public final class LabelGuiFrame extends JFrame {
         int totalPartial = job.getPlanResult().getPartialPallets();
         int totalLabels = job.getPlanResult().getEstimatedPallets();
         math.append("----------------------------------------------------------------------------------------------------\n");
-        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual LPN Labels: %d%n",
+        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual Labels: %d%n",
                 totalFull, totalPartial, totalLabels, job.getLpnsForLabels().size()));
         return math.toString();
     }
