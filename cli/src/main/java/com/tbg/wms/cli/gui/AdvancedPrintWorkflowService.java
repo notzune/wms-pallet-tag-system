@@ -38,7 +38,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
 /**
@@ -209,22 +208,23 @@ public final class AdvancedPrintWorkflowService {
         }
         List<ResumeCandidate> items = new ArrayList<>();
         try (var stream = Files.list(dir)) {
-            stream
+            var limitedIterator = stream
                     .filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json"))
                     .limit(MAX_CHECKPOINT_FILES_SCANNED)
-                    .collect(Collectors.toList())
-                    .forEach(file -> {
-                        try {
-                JobCheckpoint checkpoint = MAPPER.readValue(file.toFile(), JobCheckpoint.class);
+                    .iterator();
+            while (limitedIterator.hasNext()) {
+                Path file = limitedIterator.next();
+                try {
+                    JobCheckpoint checkpoint = MAPPER.readValue(file.toFile(), JobCheckpoint.class);
                 if (!checkpoint.completed) {
                     int total = checkpoint.tasks == null ? 0 : checkpoint.tasks.size();
                     items.add(new ResumeCandidate(checkpoint.id, checkpoint.mode, checkpoint.sourceId, checkpoint.outputDirectory,
                             checkpoint.nextTaskIndex, total, checkpoint.updatedAt, checkpoint.lastError));
                 }
-                        } catch (Exception ignored) {
-                            // Skip malformed checkpoint files and continue scanning.
-                        }
-                    });
+                } catch (Exception ignored) {
+                    // Skip malformed checkpoint files and continue scanning.
+                }
+            }
         }
         items.sort(Comparator.comparing(ResumeCandidate::updatedAt, Comparator.nullsLast(LocalDateTime::compareTo)).reversed());
         return items;
