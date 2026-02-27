@@ -581,11 +581,9 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void confirmAndPrint() {
-        if (isCarrierMoveMode() && preparedCarrierJob == null) {
-            showError("Run Preview first.");
-            return;
-        }
-        if (!isCarrierMoveMode() && preparedJob == null) {
+        boolean carrierMoveMode = isCarrierMoveMode();
+        boolean previewMissing = carrierMoveMode ? preparedCarrierJob == null : preparedJob == null;
+        if (previewMissing) {
             showError("Run Preview first.");
             return;
         }
@@ -598,15 +596,15 @@ public final class LabelGuiFrame extends JFrame {
         }
 
         if (!printToFile) {
-            int plannedLabels = isCarrierMoveMode()
+            int plannedLabels = carrierMoveMode
                     ? countCarrierMoveLabels(preparedCarrierJob)
                     : preparedJob.getLpnsForLabels().size();
-            int plannedInfoTags = isCarrierMoveMode()
+            int plannedInfoTags = carrierMoveMode
                     ? preparedCarrierJob.getTotalStops() + 1
                     : 1;
             int choice = JOptionPane.showConfirmDialog(
                     this,
-                    isCarrierMoveMode()
+                    carrierMoveMode
                             ? "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?"
                             : "Print " + plannedLabels + " labels to " + selected + "?",
                     "Confirm Print",
@@ -627,7 +625,7 @@ public final class LabelGuiFrame extends JFrame {
             @Override
             protected AdvancedPrintWorkflowService.PrintResult doInBackground() throws Exception {
                 String printerId = printToFile ? null : (selected == null ? null : selected.getId());
-                if (isCarrierMoveMode()) {
+                if (carrierMoveMode) {
                     Path outDir = defaultPrintToFileOutputDir().resolve("gui-cmid-" + preparedCarrierJob.getCarrierMoveId() + "-" +
                             OUTPUT_TS.format(LocalDateTime.now()));
                     return advancedService.printCarrierMoveJob(preparedCarrierJob, printerId, outDir, printToFile);
