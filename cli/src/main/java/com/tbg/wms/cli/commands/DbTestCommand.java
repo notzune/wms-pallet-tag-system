@@ -72,14 +72,14 @@ public final class DbTestCommand implements Callable<Integer> {
 
             // Create connection pool (may fail with configuration errors)
             System.out.println("Attempting to create connection pool...");
-            DbConnectionPool pool = new DbConnectionPool(config);
-
-            // Test connectivity
-            System.out.println("Testing connectivity...");
-            DbConnectivityDiagnostics diag = pool.testConnectivity();
-            String activeJdbcUrl = pool.activeJdbcUrl();
-
-            pool.close();
+            DbConnectivityDiagnostics diag;
+            String activeJdbcUrl;
+            try (DbConnectionPool pool = new DbConnectionPool(config)) {
+                // Test connectivity
+                System.out.println("Testing connectivity...");
+                diag = pool.testConnectivity();
+                activeJdbcUrl = pool.activeJdbcUrl();
+            }
 
             // Success
             printSuccess(diag, activeJdbcUrl);
