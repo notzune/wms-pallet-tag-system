@@ -10,6 +10,7 @@ package com.tbg.wms.db;
 
 import com.tbg.wms.core.model.ShipmentSkuFootprint;
 import com.tbg.wms.core.model.Shipment;
+import com.tbg.wms.core.model.CarrierMoveStopRef;
 
 import java.util.List;
 
@@ -78,6 +79,16 @@ public interface DbQueryRepository {
      * @return one row per SKU in the shipment
      */
     List<ShipmentSkuFootprint> findShipmentSkuFootprints(String shipmentId);
+
+    /**
+     * Resolves shipment rows for a carrier move using stop assignments.
+     *
+     * <p>Rows are expected to be sorted by stop sequence and then shipment ID.</p>
+     *
+     * @param carrierMoveId carrier move identifier
+     * @return stop-mapped shipment rows for the carrier move
+     */
+    List<CarrierMoveStopRef> findCarrierMoveStops(String carrierMoveId);
 
     /**
      * Closes the repository and releases any resources.

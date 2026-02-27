@@ -53,6 +53,10 @@ public final class LabelWorkflowService {
     private final Map<String, PrinterRoutingService> routingCache = new HashMap<>();
     // Cache resolved printers by ID to avoid repeated lookups.
     private final Map<String, PrinterConfig> printerCache = new HashMap<>();
+    // Cache reusable assets to avoid repeated disk reads/parsing across preview calls.
+    private volatile SkuMappingService cachedSkuMapping;
+    private volatile LabelTemplate cachedTemplate;
+    private volatile SiteConfig cachedSiteConfig;
 
     public LabelWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
@@ -109,57 +113,55 @@ public final class LabelWorkflowService {
         }
 
         String normalizedShipmentId = shipmentId.trim();
-        Path csvPath = LabelingSupport.resolveSkuMatrixCsv();
-        if (csvPath == null) {
-            throw new IllegalStateException("SKU mapping CSV not found.");
-        }
-        SkuMappingService skuMapping = new SkuMappingService(csvPath);
-
-        Path templatePath = Paths.get("config/templates/walmart-canada-label.zpl");
-        if (!Files.exists(templatePath)) {
-            throw new IllegalStateException("ZPL template not found: " + templatePath);
-        }
-        LabelTemplate template = new LabelTemplate("WALMART_CANADA", Files.readString(templatePath));
-
-        String siteCode = config.activeSiteCode();
-        SiteConfig siteConfig = createSiteConfig(siteCode);
-        PrinterRoutingService routing = loadRouting(siteCode);
 
         try (DbConnectionPool pool = new DbConnectionPool(config)) {
             DbQueryRepository queryRepo = new OracleDbQueryRepository(pool.getDataSource());
-            if (!queryRepo.shipmentExists(normalizedShipmentId)) {
-                throw new IllegalArgumentException("Shipment not found: " + normalizedShipmentId);
-            }
-
-            Shipment shipment = queryRepo.findShipmentWithLpnsAndLineItems(normalizedShipmentId);
-            if (shipment == null) {
-                throw new IllegalStateException("Could not retrieve shipment data.");
-            }
-
-            List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(normalizedShipmentId);
-            Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
-            PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
-            // Fallback to virtual rows only when WMS returns no physical LPNs.
-            List<Lpn> lpnsForLabels = resolveLpnsForLabeling(shipment, footprintRows);
-            boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
-            String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
-            List<SkuMathRow> mathRows = buildSkuMathRows(footprintRows, skuMapping);
-
-            return new PreparedJob(
-                    normalizedShipmentId,
-                    shipment,
-                    routing,
-                    siteConfig,
-                    skuMapping,
-                    template,
-                    footprintBySku,
-                    planResult,
-                    lpnsForLabels,
-                    mathRows,
-                    usingVirtualLabels,
-                    stagingLocation
-            );
+            return prepareJob(queryRepo, normalizedShipmentId);
         }
+    }
+
+    PreparedJob prepareJob(DbQueryRepository queryRepo, String shipmentId) throws Exception {
+        Objects.requireNonNull(queryRepo, "queryRepo cannot be null");
+        String normalizedShipmentId = shipmentId == null ? "" : shipmentId.trim();
+        if (normalizedShipmentId.isEmpty()) {
+            throw new IllegalArgumentException("Shipment ID is required.");
+        }
+
+        if (!queryRepo.shipmentExists(normalizedShipmentId)) {
+            throw new IllegalArgumentException("Shipment not found: " + normalizedShipmentId);
+        }
+
+        Shipment shipment = queryRepo.findShipmentWithLpnsAndLineItems(normalizedShipmentId);
+        if (shipment == null) {
+            throw new IllegalStateException("Could not retrieve shipment data.");
+        }
+
+        List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(normalizedShipmentId);
+        Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
+        PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
+        // Fallback to virtual rows only when WMS returns no physical LPNs.
+        List<Lpn> lpnsForLabels = resolveLpnsForLabeling(shipment, footprintRows);
+        boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
+        String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
+        SkuMappingService skuMapping = loadSkuMapping();
+        List<SkuMathRow> mathRows = buildSkuMathRows(footprintRows, skuMapping);
+
+        String siteCode = config.activeSiteCode();
+        PrinterRoutingService routing = loadRouting(siteCode);
+        return new PreparedJob(
+                normalizedShipmentId,
+                shipment,
+                routing,
+                loadSiteConfig(siteCode),
+                skuMapping,
+                loadTemplate(),
+                footprintBySku,
+                planResult,
+                lpnsForLabels,
+                mathRows,
+                usingVirtualLabels,
+                stagingLocation
+        );
     }
 
     /**
@@ -297,6 +299,53 @@ public final class LabelWorkflowService {
                 config.siteShipFromAddress(siteCode),
                 config.siteShipFromCityStateZip(siteCode)
         );
+    }
+
+    private SiteConfig loadSiteConfig(String siteCode) {
+        SiteConfig cached = cachedSiteConfig;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (cachedSiteConfig == null) {
+                cachedSiteConfig = createSiteConfig(siteCode);
+            }
+            return cachedSiteConfig;
+        }
+    }
+
+    private SkuMappingService loadSkuMapping() throws Exception {
+        SkuMappingService cached = cachedSkuMapping;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (cachedSkuMapping == null) {
+                Path csvPath = LabelingSupport.resolveSkuMatrixCsv();
+                if (csvPath == null) {
+                    throw new IllegalStateException("SKU mapping CSV not found.");
+                }
+                cachedSkuMapping = new SkuMappingService(csvPath);
+            }
+            return cachedSkuMapping;
+        }
+    }
+
+    private LabelTemplate loadTemplate() throws Exception {
+        LabelTemplate cached = cachedTemplate;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (cachedTemplate == null) {
+                Path templatePath = Paths.get("config/templates/walmart-canada-label.zpl");
+                if (!Files.exists(templatePath)) {
+                    throw new IllegalStateException("ZPL template not found: " + templatePath);
+                }
+                cachedTemplate = new LabelTemplate("WALMART_CANADA", Files.readString(templatePath));
+            }
+            return cachedTemplate;
+        }
     }
 
     public static final class PrinterOption {

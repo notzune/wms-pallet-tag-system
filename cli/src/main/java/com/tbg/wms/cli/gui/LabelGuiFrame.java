@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -40,12 +41,16 @@ import java.util.prefs.Preferences;
  */
 public final class LabelGuiFrame extends JFrame {
 
+    private final JLabel inputLabel = new JLabel("Carrier Move ID:");
     private final JTextField shipmentField = new JTextField(24);
+    private final JRadioButton carrierMoveModeButton = new JRadioButton("Carrier Move ID", true);
+    private final JRadioButton shipmentModeButton = new JRadioButton("Shipment ID");
     private final JComboBox<LabelWorkflowService.PrinterOption> printerCombo = new JComboBox<>();
     private final JButton previewButton = new JButton("Preview");
     private final JButton clearButton = new JButton("Clear");
     private final JButton printButton = new JButton("Confirm Print");
     private final JTextArea shipmentArea = new JTextArea();
+    private final JPanel shipmentPreviewPanel = new JPanel();
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
 
@@ -60,8 +65,10 @@ public final class LabelGuiFrame extends JFrame {
 
     private final AppConfig config = new AppConfig();
     private final LabelWorkflowService service = new LabelWorkflowService(config);
+    private final AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
     private List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
     private LabelWorkflowService.PreparedJob preparedJob;
+    private AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
 
     public LabelGuiFrame() {
         super(buildWindowTitle());
@@ -80,6 +87,8 @@ public final class LabelGuiFrame extends JFrame {
         wireActions();
         wireShortcuts();
         installTerminalLikeMouseClipboardBehavior(shipmentField);
+        updateInputModeUi();
+        autoResumeIfFound();
         applyTopRowSizing();
         loadPrintersAsync();
         printButton.setEnabled(false);
@@ -97,6 +106,12 @@ public final class LabelGuiFrame extends JFrame {
         JMenuItem barcodeItem = new JMenuItem("Barcode Generator...");
         barcodeItem.addActionListener(e -> openBarcodeDialog());
         toolsMenu.add(barcodeItem);
+        JMenuItem queueItem = new JMenuItem("Queue Print...");
+        queueItem.addActionListener(e -> openQueueDialog());
+        toolsMenu.add(queueItem);
+        JMenuItem resumeItem = new JMenuItem("Resume Incomplete Job...");
+        resumeItem.addActionListener(e -> openResumeDialog());
+        toolsMenu.add(resumeItem);
         JMenuItem settingsItem = new JMenuItem("Settings...");
         settingsItem.addActionListener(e -> openSettingsDialog());
         toolsMenu.addSeparator();
@@ -116,32 +131,43 @@ public final class LabelGuiFrame extends JFrame {
 
         gbc.gridx = 0;
         gbc.gridy = 0;
-        panel.add(new JLabel("Shipment ID:"), gbc);
+        panel.add(inputLabel, gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.35;
+        gbc.weightx = 0.20;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(shipmentField, gbc);
 
         gbc.gridx = 2;
         gbc.weightx = 0.0;
         gbc.fill = GridBagConstraints.NONE;
-        panel.add(new JLabel("Printer:"), gbc);
+        ButtonGroup inputModeGroup = new ButtonGroup();
+        inputModeGroup.add(carrierMoveModeButton);
+        inputModeGroup.add(shipmentModeButton);
+        JPanel modePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        modePanel.add(carrierMoveModeButton);
+        modePanel.add(shipmentModeButton);
+        panel.add(modePanel, gbc);
 
         gbc.gridx = 3;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 0.65;
-        panel.add(printerCombo, gbc);
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(new JLabel("Printer:"), gbc);
 
         gbc.gridx = 4;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 0.80;
+        panel.add(printerCombo, gbc);
+
+        gbc.gridx = 5;
         gbc.weightx = 0.0;
         gbc.fill = GridBagConstraints.NONE;
         panel.add(previewButton, gbc);
 
-        gbc.gridx = 5;
+        gbc.gridx = 6;
         panel.add(clearButton, gbc);
 
-        gbc.gridx = 6;
+        gbc.gridx = 7;
         panel.add(printButton, gbc);
 
         return panel;
@@ -150,11 +176,13 @@ public final class LabelGuiFrame extends JFrame {
     private JComponent buildCenterPanel() {
         shipmentArea.setEditable(false);
         shipmentArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
+        shipmentPreviewPanel.setLayout(new BoxLayout(shipmentPreviewPanel, BoxLayout.Y_AXIS));
+        shipmentPreviewPanel.add(shipmentArea);
         mathArea.setEditable(false);
         mathArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
 
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                new JScrollPane(shipmentArea),
+                new JScrollPane(shipmentPreviewPanel),
                 new JScrollPane(mathArea));
         split.setDividerLocation(340);
         return split;
@@ -171,6 +199,8 @@ public final class LabelGuiFrame extends JFrame {
         previewButton.addActionListener(e -> previewJob());
         clearButton.addActionListener(e -> clearForm());
         printButton.addActionListener(e -> confirmAndPrint());
+        carrierMoveModeButton.addActionListener(e -> updateInputModeUi());
+        shipmentModeButton.addActionListener(e -> updateInputModeUi());
     }
 
     private void wireShortcuts() {
@@ -222,27 +252,37 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void previewJob() {
-        String shipmentId = shipmentField.getText().trim();
-        if (shipmentId.isEmpty()) {
-            showError("Enter a shipment ID.");
+        String inputId = shipmentField.getText().trim();
+        if (inputId.isEmpty()) {
+            showError(isCarrierMoveMode() ? "Enter a Carrier Move ID." : "Enter a Shipment ID.");
             return;
         }
 
         setBusy("Preparing preview...");
         printButton.setEnabled(false);
         preparedJob = null;
+        preparedCarrierJob = null;
 
-        SwingWorker<LabelWorkflowService.PreparedJob, Void> worker = new SwingWorker<>() {
+        SwingWorker<Object, Void> worker = new SwingWorker<>() {
             @Override
-            protected LabelWorkflowService.PreparedJob doInBackground() throws Exception {
-                return service.prepareJob(shipmentId);
+            protected Object doInBackground() throws Exception {
+                if (isCarrierMoveMode()) {
+                    return advancedService.prepareCarrierMoveJob(inputId);
+                }
+                return service.prepareJob(inputId);
             }
 
             @Override
             protected void done() {
                 try {
-                    preparedJob = get();
-                    renderPreview(preparedJob);
+                    Object prepared = get();
+                    if (prepared instanceof AdvancedPrintWorkflowService.PreparedCarrierMoveJob) {
+                        preparedCarrierJob = (AdvancedPrintWorkflowService.PreparedCarrierMoveJob) prepared;
+                        renderCarrierMovePreview(preparedCarrierJob);
+                    } else {
+                        preparedJob = (LabelWorkflowService.PreparedJob) prepared;
+                        renderPreview(preparedJob);
+                    }
                     printButton.setEnabled(true);
                     setReady("Preview ready. Verify details, then click Confirm Print.");
                 } catch (Exception ex) {
@@ -255,6 +295,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void renderPreview(LabelWorkflowService.PreparedJob job) {
+        shipmentPreviewPanel.removeAll();
         StringBuilder summary = new StringBuilder();
         summary.append("Shipment: ").append(job.getShipment().getShipmentId()).append('\n');
         summary.append("Order: ").append(value(job.getShipment().getOrderId())).append('\n');
@@ -272,6 +313,7 @@ public final class LabelGuiFrame extends JFrame {
         summary.append("Label Plan:\n");
         summary.append(" - Actual LPNs: ").append(job.getShipment().getLpnCount()).append('\n');
         summary.append(" - Labels To Generate: ").append(job.getLpnsForLabels().size()).append('\n');
+        summary.append(" - Info Tags To Generate: ").append(1).append('\n');
         summary.append(" - Virtual Labels Used: ").append(job.isUsingVirtualLabels() ? "YES" : "NO").append('\n');
         summary.append(" - Total Units: ").append(job.getPlanResult().getTotalUnits()).append('\n');
         summary.append(" - Estimated Pallets (Footprint): ").append(job.getPlanResult().getEstimatedPallets()).append('\n');
@@ -283,6 +325,7 @@ public final class LabelGuiFrame extends JFrame {
                         : String.join(", ", job.getPlanResult().getSkusMissingFootprint()))
                 .append('\n');
         shipmentArea.setText(summary.toString());
+        shipmentPreviewPanel.add(shipmentArea);
 
         StringBuilder math = new StringBuilder();
         math.append("Pallet Math (Full vs Partial)\n");
@@ -299,12 +342,126 @@ public final class LabelGuiFrame extends JFrame {
                     row.getEstimatedPallets(),
                     value(row.getDescription())));
         }
+        int totalFull = sumFullPallets(job.getSkuMathRows());
+        int totalPartial = sumPartialPallets(job.getSkuMathRows());
+        int totalLabels = sumEstimatedPallets(job.getSkuMathRows());
+        math.append("----------------------------------------------------------------------------------------------------\n");
+        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed: %d%n", totalFull, totalPartial, totalLabels));
         mathArea.setText(math.toString());
+        shipmentPreviewPanel.revalidate();
+        shipmentPreviewPanel.repaint();
+    }
+
+    private void renderCarrierMovePreview(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        shipmentPreviewPanel.removeAll();
+        StringBuilder summary = new StringBuilder();
+        summary.append("Carrier Move ID: ").append(job.getCarrierMoveId()).append('\n');
+        summary.append("Total Stops: ").append(job.getTotalStops()).append('\n');
+        summary.append("Estimated Labels: ").append(countCarrierMoveLabels(job)).append('\n');
+        summary.append("Estimated Info Tags: ").append(job.getTotalStops() + 1).append('\n');
+        shipmentArea.setText(summary.toString());
+        shipmentPreviewPanel.add(shipmentArea);
+
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            shipmentPreviewPanel.add(buildStopPreviewSection(stop));
+        }
+
+        StringBuilder math = new StringBuilder();
+        math.append("Carrier Move Pallet Math (Full vs Partial)\n");
+        math.append(String.format("%-8s %-16s %-10s %-10s %-10s %-10s %-10s %s%n",
+                "Stop", "Shipment", "Units", "Full", "Partial", "TotalPal", "LPNLbls", "Ship To"));
+        math.append("----------------------------------------------------------------------------------------------------------------------\n");
+        int totalFull = 0;
+        int totalPartial = 0;
+        int totalLabels = 0;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                int full = sumFullPallets(shipmentJob.getSkuMathRows());
+                int partial = sumPartialPallets(shipmentJob.getSkuMathRows());
+                int estimated = sumEstimatedPallets(shipmentJob.getSkuMathRows());
+                int lpnLabels = shipmentJob.getLpnsForLabels().size();
+                int units = sumUnits(shipmentJob.getSkuMathRows());
+                totalFull += full;
+                totalPartial += partial;
+                totalLabels += lpnLabels;
+                math.append(String.format("%-8d %-16s %-10d %-10d %-10d %-10d %-10d %s%n",
+                        stop.getStopPosition(),
+                        value(shipmentJob.getShipmentId()),
+                        units,
+                        full,
+                        partial,
+                        estimated,
+                        lpnLabels,
+                        value(shipmentJob.getShipment().getShipToName())));
+            }
+        }
+        math.append("----------------------------------------------------------------------------------------------------------------------\n");
+        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed: %d%n", totalFull, totalPartial, totalLabels));
+        mathArea.setText(math.toString());
+        shipmentPreviewPanel.revalidate();
+        shipmentPreviewPanel.repaint();
+    }
+
+    private JComponent buildStopPreviewSection(AdvancedPrintWorkflowService.PreparedStopGroup stop) {
+        JPanel container = new JPanel(new BorderLayout(0, 4));
+        container.setBorder(BorderFactory.createEmptyBorder(6, 0, 8, 0));
+
+        String label = "Stop " + stop.getStopPosition()
+                + (stop.getStopSequence() == null ? "" : " (Seq " + stop.getStopSequence() + ")");
+        JToggleButton toggle = new JToggleButton(label + "  [expanded]", true);
+        toggle.setFocusPainted(false);
+        toggle.setHorizontalAlignment(SwingConstants.LEFT);
+        container.add(toggle, BorderLayout.NORTH);
+
+        JTextArea details = new JTextArea();
+        details.setEditable(false);
+        details.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        details.setRows(Math.max(4, stop.getShipmentJobs().size() * 2));
+        StringBuilder section = new StringBuilder();
+        int stopFull = 0;
+        int stopPartial = 0;
+        int stopLabels = 0;
+        for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+            int full = sumFullPallets(shipmentJob.getSkuMathRows());
+            int partial = sumPartialPallets(shipmentJob.getSkuMathRows());
+            int labels = shipmentJob.getLpnsForLabels().size();
+            stopFull += full;
+            stopPartial += partial;
+            stopLabels += labels;
+            section.append("Shipment: ").append(value(shipmentJob.getShipmentId()))
+                    .append(" | Labels: ").append(labels)
+                    .append(" | Full: ").append(full)
+                    .append(" | Partial: ").append(partial)
+                    .append('\n')
+                    .append("  Ship To: ").append(value(shipmentJob.getShipment().getShipToName()))
+                    .append('\n');
+        }
+        section.append("Stop Totals -> Full: ").append(stopFull)
+                .append(" | Partial: ").append(stopPartial)
+                .append(" | Labels Needed: ").append(stopLabels)
+                .append('\n');
+        details.setText(section.toString());
+
+        JScrollPane detailsScroll = new JScrollPane(details);
+        detailsScroll.setBorder(BorderFactory.createEmptyBorder());
+        container.add(detailsScroll, BorderLayout.CENTER);
+
+        toggle.addActionListener(e -> {
+            boolean expanded = toggle.isSelected();
+            toggle.setText(label + (expanded ? "  [expanded]" : "  [collapsed]"));
+            detailsScroll.setVisible(expanded);
+            container.revalidate();
+            container.repaint();
+        });
+        return container;
     }
 
     private void confirmAndPrint() {
-        LabelWorkflowService.PreparedJob job = preparedJob;
-        if (job == null) {
+        if (isCarrierMoveMode() && preparedCarrierJob == null) {
+            showError("Run Preview first.");
+            return;
+        }
+        if (!isCarrierMoveMode() && preparedJob == null) {
             showError("Run Preview first.");
             return;
         }
@@ -317,9 +474,17 @@ public final class LabelGuiFrame extends JFrame {
         }
 
         if (!printToFile) {
+            int plannedLabels = isCarrierMoveMode()
+                    ? countCarrierMoveLabels(preparedCarrierJob)
+                    : preparedJob.getLpnsForLabels().size();
+            int plannedInfoTags = isCarrierMoveMode()
+                    ? preparedCarrierJob.getTotalStops() + 1
+                    : 1;
             int choice = JOptionPane.showConfirmDialog(
                     this,
-                    "Print " + job.getLpnsForLabels().size() + " labels to " + selected + "?",
+                    isCarrierMoveMode()
+                            ? "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?"
+                            : "Print " + plannedLabels + " labels to " + selected + "?",
                     "Confirm Print",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE
@@ -334,13 +499,18 @@ public final class LabelGuiFrame extends JFrame {
         previewButton.setEnabled(false);
         clearButton.setEnabled(false);
 
-        SwingWorker<LabelWorkflowService.PrintResult, Void> worker = new SwingWorker<>() {
+        SwingWorker<AdvancedPrintWorkflowService.PrintResult, Void> worker = new SwingWorker<>() {
             @Override
-            protected LabelWorkflowService.PrintResult doInBackground() throws Exception {
-                Path outDir = defaultPrintToFileOutputDir().resolve("gui-" + job.getShipmentId() + "-" +
-                        OUTPUT_TS.format(LocalDateTime.now()));
+            protected AdvancedPrintWorkflowService.PrintResult doInBackground() throws Exception {
                 String printerId = printToFile ? null : (selected == null ? null : selected.getId());
-                return service.print(job, printerId, outDir, printToFile);
+                if (isCarrierMoveMode()) {
+                    Path outDir = defaultPrintToFileOutputDir().resolve("gui-cmid-" + preparedCarrierJob.getCarrierMoveId() + "-" +
+                            OUTPUT_TS.format(LocalDateTime.now()));
+                    return advancedService.printCarrierMoveJob(preparedCarrierJob, printerId, outDir, printToFile);
+                }
+                Path outDir = defaultPrintToFileOutputDir().resolve("gui-" + preparedJob.getShipmentId() + "-" +
+                        OUTPUT_TS.format(LocalDateTime.now()));
+                return advancedService.printShipmentJob(preparedJob, printerId, outDir, printToFile);
             }
 
             @Override
@@ -349,21 +519,25 @@ public final class LabelGuiFrame extends JFrame {
                 printButton.setEnabled(true);
                 clearButton.setEnabled(true);
                 try {
-                    LabelWorkflowService.PrintResult result = get();
+                    AdvancedPrintWorkflowService.PrintResult result = get();
                     if (result.isPrintToFile()) {
-                        setReady("Saved " + result.getLabelsPrinted() + " labels to " + result.getOutputDirectory());
+                        setReady("Saved " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
+                                " info tags to " + result.getOutputDirectory());
                         JOptionPane.showMessageDialog(
                                 LabelGuiFrame.this,
-                                "Saved " + result.getLabelsPrinted() + " labels.\nOutput: " + result.getOutputDirectory(),
+                                "Saved " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
+                                        " info tags.\nOutput: " + result.getOutputDirectory(),
                                 "Print Complete",
                                 JOptionPane.INFORMATION_MESSAGE
                         );
                     } else {
-                        setReady("Printed " + result.getLabelsPrinted() + " labels to " + result.getPrinterId() +
+                        setReady("Printed " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
+                                " info tags to " + result.getPrinterId() +
                                 " (" + result.getPrinterEndpoint() + ")");
                         JOptionPane.showMessageDialog(
                                 LabelGuiFrame.this,
-                                "Printed " + result.getLabelsPrinted() + " labels.\nOutput: " + result.getOutputDirectory(),
+                                "Printed " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
+                                        " info tags.\nOutput: " + result.getOutputDirectory(),
                                 "Print Complete",
                                 JOptionPane.INFORMATION_MESSAGE
                         );
@@ -404,11 +578,286 @@ public final class LabelGuiFrame extends JFrame {
     private void clearForm() {
         shipmentField.setText("");
         shipmentArea.setText("");
+        shipmentPreviewPanel.removeAll();
+        shipmentPreviewPanel.add(shipmentArea);
+        shipmentPreviewPanel.revalidate();
+        shipmentPreviewPanel.repaint();
         mathArea.setText("");
         preparedJob = null;
+        preparedCarrierJob = null;
         printButton.setEnabled(false);
         shipmentField.requestFocusInWindow();
-        setReady("Cleared. Enter the next shipment ID.");
+        setReady("Cleared. Enter the next " + (isCarrierMoveMode() ? "Carrier Move ID." : "Shipment ID."));
+    }
+
+    private void updateInputModeUi() {
+        inputLabel.setText(isCarrierMoveMode() ? "Carrier Move ID:" : "Shipment ID:");
+        preparedJob = null;
+        preparedCarrierJob = null;
+        shipmentArea.setText("");
+        shipmentPreviewPanel.removeAll();
+        shipmentPreviewPanel.add(shipmentArea);
+        shipmentPreviewPanel.revalidate();
+        shipmentPreviewPanel.repaint();
+        mathArea.setText("");
+        printButton.setEnabled(false);
+    }
+
+    private boolean isCarrierMoveMode() {
+        return carrierMoveModeButton.isSelected();
+    }
+
+    private int countCarrierMoveLabels(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        int total = 0;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                total += shipmentJob.getLpnsForLabels().size();
+            }
+        }
+        return total;
+    }
+
+    private int sumUnits(List<LabelWorkflowService.SkuMathRow> rows) {
+        int total = 0;
+        for (LabelWorkflowService.SkuMathRow row : rows) {
+            total += row.getUnits();
+        }
+        return total;
+    }
+
+    private int sumFullPallets(List<LabelWorkflowService.SkuMathRow> rows) {
+        int total = 0;
+        for (LabelWorkflowService.SkuMathRow row : rows) {
+            total += row.getFullPallets();
+        }
+        return total;
+    }
+
+    private int sumPartialPallets(List<LabelWorkflowService.SkuMathRow> rows) {
+        int total = 0;
+        for (LabelWorkflowService.SkuMathRow row : rows) {
+            total += row.getPartialPallets();
+        }
+        return total;
+    }
+
+    private int sumEstimatedPallets(List<LabelWorkflowService.SkuMathRow> rows) {
+        int total = 0;
+        for (LabelWorkflowService.SkuMathRow row : rows) {
+            total += row.getEstimatedPallets();
+        }
+        return total;
+    }
+
+    private void openQueueDialog() {
+        JDialog dialog = new JDialog(this, "Queue Print", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setLayout(new BorderLayout(8, 8));
+
+        JTextArea inputArea = new JTextArea(12, 72);
+        inputArea.setLineWrap(false);
+        installTerminalLikeMouseClipboardBehavior(inputArea);
+
+        JComboBox<String> defaultType = new JComboBox<>(new String[]{"Carrier Move ID", "Shipment ID"});
+        JLabel hint = new JLabel("Use prefixes for mixed queue: C:<cmid> or S:<shipment>. One item per line.");
+
+        JTextArea previewArea = new JTextArea(14, 72);
+        previewArea.setEditable(false);
+        previewArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
+        JPanel top = new JPanel(new BorderLayout(4, 4));
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        controls.add(new JLabel("Default Type:"));
+        controls.add(defaultType);
+        top.add(controls, BorderLayout.NORTH);
+        top.add(new JScrollPane(inputArea), BorderLayout.CENTER);
+        top.add(hint, BorderLayout.SOUTH);
+
+        JButton previewBtn = new JButton("Preview Queue");
+        JButton printBtn = new JButton("Print Queue");
+        JButton closeBtn = new JButton("Close");
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttons.add(previewBtn);
+        buttons.add(printBtn);
+        buttons.add(closeBtn);
+
+        final AdvancedPrintWorkflowService.PreparedQueueJob[] prepared = new AdvancedPrintWorkflowService.PreparedQueueJob[1];
+
+        previewBtn.addActionListener(e -> {
+            try {
+                List<AdvancedPrintWorkflowService.QueueRequestItem> requests =
+                        parseQueueInput(inputArea.getText(), defaultType.getSelectedIndex() == 0
+                                ? AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE
+                                : AdvancedPrintWorkflowService.QueueItemType.SHIPMENT);
+                prepared[0] = advancedService.prepareQueue(requests);
+                StringBuilder preview = new StringBuilder();
+                int totalLabels = 0;
+                int totalInfoTags = 0;
+                preview.append("Queue Items: ").append(prepared[0].getItems().size()).append('\n');
+                for (AdvancedPrintWorkflowService.PreparedQueueItem item : prepared[0].getItems()) {
+                    if (item.getType() == AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE) {
+                        int labels = countCarrierMoveLabels(item.getCarrierMoveJob());
+                        int info = item.getCarrierMoveJob().getTotalStops() + 1;
+                        totalLabels += labels;
+                        totalInfoTags += info;
+                        preview.append(" - C:").append(item.getSourceId())
+                                .append(" | stops=").append(item.getCarrierMoveJob().getTotalStops())
+                                .append(" | labels=").append(labels)
+                                .append(" | infoTags=").append(info)
+                                .append('\n');
+                    } else {
+                        int labels = item.getShipmentJob().getLpnsForLabels().size();
+                        totalLabels += labels;
+                        totalInfoTags += 1;
+                        preview.append(" - S:").append(item.getSourceId())
+                                .append(" | labels=").append(labels)
+                                .append(" | infoTags=1")
+                                .append('\n');
+                    }
+                }
+                preview.append('\n')
+                        .append("Total labels: ").append(totalLabels).append('\n')
+                        .append("Total info tags: ").append(totalInfoTags).append('\n');
+                previewArea.setText(preview.toString());
+            } catch (Exception ex) {
+                showError(rootMessage(ex));
+            }
+        });
+
+        printBtn.addActionListener(e -> {
+            if (prepared[0] == null) {
+                showError("Preview queue first.");
+                return;
+            }
+            LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
+            boolean printToFile = isPrintToFileSelected(selected);
+            String printerId = printToFile ? null : (selected == null ? null : selected.getId());
+            try {
+                AdvancedPrintWorkflowService.QueuePrintResult result = advancedService.printQueue(prepared[0], printerId, printToFile);
+                JOptionPane.showMessageDialog(dialog,
+                        "Queue complete.\nLabels: " + result.getTotalLabelsPrinted() +
+                                "\nInfo Tags: " + result.getTotalInfoTagsPrinted(),
+                        "Queue Complete",
+                        JOptionPane.INFORMATION_MESSAGE);
+                dialog.dispose();
+            } catch (Exception ex) {
+                showError("Queue print failed: " + rootMessage(ex));
+            }
+        });
+
+        closeBtn.addActionListener(e -> dialog.dispose());
+
+        dialog.add(top, BorderLayout.NORTH);
+        dialog.add(new JScrollPane(previewArea), BorderLayout.CENTER);
+        dialog.add(buttons, BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void openResumeDialog() {
+        try {
+            List<AdvancedPrintWorkflowService.ResumeCandidate> candidates = advancedService.listIncompleteJobs();
+            if (candidates.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No incomplete jobs found.", "Resume Job", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            String[] options = new String[candidates.size()];
+            for (int i = 0; i < candidates.size(); i++) {
+                AdvancedPrintWorkflowService.ResumeCandidate c = candidates.get(i);
+                options[i] = c.mode() + " " + c.sourceId() + " | progress " + c.nextTaskIndex() + "/" + c.totalTasks();
+            }
+            String selected = (String) JOptionPane.showInputDialog(
+                    this,
+                    "Select a job to resume (safe mode reprints last successful label/tag):",
+                    "Resume Incomplete Job",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[0]
+            );
+            if (selected == null) {
+                return;
+            }
+            int index = -1;
+            for (int i = 0; i < options.length; i++) {
+                if (Objects.equals(options[i], selected)) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index < 0) {
+                return;
+            }
+            AdvancedPrintWorkflowService.PrintResult result = advancedService.resumeJob(candidates.get(index).checkpointId());
+            JOptionPane.showMessageDialog(this,
+                    "Resume complete.\nLabels: " + result.getLabelsPrinted() +
+                            "\nInfo Tags: " + result.getInfoTagsPrinted() +
+                            "\nOutput: " + result.getOutputDirectory(),
+                    "Resume Complete",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            showError("Resume failed: " + rootMessage(ex));
+        }
+    }
+
+    private void autoResumeIfFound() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                List<AdvancedPrintWorkflowService.ResumeCandidate> candidates = advancedService.listIncompleteJobs();
+                if (candidates.isEmpty()) {
+                    return;
+                }
+                AdvancedPrintWorkflowService.ResumeCandidate latest = candidates.get(0);
+                int choice = JOptionPane.showConfirmDialog(
+                        this,
+                        "Found incomplete job (" + latest.mode() + " " + latest.sourceId() + ", " +
+                                latest.nextTaskIndex() + "/" + latest.totalTasks() + ").\nResume now?",
+                        "Incomplete Job Found",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE
+                );
+                if (choice == JOptionPane.YES_OPTION) {
+                    AdvancedPrintWorkflowService.PrintResult result = advancedService.resumeJob(latest.checkpointId());
+                    setReady("Resumed job. Printed " + result.getLabelsPrinted() + " labels and " +
+                            result.getInfoTagsPrinted() + " info tags.");
+                }
+            } catch (Exception ignored) {
+                // Startup should continue even if resume scan fails.
+            }
+        });
+    }
+
+    private List<AdvancedPrintWorkflowService.QueueRequestItem> parseQueueInput(String text,
+                                                                                 AdvancedPrintWorkflowService.QueueItemType defaultType) {
+        List<AdvancedPrintWorkflowService.QueueRequestItem> requests = new ArrayList<>();
+        String[] lines = (text == null ? "" : text).split("\\r?\\n");
+        for (String raw : lines) {
+            String line = raw == null ? "" : raw.trim();
+            if (line.isEmpty()) {
+                continue;
+            }
+            AdvancedPrintWorkflowService.QueueItemType type = defaultType;
+            String id = line;
+            if (line.length() > 2 && line.charAt(1) == ':') {
+                char prefix = Character.toUpperCase(line.charAt(0));
+                if (prefix == 'C') {
+                    type = AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE;
+                    id = line.substring(2).trim();
+                } else if (prefix == 'S') {
+                    type = AdvancedPrintWorkflowService.QueueItemType.SHIPMENT;
+                    id = line.substring(2).trim();
+                }
+            }
+            if (!id.isBlank()) {
+                requests.add(new AdvancedPrintWorkflowService.QueueRequestItem(type, id));
+            }
+        }
+        if (requests.isEmpty()) {
+            throw new IllegalArgumentException("Queue input is empty.");
+        }
+        return requests;
     }
 
     private void applyTopRowSizing() {

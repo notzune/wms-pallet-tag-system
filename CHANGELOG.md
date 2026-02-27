@@ -24,6 +24,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None.
 
+## [1.3.0] - 2026-02-26
+### Added
+- Carrier Move ID workflow (default GUI mode) with stop-ordered multi-shipment preview and printing.
+- Per-stop and final 4x6 INFO TAG generation for carrier move jobs.
+- Bulk queue printing for mixed Shipment (`S:`) and Carrier Move (`C:`) inputs.
+- Print checkpoint persistence and resume support for incomplete jobs.
+- Phase-0 carrier move stop mapping specification under `analysis/docs`.
+
+### Changed
+- GUI input now supports toggling between Carrier Move ID and Shipment ID workflows.
+- Shared stop-mapping query contract added to DB repository (`findCarrierMoveStops`).
+- Package-level documentation refreshed across modules (`package-info.java`).
+- Project/version metadata updated to `1.3.0` across Maven modules, CLI version, docs, and setup scripts.
+
+### Improved
+- Reduced repeated asset and lookup overhead in preview preparation by caching template/SKU/site metadata.
+- Reduced redundant DB session churn in carrier move preparation by reusing one repository context for mapped shipment loads.
+
+### Fixed
+- None.
+
 ## [1.2.3] - 2026-02-26
 ### Added
 - Terminal-style right-click clipboard behavior in GUI text fields: right-click copies selected text, or pastes clipboard at cursor when no text is selected.

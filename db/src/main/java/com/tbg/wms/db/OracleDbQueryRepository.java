@@ -14,6 +14,7 @@ import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.NormalizationService;
 import com.tbg.wms.core.model.Shipment;
 import com.tbg.wms.core.model.ShipmentSkuFootprint;
+import com.tbg.wms.core.model.CarrierMoveStopRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -290,6 +291,64 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                     "Failed to retrieve footprint data: " + e.getMessage(),
                     e,
                     "Verify SELECT access to WMSP.PRTFTP and WMSP.PRTFTP_DTL for RPTADM user"
+            );
+        }
+    }
+
+    @Override
+    public List<CarrierMoveStopRef> findCarrierMoveStops(String carrierMoveId) {
+        Objects.requireNonNull(carrierMoveId, "carrierMoveId cannot be null");
+        if (carrierMoveId.trim().isEmpty()) {
+            throw new IllegalArgumentException("carrierMoveId cannot be empty");
+        }
+
+        String normalizedCarrierMoveId = NormalizationService.normalizeString(carrierMoveId);
+        List<CarrierMoveStopRef> rows = new ArrayList<>();
+        String sql = "SELECT " +
+                "  st.CAR_MOVE_ID, st.STOP_ID, st.STOP_SEQ, st.TMS_STOP_SEQ, " +
+                "  s.SHIP_ID, s.SHPSTS, s.ADDDTE " +
+                "FROM WMSP.STOP st " +
+                "INNER JOIN WMSP.SHIPMENT s ON s.STOP_ID = st.STOP_ID " +
+                "WHERE st.CAR_MOVE_ID = ? " +
+                "ORDER BY st.STOP_SEQ ASC, s.SHIP_ID ASC";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, normalizedCarrierMoveId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Integer stopSeq = rs.getInt("STOP_SEQ");
+                    if (rs.wasNull()) {
+                        stopSeq = null;
+                    }
+
+                    Integer tmsStopSeq = rs.getInt("TMS_STOP_SEQ");
+                    if (rs.wasNull()) {
+                        tmsStopSeq = null;
+                    }
+
+                    LocalDateTime created = rs.getTimestamp("ADDDTE") == null
+                            ? null
+                            : rs.getTimestamp("ADDDTE").toLocalDateTime();
+
+                    rows.add(new CarrierMoveStopRef(
+                            NormalizationService.normalizeString(rs.getString("CAR_MOVE_ID")),
+                            NormalizationService.normalizeString(rs.getString("STOP_ID")),
+                            stopSeq,
+                            tmsStopSeq,
+                            NormalizationService.normalizeString(rs.getString("SHIP_ID")),
+                            NormalizationService.normalizeToUppercase(rs.getString("SHPSTS")),
+                            created
+                    ));
+                }
+            }
+            return rows;
+        } catch (SQLException e) {
+            log.error("Database error resolving carrier move {}: {}", normalizedCarrierMoveId, e.getSQLState());
+            throw new WmsDbConnectivityException(
+                    "Failed to resolve carrier move shipments: " + e.getMessage(),
+                    e,
+                    "Verify SELECT access to WMSP.STOP and WMSP.SHIPMENT for RPTADM user"
             );
         }
     }
