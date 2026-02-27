@@ -42,6 +42,7 @@ import java.util.prefs.Preferences;
  * Swing-based GUI for shipment preview and label printing.
  */
 public final class LabelGuiFrame extends JFrame {
+    private static final long serialVersionUID = 1L;
 
     private final JLabel inputLabel = new JLabel("Carrier Move ID:");
     private final JTextField shipmentField = new JTextField(24);
@@ -67,16 +68,20 @@ public final class LabelGuiFrame extends JFrame {
     private static final String RIGHT_CLICK_COOLDOWN_ENV = "RIGHT_CLICK_COOLDOWN_MS";
     private static final String LEGACY_RIGHT_CLICK_COOLDOWN_ENV = "WMS_TAGS_RIGHT_CLICK_COOLDOWN_MS";
     private static final long DEFAULT_RIGHT_CLICK_COOLDOWN_MS = 250L;
-    private final Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
+    private static final int MAX_QUEUE_ITEMS = 500;
+    private static final int MAX_PREVIEW_STOPS = 250;
+    private static final int MAX_PREVIEW_SHIPMENTS_PER_STOP = 250;
+    private static final int MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT = 1000;
+    private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
     private final long rightClickCooldownMs = resolveRightClickCooldownMs();
-    private final Map<JTextComponent, Long> lastRightClickClipboardActionMs = new WeakHashMap<>();
+    private final transient Map<JTextComponent, Long> lastRightClickClipboardActionMs = new WeakHashMap<>();
 
-    private final AppConfig config = new AppConfig();
-    private final LabelWorkflowService service = new LabelWorkflowService(config);
-    private final AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
-    private List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
-    private LabelWorkflowService.PreparedJob preparedJob;
-    private AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
+    private final transient AppConfig config = new AppConfig();
+    private final transient LabelWorkflowService service = new LabelWorkflowService(config);
+    private final transient AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
+    private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
+    private transient LabelWorkflowService.PreparedJob preparedJob;
+    private transient AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
 
     public LabelGuiFrame() {
         super(buildWindowTitle());
@@ -312,6 +317,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void renderCarrierMovePreview(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        Objects.requireNonNull(job, "job cannot be null");
         shipmentPreviewPanel.removeAll();
         StringBuilder summary = new StringBuilder();
         summary.append("Carrier Move ID: ").append(job.getCarrierMoveId()).append('\n');
@@ -321,8 +327,18 @@ public final class LabelGuiFrame extends JFrame {
         shipmentArea.setText(summary.toString());
         shipmentPreviewPanel.add(shipmentArea);
 
+        int stopPreviewCount = 0;
         for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            if (stopPreviewCount >= MAX_PREVIEW_STOPS) {
+                break;
+            }
             shipmentPreviewPanel.add(buildStopPreviewSection(stop));
+            stopPreviewCount++;
+        }
+        if (job.getStopGroups().size() > MAX_PREVIEW_STOPS) {
+            summary.append("Preview Notice: Showing first ").append(MAX_PREVIEW_STOPS)
+                    .append(" stops of ").append(job.getStopGroups().size()).append(".\n");
+            shipmentArea.setText(summary.toString());
         }
 
         StringBuilder math = new StringBuilder();
@@ -334,8 +350,16 @@ public final class LabelGuiFrame extends JFrame {
         int totalPartial = 0;
         int totalLabelsNeeded = 0;
         int totalActualLabels = 0;
+        int stopCount = 0;
         for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            if (stopCount >= MAX_PREVIEW_STOPS) {
+                break;
+            }
+            int shipmentCount = 0;
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                if (shipmentCount >= MAX_PREVIEW_SHIPMENTS_PER_STOP) {
+                    break;
+                }
                 int full = shipmentJob.getPlanResult().getFullPallets();
                 int partial = shipmentJob.getPlanResult().getPartialPallets();
                 int estimated = shipmentJob.getPlanResult().getEstimatedPallets();
@@ -354,7 +378,9 @@ public final class LabelGuiFrame extends JFrame {
                         estimated,
                         lpnLabels,
                         value(shipmentJob.getShipment().getShipToName())));
+                shipmentCount++;
             }
+            stopCount++;
         }
         math.append("----------------------------------------------------------------------------------------------------------------------\n");
         math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual Labels: %d%n",
@@ -365,6 +391,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private JComponent buildStopPreviewSection(AdvancedPrintWorkflowService.PreparedStopGroup stop) {
+        Objects.requireNonNull(stop, "stop cannot be null");
         JPanel container = new JPanel(new BorderLayout(0, 4));
         container.setBorder(BorderFactory.createEmptyBorder(6, 0, 8, 0));
 
@@ -384,7 +411,11 @@ public final class LabelGuiFrame extends JFrame {
         int stopPartial = 0;
         int stopLabelsNeeded = 0;
         int stopActualLabels = 0;
+        int shipmentCount = 0;
         for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+            if (shipmentCount >= MAX_PREVIEW_SHIPMENTS_PER_STOP) {
+                break;
+            }
             int full = shipmentJob.getPlanResult().getFullPallets();
             int partial = shipmentJob.getPlanResult().getPartialPallets();
             int labelsNeeded = shipmentJob.getPlanResult().getEstimatedPallets();
@@ -408,6 +439,11 @@ public final class LabelGuiFrame extends JFrame {
                     .append('\n')
                     .append("====================================================================================================\n")
                     .append('\n');
+            shipmentCount++;
+        }
+        if (stop.getShipmentJobs().size() > MAX_PREVIEW_SHIPMENTS_PER_STOP) {
+            section.append("Preview Notice: Showing first ").append(MAX_PREVIEW_SHIPMENTS_PER_STOP)
+                    .append(" shipments for this stop.\n");
         }
         section.append("Stop Totals -> Full: ").append(stopFull)
                 .append(" | Partial: ").append(stopPartial)
@@ -431,6 +467,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private String buildShipmentSummaryText(LabelWorkflowService.PreparedJob job, int infoTagsToGenerate) {
+        Objects.requireNonNull(job, "job cannot be null");
         StringBuilder summary = new StringBuilder();
         summary.append("Shipment: ").append(job.getShipment().getShipmentId()).append('\n');
         summary.append("Order: ").append(value(job.getShipment().getOrderId())).append('\n');
@@ -463,12 +500,17 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private String buildShipmentMathText(LabelWorkflowService.PreparedJob job) {
+        Objects.requireNonNull(job, "job cannot be null");
         StringBuilder math = new StringBuilder();
         math.append("Pallet Math (Full vs Partial)\n");
         math.append(String.format("%-20s %-10s %-14s %-8s %-10s %-10s %s%n",
                 "SKU", "Units", "Units/Pallet", "Full", "Partial", "TotalPal", "Description"));
         math.append("----------------------------------------------------------------------------------------------------\n");
+        int skuRows = 0;
         for (LabelWorkflowService.SkuMathRow row : job.getSkuMathRows()) {
+            if (skuRows >= MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT) {
+                break;
+            }
             math.append(String.format("%-20s %-10d %-14s %-8d %-10d %-10d %s%n",
                     value(row.getSku()),
                     row.getUnits(),
@@ -477,6 +519,12 @@ public final class LabelGuiFrame extends JFrame {
                     row.getPartialPallets(),
                     row.getEstimatedPallets(),
                     value(row.getDescription())));
+            skuRows++;
+        }
+        if (job.getSkuMathRows().size() > MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT) {
+            math.append("Preview Notice: Showing first ")
+                    .append(MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT)
+                    .append(" SKU rows.\n");
         }
         int totalFull = job.getPlanResult().getFullPallets();
         int totalPartial = job.getPlanResult().getPartialPallets();
@@ -859,6 +907,9 @@ public final class LabelGuiFrame extends JFrame {
                 }
             }
             if (!id.isBlank()) {
+                if (requests.size() >= MAX_QUEUE_ITEMS) {
+                    throw new IllegalArgumentException("Queue input exceeds max size of " + MAX_QUEUE_ITEMS + " items.");
+                }
                 requests.add(new AdvancedPrintWorkflowService.QueueRequestItem(type, id));
             }
         }
