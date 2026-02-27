@@ -304,58 +304,9 @@ public final class LabelGuiFrame extends JFrame {
 
     private void renderPreview(LabelWorkflowService.PreparedJob job) {
         shipmentPreviewPanel.removeAll();
-        StringBuilder summary = new StringBuilder();
-        summary.append("Shipment: ").append(job.getShipment().getShipmentId()).append('\n');
-        summary.append("Order: ").append(value(job.getShipment().getOrderId())).append('\n');
-        summary.append("Ship To: ").append(value(job.getShipment().getShipToName())).append('\n');
-        summary.append("Address: ").append(value(job.getShipment().getShipToAddress1())).append(", ")
-                .append(value(job.getShipment().getShipToCity())).append(", ")
-                .append(value(job.getShipment().getShipToState())).append(" ")
-                .append(value(job.getShipment().getShipToZip())).append('\n');
-        summary.append("PO: ").append(value(job.getShipment().getCustomerPo())).append('\n');
-        summary.append("Location No: ").append(value(job.getShipment().getLocationNumber())).append('\n');
-        summary.append("Carrier Move: ").append(value(job.getShipment().getCarrierCode())).append(" ")
-                .append(value(job.getShipment().getCarrierMoveId())).append('\n');
-        summary.append("Staging Location: ").append(value(job.getStagingLocation())).append('\n');
-        summary.append('\n');
-        summary.append("Label Plan:\n");
-        summary.append(" - Actual LPNs: ").append(job.getShipment().getLpnCount()).append('\n');
-        summary.append(" - Labels To Generate: ").append(job.getLpnsForLabels().size()).append('\n');
-        summary.append(" - Info Tags To Generate: ").append(1).append('\n');
-        summary.append(" - Virtual Labels Used: ").append(job.isUsingVirtualLabels() ? "YES" : "NO").append('\n');
-        summary.append(" - Total Units: ").append(job.getPlanResult().getTotalUnits()).append('\n');
-        summary.append(" - Estimated Pallets (Footprint): ").append(job.getPlanResult().getEstimatedPallets()).append('\n');
-        summary.append(" - Full Pallets (Footprint): ").append(job.getPlanResult().getFullPallets()).append('\n');
-        summary.append(" - Partial Pallets (Footprint): ").append(job.getPlanResult().getPartialPallets()).append('\n');
-        summary.append(" - Missing Footprint SKUs: ")
-                .append(job.getPlanResult().getSkusMissingFootprint().isEmpty()
-                        ? "None"
-                        : String.join(", ", job.getPlanResult().getSkusMissingFootprint()))
-                .append('\n');
-        shipmentArea.setText(summary.toString());
+        shipmentArea.setText(buildShipmentSummaryText(job, 1));
         shipmentPreviewPanel.add(shipmentArea);
-
-        StringBuilder math = new StringBuilder();
-        math.append("Pallet Math (Full vs Partial)\n");
-        math.append(String.format("%-20s %-10s %-14s %-8s %-10s %-10s %s%n",
-                "SKU", "Units", "Units/Pallet", "Full", "Partial", "TotalPal", "Description"));
-        math.append("----------------------------------------------------------------------------------------------------\n");
-        for (LabelWorkflowService.SkuMathRow row : job.getSkuMathRows()) {
-            math.append(String.format("%-20s %-10d %-14s %-8d %-10d %-10d %s%n",
-                    value(row.getSku()),
-                    row.getUnits(),
-                    row.getUnitsPerPallet() == null ? "-" : row.getUnitsPerPallet().toString(),
-                    row.getFullPallets(),
-                    row.getPartialPallets(),
-                    row.getEstimatedPallets(),
-                    value(row.getDescription())));
-        }
-        int totalFull = sumFullPallets(job.getSkuMathRows());
-        int totalPartial = sumPartialPallets(job.getSkuMathRows());
-        int totalLabels = sumEstimatedPallets(job.getSkuMathRows());
-        math.append("----------------------------------------------------------------------------------------------------\n");
-        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed: %d%n", totalFull, totalPartial, totalLabels));
-        mathArea.setText(math.toString());
+        mathArea.setText(buildShipmentMathText(job));
         shipmentPreviewPanel.revalidate();
         shipmentPreviewPanel.repaint();
     }
@@ -381,17 +332,19 @@ public final class LabelGuiFrame extends JFrame {
         math.append("----------------------------------------------------------------------------------------------------------------------\n");
         int totalFull = 0;
         int totalPartial = 0;
-        int totalLabels = 0;
+        int totalLabelsNeeded = 0;
+        int totalActualLabels = 0;
         for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                int full = sumFullPallets(shipmentJob.getSkuMathRows());
-                int partial = sumPartialPallets(shipmentJob.getSkuMathRows());
-                int estimated = sumEstimatedPallets(shipmentJob.getSkuMathRows());
+                int full = shipmentJob.getPlanResult().getFullPallets();
+                int partial = shipmentJob.getPlanResult().getPartialPallets();
+                int estimated = shipmentJob.getPlanResult().getEstimatedPallets();
                 int lpnLabels = shipmentJob.getLpnsForLabels().size();
                 int units = sumUnits(shipmentJob.getSkuMathRows());
                 totalFull += full;
                 totalPartial += partial;
-                totalLabels += lpnLabels;
+                totalLabelsNeeded += estimated;
+                totalActualLabels += lpnLabels;
                 math.append(String.format("%-8d %-16s %-10d %-10d %-10d %-10d %-10d %s%n",
                         stop.getStopPosition(),
                         value(shipmentJob.getShipmentId()),
@@ -404,7 +357,8 @@ public final class LabelGuiFrame extends JFrame {
             }
         }
         math.append("----------------------------------------------------------------------------------------------------------------------\n");
-        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed: %d%n", totalFull, totalPartial, totalLabels));
+        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual LPN Labels: %d%n",
+                totalFull, totalPartial, totalLabelsNeeded, totalActualLabels));
         mathArea.setText(math.toString());
         shipmentPreviewPanel.revalidate();
         shipmentPreviewPanel.repaint();
@@ -424,29 +378,41 @@ public final class LabelGuiFrame extends JFrame {
         JTextArea details = new JTextArea();
         details.setEditable(false);
         details.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        details.setRows(Math.max(4, stop.getShipmentJobs().size() * 2));
+        details.setRows(Math.max(16, stop.getShipmentJobs().size() * 16));
         StringBuilder section = new StringBuilder();
         int stopFull = 0;
         int stopPartial = 0;
-        int stopLabels = 0;
+        int stopLabelsNeeded = 0;
+        int stopActualLabels = 0;
         for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-            int full = sumFullPallets(shipmentJob.getSkuMathRows());
-            int partial = sumPartialPallets(shipmentJob.getSkuMathRows());
-            int labels = shipmentJob.getLpnsForLabels().size();
+            int full = shipmentJob.getPlanResult().getFullPallets();
+            int partial = shipmentJob.getPlanResult().getPartialPallets();
+            int labelsNeeded = shipmentJob.getPlanResult().getEstimatedPallets();
+            int actualLabels = shipmentJob.getLpnsForLabels().size();
             stopFull += full;
             stopPartial += partial;
-            stopLabels += labels;
-            section.append("Shipment: ").append(value(shipmentJob.getShipmentId()))
-                    .append(" | Labels: ").append(labels)
+            stopLabelsNeeded += labelsNeeded;
+            stopActualLabels += actualLabels;
+            section.append("Shipment Summary: ").append(value(shipmentJob.getShipmentId()))
+                    .append(" | Labels Needed(Footprint): ").append(labelsNeeded)
+                    .append(" | Actual LPN Labels: ").append(actualLabels)
                     .append(" | Full: ").append(full)
                     .append(" | Partial: ").append(partial)
                     .append('\n')
                     .append("  Ship To: ").append(value(shipmentJob.getShipment().getShipToName()))
+                    .append('\n')
+                    .append("----------------------------------------------------------------------------------------------------\n")
+                    .append(buildShipmentSummaryText(shipmentJob, 0))
+                    .append('\n')
+                    .append(buildShipmentMathText(shipmentJob))
+                    .append('\n')
+                    .append("====================================================================================================\n")
                     .append('\n');
         }
         section.append("Stop Totals -> Full: ").append(stopFull)
                 .append(" | Partial: ").append(stopPartial)
-                .append(" | Labels Needed: ").append(stopLabels)
+                .append(" | Labels Needed(Footprint): ").append(stopLabelsNeeded)
+                .append(" | Actual LPN Labels: ").append(stopActualLabels)
                 .append('\n');
         details.setText(section.toString());
 
@@ -462,6 +428,63 @@ public final class LabelGuiFrame extends JFrame {
             container.repaint();
         });
         return container;
+    }
+
+    private String buildShipmentSummaryText(LabelWorkflowService.PreparedJob job, int infoTagsToGenerate) {
+        StringBuilder summary = new StringBuilder();
+        summary.append("Shipment: ").append(job.getShipment().getShipmentId()).append('\n');
+        summary.append("Order: ").append(value(job.getShipment().getOrderId())).append('\n');
+        summary.append("Ship To: ").append(value(job.getShipment().getShipToName())).append('\n');
+        summary.append("Address: ").append(value(job.getShipment().getShipToAddress1())).append(", ")
+                .append(value(job.getShipment().getShipToCity())).append(", ")
+                .append(value(job.getShipment().getShipToState())).append(" ")
+                .append(value(job.getShipment().getShipToZip())).append('\n');
+        summary.append("PO: ").append(value(job.getShipment().getCustomerPo())).append('\n');
+        summary.append("Location No: ").append(value(job.getShipment().getLocationNumber())).append('\n');
+        summary.append("Carrier Move: ").append(value(job.getShipment().getCarrierCode())).append(" ")
+                .append(value(job.getShipment().getCarrierMoveId())).append('\n');
+        summary.append("Staging Location: ").append(value(job.getStagingLocation())).append('\n');
+        summary.append('\n');
+        summary.append("Label Plan:\n");
+        summary.append(" - Actual LPNs: ").append(job.getShipment().getLpnCount()).append('\n');
+        summary.append(" - Labels To Generate: ").append(job.getLpnsForLabels().size()).append('\n');
+        summary.append(" - Info Tags To Generate: ").append(infoTagsToGenerate).append('\n');
+        summary.append(" - Virtual Labels Used: ").append(job.isUsingVirtualLabels() ? "YES" : "NO").append('\n');
+        summary.append(" - Total Units: ").append(job.getPlanResult().getTotalUnits()).append('\n');
+        summary.append(" - Estimated Pallets (Footprint): ").append(job.getPlanResult().getEstimatedPallets()).append('\n');
+        summary.append(" - Full Pallets (Footprint): ").append(job.getPlanResult().getFullPallets()).append('\n');
+        summary.append(" - Partial Pallets (Footprint): ").append(job.getPlanResult().getPartialPallets()).append('\n');
+        summary.append(" - Missing Footprint SKUs: ")
+                .append(job.getPlanResult().getSkusMissingFootprint().isEmpty()
+                        ? "None"
+                        : String.join(", ", job.getPlanResult().getSkusMissingFootprint()))
+                .append('\n');
+        return summary.toString();
+    }
+
+    private String buildShipmentMathText(LabelWorkflowService.PreparedJob job) {
+        StringBuilder math = new StringBuilder();
+        math.append("Pallet Math (Full vs Partial)\n");
+        math.append(String.format("%-20s %-10s %-14s %-8s %-10s %-10s %s%n",
+                "SKU", "Units", "Units/Pallet", "Full", "Partial", "TotalPal", "Description"));
+        math.append("----------------------------------------------------------------------------------------------------\n");
+        for (LabelWorkflowService.SkuMathRow row : job.getSkuMathRows()) {
+            math.append(String.format("%-20s %-10d %-14s %-8d %-10d %-10d %s%n",
+                    value(row.getSku()),
+                    row.getUnits(),
+                    row.getUnitsPerPallet() == null ? "-" : row.getUnitsPerPallet().toString(),
+                    row.getFullPallets(),
+                    row.getPartialPallets(),
+                    row.getEstimatedPallets(),
+                    value(row.getDescription())));
+        }
+        int totalFull = job.getPlanResult().getFullPallets();
+        int totalPartial = job.getPlanResult().getPartialPallets();
+        int totalLabels = job.getPlanResult().getEstimatedPallets();
+        math.append("----------------------------------------------------------------------------------------------------\n");
+        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual LPN Labels: %d%n",
+                totalFull, totalPartial, totalLabels, job.getLpnsForLabels().size()));
+        return math.toString();
     }
 
     private void confirmAndPrint() {
@@ -633,29 +656,6 @@ public final class LabelGuiFrame extends JFrame {
         return total;
     }
 
-    private int sumFullPallets(List<LabelWorkflowService.SkuMathRow> rows) {
-        int total = 0;
-        for (LabelWorkflowService.SkuMathRow row : rows) {
-            total += row.getFullPallets();
-        }
-        return total;
-    }
-
-    private int sumPartialPallets(List<LabelWorkflowService.SkuMathRow> rows) {
-        int total = 0;
-        for (LabelWorkflowService.SkuMathRow row : rows) {
-            total += row.getPartialPallets();
-        }
-        return total;
-    }
-
-    private int sumEstimatedPallets(List<LabelWorkflowService.SkuMathRow> rows) {
-        int total = 0;
-        for (LabelWorkflowService.SkuMathRow row : rows) {
-            total += row.getEstimatedPallets();
-        }
-        return total;
-    }
 
     private void openQueueDialog() {
         JDialog dialog = new JDialog(this, "Queue Print", Dialog.ModalityType.APPLICATION_MODAL);
