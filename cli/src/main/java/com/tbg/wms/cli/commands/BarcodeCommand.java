@@ -162,21 +162,7 @@ public final class BarcodeCommand implements Callable<Integer> {
         String jobId = UUID.randomUUID().toString().substring(0, 8);
         log.info("Generating barcode label (jobId={})", jobId);
 
-        BarcodeRequest request = new BarcodeRequest(
-                data,
-                symbology,
-                orientation,
-                labelWidthDots,
-                labelHeightDots,
-                originX,
-                originY,
-                moduleWidth,
-                moduleRatio,
-                barcodeHeight,
-                humanReadable,
-                copies
-        );
-
+        BarcodeRequest request = buildBarcodeRequest();
         String zpl = BarcodeZplBuilder.build(request);
 
         if (printToFile) {
@@ -184,22 +170,8 @@ public final class BarcodeCommand implements Callable<Integer> {
             outputDir = resolveJarOutputDir().toString();
         }
 
-        Path outputPath = Paths.get(outputDir);
-        try {
-            Files.createDirectories(outputPath);
-        } catch (Exception e) {
-            log.error("Failed to create output directory: {}", outputPath, e);
-            System.err.println("Error: Unable to create output directory: " + outputPath);
-            return 2;
-        }
-
-        String fileName = String.format("barcode-%s-%s.zpl", TS.format(LocalDateTime.now()), safeSlug(data));
-        Path zplFile = outputPath.resolve(fileName);
-        try {
-            Files.writeString(zplFile, zpl);
-        } catch (Exception e) {
-            log.error("Failed to write ZPL file: {}", zplFile, e);
-            System.err.println("Error: Unable to write ZPL file: " + zplFile);
+        Path zplFile = writeZplFile(zpl);
+        if (zplFile == null) {
             return 2;
         }
 
@@ -215,22 +187,8 @@ public final class BarcodeCommand implements Callable<Integer> {
             return 2;
         }
 
-        AppConfig config = RootCommand.config();
-        String site = config.activeSiteCode();
-
-        PrinterRoutingService routing;
-        try {
-            routing = PrinterRoutingService.load(site, Paths.get("config"));
-        } catch (Exception e) {
-            log.error("Failed to load printer routing configuration", e);
-            System.err.println("Error: Unable to load printer routing configuration.");
-            return 2;
-        }
-
-        PrinterConfig printer = routing.findPrinter(printerId.trim())
-                .orElse(null);
-        if (printer == null || !printer.isEnabled()) {
-            System.err.println("Error: Printer not found or disabled: " + printerId);
+        PrinterConfig printer = resolvePrinter();
+        if (printer == null) {
             return 2;
         }
 
@@ -245,6 +203,66 @@ public final class BarcodeCommand implements Callable<Integer> {
 
         System.out.println("Printed barcode label to printer " + printer.getId() + " (" + printer.getEndpoint() + ")");
         return 0;
+    }
+
+    private BarcodeRequest buildBarcodeRequest() {
+        return new BarcodeRequest(
+                data,
+                symbology,
+                orientation,
+                labelWidthDots,
+                labelHeightDots,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        );
+    }
+
+    private Path writeZplFile(String zpl) {
+        Path outputPath = Paths.get(outputDir);
+        try {
+            Files.createDirectories(outputPath);
+        } catch (Exception e) {
+            log.error("Failed to create output directory: {}", outputPath, e);
+            System.err.println("Error: Unable to create output directory: " + outputPath);
+            return null;
+        }
+
+        String fileName = String.format("barcode-%s-%s.zpl", TS.format(LocalDateTime.now()), safeSlug(data));
+        Path zplFile = outputPath.resolve(fileName);
+        try {
+            Files.writeString(zplFile, zpl);
+            return zplFile;
+        } catch (Exception e) {
+            log.error("Failed to write ZPL file: {}", zplFile, e);
+            System.err.println("Error: Unable to write ZPL file: " + zplFile);
+            return null;
+        }
+    }
+
+    private PrinterConfig resolvePrinter() {
+        AppConfig config = RootCommand.config();
+        String site = config.activeSiteCode();
+
+        PrinterRoutingService routing;
+        try {
+            routing = PrinterRoutingService.load(site, Paths.get("config"));
+        } catch (Exception e) {
+            log.error("Failed to load printer routing configuration", e);
+            System.err.println("Error: Unable to load printer routing configuration.");
+            return null;
+        }
+
+        PrinterConfig printer = routing.findPrinter(printerId.trim()).orElse(null);
+        if (printer == null || !printer.isEnabled()) {
+            System.err.println("Error: Printer not found or disabled: " + printerId);
+            return null;
+        }
+        return printer;
     }
 
     private static Path resolveJarOutputDir() {
