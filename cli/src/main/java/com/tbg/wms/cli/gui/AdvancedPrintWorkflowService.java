@@ -401,6 +401,10 @@ public final class AdvancedPrintWorkflowService {
         return c;
     }
 
+    /**
+     * Executes print tasks in deterministic order while persisting checkpoint progress after
+     * each successful task. This makes resume semantics explicit and crash-safe.
+     */
     private void executeTasks(JobCheckpoint checkpoint, PrinterConfig printer, int startIndex) throws Exception {
         Objects.requireNonNull(checkpoint, "checkpoint cannot be null");
         if (checkpoint.tasks == null) {

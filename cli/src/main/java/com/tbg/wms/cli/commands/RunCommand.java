@@ -318,6 +318,13 @@ public final class RunCommand implements Callable<Integer> {
         }
     }
 
+    /**
+     * Resolves the target printer once per run invocation.
+     *
+     * <p>Routing context is shipment-level (staging location), so re-resolving per label
+     * is unnecessary overhead and can create inconsistent behavior if routing config changes
+     * during a long-running print job.</p>
+     */
     private PrinterConfig resolvePrinterForJob(PrinterRoutingService routing, String stagingLocation) {
         if (dryRun) {
             return null;
@@ -374,6 +381,7 @@ public final class RunCommand implements Callable<Integer> {
     /**
      * Creates site-specific configuration based on site code.
      *
+     * @param config application configuration already loaded for this command
      * @param siteCode the site code (e.g., "TBG3002")
      * @return SiteConfig with ship-from address
      */
