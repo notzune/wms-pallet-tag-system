@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -8,26 +8,13 @@
 
 package com.tbg.wms.cli.commands;
 
+import com.tbg.wms.cli.gui.AdvancedPrintWorkflowService;
+import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
 import com.tbg.wms.core.exception.WmsPrintException;
-import com.tbg.wms.core.label.LabelDataBuilder;
-import com.tbg.wms.core.label.LabelType;
-import com.tbg.wms.core.label.SiteConfig;
-import com.tbg.wms.core.labeling.LabelingSupport;
-import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.model.PalletPlanningService;
-import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.ShipmentSkuFootprint;
-import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
-import com.tbg.wms.core.sku.SkuMappingService;
-import com.tbg.wms.core.template.LabelTemplate;
-import com.tbg.wms.core.template.ZplTemplateEngine;
-import com.tbg.wms.db.DbConnectionPool;
-import com.tbg.wms.db.DbQueryRepository;
-import com.tbg.wms.db.OracleDbQueryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -37,42 +24,20 @@ import picocli.CommandLine.Option;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /**
- * Generates shipping labels for a WMS shipment using Zebra ZPL format.
+ * Generates shipping labels from WMS data.
  *
- * This is the primary command for label generation. It:
- * 1. Retrieves shipment data from WMS (shipment header, pallets, line items)
- * 2. Looks up Walmart SKU codes from CSV matrix
- * 3. Builds label data for each pallet
- * 4. Generates ZPL output for printing
- * 5. Saves artifacts (ZPL files, JSON snapshots) for traceability
- *
- * <p>Usage:</p>
- * <ul>
- *   <li>{@code wms-tags run --shipment-id 8000141715}</li>
- *   <li>{@code wms-tags run --shipment-id 8000141715 --dry-run}</li>
- *   <li>{@code wms-tags run --shipment-id 8000141715 --printer DISPATCH}</li>
- * </ul>
- *
- * <p>Exit codes:</p>
- * <ul>
- *   <li>0 – Labels generated and sent successfully</li>
- *   <li>1 – Shipment not found</li>
- *   <li>2 – Configuration error</li>
- *   <li>3 – Database connectivity error</li>
- *   <li>10 – Unexpected error</li>
- * </ul>
+ * <p>Supports either shipment mode ({@code --shipment-id}) or carrier move mode
+ * ({@code --carrier-move-id}) with shared print workflow semantics.</p>
  */
 @Command(
         name = "run",
-        description = "Generate pallet shipping labels for a WMS shipment"
+        description = "Generate pallet shipping labels for a shipment or carrier move"
 )
 public final class RunCommand implements Callable<Integer> {
 
@@ -81,10 +46,15 @@ public final class RunCommand implements Callable<Integer> {
 
     @Option(
             names = {"-s", "--shipment-id"},
-            description = "Shipment ID to generate labels for",
-            required = true
+            description = "Shipment ID to generate labels for"
     )
     private String shipmentId;
+
+    @Option(
+            names = {"-c", "--carrier-move-id"},
+            description = "Carrier Move ID to generate labels for all stops"
+    )
+    private String carrierMoveId;
 
     @Option(
             names = {"-d", "--dry-run"},
@@ -95,14 +65,14 @@ public final class RunCommand implements Callable<Integer> {
 
     @Option(
             names = {"-p", "--printer"},
-            description = "Target printer name (overrides routing rules)",
+            description = "Target printer ID (optional; routing is used when omitted)",
             defaultValue = ""
     )
     private String printerOverride;
 
     @Option(
             names = {"-o", "--output-dir"},
-            description = "Output directory for ZPL files and snapshots",
+            description = "Output directory for ZPL files",
             defaultValue = "./labels"
     )
     private String outputDir;
@@ -116,169 +86,30 @@ public final class RunCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        // Generate unique job ID
         String jobId = UUID.randomUUID().toString().substring(0, 8);
         MDC.put("jobId", jobId);
-        MDC.put("shipmentId", shipmentId);
 
         try {
-            log.info("Starting label generation for shipment: {}", shipmentId);
-
-            // Load configuration
             AppConfig config = RootCommand.config();
-            String site = config.activeSiteCode();
-            MDC.put("site", site);
+            MDC.put("site", config.activeSiteCode());
+
+            String inputId = resolveInputId();
+            boolean carrierMode = isCarrierMoveMode();
+            MDC.put(carrierMode ? "carrierMoveId" : "shipmentId", inputId);
 
             if (printToFile) {
                 dryRun = true;
                 outputDir = resolveJarOutputDir().toString();
             }
 
-            // Create output directory
-            Path outputPath = Paths.get(outputDir);
-            Files.createDirectories(outputPath);
-            log.debug("Output directory: {}", outputPath.toAbsolutePath());
+            Path outputPath = prepareOutputDirectory();
+            boolean printToFileMode = dryRun || printToFile;
+            AdvancedPrintWorkflowService workflow = new AdvancedPrintWorkflowService(config);
 
-            // ── Step 1: Load SKU Mapping ──
-            log.info("Loading Walmart SKU mapping CSV...");
-            Path csvPath = LabelingSupport.resolveSkuMatrixCsv();
-            if (csvPath == null) {
-                log.error("SKU mapping CSV not found: {}", csvPath);
-                System.err.println("Error: SKU mapping CSV not found. Expected one of:");
-                System.err.println("  - config/walmart-sku-matrix.csv");
-                System.err.println("  - config/walmart_sku_matrix.csv");
-                System.err.println("  - config/TBG3002/walmart-sku-matrix.csv");
-                System.err.println("  - config/TBG3002/walmart_sku_matrix.csv");
-                System.err.println("  - walmart-sku-matrix.csv");
-                System.err.println("  - walmart_sku_matrix.csv");
-                return 2;
+            if (carrierMode) {
+                return executeCarrierMoveRun(workflow, inputId, outputPath, printToFileMode);
             }
-            SkuMappingService skuMapping = new SkuMappingService(csvPath);
-            log.info("Loaded {} SKU mappings", skuMapping.getMappingCount());
-
-            // ── Step 2: Load ZPL Template ──
-            log.info("Loading ZPL template...");
-            Path templatePath = Paths.get("config/templates/walmart-canada-label.zpl");
-            if (!Files.exists(templatePath)) {
-                log.error("ZPL template not found: {}", templatePath);
-                System.err.println("Error: ZPL template not found at " + templatePath);
-                return 2;
-            }
-            String templateContent = Files.readString(templatePath);
-            LabelTemplate labelTemplate = new LabelTemplate("WALMART_CANADA", templateContent);
-            log.info("Loaded template with {} placeholders", labelTemplate.getPlaceholderCount());
-
-            // ── Step 3: Create Database Connection ──
-            log.info("Connecting to WMS database (read-only)...");
-            try (DbConnectionPool pool = new DbConnectionPool(config)) {
-                DbQueryRepository queryRepo = new OracleDbQueryRepository(pool.getDataSource());
-
-                // ── Step 4: Check Shipment Exists ──
-                log.info("Checking shipment existence...");
-                if (!queryRepo.shipmentExists(shipmentId)) {
-                    log.warn("Shipment not found: {}", shipmentId);
-                    System.err.println("Error: Shipment not found: " + shipmentId);
-                    return 1;
-                }
-
-                // ── Step 5: Fetch Shipment Data ──
-                log.info("Fetching shipment data from WMS...");
-                Shipment shipment = queryRepo.findShipmentWithLpnsAndLineItems(shipmentId);
-                if (shipment == null) {
-                    log.warn("Could not retrieve shipment data for: {}", shipmentId);
-                    System.err.println("Error: Could not retrieve shipment data");
-                    return 1;
-                }
-                log.info("Retrieved shipment with {} pallets", shipment.getLpnCount());
-
-                // ── Step 6: Pull footprint + planning data ──
-                List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(shipmentId);
-                Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
-                PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
-
-                printPlanSummary(planResult, shipment.getLpnCount());
-
-                // ── Step 7: Create Site Config ──
-                SiteConfig siteConfig = createSiteConfig(config, site);
-
-                // ── Step 8: Load Printer Routing ──
-                log.info("Loading printer routing configuration...");
-                Path configDir = Paths.get("config");
-                PrinterRoutingService routing = PrinterRoutingService.load(site, configDir);
-                log.info("Loaded {} printers and {} routing rules",
-                        routing.getPrinters().size(), routing.getRules().size());
-
-                // ── Step 9: Initialize Print Service ──
-                NetworkPrintService printService = new NetworkPrintService();
-
-                // ── Step 10: Build Labels ──
-                log.info("Building labels for {} pallets...", shipment.getLpnCount());
-                LabelDataBuilder builder = new LabelDataBuilder(skuMapping, siteConfig, footprintBySku);
-                List<Lpn> lpns = resolveLpnsForLabeling(shipment, footprintRows);
-                if (lpns.size() > MAX_LABELS_PER_JOB) {
-                    throw new IllegalArgumentException("Label count exceeds safe upper bound: " + MAX_LABELS_PER_JOB);
-                }
-
-                // Get staging location for routing
-                String stagingLocation = queryRepo.getStagingLocation(shipmentId);
-                log.info("Shipment staging location: {}", stagingLocation != null ? stagingLocation : "UNKNOWN");
-                PrinterConfig selectedPrinter = resolvePrinterForJob(routing, stagingLocation);
-
-                int labelCount = 0;
-                for (int i = 0; i < lpns.size(); i++) {
-                    Lpn lpn = lpns.get(i);
-
-                    log.debug("Processing pallet {}/{}: {}", i + 1, lpns.size(), lpn.getLpnId());
-
-                    // Build label data
-                    Map<String, String> labelData = builder.build(shipment, lpn, i, LabelType.WALMART_CANADA_GRID);
-                    if (shipment.getLpnCount() == 0) {
-                        labelData = new HashMap<>(labelData);
-                        labelData.put("palletSeq", String.valueOf(i + 1));
-                        labelData.put("palletTotal", String.valueOf(lpns.size()));
-                    }
-
-                    // Generate ZPL
-                    String zpl = ZplTemplateEngine.generate(labelTemplate, labelData);
-                    log.trace("Generated ZPL for pallet {}", lpn.getLpnId());
-
-                    // Save ZPL file
-                    String filename = String.format("%s_%s_%d_of_%d.zpl",
-                            shipmentId, lpn.getLpnId(), i + 1, lpns.size());
-                    Path zplFile = outputPath.resolve(filename);
-                    Files.writeString(zplFile, zpl);
-                    log.info("Saved ZPL file: {}", zplFile.getFileName());
-
-                    labelCount++;
-
-                    // ── Step 11: Print (if not dry-run) ──
-                    if (!dryRun) {
-                        log.info("Printing label {} to printer {} ({})",
-                                lpn.getLpnId(), selectedPrinter.getId(), selectedPrinter.getEndpoint());
-
-                        try {
-                            printService.print(selectedPrinter, zpl, lpn.getLpnId());
-                            System.out.printf("  Printed label %d/%d to %s%n",
-                                    i + 1, lpns.size(), selectedPrinter.getName());
-                        } catch (WmsPrintException e) {
-                            log.error("Failed to print label {}: {}", lpn.getLpnId(), e.getMessage());
-                            System.err.println("Warning: Failed to print label " + lpn.getLpnId() + ": " + e.getMessage());
-                            System.err.println("ZPL file saved to: " + zplFile);
-                            // Continue with other labels instead of failing entirely
-                        }
-                    }
-                }
-
-                log.info("Successfully generated {} labels for shipment {}", labelCount, shipmentId);
-                System.out.println("\nSuccess! Generated " + labelCount + " label(s)");
-                System.out.println("Output saved to: " + outputPath.toAbsolutePath());
-
-                if (dryRun) {
-                    System.out.println("(Dry-run mode: labels were not sent to printer)");
-                }
-
-                return 0;
-            }
+            return executeShipmentRun(workflow, inputId, outputPath, printToFileMode);
 
         } catch (WmsDbConnectivityException e) {
             log.error("Database connectivity error: {}", e.getMessage(), e);
@@ -304,6 +135,181 @@ public final class RunCommand implements Callable<Integer> {
         }
     }
 
+    private Integer executeShipmentRun(AdvancedPrintWorkflowService workflow,
+                                       String id,
+                                       Path outputPath,
+                                       boolean printToFileMode) throws Exception {
+        log.info("Starting shipment print job for {}", id);
+        LabelWorkflowService.PreparedJob prepared = workflow.prepareShipmentJob(id);
+        printShipmentPlanSummary(prepared);
+
+        int labels = prepared.getLpnsForLabels().size();
+        enforceMaxLabels(labels);
+
+        String printerId = resolvePrinterId(
+                printToFileMode,
+                prepared.getRouting(),
+                prepared.getStagingLocation()
+        );
+
+        AdvancedPrintWorkflowService.PrintResult result = workflow.printShipmentJob(
+                prepared,
+                printerId,
+                outputPath,
+                printToFileMode
+        );
+
+        printCompletion(result);
+        return 0;
+    }
+
+    private Integer executeCarrierMoveRun(AdvancedPrintWorkflowService workflow,
+                                          String id,
+                                          Path outputPath,
+                                          boolean printToFileMode) throws Exception {
+        log.info("Starting carrier move print job for {}", id);
+        AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared = workflow.prepareCarrierMoveJob(id);
+        int labelCount = countCarrierMoveLabels(prepared);
+        enforceMaxLabels(labelCount);
+        printCarrierMovePlanSummary(prepared, labelCount);
+
+        LabelWorkflowService.PreparedJob firstShipment = firstCarrierShipment(prepared);
+        String printerId = resolvePrinterId(
+                printToFileMode,
+                firstShipment.getRouting(),
+                firstShipment.getStagingLocation()
+        );
+
+        AdvancedPrintWorkflowService.PrintResult result = workflow.printCarrierMoveJob(
+                prepared,
+                printerId,
+                outputPath,
+                printToFileMode
+        );
+
+        printCompletion(result);
+        return 0;
+    }
+
+    private String resolveInputId() {
+        boolean hasShipment = shipmentId != null && !shipmentId.isBlank();
+        boolean hasCarrier = carrierMoveId != null && !carrierMoveId.isBlank();
+        if (hasShipment == hasCarrier) {
+            throw new IllegalArgumentException("Specify exactly one of --shipment-id or --carrier-move-id.");
+        }
+        return hasCarrier ? carrierMoveId.trim() : shipmentId.trim();
+    }
+
+    private boolean isCarrierMoveMode() {
+        return carrierMoveId != null && !carrierMoveId.isBlank();
+    }
+
+    private Path prepareOutputDirectory() throws Exception {
+        Path outputPath = Paths.get(outputDir);
+        Files.createDirectories(outputPath);
+        log.debug("Output directory: {}", outputPath.toAbsolutePath());
+        return outputPath;
+    }
+
+    private String resolvePrinterId(boolean printToFileMode,
+                                    PrinterRoutingService routing,
+                                    String stagingLocation) {
+        if (printToFileMode) {
+            return null;
+        }
+
+        String override = printerOverride == null ? "" : printerOverride.trim();
+        if (!override.isEmpty()) {
+            return override;
+        }
+
+        PrinterConfig routed = routing.selectPrinter(Map.of(
+                "stagingLocation",
+                stagingLocation == null || stagingLocation.isBlank() ? "UNKNOWN" : stagingLocation
+        ));
+        if (routed == null || !routed.isEnabled()) {
+            throw new IllegalArgumentException("Could not resolve an enabled printer from routing.");
+        }
+        return routed.getId();
+    }
+
+    private int countCarrierMoveLabels(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared) {
+        int total = 0;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : prepared.getStopGroups()) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                total += shipmentJob.getLpnsForLabels().size();
+            }
+        }
+        return total;
+    }
+
+    private LabelWorkflowService.PreparedJob firstCarrierShipment(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared) {
+        if (prepared.getStopGroups().isEmpty() || prepared.getStopGroups().get(0).getShipmentJobs().isEmpty()) {
+            throw new IllegalArgumentException("Carrier move has no printable shipments.");
+        }
+        return prepared.getStopGroups().get(0).getShipmentJobs().get(0);
+    }
+
+    private void enforceMaxLabels(int labels) {
+        if (labels > MAX_LABELS_PER_JOB) {
+            throw new IllegalArgumentException("Label count exceeds safe upper bound: " + MAX_LABELS_PER_JOB);
+        }
+    }
+
+    private void printShipmentPlanSummary(LabelWorkflowService.PreparedJob prepared) {
+        System.out.println();
+        System.out.println("=== Shipment Plan Summary ===");
+        System.out.println("Shipment: " + prepared.getShipmentId());
+        System.out.println("Total units: " + prepared.getPlanResult().getTotalUnits());
+        System.out.println("Estimated pallets (footprint): " + prepared.getPlanResult().getEstimatedPallets());
+        System.out.println("  Full pallets: " + prepared.getPlanResult().getFullPallets());
+        System.out.println("  Partial pallets: " + prepared.getPlanResult().getPartialPallets());
+        if (!prepared.getPlanResult().getSkusMissingFootprint().isEmpty()) {
+            System.out.println("Missing footprint SKUs: " + String.join(", ", prepared.getPlanResult().getSkusMissingFootprint()));
+        }
+        System.out.println("Labels: " + prepared.getLpnsForLabels().size());
+        System.out.println("Info Tags: 1");
+        System.out.println("=============================");
+        System.out.println();
+    }
+
+    private void printCarrierMovePlanSummary(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared, int labelCount) {
+        int full = 0;
+        int partial = 0;
+        int totalUnits = 0;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : prepared.getStopGroups()) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                full += shipmentJob.getPlanResult().getFullPallets();
+                partial += shipmentJob.getPlanResult().getPartialPallets();
+                totalUnits += shipmentJob.getPlanResult().getTotalUnits();
+            }
+        }
+
+        System.out.println();
+        System.out.println("=== Carrier Move Plan Summary ===");
+        System.out.println("Carrier Move: " + prepared.getCarrierMoveId());
+        System.out.println("Stops: " + prepared.getTotalStops());
+        System.out.println("Total units: " + totalUnits);
+        System.out.println("Estimated pallets (footprint): " + (full + partial));
+        System.out.println("  Full pallets: " + full);
+        System.out.println("  Partial pallets: " + partial);
+        System.out.println("Labels: " + labelCount);
+        System.out.println("Info Tags: " + (prepared.getTotalStops() + 1));
+        System.out.println("=================================");
+        System.out.println();
+    }
+
+    private void printCompletion(AdvancedPrintWorkflowService.PrintResult result) {
+        System.out.println("Success! Generated " + result.getLabelsPrinted() + " label(s) and "
+                + result.getInfoTagsPrinted() + " info tag(s)");
+        System.out.println("Output saved to: " + result.getOutputDirectory().toAbsolutePath());
+        if (result.isPrintToFile()) {
+            System.out.println("(Print-to-file mode: labels were not sent to printer)");
+        } else {
+            System.out.println("Printed to: " + result.getPrinterId() + " (" + result.getPrinterEndpoint() + ")");
+        }
+    }
+
     private static Path resolveJarOutputDir() {
         try {
             Path codeSource = Paths.get(Objects.requireNonNull(RunCommand.class
@@ -317,80 +323,4 @@ public final class RunCommand implements Callable<Integer> {
             return Paths.get("out");
         }
     }
-
-    /**
-     * Resolves the target printer once per run invocation.
-     *
-     * <p>Routing context is shipment-level (staging location), so re-resolving per label
-     * is unnecessary overhead and can create inconsistent behavior if routing config changes
-     * during a long-running print job.</p>
-     */
-    private PrinterConfig resolvePrinterForJob(PrinterRoutingService routing, String stagingLocation) {
-        if (dryRun) {
-            return null;
-        }
-        if (!printerOverride.isEmpty()) {
-            log.info("Using manual printer override: {}", printerOverride);
-            return routing.findPrinter(printerOverride)
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Printer not found or disabled: " + printerOverride));
-        }
-        Map<String, String> routingContext = Map.of(
-                "stagingLocation",
-                stagingLocation != null ? stagingLocation : "UNKNOWN"
-        );
-        return routing.selectPrinter(routingContext);
-    }
-
-    private void printPlanSummary(PalletPlanningService.PlanResult planResult, int actualPallets) {
-        System.out.println();
-        System.out.println("=== Pallet Planning Summary ===");
-        System.out.println("Total units across shipment: " + planResult.getTotalUnits());
-        System.out.println("Estimated pallets from footprint setup: " + planResult.getEstimatedPallets());
-        System.out.println("  Full pallets: " + planResult.getFullPallets());
-        System.out.println("  Partial pallets: " + planResult.getPartialPallets());
-        System.out.println("Actual LPNs in shipment: " + actualPallets);
-
-        if (!planResult.getSkusMissingFootprint().isEmpty()) {
-            System.out.println("SKUs missing pallet footprint setup: " + String.join(", ", planResult.getSkusMissingFootprint()));
-        }
-        if (planResult.getEstimatedPallets() > 0 && planResult.getEstimatedPallets() != actualPallets) {
-            System.out.println("Warning: Estimated pallet count differs from actual LPN count.");
-        }
-        System.out.println("===============================");
-        System.out.println();
-    }
-
-    private List<Lpn> resolveLpnsForLabeling(Shipment shipment, List<ShipmentSkuFootprint> footprintRows) {
-        List<Lpn> lpns = shipment.getLpns();
-        if (!lpns.isEmpty()) {
-            return lpns;
-        }
-
-        List<Lpn> virtualLpns = LabelingSupport.buildVirtualLpnsFromFootprints(shipment, footprintRows);
-        if (!virtualLpns.isEmpty()) {
-            log.warn("Shipment {} has no LPNs. Using {} virtual SKU-based labels.", shipment.getShipmentId(), virtualLpns.size());
-            System.out.println("Warning: Shipment has no LPNs. Generating SKU-based labels without LPN dependency.");
-            return virtualLpns;
-        }
-
-        return lpns;
-    }
-
-
-    /**
-     * Creates site-specific configuration based on site code.
-     *
-     * @param config application configuration already loaded for this command
-     * @param siteCode the site code (e.g., "TBG3002")
-     * @return SiteConfig with ship-from address
-     */
-    private SiteConfig createSiteConfig(AppConfig config, String siteCode) {
-        return new SiteConfig(
-                config.siteShipFromName(siteCode),
-                config.siteShipFromAddress(siteCode),
-                config.siteShipFromCityStateZip(siteCode)
-        );
-    }
 }
-
