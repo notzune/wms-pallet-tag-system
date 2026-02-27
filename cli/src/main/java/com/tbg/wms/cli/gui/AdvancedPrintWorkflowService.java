@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 /**
  * Higher-level workflow for carrier move jobs, queueing, and checkpoint resume.
@@ -62,6 +63,12 @@ public final class AdvancedPrintWorkflowService {
     }
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final int MAX_QUEUE_ITEMS = 500;
+    private static final int MAX_LABELS_PER_JOB = 10_000;
+    private static final int MAX_TASKS_PER_JOB = 50_000;
+    private static final int MAX_CHECKPOINT_FILES_SCANNED = 5_000;
+    private static final Pattern MULTI_SPACE_PATTERN = Pattern.compile("\\s+");
+    private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -134,6 +141,9 @@ public final class AdvancedPrintWorkflowService {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException("Queue is empty.");
         }
+        if (requests.size() > MAX_QUEUE_ITEMS) {
+            throw new IllegalArgumentException("Queue exceeds max size of " + MAX_QUEUE_ITEMS + " items.");
+        }
         List<PreparedQueueItem> resolved = new ArrayList<>();
         for (QueueRequestItem req : requests) {
             if (req == null || req.id == null || req.id.isBlank()) {
@@ -199,17 +209,22 @@ public final class AdvancedPrintWorkflowService {
         }
         List<ResumeCandidate> items = new ArrayList<>();
         try (var stream = Files.list(dir)) {
-            List<Path> files = stream
+            stream
                     .filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json"))
-                    .collect(Collectors.toList());
-            for (Path file : files) {
+                    .limit(MAX_CHECKPOINT_FILES_SCANNED)
+                    .collect(Collectors.toList())
+                    .forEach(file -> {
+                        try {
                 JobCheckpoint checkpoint = MAPPER.readValue(file.toFile(), JobCheckpoint.class);
                 if (!checkpoint.completed) {
                     int total = checkpoint.tasks == null ? 0 : checkpoint.tasks.size();
                     items.add(new ResumeCandidate(checkpoint.id, checkpoint.mode, checkpoint.sourceId, checkpoint.outputDirectory,
                             checkpoint.nextTaskIndex, total, checkpoint.updatedAt, checkpoint.lastError));
                 }
-            }
+                        } catch (Exception ignored) {
+                            // Skip malformed checkpoint files and continue scanning.
+                        }
+                    });
         }
         items.sort(Comparator.comparing(ResumeCandidate::updatedAt, Comparator.nullsLast(LocalDateTime::compareTo)).reversed());
         return items;
@@ -253,8 +268,12 @@ public final class AdvancedPrintWorkflowService {
             Integer stopPosition,
             boolean includeShipmentInfoTag
     ) {
+        Objects.requireNonNull(job, "job cannot be null");
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
         List<PrintTask> tasks = new ArrayList<>();
+        if (job.getLpnsForLabels().size() > MAX_LABELS_PER_JOB) {
+            throw new IllegalArgumentException("Label count exceeds max limit: " + MAX_LABELS_PER_JOB);
+        }
         for (int i = 0; i < job.getLpnsForLabels().size(); i++) {
             Lpn lpn = job.getLpnsForLabels().get(i);
             Map<String, String> data = new LinkedHashMap<>(builder.build(job.getShipment(), lpn, i, LabelType.WALMART_CANADA_GRID));
@@ -383,6 +402,13 @@ public final class AdvancedPrintWorkflowService {
     }
 
     private void executeTasks(JobCheckpoint checkpoint, PrinterConfig printer, int startIndex) throws Exception {
+        Objects.requireNonNull(checkpoint, "checkpoint cannot be null");
+        if (checkpoint.tasks == null) {
+            throw new IllegalArgumentException("Checkpoint tasks cannot be null.");
+        }
+        if (checkpoint.tasks.size() > MAX_TASKS_PER_JOB) {
+            throw new IllegalArgumentException("Task count exceeds max limit: " + MAX_TASKS_PER_JOB);
+        }
         Path outDir = Paths.get(checkpoint.outputDirectory);
         Files.createDirectories(outDir);
         NetworkPrintService printService = new NetworkPrintService();
@@ -452,11 +478,14 @@ public final class AdvancedPrintWorkflowService {
         if (value == null) {
             return "-";
         }
-        return value.trim().replaceAll("\\s+", " ");
+        return MULTI_SPACE_PATTERN.matcher(value.trim()).replaceAll(" ");
     }
 
     private String safeSlug(String value) {
-        return value == null ? "id" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+        if (value == null) {
+            return "id";
+        }
+        return NON_ALNUM_PATTERN.matcher(value.toLowerCase(Locale.ROOT)).replaceAll("-");
     }
 
     private String esc(String value) {
