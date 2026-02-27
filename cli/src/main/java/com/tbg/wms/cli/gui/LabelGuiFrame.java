@@ -319,73 +319,18 @@ public final class LabelGuiFrame extends JFrame {
     private void renderCarrierMovePreview(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
         Objects.requireNonNull(job, "job cannot be null");
         shipmentPreviewPanel.removeAll();
-        StringBuilder summary = new StringBuilder();
-        summary.append("Carrier Move ID: ").append(job.getCarrierMoveId()).append('\n');
-        summary.append("Total Stops: ").append(job.getTotalStops()).append('\n');
-        summary.append("Estimated Labels: ").append(countCarrierMoveLabels(job)).append('\n');
-        summary.append("Estimated Info Tags: ").append(job.getTotalStops() + 1).append('\n');
+        StringBuilder summary = buildCarrierMoveSummary(job);
         shipmentArea.setText(summary.toString());
         shipmentPreviewPanel.add(shipmentArea);
 
-        int stopPreviewCount = 0;
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
-            if (stopPreviewCount >= MAX_PREVIEW_STOPS) {
-                break;
-            }
-            shipmentPreviewPanel.add(buildStopPreviewSection(stop));
-            stopPreviewCount++;
-        }
-        if (job.getStopGroups().size() > MAX_PREVIEW_STOPS) {
+        int shownStops = addStopPreviewSections(job);
+        if (job.getStopGroups().size() > shownStops) {
             summary.append("Preview Notice: Showing first ").append(MAX_PREVIEW_STOPS)
                     .append(" stops of ").append(job.getStopGroups().size()).append(".\n");
             shipmentArea.setText(summary.toString());
         }
 
-        StringBuilder math = new StringBuilder();
-        math.append("Carrier Move Pallet Math (Full vs Partial)\n");
-        math.append(String.format("%-8s %-16s %-10s %-10s %-10s %-10s %-10s %s%n",
-                "Stop", "Shipment", "Units", "Full", "Partial", "TotalPal", "Labels", "Ship To"));
-        math.append("----------------------------------------------------------------------------------------------------------------------\n");
-        int totalFull = 0;
-        int totalPartial = 0;
-        int totalLabelsNeeded = 0;
-        int totalActualLabels = 0;
-        int stopCount = 0;
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
-            if (stopCount >= MAX_PREVIEW_STOPS) {
-                break;
-            }
-            int shipmentCount = 0;
-            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                if (shipmentCount >= MAX_PREVIEW_SHIPMENTS_PER_STOP) {
-                    break;
-                }
-                int full = shipmentJob.getPlanResult().getFullPallets();
-                int partial = shipmentJob.getPlanResult().getPartialPallets();
-                int estimated = shipmentJob.getPlanResult().getEstimatedPallets();
-                int lpnLabels = shipmentJob.getLpnsForLabels().size();
-                int units = sumUnits(shipmentJob.getSkuMathRows());
-                totalFull += full;
-                totalPartial += partial;
-                totalLabelsNeeded += estimated;
-                totalActualLabels += lpnLabels;
-                math.append(String.format("%-8d %-16s %-10d %-10d %-10d %-10d %-10d %s%n",
-                        stop.getStopPosition(),
-                        value(shipmentJob.getShipmentId()),
-                        units,
-                        full,
-                        partial,
-                        estimated,
-                        lpnLabels,
-                        value(shipmentJob.getShipment().getShipToName())));
-                shipmentCount++;
-            }
-            stopCount++;
-        }
-        math.append("----------------------------------------------------------------------------------------------------------------------\n");
-        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual Labels: %d%n",
-                totalFull, totalPartial, totalLabelsNeeded, totalActualLabels));
-        mathArea.setText(math.toString());
+        mathArea.setText(buildCarrierMoveMathText(job));
         shipmentPreviewPanel.revalidate();
         shipmentPreviewPanel.repaint();
     }
@@ -395,8 +340,7 @@ public final class LabelGuiFrame extends JFrame {
         JPanel container = new JPanel(new BorderLayout(0, 4));
         container.setBorder(BorderFactory.createEmptyBorder(6, 0, 8, 0));
 
-        String label = "Stop " + stop.getStopPosition()
-                + (stop.getStopSequence() == null ? "" : " (Seq " + stop.getStopSequence() + ")");
+        String label = stopPreviewLabel(stop);
         JToggleButton toggle = new JToggleButton(label + "  [expanded]", true);
         toggle.setFocusPainted(false);
         toggle.setHorizontalAlignment(SwingConstants.LEFT);
@@ -406,51 +350,7 @@ public final class LabelGuiFrame extends JFrame {
         details.setEditable(false);
         details.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         details.setRows(Math.max(16, stop.getShipmentJobs().size() * 16));
-        StringBuilder section = new StringBuilder();
-        int stopFull = 0;
-        int stopPartial = 0;
-        int stopLabelsNeeded = 0;
-        int stopActualLabels = 0;
-        int shipmentCount = 0;
-        for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-            if (shipmentCount >= MAX_PREVIEW_SHIPMENTS_PER_STOP) {
-                break;
-            }
-            int full = shipmentJob.getPlanResult().getFullPallets();
-            int partial = shipmentJob.getPlanResult().getPartialPallets();
-            int labelsNeeded = shipmentJob.getPlanResult().getEstimatedPallets();
-            int actualLabels = shipmentJob.getLpnsForLabels().size();
-            stopFull += full;
-            stopPartial += partial;
-            stopLabelsNeeded += labelsNeeded;
-            stopActualLabels += actualLabels;
-            section.append("Shipment Summary: ").append(value(shipmentJob.getShipmentId()))
-                    .append(" | Labels Needed(Footprint): ").append(labelsNeeded)
-                    .append(" | Actual Labels: ").append(actualLabels)
-                    .append(" | Full: ").append(full)
-                    .append(" | Partial: ").append(partial)
-                    .append('\n')
-                    .append("  Ship To: ").append(value(shipmentJob.getShipment().getShipToName()))
-                    .append('\n')
-                    .append("----------------------------------------------------------------------------------------------------\n")
-                    .append(buildShipmentSummaryText(shipmentJob, 0))
-                    .append('\n')
-                    .append(buildShipmentMathText(shipmentJob))
-                    .append('\n')
-                    .append("====================================================================================================\n")
-                    .append('\n');
-            shipmentCount++;
-        }
-        if (stop.getShipmentJobs().size() > MAX_PREVIEW_SHIPMENTS_PER_STOP) {
-            section.append("Preview Notice: Showing first ").append(MAX_PREVIEW_SHIPMENTS_PER_STOP)
-                    .append(" shipments for this stop.\n");
-        }
-        section.append("Stop Totals -> Full: ").append(stopFull)
-                .append(" | Partial: ").append(stopPartial)
-                .append(" | Labels Needed(Footprint): ").append(stopLabelsNeeded)
-                .append(" | Actual Labels: ").append(stopActualLabels)
-                .append('\n');
-        details.setText(section.toString());
+        details.setText(buildStopDetailsText(stop));
 
         JScrollPane detailsScroll = new JScrollPane(details);
         detailsScroll.setBorder(BorderFactory.createEmptyBorder());
@@ -464,6 +364,149 @@ public final class LabelGuiFrame extends JFrame {
             container.repaint();
         });
         return container;
+    }
+
+    private StringBuilder buildCarrierMoveSummary(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        StringBuilder summary = new StringBuilder();
+        summary.append("Carrier Move ID: ").append(job.getCarrierMoveId()).append('\n');
+        summary.append("Total Stops: ").append(job.getTotalStops()).append('\n');
+        summary.append("Estimated Labels: ").append(countCarrierMoveLabels(job)).append('\n');
+        summary.append("Estimated Info Tags: ").append(job.getTotalStops() + 1).append('\n');
+        return summary;
+    }
+
+    private int addStopPreviewSections(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        int shown = 0;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            if (shown >= MAX_PREVIEW_STOPS) {
+                break;
+            }
+            shipmentPreviewPanel.add(buildStopPreviewSection(stop));
+            shown++;
+        }
+        return shown;
+    }
+
+    private String buildCarrierMoveMathText(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        StringBuilder math = new StringBuilder();
+        math.append("Carrier Move Pallet Math (Full vs Partial)\n");
+        math.append(String.format("%-8s %-16s %-10s %-10s %-10s %-10s %-10s %s%n",
+                "Stop", "Shipment", "Units", "Full", "Partial", "TotalPal", "Labels", "Ship To"));
+        math.append("----------------------------------------------------------------------------------------------------------------------\n");
+        CarrierMoveTotals totals = new CarrierMoveTotals();
+        appendCarrierMoveMathRows(math, totals, job);
+        math.append("----------------------------------------------------------------------------------------------------------------------\n");
+        math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual Labels: %d%n",
+                totals.totalFull, totals.totalPartial, totals.totalLabelsNeeded, totals.totalActualLabels));
+        return math.toString();
+    }
+
+    private void appendCarrierMoveMathRows(StringBuilder math,
+                                           CarrierMoveTotals totals,
+                                           AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        int stopCount = 0;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            if (stopCount >= MAX_PREVIEW_STOPS) {
+                break;
+            }
+            int shipmentCount = 0;
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                if (shipmentCount >= MAX_PREVIEW_SHIPMENTS_PER_STOP) {
+                    break;
+                }
+                appendCarrierMoveMathRow(math, totals, stop, shipmentJob);
+                shipmentCount++;
+            }
+            stopCount++;
+        }
+    }
+
+    private void appendCarrierMoveMathRow(StringBuilder math,
+                                          CarrierMoveTotals totals,
+                                          AdvancedPrintWorkflowService.PreparedStopGroup stop,
+                                          LabelWorkflowService.PreparedJob shipmentJob) {
+        int full = shipmentJob.getPlanResult().getFullPallets();
+        int partial = shipmentJob.getPlanResult().getPartialPallets();
+        int estimated = shipmentJob.getPlanResult().getEstimatedPallets();
+        int labels = shipmentJob.getLpnsForLabels().size();
+        int units = sumUnits(shipmentJob.getSkuMathRows());
+        totals.totalFull += full;
+        totals.totalPartial += partial;
+        totals.totalLabelsNeeded += estimated;
+        totals.totalActualLabels += labels;
+        math.append(String.format("%-8d %-16s %-10d %-10d %-10d %-10d %-10d %s%n",
+                stop.getStopPosition(),
+                value(shipmentJob.getShipmentId()),
+                units,
+                full,
+                partial,
+                estimated,
+                labels,
+                value(shipmentJob.getShipment().getShipToName())));
+    }
+
+    private String stopPreviewLabel(AdvancedPrintWorkflowService.PreparedStopGroup stop) {
+        return "Stop " + stop.getStopPosition()
+                + (stop.getStopSequence() == null ? "" : " (Seq " + stop.getStopSequence() + ")");
+    }
+
+    private String buildStopDetailsText(AdvancedPrintWorkflowService.PreparedStopGroup stop) {
+        StringBuilder section = new StringBuilder();
+        StopTotals totals = new StopTotals();
+        int shipmentCount = 0;
+        for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+            if (shipmentCount >= MAX_PREVIEW_SHIPMENTS_PER_STOP) {
+                break;
+            }
+            appendShipmentDetailsInStop(section, totals, shipmentJob);
+            shipmentCount++;
+        }
+        appendStopPreviewNotice(section, stop);
+        appendStopTotals(section, totals);
+        return section.toString();
+    }
+
+    private void appendShipmentDetailsInStop(StringBuilder section,
+                                             StopTotals totals,
+                                             LabelWorkflowService.PreparedJob shipmentJob) {
+        int full = shipmentJob.getPlanResult().getFullPallets();
+        int partial = shipmentJob.getPlanResult().getPartialPallets();
+        int labelsNeeded = shipmentJob.getPlanResult().getEstimatedPallets();
+        int actualLabels = shipmentJob.getLpnsForLabels().size();
+        totals.stopFull += full;
+        totals.stopPartial += partial;
+        totals.stopLabelsNeeded += labelsNeeded;
+        totals.stopActualLabels += actualLabels;
+        section.append("Shipment Summary: ").append(value(shipmentJob.getShipmentId()))
+                .append(" | Labels Needed(Footprint): ").append(labelsNeeded)
+                .append(" | Actual Labels: ").append(actualLabels)
+                .append(" | Full: ").append(full)
+                .append(" | Partial: ").append(partial)
+                .append('\n')
+                .append("  Ship To: ").append(value(shipmentJob.getShipment().getShipToName()))
+                .append('\n')
+                .append("----------------------------------------------------------------------------------------------------\n")
+                .append(buildShipmentSummaryText(shipmentJob, 0))
+                .append('\n')
+                .append(buildShipmentMathText(shipmentJob))
+                .append('\n')
+                .append("====================================================================================================\n")
+                .append('\n');
+    }
+
+    private void appendStopPreviewNotice(StringBuilder section, AdvancedPrintWorkflowService.PreparedStopGroup stop) {
+        if (stop.getShipmentJobs().size() > MAX_PREVIEW_SHIPMENTS_PER_STOP) {
+            section.append("Preview Notice: Showing first ").append(MAX_PREVIEW_SHIPMENTS_PER_STOP)
+                    .append(" shipments for this stop.\n");
+        }
+    }
+
+    private void appendStopTotals(StringBuilder section, StopTotals totals) {
+        section.append("Stop Totals -> Full: ").append(totals.stopFull)
+                .append(" | Partial: ").append(totals.stopPartial)
+                .append(" | Labels Needed(Footprint): ").append(totals.stopLabelsNeeded)
+                .append(" | Actual Labels: ").append(totals.stopActualLabels)
+                .append('\n');
     }
 
     private String buildShipmentSummaryText(LabelWorkflowService.PreparedJob job, int infoTagsToGenerate) {
@@ -702,6 +745,20 @@ public final class LabelGuiFrame extends JFrame {
             total += row.getUnits();
         }
         return total;
+    }
+
+    private static final class CarrierMoveTotals {
+        private int totalFull;
+        private int totalPartial;
+        private int totalLabelsNeeded;
+        private int totalActualLabels;
+    }
+
+    private static final class StopTotals {
+        private int stopFull;
+        private int stopPartial;
+        private int stopLabelsNeeded;
+        private int stopActualLabels;
     }
 
 
