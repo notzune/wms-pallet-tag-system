@@ -33,10 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project/version metadata updated to `1.3.1` across Maven modules, CLI version, README, and setup/bundle scripts.
 - CLI `run` workflow now uses the shared advanced print path for shipment and carrier modes (consistent summary, printer resolution, safety bounds, and print-to-file behavior).
 - Documentation refresh across `README`, `CHANGELOG`, command/package Javadocs, and package-level metadata.
+- Expanded package-level Javadocs with `@link` navigation sections for faster API discovery in generated docs.
 
 ### Fixed
 - Restored full per-shipment detail rendering inside Carrier Move stop expanders, including shipment header, label plan, and SKU-level pallet math.
 - Prevented accidental double right-click copy/paste actions by debouncing repeated clipboard actions within a short cooldown window.
+- Resolved strict `-Werror` compile blockers in CI by adding `serialVersionUID` to WMS exception classes.
+- Removed a warning-generating ignored auto-closeable probe in DB pool initialization to keep Javadoc pre-compile clean.
+- Corrected stale `DbQueryRepository` Javadoc `@throws` references to non-existent exception types.
 
 ## [1.3.0] - 2026-02-26
 ### Added
