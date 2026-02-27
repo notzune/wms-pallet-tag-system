@@ -77,6 +77,7 @@ import java.util.concurrent.Callable;
 public final class RunCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(RunCommand.class);
+    private static final int MAX_LABELS_PER_JOB = 10_000;
 
     @Option(
             names = {"-s", "--shipment-id"},
@@ -198,7 +199,7 @@ public final class RunCommand implements Callable<Integer> {
                 printPlanSummary(planResult, shipment.getLpnCount());
 
                 // ── Step 7: Create Site Config ──
-                SiteConfig siteConfig = createSiteConfig(site);
+                SiteConfig siteConfig = createSiteConfig(config, site);
 
                 // ── Step 8: Load Printer Routing ──
                 log.info("Loading printer routing configuration...");
@@ -214,10 +215,14 @@ public final class RunCommand implements Callable<Integer> {
                 log.info("Building labels for {} pallets...", shipment.getLpnCount());
                 LabelDataBuilder builder = new LabelDataBuilder(skuMapping, siteConfig, footprintBySku);
                 List<Lpn> lpns = resolveLpnsForLabeling(shipment, footprintRows);
+                if (lpns.size() > MAX_LABELS_PER_JOB) {
+                    throw new IllegalArgumentException("Label count exceeds safe upper bound: " + MAX_LABELS_PER_JOB);
+                }
 
                 // Get staging location for routing
                 String stagingLocation = queryRepo.getStagingLocation(shipmentId);
                 log.info("Shipment staging location: {}", stagingLocation != null ? stagingLocation : "UNKNOWN");
+                PrinterConfig selectedPrinter = resolvePrinterForJob(routing, stagingLocation);
 
                 int labelCount = 0;
                 for (int i = 0; i < lpns.size(); i++) {
@@ -248,30 +253,13 @@ public final class RunCommand implements Callable<Integer> {
 
                     // ── Step 11: Print (if not dry-run) ──
                     if (!dryRun) {
-                        PrinterConfig printer;
-
-                        if (!printerOverride.isEmpty()) {
-                            // Manual override
-                            log.info("Using manual printer override: {}", printerOverride);
-                            printer = routing.findPrinter(printerOverride)
-                                    .orElseThrow(() -> new IllegalArgumentException(
-                                            "Printer not found or disabled: " + printerOverride));
-                        } else {
-                            // Routing based on staging location
-                            Map<String, String> routingContext = Map.of(
-                                    "stagingLocation",
-                                    stagingLocation != null ? stagingLocation : "UNKNOWN"
-                            );
-                            printer = routing.selectPrinter(routingContext);
-                        }
-
                         log.info("Printing label {} to printer {} ({})",
-                                lpn.getLpnId(), printer.getId(), printer.getEndpoint());
+                                lpn.getLpnId(), selectedPrinter.getId(), selectedPrinter.getEndpoint());
 
                         try {
-                            printService.print(printer, zpl, lpn.getLpnId());
+                            printService.print(selectedPrinter, zpl, lpn.getLpnId());
                             System.out.printf("  Printed label %d/%d to %s%n",
-                                    i + 1, lpns.size(), printer.getName());
+                                    i + 1, lpns.size(), selectedPrinter.getName());
                         } catch (WmsPrintException e) {
                             log.error("Failed to print label {}: {}", lpn.getLpnId(), e.getMessage());
                             System.err.println("Warning: Failed to print label " + lpn.getLpnId() + ": " + e.getMessage());
@@ -297,6 +285,10 @@ public final class RunCommand implements Callable<Integer> {
             System.err.println("Error: Database connectivity issue");
             System.err.println("Details: " + e.getMessage());
             return 3;
+        } catch (IllegalArgumentException e) {
+            log.error("Validation/configuration error: {}", e.getMessage());
+            System.err.println("Error: " + e.getMessage());
+            return 2;
         } catch (WmsPrintException e) {
             log.error("Print error: {}", e.getMessage(), e);
             System.err.println("Error: Printing failed");
@@ -324,6 +316,23 @@ public final class RunCommand implements Callable<Integer> {
         } catch (Exception e) {
             return Paths.get("out");
         }
+    }
+
+    private PrinterConfig resolvePrinterForJob(PrinterRoutingService routing, String stagingLocation) {
+        if (dryRun) {
+            return null;
+        }
+        if (!printerOverride.isEmpty()) {
+            log.info("Using manual printer override: {}", printerOverride);
+            return routing.findPrinter(printerOverride)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Printer not found or disabled: " + printerOverride));
+        }
+        Map<String, String> routingContext = Map.of(
+                "stagingLocation",
+                stagingLocation != null ? stagingLocation : "UNKNOWN"
+        );
+        return routing.selectPrinter(routingContext);
     }
 
     private void printPlanSummary(PalletPlanningService.PlanResult planResult, int actualPallets) {
@@ -368,8 +377,7 @@ public final class RunCommand implements Callable<Integer> {
      * @param siteCode the site code (e.g., "TBG3002")
      * @return SiteConfig with ship-from address
      */
-    private SiteConfig createSiteConfig(String siteCode) {
-        AppConfig config = RootCommand.config();
+    private SiteConfig createSiteConfig(AppConfig config, String siteCode) {
         return new SiteConfig(
                 config.siteShipFromName(siteCode),
                 config.siteShipFromAddress(siteCode),
