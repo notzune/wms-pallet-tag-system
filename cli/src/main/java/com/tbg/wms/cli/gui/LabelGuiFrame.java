@@ -526,7 +526,9 @@ public final class LabelGuiFrame extends JFrame {
         summary.append("Staging Location: ").append(value(job.getStagingLocation())).append('\n');
         summary.append('\n');
         summary.append("Label Plan:\n");
-        summary.append(" - Actual LPNs: ").append(job.getShipment().getLpnCount()).append('\n');
+        if (job.getShipment().getLpnCount() > 0) {
+            summary.append(" - Actual LPNs: ").append(job.getShipment().getLpnCount()).append('\n');
+        }
         summary.append(" - Labels To Generate: ").append(job.getLpnsForLabels().size()).append('\n');
         summary.append(" - Info Tags To Generate: ").append(infoTagsToGenerate).append('\n');
         summary.append(" - Virtual Labels Used: ").append(job.isUsingVirtualLabels() ? "YES" : "NO").append('\n');
