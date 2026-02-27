@@ -30,10 +30,10 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /**
- * Generates shipping labels from WMS data.
+ * Generates pallet labels from WMS data for a single shipment or a carrier move.
  *
- * <p>Supports either shipment mode ({@code --shipment-id}) or carrier move mode
- * ({@code --carrier-move-id}) with shared print workflow semantics.</p>
+ * <p>Exactly one identifier mode is required per invocation:
+ * {@code --shipment-id} or {@code --carrier-move-id}.</p>
  */
 @Command(
         name = "run",
@@ -135,6 +135,9 @@ public final class RunCommand implements Callable<Integer> {
         }
     }
 
+    /**
+     * Executes shipment-mode preview/print workflow and emits an operator summary.
+     */
     private Integer executeShipmentRun(AdvancedPrintWorkflowService workflow,
                                        String id,
                                        Path outputPath,
@@ -163,6 +166,9 @@ public final class RunCommand implements Callable<Integer> {
         return 0;
     }
 
+    /**
+     * Executes carrier-move workflow across all mapped stops in deterministic stop order.
+     */
     private Integer executeCarrierMoveRun(AdvancedPrintWorkflowService workflow,
                                           String id,
                                           Path outputPath,
@@ -191,6 +197,9 @@ public final class RunCommand implements Callable<Integer> {
         return 0;
     }
 
+    /**
+     * Validates mutually-exclusive input mode and returns the selected ID.
+     */
     private String resolveInputId() {
         boolean hasShipment = shipmentId != null && !shipmentId.isBlank();
         boolean hasCarrier = carrierMoveId != null && !carrierMoveId.isBlank();
@@ -211,6 +220,9 @@ public final class RunCommand implements Callable<Integer> {
         return outputPath;
     }
 
+    /**
+     * Resolves final printer ID, honoring print-to-file mode and explicit override first.
+     */
     private String resolvePrinterId(boolean printToFileMode,
                                     PrinterRoutingService routing,
                                     String stagingLocation) {

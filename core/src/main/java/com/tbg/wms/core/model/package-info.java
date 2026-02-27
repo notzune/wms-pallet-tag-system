@@ -3,6 +3,6 @@
  *
  * <p>Models represent shipments, pallets, and line items used by both preview and print paths.</p>
  *
- * @since 1.3.0
+ * @since 1.3.1
  */
 package com.tbg.wms.core.model;

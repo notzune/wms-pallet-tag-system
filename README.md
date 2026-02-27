@@ -10,13 +10,15 @@ Current release: `1.3.1` (2026-02-27).
 Implemented and supported:
 - `config` command (resolved runtime config with redaction)
 - `db-test` command (database connectivity diagnostics)
-- `run` command (shipment label generation and printing)
-- `gui` command (desktop workflow with shipment preview and confirm-print)
+- `run` command (shipment or carrier-move label generation and printing)
+- `gui` command (desktop workflow with shipment/carrier-move preview and confirm-print)
 - `barcode` command (standalone barcode ZPL generation and optional printing)
 - Oracle read-only access
 - Printer routing via site YAML
 - Walmart SKU matrix lookup for Walmart item field
 - Pallet planning summary from footprint maintenance (`PRTFTP` / `PRTFTP_DTL`)
+- Bulk queue processing (mixed shipment and carrier move jobs)
+- Job persistence and resume for interrupted print runs
 
 Not implemented yet:
 - `template`, `print-template`, `manual`, `replay` commands
@@ -55,20 +57,15 @@ If you get `No compiler is provided in this environment`, install a JDK and ensu
 java -jar cli/target/cli-*.jar config
 java -jar cli/target/cli-*.jar db-test
 java -jar cli/target/cli-*.jar run --shipment-id <SHIP_ID> --dry-run --output-dir out/
+java -jar cli/target/cli-*.jar run --carrier-move-id <CMID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar gui
 ```
 
 ### Portable bundle (recommended for operators)
 
-1. Extract the ZIP to a folder (example: `C:\wms-pallet-tag-system`).
-2. Copy the template config into place:
-
-```bash
-copy config\\wms-tags.env.example wms-tags.env
-```
-
-3. Edit `wms-tags.env` with Oracle and site credentials.
-4. Run:
+1. Extract the portable package to a folder (example: `C:\wms-pallet-tag-system`).
+2. Copy your real environment values into `wms-tags.env`.
+3. Run:
 
 ```bash
 run.bat
@@ -80,6 +77,7 @@ For CLI usage:
 run.bat config
 run.bat db-test
 run.bat run --shipment-id <SHIP_ID> --dry-run --output-dir out/
+run.bat run --carrier-move-id <CMID> --dry-run --output-dir out/
 ```
 
 On Linux/macOS:
@@ -106,6 +104,7 @@ Key settings:
 - `SITE_<CODE>_<ENV>_HOST` (example `SITE_TBG3002_PROD_HOST`)
 - `SITE_<CODE>_SHIP_FROM_NAME`, `SITE_<CODE>_SHIP_FROM_ADDRESS`, `SITE_<CODE>_SHIP_FROM_CITY_STATE_ZIP`
 - `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
+- `RIGHT_CLICK_COOLDOWN_MS=250` (GUI right-click copy/paste debounce)
 
 Connection fallback order:
 1. Primary JDBC URL (`ORACLE_JDBC_URL`, then `ORACLE_DSN`, then host/port/service)
@@ -115,11 +114,12 @@ Connection fallback order:
 ## Run Command
 
 ```bash
-java -jar cli/target/cli-*.jar run --shipment-id <ID> [OPTIONS]
+java -jar cli/target/cli-*.jar run (--shipment-id <ID> | --carrier-move-id <ID>) [OPTIONS]
 ```
 
 Options:
-- `--shipment-id` (required)
+- `--shipment-id` (mutually exclusive with `--carrier-move-id`)
+- `--carrier-move-id` (mutually exclusive with `--shipment-id`)
 - `--dry-run`
 - `--output-dir <DIR>` (default `./labels`)
 - `--printer <ID>`
@@ -156,13 +156,18 @@ Notes:
 
 ## GUI Workflow
 
-- Enter shipment ID.
-- Select printer.
-- Click `Preview` to load shipment details and pallet math (`full`, `partial`, `total pallets`).
-- Verify summary and counts.
-- Click `Confirm Print` to send labels and save generated ZPL artifacts under `out/gui-<shipment>-<timestamp>/`.
-- Select `Print to file` from the printer dropdown to save ZPL under the same `out/` path without printing.
+- Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
+- Enter ID, select printer, and click `Preview`.
+- Shipment preview shows shipment summary, label plan, and SKU-level pallet math (full vs partial).
+- Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU breakdown.
+- Click `Confirm Print` to execute and persist artifacts.
+- Shipment mode output path: `out/gui-<shipment>-<timestamp>/`.
+- Carrier mode output path: `out/gui-cmid-<cmid>-<timestamp>/`.
+- Carrier mode prints all shipment labels in stop order, then per-stop info tags, then one final info tag.
+- Shipment mode prints shipment labels and one shipment info tag.
+- Select `Print to file` from the printer dropdown to save ZPL under `out/` without printer I/O.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
+- Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
 
 ## Walmart SKU Behavior
 
@@ -220,29 +225,29 @@ Behavior:
 
 ## Project Structure
 
-```
+```text
 wms-pallet-tag-system/
-├── README.md
-├── CHANGELOG.md
-├── INSTRUCTIONS.md               # Development standards and system requirements
-├── LICENSE
-├── pom.xml
-├── .env.example
-├── config/
-│   ├── wms-tags.env.example
-│   ├── templates/
-│   │   └── walmart-canada-label.zpl
-│   └── TBG3002/
-│       ├── printers.yaml
-│       └── printer-routing.yaml
-├── core/
-├── db/
-├── cli/
-├── scripts/                      # Build and launcher helpers
-├── analysis/                     # Internal analysis notes and DB dumps
-├── dist/                         # Generated portable bundles
-├── logs/                         # Runtime logs
-└── walmart_sku_matrix.csv
+|-- README.md
+|-- CHANGELOG.md
+|-- INSTRUCTIONS.md               # Development standards and system requirements
+|-- LICENSE
+|-- pom.xml
+|-- .env.example
+|-- config/
+|   |-- wms-tags.env.example
+|   |-- templates/
+|   |   `-- walmart-canada-label.zpl
+|   `-- TBG3002/
+|       |-- printers.yaml
+|       `-- printer-routing.yaml
+|-- core/
+|-- db/
+|-- cli/
+|-- scripts/                      # Build and launcher helpers
+|-- analysis/                     # Internal analysis notes and DB dumps
+|-- dist/                         # Generated portable bundles
+|-- logs/                         # Runtime logs
+`-- walmart_sku_matrix.csv
 ```
 
 ## Troubleshooting

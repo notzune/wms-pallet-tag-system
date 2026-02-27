@@ -27,9 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.1] - 2026-02-27
 ### Added
 - Configurable GUI right-click clipboard cooldown via `RIGHT_CLICK_COOLDOWN_MS` (with legacy env var fallback support).
+- CLI `run` mode support for Carrier Move IDs via `--carrier-move-id`, with mutually-exclusive ID validation against `--shipment-id`.
 
 ### Changed
 - Project/version metadata updated to `1.3.1` across Maven modules, CLI version, README, and setup/bundle scripts.
+- CLI `run` workflow now uses the shared advanced print path for shipment and carrier modes (consistent summary, printer resolution, safety bounds, and print-to-file behavior).
+- Documentation refresh across `README`, `CHANGELOG`, command/package Javadocs, and package-level metadata.
 
 ### Fixed
 - Restored full per-shipment detail rendering inside Carrier Move stop expanders, including shipment header, label plan, and SKU-level pallet math.
