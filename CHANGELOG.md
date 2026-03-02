@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Project/version metadata updated to `1.3.2` across Maven modules, CLI version, README, and setup/bundle scripts.
 - Barcode generation defaults tuned for scanner reliability: `origin-x=60`, `origin-y=60`, `module-width=3`, `barcode-height=220`.
+- Refactored oversized GUI class responsibilities into dedicated components (`BarcodeDialogFactory`, `TextFieldClipboardController`) to improve SRP and reduce UI coupling.
 
 ### Fixed
 - None.

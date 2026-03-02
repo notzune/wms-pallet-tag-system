@@ -9,11 +9,6 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
-import com.tbg.wms.core.barcode.BarcodeZplBuilder;
-import com.tbg.wms.core.barcode.BarcodeZplBuilder.BarcodeRequest;
-import com.tbg.wms.core.barcode.BarcodeZplBuilder.Orientation;
-import com.tbg.wms.core.barcode.BarcodeZplBuilder.Symbology;
-import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 
 import javax.swing.*;
@@ -21,8 +16,6 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -31,11 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
-import java.util.WeakHashMap;
-import java.util.regex.Pattern;
 import java.util.prefs.Preferences;
 
 /**
@@ -59,33 +48,21 @@ public final class LabelGuiFrame extends JFrame {
 
     // Synthetic printer option used to enable print-to-file from the dropdown.
     private static final String FILE_PRINTER_ID = "FILE";
-    private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
     private static final String PREF_PRINT_TO_FILE_DIR = "printToFile.defaultOutputDir";
     private static final int SHIPMENT_MIN_CHARS = 11;
     private static final int COMBO_WIDTH_REDUCTION_PX = 12;
     private static final DateTimeFormatter OUTPUT_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-    private static final String RIGHT_CLICK_COOLDOWN_PROPERTY = "wms.tags.rightClickCooldownMs";
-    private static final String RIGHT_CLICK_COOLDOWN_ENV = "RIGHT_CLICK_COOLDOWN_MS";
-    private static final String LEGACY_RIGHT_CLICK_COOLDOWN_ENV = "WMS_TAGS_RIGHT_CLICK_COOLDOWN_MS";
-    private static final long DEFAULT_RIGHT_CLICK_COOLDOWN_MS = 250L;
     private static final int MAX_QUEUE_ITEMS = 500;
     private static final int MAX_PREVIEW_STOPS = 250;
     private static final int MAX_PREVIEW_SHIPMENTS_PER_STOP = 250;
     private static final int MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT = 1000;
-    private static final int BARCODE_DEFAULT_LABEL_WIDTH_DOTS = 812;
-    private static final int BARCODE_DEFAULT_LABEL_HEIGHT_DOTS = 1218;
-    private static final int BARCODE_DEFAULT_ORIGIN_X = 60;
-    private static final int BARCODE_DEFAULT_ORIGIN_Y = 60;
-    private static final int BARCODE_DEFAULT_MODULE_WIDTH = 3;
-    private static final int BARCODE_DEFAULT_MODULE_RATIO = 3;
-    private static final int BARCODE_DEFAULT_HEIGHT = 220;
     private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
-    private final long rightClickCooldownMs = resolveRightClickCooldownMs();
-    private final transient Map<JTextComponent, Long> lastRightClickClipboardActionMs = new WeakHashMap<>();
+    private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
 
     private final transient AppConfig config = new AppConfig();
     private final transient LabelWorkflowService service = new LabelWorkflowService(config);
     private final transient AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
+    private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
     private transient LabelWorkflowService.PreparedJob preparedJob;
     private transient AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
@@ -1014,186 +991,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void openBarcodeDialog() {
-        JDialog dialog = new JDialog(this, "Barcode Generator", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        dialog.setLayout(new BorderLayout(8, 8));
-
-        JPanel form = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 6, 6, 6);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        JTextField dataField = new JTextField(24);
-        JComboBox<Symbology> typeCombo = new JComboBox<>(Symbology.values());
-        JComboBox<Orientation> orientationCombo = new JComboBox<>(Orientation.values());
-        JSpinner labelWidth = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_LABEL_WIDTH_DOTS, 1, 10000, 1));
-        JSpinner labelHeight = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_LABEL_HEIGHT_DOTS, 1, 20000, 1));
-        JSpinner originX = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_ORIGIN_X, 0, 10000, 1));
-        JSpinner originY = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_ORIGIN_Y, 0, 10000, 1));
-        JSpinner moduleWidth = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_MODULE_WIDTH, 1, 20, 1));
-        JSpinner moduleRatio = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_MODULE_RATIO, 1, 10, 1));
-        JSpinner barcodeHeight = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_HEIGHT, 1, 2000, 1));
-        JCheckBox humanReadable = new JCheckBox("Human readable", true);
-        JSpinner copies = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
-        JTextField outputDir = new JTextField(defaultPrintToFileOutputDir().toString());
-        outputDir.setColumns(40);
-        JTextField scannerProfile = new JTextField("Honeywell Granit 1980i / THOR VM1A optimized preset");
-        scannerProfile.setEditable(false);
-        scannerProfile.setFocusable(false);
-        installTerminalLikeMouseClipboardBehavior(dataField, outputDir);
-        JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
-        printerSelect.setModel(buildPrintTargetModel(true));
-
-        int row = 0;
-        addFormRow(form, gbc, row++, "Data", dataField);
-        addFormRow(form, gbc, row++, "Type", typeCombo);
-        addFormRow(form, gbc, row++, "Copies", copies);
-        addFormRow(form, gbc, row++, "Scanner Profile", scannerProfile);
-        addFormRow(form, gbc, row++, "Printer", printerSelect);
-
-        Runnable syncOutputState = () -> {
-            LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-            boolean printToFile = isPrintToFileSelected(selected);
-            outputDir.setEnabled(printToFile);
-            outputDir.setEditable(printToFile);
-        };
-        printerSelect.addActionListener(e -> syncOutputState.run());
-        syncOutputState.run();
-
-        JButton advancedButton = new JButton("Advanced Settings...");
-        JButton generateButton = new JButton("Generate");
-        JButton closeButton = new JButton("Close");
-
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttons.add(advancedButton);
-        buttons.add(generateButton);
-        buttons.add(closeButton);
-
-        advancedButton.addActionListener(e -> {
-            JDialog advancedDialog = new JDialog(dialog, "Advanced Barcode Settings", Dialog.ModalityType.APPLICATION_MODAL);
-            advancedDialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-            advancedDialog.setLayout(new BorderLayout(8, 8));
-
-            JPanel advancedForm = new JPanel(new GridBagLayout());
-            GridBagConstraints advancedGbc = new GridBagConstraints();
-            advancedGbc.insets = new Insets(6, 6, 6, 6);
-            advancedGbc.anchor = GridBagConstraints.WEST;
-            advancedGbc.fill = GridBagConstraints.HORIZONTAL;
-
-            int advancedRow = 0;
-            addFormRow(advancedForm, advancedGbc, advancedRow++, "Orientation", orientationCombo);
-            addFormRow(advancedForm, advancedGbc, advancedRow++, "Label Width (dots)", labelWidth);
-            addFormRow(advancedForm, advancedGbc, advancedRow++, "Label Height (dots)", labelHeight);
-            addFormRow(advancedForm, advancedGbc, advancedRow++, "Origin X", originX);
-            addFormRow(advancedForm, advancedGbc, advancedRow++, "Origin Y", originY);
-            addFormRow(advancedForm, advancedGbc, advancedRow++, "Module Width", moduleWidth);
-            addFormRow(advancedForm, advancedGbc, advancedRow++, "Module Ratio", moduleRatio);
-            addFormRow(advancedForm, advancedGbc, advancedRow++, "Barcode Height", barcodeHeight);
-            JLabel outputDirLabel = addFormRow(advancedForm, advancedGbc, advancedRow++, "Output Dir", outputDir);
-
-            advancedGbc.gridx = 1;
-            advancedGbc.gridy = advancedRow;
-            advancedGbc.gridwidth = 2;
-            advancedForm.add(humanReadable, advancedGbc);
-
-            Runnable syncAdvancedOutputState = () -> {
-                LabelWorkflowService.PrinterOption selected =
-                        (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-                boolean printToFile = isPrintToFileSelected(selected);
-                outputDir.setEnabled(printToFile);
-                outputDir.setEditable(printToFile);
-                outputDirLabel.setEnabled(printToFile);
-            };
-            syncAdvancedOutputState.run();
-
-            JPanel advancedButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            JButton closeAdvanced = new JButton("Done");
-            closeAdvanced.addActionListener(x -> advancedDialog.dispose());
-            advancedButtons.add(closeAdvanced);
-
-            advancedDialog.add(advancedForm, BorderLayout.CENTER);
-            advancedDialog.add(advancedButtons, BorderLayout.SOUTH);
-            advancedDialog.pack();
-            advancedDialog.setLocationRelativeTo(dialog);
-            advancedDialog.setVisible(true);
-        });
-
-        generateButton.addActionListener(e -> {
-            String data = dataField.getText().trim();
-            if (data.isEmpty()) {
-                showError("Barcode data is required.");
-                return;
-            }
-
-            BarcodeRequest request = new BarcodeRequest(
-                    data,
-                    (Symbology) typeCombo.getSelectedItem(),
-                    (Orientation) orientationCombo.getSelectedItem(),
-                    (int) labelWidth.getValue(),
-                    (int) labelHeight.getValue(),
-                    (int) originX.getValue(),
-                    (int) originY.getValue(),
-                    (int) moduleWidth.getValue(),
-                    (int) moduleRatio.getValue(),
-                    (int) barcodeHeight.getValue(),
-                    humanReadable.isSelected(),
-                    (int) copies.getValue()
-            );
-
-            String zpl = BarcodeZplBuilder.build(request);
-            LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-            boolean printToFile = isPrintToFileSelected(printer);
-            Path outputPath = resolveOutputPath(outputDir.getText(), data, printToFile);
-            try {
-                Files.createDirectories(outputPath.getParent());
-                Files.writeString(outputPath, zpl);
-            } catch (Exception ex) {
-                showError("Failed to write ZPL file: " + ex.getMessage());
-                return;
-            }
-
-            if (printToFile) {
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "ZPL saved to " + outputPath,
-                        "Barcode Generated",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-                return;
-            }
-
-            if (printer == null) {
-                showError("Select a print target.");
-                return;
-            }
-
-            try {
-                PrinterConfig printerConfig = service.resolvePrinter(printer.getId());
-                if (printerConfig == null) {
-                    throw new IllegalArgumentException("Printer not found: " + printer.getId());
-                }
-                new NetworkPrintService().print(printerConfig, zpl, "barcode");
-            } catch (Exception ex) {
-                showError("Failed to print barcode: " + rootMessage(ex));
-                return;
-            }
-
-            JOptionPane.showMessageDialog(
-                    dialog,
-                    "Printed barcode label.\nZPL saved to " + outputPath,
-                    "Barcode Printed",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-        });
-
-        closeButton.addActionListener(e -> dialog.dispose());
-
-        dialog.add(form, BorderLayout.CENTER);
-        dialog.add(buttons, BorderLayout.SOUTH);
-        dialog.pack();
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
+        barcodeDialogFactory.open(this);
     }
 
     private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption) {
@@ -1222,22 +1020,6 @@ public final class LabelGuiFrame extends JFrame {
         gbc.weightx = 1.0;
         form.add(field, gbc);
         return rowLabel;
-    }
-
-    private Path resolveOutputPath(String outputDir, String data, boolean printToFileSelected) {
-        String dir;
-        if (printToFileSelected) {
-            dir = (outputDir == null || outputDir.isBlank())
-                    ? defaultPrintToFileOutputDir().toString()
-                    : outputDir.trim();
-        } else {
-            dir = defaultPrintToFileOutputDir().toString();
-        }
-        Path outputPath = Paths.get(dir);
-        String fileName = String.format("barcode-%s-%s.zpl",
-                OUTPUT_TS.format(LocalDateTime.now()),
-                safeSlug(data));
-        return outputPath.resolve(fileName);
     }
 
     private Path defaultPrintToFileOutputDir() {
@@ -1366,101 +1148,44 @@ public final class LabelGuiFrame extends JFrame {
         return selected != null && FILE_PRINTER_ID.equals(selected.getId());
     }
 
-    private static String safeSlug(String value) {
-        if (value == null) {
-            return "data";
-        }
-        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
-        if (slug.isEmpty()) {
-            return "data";
-        }
-        return slug.length() > 40 ? slug.substring(0, 40) : slug;
-    }
-
     private void installTerminalLikeMouseClipboardBehavior(JTextComponent... fields) {
-        for (JTextComponent field : fields) {
-            if (field == null) {
-                continue;
-            }
-            field.setComponentPopupMenu(null);
-            field.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mousePressed(MouseEvent e) {
-                    handleRightClickClipboardAction(e, field);
-                }
-
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    handleRightClickClipboardAction(e, field);
-                }
-            });
-        }
+        clipboardController.install(fields);
     }
 
-    private void handleRightClickClipboardAction(MouseEvent event, JTextComponent field) {
-        if (!(event.isPopupTrigger() || SwingUtilities.isRightMouseButton(event))) {
-            return;
-        }
-        if (isWithinRightClickCooldown(field)) {
-            event.consume();
-            return;
+    private final class BarcodeDependencies implements BarcodeDialogFactory.Dependencies {
+        @Override
+        public DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption) {
+            return LabelGuiFrame.this.buildPrintTargetModel(includeFileOption);
         }
 
-        String selection = field.getSelectedText();
-        if (selection != null && !selection.isEmpty()) {
-            field.copy();
-            markRightClickAction(field);
-            event.consume();
-            return;
+        @Override
+        public boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
+            return LabelGuiFrame.isPrintToFileSelected(selected);
         }
 
-        int position = field.viewToModel2D(event.getPoint());
-        if (position >= 0) {
-            field.setCaretPosition(position);
+        @Override
+        public Path defaultPrintToFileOutputDir() {
+            return LabelGuiFrame.this.defaultPrintToFileOutputDir();
         }
-        field.paste();
-        markRightClickAction(field);
-        event.consume();
-    }
 
-    private boolean isWithinRightClickCooldown(JTextComponent field) {
-        Long last = lastRightClickClipboardActionMs.get(field);
-        if (last == null || rightClickCooldownMs <= 0) {
-            return false;
+        @Override
+        public void installClipboardBehavior(JTextComponent... fields) {
+            LabelGuiFrame.this.installTerminalLikeMouseClipboardBehavior(fields);
         }
-        long elapsed = System.currentTimeMillis() - last;
-        return elapsed >= 0 && elapsed < rightClickCooldownMs;
-    }
 
-    private void markRightClickAction(JTextComponent field) {
-        lastRightClickClipboardActionMs.put(field, System.currentTimeMillis());
-    }
+        @Override
+        public void showError(String message) {
+            LabelGuiFrame.this.showError(message);
+        }
 
-    private long resolveRightClickCooldownMs() {
-        String propertyValue = System.getProperty(RIGHT_CLICK_COOLDOWN_PROPERTY);
-        Long parsed = tryParsePositiveLong(propertyValue);
-        if (parsed != null) {
-            return parsed;
+        @Override
+        public String rootMessage(Throwable throwable) {
+            return LabelGuiFrame.this.rootMessage(throwable);
         }
-        String envValue = System.getenv(RIGHT_CLICK_COOLDOWN_ENV);
-        parsed = tryParsePositiveLong(envValue);
-        if (parsed != null) {
-            return parsed;
-        }
-        envValue = System.getenv(LEGACY_RIGHT_CLICK_COOLDOWN_ENV);
-        parsed = tryParsePositiveLong(envValue);
-        return parsed == null ? DEFAULT_RIGHT_CLICK_COOLDOWN_MS : parsed;
-    }
 
-    private Long tryParsePositiveLong(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            long parsed = Long.parseLong(value.trim());
-            return parsed < 0 ? null : parsed;
-        } catch (NumberFormatException ex) {
-            return null;
+        @Override
+        public PrinterConfig resolvePrinter(String printerId) throws Exception {
+            return service.resolvePrinter(printerId);
         }
     }
 }
