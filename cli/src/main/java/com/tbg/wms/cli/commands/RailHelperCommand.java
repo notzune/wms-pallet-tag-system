@@ -12,9 +12,9 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -34,8 +34,8 @@ import java.util.regex.Pattern;
 public final class RailHelperCommand implements Callable<Integer> {
 
     private static final DateTimeFormatter DEFAULT_DATE = DateTimeFormatter.ofPattern("MM-dd-yy");
-    private static final Pattern ITEM_HEADER_PATTERN = Pattern.compile("ITEM[_\\s]?NBR[_\\s]?(\\d+)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern QTY_HEADER_PATTERN = Pattern.compile("TOTAL[_\\s]?CS[_\\s]?ITM[_\\s]?(\\d+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ITEM_HEADER_PATTERN = Pattern.compile("ITEMNBR(\\d+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern QTY_HEADER_PATTERN = Pattern.compile("TOTALCSITM(\\d+)", Pattern.CASE_INSENSITIVE);
 
     @Option(names = {"--input-csv"}, required = true, description = "Input rail data CSV path")
     private Path inputCsv;
@@ -60,10 +60,8 @@ public final class RailHelperCommand implements Callable<Integer> {
             ensureReadable(templateDocx, "template-docx");
         }
 
-        List<Map<String, String>> footprintRows = readCsv(itemFootprintCsv);
-        List<Map<String, String>> inputRows = readCsv(inputCsv);
-        Map<String, RailFamilyFootprint> footprintByItem = toFootprintMap(footprintRows);
-        List<RailStopRecord> records = toRailRecords(inputRows);
+        Map<String, RailFamilyFootprint> footprintByItem = loadFootprintMap(itemFootprintCsv);
+        List<RailStopRecord> records = loadRailRecords(inputCsv);
         if (trainIdFilter != null && !trainIdFilter.isBlank()) {
             records = filterByTrainId(records, trainIdFilter.trim());
         }
@@ -97,7 +95,7 @@ public final class RailHelperCommand implements Callable<Integer> {
 
     private void ensureReadable(Path path, String optionName) {
         Objects.requireNonNull(path, optionName + " path cannot be null");
-        if (!Files.exists(path) || !Files.isRegularFile(path)) {
+        if (!Files.exists(path) || !Files.isRegularFile(path) || !Files.isReadable(path)) {
             throw new IllegalArgumentException("Invalid " + optionName + ": " + path);
         }
     }
@@ -112,9 +110,9 @@ public final class RailHelperCommand implements Callable<Integer> {
         return filtered;
     }
 
-    private Map<String, RailFamilyFootprint> toFootprintMap(List<Map<String, String>> rows) {
+    private Map<String, RailFamilyFootprint> loadFootprintMap(Path csvPath) throws Exception {
         Map<String, RailFamilyFootprint> map = new HashMap<>();
-        for (Map<String, String> row : rows) {
+        readCsv(csvPath, row -> {
             String item = normalize(raw(row, "ITEM_NBR", "ITEM", "SKU", "PRTNUM", "A"));
             String family = normalize(raw(row, "ITEM_FAMILY", "FAMILY", "FAMILY_CODE", "H"));
             int footprint = parseInt(raw(row, "FOOTPRINT", "CASES_PER_PALLET", "UNITS_PER_PALLET", "J"), 0);
@@ -122,13 +120,13 @@ public final class RailHelperCommand implements Callable<Integer> {
             if (entry.isValid()) {
                 map.put(entry.getItemNumber(), entry);
             }
-        }
+        });
         return map;
     }
 
-    private List<RailStopRecord> toRailRecords(List<Map<String, String>> rows) {
+    private List<RailStopRecord> loadRailRecords(Path csvPath) throws Exception {
         List<RailStopRecord> records = new ArrayList<>();
-        for (Map<String, String> row : rows) {
+        readCsv(csvPath, row -> {
             Map<Integer, String> itemBySlot = new TreeMapNumericKeyMap().extract(row, ITEM_HEADER_PATTERN);
             Map<Integer, Integer> qtyBySlot = new TreeMapNumericKeyMap().extractInt(row, QTY_HEADER_PATTERN);
             List<RailStopRecord.ItemQuantity> items = new ArrayList<>();
@@ -141,7 +139,7 @@ public final class RailHelperCommand implements Callable<Integer> {
                 }
             }
             if (items.isEmpty()) {
-                continue;
+                return;
             }
 
             String date = normalize(raw(row, "DATE"));
@@ -156,7 +154,7 @@ public final class RailHelperCommand implements Callable<Integer> {
             String load = normalize(raw(row, "LOAD_NBR", "LOAD", "LOAD_ID"));
 
             records.add(new RailStopRecord(date, sequence, train, vehicle, warehouse, load, items));
-        }
+        });
 
         records.sort(Comparator.comparing(RailStopRecord::getTrainNumber)
                 .thenComparing(RailStopRecord::getSequence)
@@ -193,11 +191,9 @@ public final class RailHelperCommand implements Callable<Integer> {
 
     private static String raw(Map<String, String> row, String... keys) {
         for (String key : keys) {
-            String normalizedKey = normalizeHeader(key);
-            for (Map.Entry<String, String> entry : row.entrySet()) {
-                if (normalizeHeader(entry.getKey()).equals(normalizedKey)) {
-                    return entry.getValue();
-                }
+            String value = row.get(normalizeHeader(key));
+            if (value != null) {
+                return value;
             }
         }
         return "";
@@ -226,29 +222,34 @@ public final class RailHelperCommand implements Callable<Integer> {
         }
     }
 
-    private List<Map<String, String>> readCsv(Path path) throws Exception {
-        List<String> lines = Files.readAllLines(path);
-        if (lines.isEmpty()) {
-            return List.of();
-        }
+    private void readCsv(Path path, CsvRowConsumer rowConsumer) throws Exception {
+        List<String> normalizedHeaders;
+        try (java.io.BufferedReader reader = Files.newBufferedReader(path)) {
+            String firstLine = reader.readLine();
+            if (firstLine == null) {
+                return;
+            }
+            List<String> headers = parseCsvLine(firstLine);
+            normalizedHeaders = new ArrayList<>(headers.size());
+            for (String header : headers) {
+                normalizedHeaders.add(normalizeHeader(header));
+            }
 
-        List<String> headers = parseCsvLine(lines.get(0));
-        List<Map<String, String>> rows = new ArrayList<>();
-        for (int i = 1; i < lines.size(); i++) {
-            String line = lines.get(i);
-            if (line == null || line.isBlank()) {
-                continue;
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                List<String> cells = parseCsvLine(line);
+                Map<String, String> row = new HashMap<>();
+                for (int col = 0; col < normalizedHeaders.size(); col++) {
+                    String key = normalizedHeaders.get(col);
+                    String value = col < cells.size() ? cells.get(col) : "";
+                    row.put(key, value);
+                }
+                rowConsumer.accept(Collections.unmodifiableMap(row));
             }
-            List<String> cells = parseCsvLine(line);
-            Map<String, String> row = new LinkedHashMap<>();
-            for (int col = 0; col < headers.size(); col++) {
-                String key = headers.get(col);
-                String value = col < cells.size() ? cells.get(col) : "";
-                row.put(key, value);
-            }
-            rows.add(row);
         }
-        return rows;
     }
 
     private List<String> parseCsvLine(String line) {
@@ -310,5 +311,10 @@ public final class RailHelperCommand implements Callable<Integer> {
             }
             return byIndex;
         }
+    }
+
+    @FunctionalInterface
+    private interface CsvRowConsumer {
+        void accept(Map<String, String> row) throws Exception;
     }
 }
