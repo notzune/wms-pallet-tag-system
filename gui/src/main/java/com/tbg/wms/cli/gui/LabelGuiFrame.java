@@ -110,6 +110,9 @@ public final class LabelGuiFrame extends JFrame {
         JMenuItem queueItem = new JMenuItem("Queue Print...");
         queueItem.addActionListener(e -> openQueueDialog());
         toolsMenu.add(queueItem);
+        JMenuItem railLabelsItem = new JMenuItem("Rail Labels...");
+        railLabelsItem.addActionListener(e -> openRailLabelsDialog());
+        toolsMenu.add(railLabelsItem);
         JMenuItem resumeItem = new JMenuItem("Resume Incomplete Job...");
         resumeItem.addActionListener(e -> openResumeDialog());
         toolsMenu.add(resumeItem);
@@ -651,6 +654,11 @@ public final class LabelGuiFrame extends JFrame {
         } catch (Exception ex) {
             showError("Resume failed: " + rootMessage(ex));
         }
+    }
+
+    private void openRailLabelsDialog() {
+        RailLabelsDialog dialog = new RailLabelsDialog(this, config);
+        dialog.setVisible(true);
     }
 
     private void autoResumeIfFound() {
