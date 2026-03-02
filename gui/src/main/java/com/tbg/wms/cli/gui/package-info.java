@@ -10,6 +10,6 @@
  *   <li>{@link com.tbg.wms.cli.gui.TextFieldClipboardController} - terminal-like right-click clipboard behavior.</li>
  * </ul>
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 package com.tbg.wms.cli.gui;

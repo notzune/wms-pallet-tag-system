@@ -13,6 +13,6 @@
  *   <li>{@link com.tbg.wms.core.model.SnapshotService} - typed snapshot serialization for debug/replay workflows.</li>
  * </ul>
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 package com.tbg.wms.core.model;

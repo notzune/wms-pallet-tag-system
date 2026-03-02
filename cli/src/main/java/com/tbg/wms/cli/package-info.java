@@ -11,6 +11,6 @@
  *   <li>{@link com.tbg.wms.cli.gui.LabelGuiFrame} - desktop GUI entry frame for interactive workflows.</li>
  * </ul>
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 package com.tbg.wms.cli;

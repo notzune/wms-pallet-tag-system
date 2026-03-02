@@ -12,6 +12,6 @@
  *   <li>{@link com.tbg.wms.core.rail.RailTrainDetailExporter} - writes merge-ready `_TrainDetail.csv` output.</li>
  * </ul>
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 package com.tbg.wms.core.rail;

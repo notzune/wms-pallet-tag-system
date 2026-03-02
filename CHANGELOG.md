@@ -7,13 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- New `rail-helper` CLI command to replace brittle Excel macro math with deterministic item-footprint planning.
-- New rail planning/export core package (`com.tbg.wms.core.rail`) for reusable family-percentage calculations and `_TrainDetail.csv` output.
-- Unit tests covering rail family percentage math and missing-footprint handling.
+- None.
 
 ### Changed
-- Updated README with rail-helper usage, options, and merge-output details.
-- Updated `.gitignore` to exclude imported VBA macro and Word template artifacts used for analysis.
+- None.
 
 ### Deprecated
 - None.
@@ -25,6 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None.
 
 ### Security
+- None.
+
+## [1.5.0] - 2026-03-02
+### Added
+- New `rail-helper` CLI command to replace brittle Excel macro math with deterministic item-footprint planning.
+- New rail planning/export core package (`com.tbg.wms.core.rail`) for reusable family-percentage calculations and `_TrainDetail.csv` output.
+- CLI tests for rail-helper command output generation and missing-footprint reporting.
+- GUI queue-input parser tests for mixed prefix handling and validation boundaries.
+
+### Changed
+- Refactored rail-helper CSV ingestion to stream rows instead of loading full files into memory.
+- Split `LabelGuiFrame` preview/math text assembly and queue input parsing into dedicated helpers (`LabelPreviewFormatter`, `QueueInputParser`) to improve SRP and reduce frame complexity.
+- Updated README with rail-helper usage, options, and merge-output details.
+- Updated `.gitignore` to exclude imported VBA macro and Word template artifacts used for analysis.
+- Project metadata/version updated to `1.5.0` across Maven modules, CLI version, package docs, and setup/bundle script JAR defaults.
+
+### Fixed
 - None.
 
 ## [1.4.0] - 2026-03-02
