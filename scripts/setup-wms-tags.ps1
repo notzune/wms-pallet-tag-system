@@ -83,7 +83,7 @@ if (-not (Test-Path -LiteralPath $SourceRoot)) {
 }
 
 if (-not $JarPath) {
-    $jarCandidate = Join-Path $SourceRoot "cli\target\cli-1.5.0.jar"
+    $jarCandidate = Join-Path $SourceRoot "cli\target\cli-1.5.1.jar"
     if (Test-Path -LiteralPath $jarCandidate) {
         $JarPath = $jarCandidate
     } else {

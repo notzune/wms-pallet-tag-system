@@ -25,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None.
 
+## [1.5.1] - 2026-03-02
+### Added
+- WMS-backed rail train lookup and short-code footprint lookup methods in the DB repository (`findRailStopsByTrainId`, `findRailFootprintsByShortCode`).
+- New GUI rail workflow service and dialog under Tools (`Rail Labels...`) with train preview, merge-row preview, and detailed diagnostics.
+- Word artifact automation service for merged DOCX/PDF/PRN generation from rail merge CSV output.
+
+### Changed
+- Rail merge output expanded from 6 to 13 item slots, with overflow diagnostics when rows exceed the slot limit.
+- Rail helper/template field guidance updated to `ITEM_NBR_1..13` and `TOTAL_CS_ITM_1..13`.
+- Rail footprint resolution now supports WMS-first lookup with optional CSV override layering.
+- Project metadata/version updated to `1.5.1` across Maven modules, CLI version output, README, and bundle/setup script default JAR paths.
+
+### Fixed
+- GUI rail dialog serialization compile warning under strict `-Werror` builds by marking non-serializable state fields as `transient`.
+
 ## [1.5.0] - 2026-03-02
 ### Added
 - New `rail-helper` CLI command to replace brittle Excel macro math with deterministic item-footprint planning.
