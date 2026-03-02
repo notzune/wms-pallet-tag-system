@@ -9,6 +9,7 @@ package com.tbg.wms.core.rail;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -75,5 +76,42 @@ final class RailLabelPlannerTest {
         assertEquals("", first.toMergeFields().get("Item_1"));
         assertEquals("", first.toMergeFields().get("Item_2"));
         assertEquals("", first.toMergeFields().get("Item_3"));
+    }
+
+    /**
+     * Validates that items beyond configured merge slots are surfaced in overflow diagnostics.
+     */
+    @Test
+    void planTracksOverflowBeyondConfiguredItemSlots() {
+        List<RailStopRecord.ItemQuantity> items = new ArrayList<>();
+        for (int i = 1; i <= 14; i++) {
+            String code = String.format("9%04d", i);
+            items.add(new RailStopRecord.ItemQuantity(code, 100));
+        }
+
+        RailStopRecord record = new RailStopRecord(
+                "03-02-26",
+                "205",
+                "0303",
+                "TPIX3032",
+                "BR",
+                "8000558490",
+                items
+        );
+
+        Map<String, RailFamilyFootprint> footprints = java.util.stream.IntStream.rangeClosed(1, 14)
+                .boxed()
+                .collect(java.util.stream.Collectors.toMap(
+                        i -> String.format("9%04d", i),
+                        i -> new RailFamilyFootprint(String.format("9%04d", i), "DOM", 100)
+                ));
+
+        RailLabelPlanner.PlannedRailLabel planned = new RailLabelPlanner(13)
+                .plan(List.of(record), footprints)
+                .get(0);
+
+        assertEquals(1, planned.getOverflowItems().size());
+        assertEquals("90014", planned.getOverflowItems().get(0).getItemNumber());
+        assertEquals("90013", planned.toMergeFields().get("ITEM_NBR_13"));
     }
 }

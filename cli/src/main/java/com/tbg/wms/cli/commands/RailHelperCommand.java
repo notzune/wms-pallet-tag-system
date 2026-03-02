@@ -102,7 +102,7 @@ public final class RailHelperCommand implements Callable<Integer> {
         if (templateDocx != null) {
             System.out.println(" - Copied template: " + outputDir.resolve(templateDocx.getFileName()).toAbsolutePath());
         }
-        System.out.println("Word template merge fields expected: DATE, SEQ, TRAIN_NBR, VEHICLE_ID, DCS_WHSE, LOAD_NBR, ITEM_NBR_1..6, TOTAL_CS_ITM_1..6, Item_1..3");
+        System.out.println("Word template merge fields expected: DATE, SEQ, TRAIN_NBR, VEHICLE_ID, DCS_WHSE, LOAD_NBR, ITEM_NBR_1..13, TOTAL_CS_ITM_1..13, Item_1..3");
         return 0;
     }
 
@@ -183,22 +183,27 @@ public final class RailHelperCommand implements Callable<Integer> {
         sb.append("Footprint items loaded: ").append(footprintCount).append('\n');
 
         int totalMissingRows = 0;
+        int totalOverflowRows = 0;
         TreeSet<String> missingItems = new TreeSet<>();
         for (RailLabelPlanner.PlannedRailLabel row : plannedRows) {
             if (!row.getMissingFootprintItems().isEmpty()) {
                 totalMissingRows++;
                 missingItems.addAll(row.getMissingFootprintItems());
             }
+            if (!row.getOverflowItems().isEmpty()) {
+                totalOverflowRows++;
+            }
         }
 
         sb.append("Rows with missing footprint: ").append(totalMissingRows).append('\n');
+        sb.append("Rows exceeding item slot limit: ").append(totalOverflowRows).append('\n');
         if (!missingItems.isEmpty()) {
             sb.append("Missing items: ").append(String.join(", ", missingItems)).append('\n');
         }
 
         sb.append('\n');
         sb.append("Template merge fields used:\n");
-        sb.append("DATE, SEQ, TRAIN_NBR, VEHICLE_ID, DCS_WHSE, LOAD_NBR, ITEM_NBR_1..6, TOTAL_CS_ITM_1..6, Item_1..3\n");
+        sb.append("DATE, SEQ, TRAIN_NBR, VEHICLE_ID, DCS_WHSE, LOAD_NBR, ITEM_NBR_1..13, TOTAL_CS_ITM_1..13, Item_1..3\n");
         return sb.toString();
     }
 

@@ -43,7 +43,21 @@ public final class RailTrainDetailExporter {
             "ITEM_NBR_5",
             "TOTAL_CS_ITM_5",
             "ITEM_NBR_6",
-            "TOTAL_CS_ITM_6"
+            "TOTAL_CS_ITM_6",
+            "ITEM_NBR_7",
+            "TOTAL_CS_ITM_7",
+            "ITEM_NBR_8",
+            "TOTAL_CS_ITM_8",
+            "ITEM_NBR_9",
+            "TOTAL_CS_ITM_9",
+            "ITEM_NBR_10",
+            "TOTAL_CS_ITM_10",
+            "ITEM_NBR_11",
+            "TOTAL_CS_ITM_11",
+            "ITEM_NBR_12",
+            "TOTAL_CS_ITM_12",
+            "ITEM_NBR_13",
+            "TOTAL_CS_ITM_13"
     );
 
     /**

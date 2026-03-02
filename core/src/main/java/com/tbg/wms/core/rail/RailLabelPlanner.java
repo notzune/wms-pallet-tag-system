@@ -22,6 +22,19 @@ import java.util.Objects;
  * Computes deterministic family percentages for rail labels using item footprint lookup data.
  */
 public final class RailLabelPlanner {
+    private static final int DEFAULT_ITEM_SLOTS = 13;
+    private final int itemSlots;
+
+    public RailLabelPlanner() {
+        this(DEFAULT_ITEM_SLOTS);
+    }
+
+    public RailLabelPlanner(int itemSlots) {
+        if (itemSlots <= 0) {
+            throw new IllegalArgumentException("itemSlots must be > 0");
+        }
+        this.itemSlots = itemSlots;
+    }
 
     /**
      * Calculates per-row rail label callouts.
@@ -65,7 +78,21 @@ public final class RailLabelPlanner {
 
         List<FamilyShare> shares = buildSortedShares(equivalentByFamily, totalEquivalent);
         List<FamilyShare> topThree = shares.size() <= 3 ? shares : shares.subList(0, 3);
-        return new PlannedRailLabel(record, topThree, missingItems, totalEquivalent);
+        List<RailStopRecord.ItemQuantity> overflowItems = collectOverflowItems(record);
+        return new PlannedRailLabel(record, topThree, missingItems, overflowItems, totalEquivalent, itemSlots);
+    }
+
+    private List<RailStopRecord.ItemQuantity> collectOverflowItems(RailStopRecord record) {
+        List<RailStopRecord.ItemQuantity> validItems = new ArrayList<>();
+        for (RailStopRecord.ItemQuantity item : record.getItems()) {
+            if (item != null && item.isValid()) {
+                validItems.add(item);
+            }
+        }
+        if (validItems.size() <= itemSlots) {
+            return List.of();
+        }
+        return new ArrayList<>(validItems.subList(itemSlots, validItems.size()));
     }
 
     private List<FamilyShare> buildSortedShares(Map<String, Double> equivalentByFamily, double totalEquivalent) {
@@ -94,16 +121,22 @@ public final class RailLabelPlanner {
         private final RailStopRecord sourceRecord;
         private final List<FamilyShare> topFamilies;
         private final List<String> missingFootprintItems;
+        private final List<RailStopRecord.ItemQuantity> overflowItems;
         private final double totalPalletEquivalent;
+        private final int itemSlots;
 
         private PlannedRailLabel(RailStopRecord sourceRecord,
                                  List<FamilyShare> topFamilies,
                                  List<String> missingFootprintItems,
-                                 double totalPalletEquivalent) {
+                                 List<RailStopRecord.ItemQuantity> overflowItems,
+                                 double totalPalletEquivalent,
+                                 int itemSlots) {
             this.sourceRecord = sourceRecord;
             this.topFamilies = Collections.unmodifiableList(new ArrayList<>(topFamilies));
             this.missingFootprintItems = Collections.unmodifiableList(new ArrayList<>(missingFootprintItems));
+            this.overflowItems = Collections.unmodifiableList(new ArrayList<>(overflowItems));
             this.totalPalletEquivalent = totalPalletEquivalent;
+            this.itemSlots = itemSlots;
         }
 
         public RailStopRecord getSourceRecord() {
@@ -122,6 +155,10 @@ public final class RailLabelPlanner {
             return totalPalletEquivalent;
         }
 
+        public List<RailStopRecord.ItemQuantity> getOverflowItems() {
+            return overflowItems;
+        }
+
         public Map<String, String> toMergeFields() {
             Map<String, String> fields = new LinkedHashMap<>();
             fields.put("DATE", sourceRecord.getDate());
@@ -131,7 +168,7 @@ public final class RailLabelPlanner {
             fields.put("DCS_WHSE", sourceRecord.getWarehouse());
             fields.put("LOAD_NBR", sourceRecord.getLoadNumber());
 
-            appendItemPairs(fields, sourceRecord.getItems(), 6);
+            appendItemPairs(fields, sourceRecord.getItems(), itemSlots);
             appendTopFamilies(fields, topFamilies);
             return fields;
         }
