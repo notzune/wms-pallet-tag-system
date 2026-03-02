@@ -45,7 +45,6 @@ class DbConnectionPoolTest {
     void testDbConnectionPoolCreation() {
         // Setup
         when(mockConfig.activeSiteCode()).thenReturn("TBG3002");
-        when(mockConfig.oracleJdbcUrl()).thenReturn("jdbc:oracle:thin:@//localhost:1521/WMSP");
         when(mockConfig.oracleJdbcUrlCandidates()).thenReturn(List.of("jdbc:oracle:thin:@//localhost:1521/WMSP"));
         when(mockConfig.oracleUsername()).thenReturn("RPTADM");
         when(mockConfig.oraclePassword()).thenReturn("password");

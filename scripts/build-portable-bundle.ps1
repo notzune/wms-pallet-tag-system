@@ -72,7 +72,7 @@ if (-not $BundleDir) {
 }
 
 if (-not $JarPath) {
-    $JarPath = Join-Path $SourceRoot "cli\target\cli-1.3.2.jar"
+    $JarPath = Join-Path $SourceRoot "cli\target\cli-1.4.0.jar"
 }
 
 if (-not (Test-Path -LiteralPath $JarPath)) {

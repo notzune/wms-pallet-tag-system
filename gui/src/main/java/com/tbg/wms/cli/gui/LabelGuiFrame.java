@@ -669,10 +669,14 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private static String buildWindowTitle() {
-        String version = com.tbg.wms.cli.commands.RootCommand.class.getAnnotation(
-                picocli.CommandLine.Command.class
-        ).version()[0];
-        return "WMS Pallet Tag System - " + version;
+        Package pkg = LabelGuiFrame.class.getPackage();
+        String version = pkg == null ? null : pkg.getImplementationVersion();
+        if (version == null || version.isBlank()) {
+            version = System.getProperty("wms.tags.version", "");
+        }
+        return version == null || version.isBlank()
+                ? "WMS Pallet Tag System"
+                : "WMS Pallet Tag System - " + version;
     }
 
     private void setReady(String message) {

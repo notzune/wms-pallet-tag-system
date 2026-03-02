@@ -24,6 +24,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None.
 
+## [1.4.0] - 2026-03-02
+### Added
+- New dedicated `gui` Maven module for Swing-based workflows and dialogs.
+
+### Changed
+- Split GUI classes out of `cli` module into `gui` module while preserving runtime behavior and package contracts.
+- Updated Maven reactor/module graph so `cli` depends on `gui` for desktop command launch and shared GUI workflows.
+- Refreshed documentation, package-level Javadocs, and API comments to describe the module split and new GUI boundaries.
+- Updated project metadata/versioning to `1.4.0`, including CLI version and build/setup script jar defaults.
+
+### Fixed
+- None.
+
 ## [1.3.2] - 2026-03-02
 ### Added
 - Streamlined GUI barcode dialog with a new `Advanced Settings...` button that contains low-level layout/symbology controls.

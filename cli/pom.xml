@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.tbg.wms</groupId>
         <artifactId>wms-pallet-tag-system</artifactId>
-        <version>1.3.2</version>
+        <version>1.4.0</version>
     </parent>
 
     <artifactId>cli</artifactId>
@@ -22,6 +22,12 @@
         <dependency>
             <groupId>com.tbg.wms</groupId>
             <artifactId>db</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.tbg.wms</groupId>
+            <artifactId>gui</artifactId>
             <version>${project.version}</version>
         </dependency>
 

@@ -9,6 +9,6 @@
  *   <li>{@link com.tbg.wms.core.AppConfig} - immutable runtime configuration model.</li>
  * </ul>
  *
- * @since 1.3.2
+ * @since 1.4.0
  */
 package com.tbg.wms.core;

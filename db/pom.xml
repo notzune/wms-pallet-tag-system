@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.tbg.wms</groupId>
         <artifactId>wms-pallet-tag-system</artifactId>
-        <version>1.3.2</version>
+        <version>1.4.0</version>
     </parent>
 
     <artifactId>db</artifactId>
@@ -62,6 +62,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>

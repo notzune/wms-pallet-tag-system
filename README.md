@@ -3,7 +3,7 @@
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.3.2` (2026-03-02).
+Current release: `1.4.0` (2026-03-02).
 
 ## Current Scope
 
@@ -19,6 +19,7 @@ Implemented and supported:
 - Pallet planning summary from footprint maintenance (`PRTFTP` / `PRTFTP_DTL`)
 - Bulk queue processing (mixed shipment and carrier move jobs)
 - Job persistence and resume for interrupted print runs
+- Dedicated `gui` Maven module for Swing workflows (separated from CLI command module)
 
 Not implemented yet:
 - `template`, `print-template`, `manual`, `replay` commands
@@ -243,6 +244,7 @@ wms-pallet-tag-system/
 |       `-- printer-routing.yaml
 |-- core/
 |-- db/
+|-- gui/
 |-- cli/
 |-- scripts/                      # Build and launcher helpers
 |-- analysis/                     # Internal analysis notes and DB dumps
