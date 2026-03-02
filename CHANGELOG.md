@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None.
 
 ### Changed
-- None.
+- Standardized Java source headers to use consistent copyright formatting.
+- Expanded Javadocs on CLI command entry points and newly added test/documentation surfaces.
 
 ### Deprecated
 - None.
