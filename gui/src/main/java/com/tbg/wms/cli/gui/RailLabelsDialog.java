@@ -25,7 +25,8 @@ public final class RailLabelsDialog extends JDialog {
     private final JTextField footprintCsvField = new JTextField(48);
     private final JTextField templateDocxField = new JTextField(48);
     private final JTextField outputDirField = new JTextField(48);
-    private final JCheckBox csvOverrideCheck = new JCheckBox("Use CSV override", true);
+    private final JCheckBox csvOverrideCheck =
+            new JCheckBox("Override WMS footprints with CSV where short codes match", false);
     private final JTextArea mergePreviewArea = new JTextArea();
     private final JTextArea diagnosticsArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");

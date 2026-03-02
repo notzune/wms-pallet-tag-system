@@ -3,7 +3,7 @@
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.5.1` (2026-03-02).
+Current release: `1.5.2` (2026-03-02).
 
 ## Current Scope
 
@@ -181,10 +181,27 @@ Output:
 
 Notes:
 
+- This CLI path is CSV-driven and is best used for offline/backfill runs.
+- For day-to-day rail operations, use GUI `Tools -> Rail Labels...` (WMS-first workflow).
 - Portrait is the default.
 - Landscape rotates barcode fields in ZPL (`^FWR` and rotated `^BC`) while keeping the printer in portrait mode (
   `^PON`).
 - Printer-level landscape must be configured on the device if true landscape output is required.
+
+## Rail Labels GUI Workflow
+
+- Open `gui`, then go to `Tools -> Rail Labels...`.
+- Enter train ID and click `Load Preview`.
+- System pulls rail rows from WMS and resolves footprints by short code from WMS first.
+- Optional CSV override can be enabled to replace WMS mappings for matching short codes.
+- Preview includes:
+- Merge-row output preview (template field view).
+- Detailed diagnostics (missing footprints, ambiguous WMS mappings, CSV conflicts, overflow beyond 13 item slots).
+- Click `Generate Artifacts` to produce:
+- `_TrainDetail.csv`
+- `rail-helper-summary.txt`
+- `Print-Merged.docx` / `Print-Merged.pdf` / `Print-Merged.prn` (when Word automation is available)
+- Default CSV path is prefilled from `~/Downloads/JC Labels v7 (Updated 1.5.21).csv` but is optional.
 
 ## GUI Workflow
 
@@ -200,6 +217,7 @@ Notes:
 - Shipment mode prints shipment labels and one shipment info tag.
 - Select `Print to file` from the printer dropdown to save ZPL under `out/` without printer I/O.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
+- Use `Tools -> Rail Labels...` for end-to-end rail merge generation from live WMS train data.
 - Barcode dialog now defaults to an operator-focused layout and moves low-level controls under `Advanced Settings...`.
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
 
