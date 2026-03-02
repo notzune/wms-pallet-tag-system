@@ -298,11 +298,79 @@ wms-pallet-tag-system/
 |       |-- printers.yaml
 |       `-- printer-routing.yaml
 |-- core/
+|   |-- pom.xml
+|   `-- src/
+|       |-- main/
+|       |   |-- java/com/tbg/wms/core/
+|       |   |   |-- AppConfig.java                  # env + runtime configuration loading
+|       |   |   |-- barcode/                        # barcode ZPL builders and barcode logic
+|       |   |   |-- db/                             # DB-related core abstractions/models
+|       |   |   |-- exception/                      # typed app exceptions + exit code mapping
+|       |   |   |-- label/                          # label data composition and label types
+|       |   |   |-- labeling/                       # label-domain helper services
+|       |   |   |-- location/                       # sold-to / location mapping services
+|       |   |   |-- model/                          # core domain models (Shipment, LPN, etc.)
+|       |   |   |-- print/                          # printer config, routing, network print
+|       |   |   |-- rail/                           # rail planners, CSV support, merge exporters
+|       |   |   |-- sku/                            # SKU matrix loading/mapping services
+|       |   |   `-- template/                       # template parsing/merge logic
+|       |   `-- resources/
+|       `-- test/
+|           `-- java/com/tbg/wms/core/              # unit tests by package area
 |-- db/
+|   |-- pom.xml
+|   `-- src/
+|       |-- main/java/com/tbg/wms/db/
+|       |   |-- DbConnectionPool.java               # Oracle/Hikari pool lifecycle
+|       |   |-- DbQueryRepository.java              # query contracts used by CLI/GUI
+|       |   `-- OracleDbQueryRepository.java        # WMS SQL implementations (shipment, carrier, rail)
+|       `-- test/java/com/tbg/wms/db/
 |-- gui/
+|   |-- pom.xml
+|   `-- src/
+|       |-- main/java/com/tbg/wms/cli/gui/
+|       |   |-- LabelGuiFrame.java                  # desktop shell and tool entrypoints
+|       |   |-- LabelWorkflowService.java           # shipment preview/print orchestration
+|       |   |-- AdvancedPrintWorkflowService.java   # carrier move / queue / resume orchestration
+|       |   |-- BarcodeDialogFactory.java           # barcode UI dialog wiring
+|       |   |-- TextFieldClipboardController.java   # terminal-like right-click behavior
+|       |   `-- rail/                               # rail GUI workflow package
+|       |       |-- RailLabelsDialog.java           # rail workflow dialog
+|       |       |-- RailWorkflowService.java        # WMS-first rail prep/diagnostics/orchestration
+|       |       `-- RailArtifactService.java        # DOCX/PDF/PRN automation helper
+|       `-- test/java/com/tbg/wms/cli/gui/
+|           |-- QueueInputParserTest.java
+|           `-- rail/
+|               `-- RailArtifactServiceTest.java
 |-- cli/
+|   |-- pom.xml
+|   `-- src/
+|       |-- main/java/com/tbg/wms/cli/
+|       |   |-- CliMain.java                        # CLI entrypoint
+|       |   `-- commands/
+|       |       |-- RootCommand.java                # top-level command registration
+|       |       |-- RunCommand.java                 # shipment/carrier print workflow command
+|       |       |-- BarcodeCommand.java             # barcode command
+|       |       |-- DbTestCommand.java              # DB diagnostics command
+|       |       |-- ShowConfigCommand.java          # resolved config command
+|       |       |-- GuiCommand.java                 # launches Swing GUI
+|       |       |-- VersionCommand.java             # version output
+|       |       |-- BuildVersionProvider.java       # build-filtered version provider
+|       |       `-- rail/
+|       |           `-- RailHelperCommand.java      # CSV-driven rail helper command
+|       |-- main/resources/
+|       |   `-- version.txt                         # filtered from Maven project.version
+|       `-- test/java/com/tbg/wms/cli/commands/
+|           `-- rail/
+|               `-- RailHelperCommandTest.java
 |-- scripts/                      # Build and launcher helpers
+|   |-- setup-wms-tags.ps1        # local install helper
+|   |-- build-portable-bundle.ps1 # portable package builder
+|   |-- run.bat                   # bundle launcher
+|   `-- wms-tags-gui.bat          # bundle GUI launcher
 |-- analysis/                     # Internal analysis notes and DB dumps
+|   |-- docs/
+|   `-- python-tools/
 |-- dist/                         # Generated portable bundles
 |-- logs/                         # Runtime logs
 `-- walmart_sku_matrix.csv
