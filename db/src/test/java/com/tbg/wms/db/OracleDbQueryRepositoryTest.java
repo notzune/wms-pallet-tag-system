@@ -9,6 +9,8 @@
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
+import com.tbg.wms.core.rail.RailFootprintCandidate;
+import com.tbg.wms.core.rail.RailStopRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +22,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -88,6 +92,18 @@ class OracleDbQueryRepositoryTest {
     }
 
     @Test
+    void testFindRailStopsByTrainIdRequiresTrainId() {
+        assertThrows(NullPointerException.class, () -> repository.findRailStopsByTrainId(null));
+        assertThrows(IllegalArgumentException.class, () -> repository.findRailStopsByTrainId(" "));
+    }
+
+    @Test
+    void testFindRailFootprintsByShortCodeRequiresNonNullList() {
+        assertThrows(NullPointerException.class, () -> repository.findRailFootprintsByShortCode(null));
+        assertEquals(Map.of(), repository.findRailFootprintsByShortCode(List.of("", "  ")));
+    }
+
+    @Test
     void testShipmentExistsWhenNoLpns() throws SQLException {
         when(mockDataSource.getConnection()).thenReturn(mockConnection);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
@@ -137,6 +153,58 @@ class OracleDbQueryRepositoryTest {
         String location = repository.getStagingLocation("SHIP999");
 
         assertNull(location, "Non-existent shipment should return null");
+    }
+
+    @Test
+    void testFindRailStopsByTrainIdMapsAndGroupsRows() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, true, false);
+        when(mockResultSet.wasNull()).thenReturn(false);
+
+        when(mockResultSet.getString("RUN_DATE")).thenReturn("03-02-26", "03-02-26");
+        when(mockResultSet.getInt("SEQ")).thenReturn(1, 1);
+        when(mockResultSet.getString("TRAIN_NBR")).thenReturn("0303", "0303");
+        when(mockResultSet.getString("DCS_WHSE")).thenReturn("3002", "3002");
+        when(mockResultSet.getString("LOAD_NBR")).thenReturn("LD100", "LD100");
+        when(mockResultSet.getString("VEHICLE_ID")).thenReturn("V100", "V100");
+        when(mockResultSet.getString("SHORT_CODE")).thenReturn("01831", "01830");
+        when(mockResultSet.getInt("TOTAL_CASES")).thenReturn(12, 30);
+
+        List<RailStopRecord> rows = repository.findRailStopsByTrainId("JC03032026");
+
+        assertEquals(1, rows.size());
+        RailStopRecord row = rows.get(0);
+        assertEquals("0303", row.getTrainNumber());
+        assertEquals("LD100", row.getLoadNumber());
+        assertEquals(2, row.getItems().size());
+        assertEquals("01830", row.getItems().get(0).getItemNumber());
+        assertEquals("01831", row.getItems().get(1).getItemNumber());
+    }
+
+    @Test
+    void testFindRailFootprintsByShortCodeMapsCandidates() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, true, false);
+        when(mockResultSet.wasNull()).thenReturn(false);
+
+        when(mockResultSet.getString("SHORT_CODE")).thenReturn("01830", "01830");
+        when(mockResultSet.getString("ITEM_NBR")).thenReturn("ITEMB", "ITEMA");
+        when(mockResultSet.getString("PRTFAM")).thenReturn("Domestic", "Domestic");
+        when(mockResultSet.getInt("UC_PARS_FLG")).thenReturn(0, 0);
+        when(mockResultSet.getInt("UNITS_PER_PALLET")).thenReturn(70, 56);
+
+        Map<String, List<RailFootprintCandidate>> byShortCode =
+                repository.findRailFootprintsByShortCode(List.of("01830"));
+
+        assertEquals(1, byShortCode.size());
+        List<RailFootprintCandidate> candidates = byShortCode.get("01830");
+        assertEquals(2, candidates.size());
+        assertEquals("ITEMA", candidates.get(0).getItemNumber());
+        assertEquals("ITEMB", candidates.get(1).getItemNumber());
     }
 
     @Test
