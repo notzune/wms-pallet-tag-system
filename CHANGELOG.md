@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- None.
+- New `rail-helper` CLI command to replace brittle Excel macro math with deterministic item-footprint planning.
+- New rail planning/export core package (`com.tbg.wms.core.rail`) for reusable family-percentage calculations and `_TrainDetail.csv` output.
+- Unit tests covering rail family percentage math and missing-footprint handling.
 
 ### Changed
-- None.
+- Updated README with rail-helper usage, options, and merge-output details.
+- Updated `.gitignore` to exclude imported VBA macro and Word template artifacts used for analysis.
 
 ### Deprecated
 - None.

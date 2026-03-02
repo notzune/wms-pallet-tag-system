@@ -40,6 +40,7 @@ import java.util.concurrent.Callable;
                 ShowConfigCommand.class,
                 DbTestCommand.class,
                 RunCommand.class,
+                RailHelperCommand.class,
                 GuiCommand.class,
                 BarcodeCommand.class,
                 VersionCommand.class

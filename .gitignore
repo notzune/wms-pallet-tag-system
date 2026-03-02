@@ -55,3 +55,9 @@ core/logs/wms-tags.log
 db/logs/wms-tags.log
 .ai/
 **/wms-tags.log
+
+### Rail macro/template artifacts ###
+m_*.bas
+Print .docx
+out/docx_inspect/
+out/Print.docx

@@ -13,6 +13,7 @@ Implemented and supported:
 - `run` command (shipment or carrier-move label generation and printing)
 - `gui` command (desktop workflow with shipment/carrier-move preview and confirm-print)
 - `barcode` command (standalone barcode ZPL generation and optional printing)
+- `rail-helper` command (rail office merge CSV generation from item footprint data)
 - Oracle read-only access
 - Printer routing via site YAML
 - Walmart SKU matrix lookup for Walmart item field
@@ -59,6 +60,7 @@ java -jar cli/target/cli-*.jar config
 java -jar cli/target/cli-*.jar db-test
 java -jar cli/target/cli-*.jar run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar run --carrier-move-id <CMID> --dry-run --output-dir out/
+java -jar cli/target/cli-*.jar rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
 java -jar cli/target/cli-*.jar gui
 ```
 
@@ -79,6 +81,7 @@ run.bat config
 run.bat db-test
 run.bat run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 run.bat run --carrier-move-id <CMID> --dry-run --output-dir out/
+run.bat rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
 ```
 
 On Linux/macOS:
@@ -149,6 +152,23 @@ Options:
 - `--dry-run` (skip printing)
 - `--printer <ID>` (required unless `--dry-run`)
 - `--print-to-file` or `--ptf` (write ZPL to `/out` next to the JAR and skip printing)
+
+## Rail Helper Command
+
+```bash
+java -jar cli/target/cli-*.jar rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> [OPTIONS]
+```
+
+Options:
+- `--input-csv <FILE>` (required): rail rows with metadata and `ITEM_NBR*` / `TOTAL_CS_ITM*` columns
+- `--item-footprint-csv <FILE>` (required): item-to-family footprint lookup
+- `--output-dir <DIR>` (default `out/rail-helper`)
+- `--template-docx <FILE>` (optional): copy Word template beside generated CSV
+- `--train-id <ID>` (optional): export only one train
+
+Output:
+- `_TrainDetail.csv` (Word merge-ready columns used by `Print .docx`)
+- `rail-helper-summary.txt` (missing-footprint diagnostics and run summary)
 
 Notes:
 - Portrait is the default.
