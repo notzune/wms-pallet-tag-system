@@ -5,7 +5,7 @@
  * @email zeyad.rashed@tropicana.com
  * @since 1.5.0
  */
-package com.tbg.wms.cli.commands;
+package com.tbg.wms.cli.commands.rail;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

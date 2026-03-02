@@ -8,6 +8,7 @@
 
 package com.tbg.wms.cli.gui;
 
+import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.print.PrinterConfig;
 

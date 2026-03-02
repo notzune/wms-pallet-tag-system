@@ -5,7 +5,7 @@
  * @email zeyad.rashed@tropicana.com
  * @since 1.5.2
  */
-package com.tbg.wms.cli.gui;
+package com.tbg.wms.cli.gui.rail;
 
 import org.junit.jupiter.api.Test;
 

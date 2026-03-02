@@ -8,6 +8,7 @@
 
 package com.tbg.wms.cli.commands;
 
+import com.tbg.wms.cli.commands.rail.RailHelperCommand;
 import com.tbg.wms.core.AppConfig;
 import picocli.CommandLine.Command;
 

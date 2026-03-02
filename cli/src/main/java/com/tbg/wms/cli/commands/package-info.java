@@ -8,7 +8,7 @@
  * <ul>
  *   <li>{@link com.tbg.wms.cli.commands.RootCommand} - root Picocli command and common wiring.</li>
  *   <li>{@link com.tbg.wms.cli.commands.RunCommand} - shipment/carrier-move label generation and printing.</li>
- *   <li>{@link com.tbg.wms.cli.commands.RailHelperCommand} - rail-office merge CSV generation with footprint math.</li>
+ *   <li>{@link com.tbg.wms.cli.commands.rail.RailHelperCommand} - rail-office merge CSV generation with footprint math.</li>
  *   <li>{@link com.tbg.wms.cli.commands.GuiCommand} - desktop GUI launcher command.</li>
  *   <li>{@link com.tbg.wms.cli.commands.DbTestCommand} - database connectivity diagnostics.</li>
  *   <li>{@link com.tbg.wms.cli.commands.ShowConfigCommand} - effective configuration inspection.</li>

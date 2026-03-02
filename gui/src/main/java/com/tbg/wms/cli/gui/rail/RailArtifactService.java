@@ -5,7 +5,7 @@
  * @email zeyad.rashed@tropicana.com
  * @since 1.5.1
  */
-package com.tbg.wms.cli.gui;
+package com.tbg.wms.cli.gui.rail;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

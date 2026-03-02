@@ -5,7 +5,7 @@
  * @email zeyad.rashed@tropicana.com
  * @since 1.5.0
  */
-package com.tbg.wms.cli.commands;
+package com.tbg.wms.cli.commands.rail;
 
 import com.tbg.wms.core.rail.RailFamilyFootprint;
 import com.tbg.wms.core.rail.RailCsvSupport;
