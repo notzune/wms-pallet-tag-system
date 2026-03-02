@@ -11,6 +11,6 @@
  *   <li>{@link com.tbg.wms.core.exception.WmsPrintException} - printer routing and transport failures.</li>
  * </ul>
  *
- * @since 1.3.1
+ * @since 1.3.2
  */
 package com.tbg.wms.core.exception;

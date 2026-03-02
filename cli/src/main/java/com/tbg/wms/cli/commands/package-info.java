@@ -15,6 +15,6 @@
  *   <li>{@link com.tbg.wms.cli.commands.VersionCommand} - application version output.</li>
  * </ul>
  *
- * @since 1.3.1
+ * @since 1.3.2
  */
 package com.tbg.wms.cli.commands;

@@ -3,7 +3,7 @@
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.3.1` (2026-02-27).
+Current release: `1.3.2` (2026-03-02).
 
 ## Current Scope
 
@@ -137,11 +137,11 @@ Options:
 - `--orientation PORTRAIT|LANDSCAPE` (default `PORTRAIT`)
 - `--label-width-dots <N>` (default `812`)
 - `--label-height-dots <N>` (default `1218`)
-- `--origin-x <N>` (default `40`)
-- `--origin-y <N>` (default `40`)
-- `--module-width <N>` (default `2`)
+- `--origin-x <N>` (default `60`)
+- `--origin-y <N>` (default `60`)
+- `--module-width <N>` (default `3`)
 - `--module-ratio <N>` (default `3`)
-- `--barcode-height <N>` (default `120`)
+- `--barcode-height <N>` (default `220`)
 - `--human-readable <true|false>` (default `true`)
 - `--copies <N>` (default `1`)
 - `--output-dir <DIR>` (default `./barcodes`)
@@ -167,6 +167,7 @@ Notes:
 - Shipment mode prints shipment labels and one shipment info tag.
 - Select `Print to file` from the printer dropdown to save ZPL under `out/` without printer I/O.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
+- Barcode dialog now defaults to an operator-focused layout and moves low-level controls under `Advanced Settings...`.
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
 
 ## Walmart SKU Behavior

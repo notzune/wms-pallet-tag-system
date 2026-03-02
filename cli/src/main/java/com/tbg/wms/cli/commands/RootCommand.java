@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -22,20 +22,20 @@ import java.util.concurrent.Callable;
  *
  * <p>Exit codes:</p>
  * <ul>
- *   <li>0 – Success</li>
- *   <li>2 – User input/configuration error</li>
- *   <li>3 – Database connectivity error</li>
- *   <li>4 – Database query/data error</li>
- *   <li>5 – Validation error</li>
- *   <li>6 – Print/network error</li>
- *   <li>10 – Unexpected internal error</li>
+ *   <li>0 - Success</li>
+ *   <li>2 - User input/configuration error</li>
+ *   <li>3 - Database connectivity error</li>
+ *   <li>4 - Database query/data error</li>
+ *   <li>5 - Validation error</li>
+ *   <li>6 - Print/network error</li>
+ *   <li>10 - Unexpected internal error</li>
  * </ul>
  */
 @Command(
         name = "wms-tags",
         mixinStandardHelpOptions = true,
-        version = "1.3.1",
-        description = "WMS Pallet Tag System – Generate and print shipping labels from WMS data",
+        version = "1.3.2",
+        description = "WMS Pallet Tag System - Generate and print shipping labels from WMS data",
         subcommands = {
                 ShowConfigCommand.class,
                 DbTestCommand.class,

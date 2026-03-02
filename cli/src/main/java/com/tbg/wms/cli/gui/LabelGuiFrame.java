@@ -72,6 +72,13 @@ public final class LabelGuiFrame extends JFrame {
     private static final int MAX_PREVIEW_STOPS = 250;
     private static final int MAX_PREVIEW_SHIPMENTS_PER_STOP = 250;
     private static final int MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT = 1000;
+    private static final int BARCODE_DEFAULT_LABEL_WIDTH_DOTS = 812;
+    private static final int BARCODE_DEFAULT_LABEL_HEIGHT_DOTS = 1218;
+    private static final int BARCODE_DEFAULT_ORIGIN_X = 60;
+    private static final int BARCODE_DEFAULT_ORIGIN_Y = 60;
+    private static final int BARCODE_DEFAULT_MODULE_WIDTH = 3;
+    private static final int BARCODE_DEFAULT_MODULE_RATIO = 3;
+    private static final int BARCODE_DEFAULT_HEIGHT = 220;
     private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
     private final long rightClickCooldownMs = resolveRightClickCooldownMs();
     private final transient Map<JTextComponent, Long> lastRightClickClipboardActionMs = new WeakHashMap<>();
@@ -1020,17 +1027,20 @@ public final class LabelGuiFrame extends JFrame {
         JTextField dataField = new JTextField(24);
         JComboBox<Symbology> typeCombo = new JComboBox<>(Symbology.values());
         JComboBox<Orientation> orientationCombo = new JComboBox<>(Orientation.values());
-        JSpinner labelWidth = new JSpinner(new SpinnerNumberModel(812, 1, 10000, 1));
-        JSpinner labelHeight = new JSpinner(new SpinnerNumberModel(1218, 1, 20000, 1));
-        JSpinner originX = new JSpinner(new SpinnerNumberModel(40, 0, 10000, 1));
-        JSpinner originY = new JSpinner(new SpinnerNumberModel(40, 0, 10000, 1));
-        JSpinner moduleWidth = new JSpinner(new SpinnerNumberModel(2, 1, 20, 1));
-        JSpinner moduleRatio = new JSpinner(new SpinnerNumberModel(3, 1, 10, 1));
-        JSpinner barcodeHeight = new JSpinner(new SpinnerNumberModel(120, 1, 2000, 1));
+        JSpinner labelWidth = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_LABEL_WIDTH_DOTS, 1, 10000, 1));
+        JSpinner labelHeight = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_LABEL_HEIGHT_DOTS, 1, 20000, 1));
+        JSpinner originX = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_ORIGIN_X, 0, 10000, 1));
+        JSpinner originY = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_ORIGIN_Y, 0, 10000, 1));
+        JSpinner moduleWidth = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_MODULE_WIDTH, 1, 20, 1));
+        JSpinner moduleRatio = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_MODULE_RATIO, 1, 10, 1));
+        JSpinner barcodeHeight = new JSpinner(new SpinnerNumberModel(BARCODE_DEFAULT_HEIGHT, 1, 2000, 1));
         JCheckBox humanReadable = new JCheckBox("Human readable", true);
         JSpinner copies = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
         JTextField outputDir = new JTextField(defaultPrintToFileOutputDir().toString());
         outputDir.setColumns(40);
+        JTextField scannerProfile = new JTextField("Honeywell Granit 1980i / THOR VM1A optimized preset");
+        scannerProfile.setEditable(false);
+        scannerProfile.setFocusable(false);
         installTerminalLikeMouseClipboardBehavior(dataField, outputDir);
         JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
         printerSelect.setModel(buildPrintTargetModel(true));
@@ -1038,39 +1048,76 @@ public final class LabelGuiFrame extends JFrame {
         int row = 0;
         addFormRow(form, gbc, row++, "Data", dataField);
         addFormRow(form, gbc, row++, "Type", typeCombo);
-        addFormRow(form, gbc, row++, "Orientation", orientationCombo);
-        addFormRow(form, gbc, row++, "Label Width (dots)", labelWidth);
-        addFormRow(form, gbc, row++, "Label Height (dots)", labelHeight);
-        addFormRow(form, gbc, row++, "Origin X", originX);
-        addFormRow(form, gbc, row++, "Origin Y", originY);
-        addFormRow(form, gbc, row++, "Module Width", moduleWidth);
-        addFormRow(form, gbc, row++, "Module Ratio", moduleRatio);
-        addFormRow(form, gbc, row++, "Barcode Height", barcodeHeight);
         addFormRow(form, gbc, row++, "Copies", copies);
-        JLabel outputDirLabel = addFormRow(form, gbc, row++, "Output Dir", outputDir);
+        addFormRow(form, gbc, row++, "Scanner Profile", scannerProfile);
         addFormRow(form, gbc, row++, "Printer", printerSelect);
-
-        gbc.gridx = 1;
-        gbc.gridy = row;
-        gbc.gridwidth = 2;
-        form.add(humanReadable, gbc);
 
         Runnable syncOutputState = () -> {
             LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
             boolean printToFile = isPrintToFileSelected(selected);
             outputDir.setEnabled(printToFile);
             outputDir.setEditable(printToFile);
-            outputDirLabel.setEnabled(printToFile);
         };
         printerSelect.addActionListener(e -> syncOutputState.run());
         syncOutputState.run();
 
+        JButton advancedButton = new JButton("Advanced Settings...");
         JButton generateButton = new JButton("Generate");
         JButton closeButton = new JButton("Close");
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttons.add(advancedButton);
         buttons.add(generateButton);
         buttons.add(closeButton);
+
+        advancedButton.addActionListener(e -> {
+            JDialog advancedDialog = new JDialog(dialog, "Advanced Barcode Settings", Dialog.ModalityType.APPLICATION_MODAL);
+            advancedDialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            advancedDialog.setLayout(new BorderLayout(8, 8));
+
+            JPanel advancedForm = new JPanel(new GridBagLayout());
+            GridBagConstraints advancedGbc = new GridBagConstraints();
+            advancedGbc.insets = new Insets(6, 6, 6, 6);
+            advancedGbc.anchor = GridBagConstraints.WEST;
+            advancedGbc.fill = GridBagConstraints.HORIZONTAL;
+
+            int advancedRow = 0;
+            addFormRow(advancedForm, advancedGbc, advancedRow++, "Orientation", orientationCombo);
+            addFormRow(advancedForm, advancedGbc, advancedRow++, "Label Width (dots)", labelWidth);
+            addFormRow(advancedForm, advancedGbc, advancedRow++, "Label Height (dots)", labelHeight);
+            addFormRow(advancedForm, advancedGbc, advancedRow++, "Origin X", originX);
+            addFormRow(advancedForm, advancedGbc, advancedRow++, "Origin Y", originY);
+            addFormRow(advancedForm, advancedGbc, advancedRow++, "Module Width", moduleWidth);
+            addFormRow(advancedForm, advancedGbc, advancedRow++, "Module Ratio", moduleRatio);
+            addFormRow(advancedForm, advancedGbc, advancedRow++, "Barcode Height", barcodeHeight);
+            JLabel outputDirLabel = addFormRow(advancedForm, advancedGbc, advancedRow++, "Output Dir", outputDir);
+
+            advancedGbc.gridx = 1;
+            advancedGbc.gridy = advancedRow;
+            advancedGbc.gridwidth = 2;
+            advancedForm.add(humanReadable, advancedGbc);
+
+            Runnable syncAdvancedOutputState = () -> {
+                LabelWorkflowService.PrinterOption selected =
+                        (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
+                boolean printToFile = isPrintToFileSelected(selected);
+                outputDir.setEnabled(printToFile);
+                outputDir.setEditable(printToFile);
+                outputDirLabel.setEnabled(printToFile);
+            };
+            syncAdvancedOutputState.run();
+
+            JPanel advancedButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton closeAdvanced = new JButton("Done");
+            closeAdvanced.addActionListener(x -> advancedDialog.dispose());
+            advancedButtons.add(closeAdvanced);
+
+            advancedDialog.add(advancedForm, BorderLayout.CENTER);
+            advancedDialog.add(advancedButtons, BorderLayout.SOUTH);
+            advancedDialog.pack();
+            advancedDialog.setLocationRelativeTo(dialog);
+            advancedDialog.setVisible(true);
+        });
 
         generateButton.addActionListener(e -> {
             String data = dataField.getText().trim();

@@ -82,22 +82,22 @@ public final class BarcodeCommand implements Callable<Integer> {
 
     @Option(
             names = {"--origin-x"},
-            defaultValue = "40",
-            description = "X origin in dots."
+            defaultValue = "60",
+            description = "X origin in dots (recommended: 60 for scanner quiet-zone margin)."
     )
     private int originX;
 
     @Option(
             names = {"--origin-y"},
-            defaultValue = "40",
-            description = "Y origin in dots."
+            defaultValue = "60",
+            description = "Y origin in dots (recommended: 60 for scanner quiet-zone margin)."
     )
     private int originY;
 
     @Option(
             names = {"--module-width"},
-            defaultValue = "2",
-            description = "Barcode module width."
+            defaultValue = "3",
+            description = "Barcode module width (recommended: 3 for long-range scanner reliability)."
     )
     private int moduleWidth;
 
@@ -110,8 +110,8 @@ public final class BarcodeCommand implements Callable<Integer> {
 
     @Option(
             names = {"--barcode-height"},
-            defaultValue = "120",
-            description = "Barcode height in dots."
+            defaultValue = "220",
+            description = "Barcode height in dots (recommended: 220 for long-range scanner reliability)."
     )
     private int barcodeHeight;
 

@@ -24,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None.
 
+## [1.3.2] - 2026-03-02
+### Added
+- Streamlined GUI barcode dialog with a new `Advanced Settings...` button that contains low-level layout/symbology controls.
+- Scanner profile hint in barcode UI indicating Honeywell Granit 1980i / THOR VM1A optimized defaults.
+
+### Changed
+- Project/version metadata updated to `1.3.2` across Maven modules, CLI version, README, and setup/bundle scripts.
+- Barcode generation defaults tuned for scanner reliability: `origin-x=60`, `origin-y=60`, `module-width=3`, `barcode-height=220`.
+
+### Fixed
+- None.
+
 ## [1.3.1] - 2026-02-27
 ### Added
 - Configurable GUI right-click clipboard cooldown via `RIGHT_CLICK_COOLDOWN_MS` (with legacy env var fallback support).
