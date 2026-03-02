@@ -137,10 +137,10 @@ public final class RailWorkflowService {
             if (headerLine == null) {
                 return CsvFootprintLoad.empty();
             }
-            List<String> headers = parseCsvLine(headerLine);
+            List<String> headers = RailCsvSupport.parseCsvLine(headerLine);
             Map<String, Integer> headerIndex = new LinkedHashMap<>();
             for (int i = 0; i < headers.size(); i++) {
-                headerIndex.put(normalizeHeader(headers.get(i)), i);
+                headerIndex.put(RailCsvSupport.normalizeHeader(headers.get(i)), i);
             }
 
             int shortCodeCol = findColumn(headerIndex, "SHORTCODE", "UPC", "ALTPRTNUM");
@@ -155,7 +155,7 @@ public final class RailWorkflowService {
                 if (line.isBlank()) {
                     continue;
                 }
-                List<String> values = parseCsvLine(line);
+                List<String> values = RailCsvSupport.parseCsvLine(line);
                 String shortCode = at(values, shortCodeCol);
                 String family = at(values, familyCol);
                 int cases = parseInt(at(values, casesCol));
@@ -206,39 +206,6 @@ public final class RailWorkflowService {
             }
         }
         return -1;
-    }
-
-    private static String normalizeHeader(String header) {
-        if (header == null) {
-            return "";
-        }
-        return header.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
-    }
-
-    private static List<String> parseCsvLine(String line) {
-        List<String> values = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (ch == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    current.append('"');
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-                continue;
-            }
-            if (ch == ',' && !inQuotes) {
-                values.add(current.toString());
-                current.setLength(0);
-                continue;
-            }
-            current.append(ch);
-        }
-        values.add(current.toString());
-        return values;
     }
 
     private static String nonBlank(String... values) {

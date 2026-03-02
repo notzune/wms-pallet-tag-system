@@ -8,6 +8,7 @@
 package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.core.rail.RailFamilyFootprint;
+import com.tbg.wms.core.rail.RailCsvSupport;
 import com.tbg.wms.core.rail.RailLabelPlanner;
 import com.tbg.wms.core.rail.RailStopRecord;
 import com.tbg.wms.core.rail.RailTrainDetailExporter;
@@ -53,19 +54,12 @@ public final class RailHelperCommand implements Callable<Integer> {
 
     private static String raw(Map<String, String> row, String... keys) {
         for (String key : keys) {
-            String value = row.get(normalizeHeader(key));
+            String value = row.get(RailCsvSupport.normalizeHeader(key));
             if (value != null) {
                 return value;
             }
         }
         return "";
-    }
-
-    private static String normalizeHeader(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
     }
 
     private static String normalize(String value) {
@@ -242,7 +236,7 @@ public final class RailHelperCommand implements Callable<Integer> {
             List<String> headers = parseCsvLine(firstLine);
             normalizedHeaders = new ArrayList<>(headers.size());
             for (String header : headers) {
-                normalizedHeaders.add(normalizeHeader(header));
+                normalizedHeaders.add(RailCsvSupport.normalizeHeader(header));
             }
 
             String line;
@@ -263,29 +257,7 @@ public final class RailHelperCommand implements Callable<Integer> {
     }
 
     private List<String> parseCsvLine(String line) {
-        List<String> values = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (ch == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    current.append('"');
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-                continue;
-            }
-            if (ch == ',' && !inQuotes) {
-                values.add(current.toString());
-                current.setLength(0);
-            } else {
-                current.append(ch);
-            }
-        }
-        values.add(current.toString());
-        return values;
+        return RailCsvSupport.parseCsvLine(line);
     }
 
     @FunctionalInterface
