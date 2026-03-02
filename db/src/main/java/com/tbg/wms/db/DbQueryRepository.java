@@ -8,11 +8,14 @@
 
 package com.tbg.wms.db;
 
+import com.tbg.wms.core.rail.RailFootprintCandidate;
+import com.tbg.wms.core.rail.RailStopRecord;
 import com.tbg.wms.core.model.ShipmentSkuFootprint;
 import com.tbg.wms.core.model.Shipment;
 import com.tbg.wms.core.model.CarrierMoveStopRef;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Repository interface for querying WMS data from Oracle database.
@@ -86,6 +89,25 @@ public interface DbQueryRepository {
      * @return stop-mapped shipment rows for the carrier move
      */
     List<CarrierMoveStopRef> findCarrierMoveStops(String carrierMoveId);
+
+    /**
+     * Resolves train/load rows for rail label generation from live WMS rail receive tables.
+     *
+     * @param trainId full train ID (example: JC03032026)
+     * @return flattened rail stop rows with short-code items
+     */
+    List<RailStopRecord> findRailStopsByTrainId(String trainId);
+
+    /**
+     * Resolves WMS footprint candidates keyed by short code.
+     *
+     * <p>Some short codes may map to multiple item numbers; callers are expected to
+     * apply deterministic conflict handling and diagnostics.</p>
+     *
+     * @param shortCodes short code values from rail rows
+     * @return map of short code to candidate rows
+     */
+    Map<String, List<RailFootprintCandidate>> findRailFootprintsByShortCode(List<String> shortCodes);
 
     /**
      * Closes the repository and releases any resources.
