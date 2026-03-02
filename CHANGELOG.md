@@ -32,6 +32,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None.
 
+## [1.5.2] - 2026-03-02
+
+### Added
+
+- Shared rail CSV helper utility (`RailCsvSupport`) to centralize header normalization and CSV parsing behavior.
+- Unit tests for rail CSV helper, rail DB query methods, and rail artifact template-missing behavior.
+- Build-time CLI version provider wired to filtered `version.txt` metadata instead of hardcoded command annotation text.
+
+### Changed
+
+- README rail documentation expanded with an explicit end-to-end GUI rail workflow (WMS-first with optional CSV
+  override).
+- GUI Rail Labels dialog now defaults CSV override to off and labels the control as an explicit WMS override.
+- Portable build/setup scripts now resolve the latest built CLI jar automatically instead of hardcoded jar filenames.
+- Portable build script Java resolution now prefers real Java homes (including `JAVA_HOME`) before Oracle `javapath`
+  shims.
+- Project metadata/version updated to `1.5.2` across Maven modules and release documentation.
+
+### Fixed
+
+- Git hygiene improved by ignoring rotated and temporary `wms-tags` log variants.
+
 ## [1.5.1] - 2026-03-02
 
 ### Added
