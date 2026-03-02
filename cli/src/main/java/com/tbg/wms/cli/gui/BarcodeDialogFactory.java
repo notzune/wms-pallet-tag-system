@@ -44,16 +44,51 @@ import java.util.regex.Pattern;
 
 /**
  * Factory that creates and displays the barcode generator dialog.
+ *
+ * <p>This type encapsulates all barcode-dialog widget construction and action handlers so
+ * {@link LabelGuiFrame} remains focused on top-level workflow orchestration.</p>
  */
 final class BarcodeDialogFactory {
 
+    /**
+     * Abstraction boundary for dependencies required by barcode dialog behavior.
+     *
+     * <p>Implemented by the frame so dialog logic does not directly depend on frame internals.</p>
+     */
     interface Dependencies {
+        /**
+         * Creates a printer model for barcode print target selection.
+         */
         DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption);
+
+        /**
+         * Checks whether the selected printer option routes output to file.
+         */
         boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected);
+
+        /**
+         * Returns the default print-to-file output directory.
+         */
         Path defaultPrintToFileOutputDir();
+
+        /**
+         * Installs terminal-like clipboard behavior on given text fields.
+         */
         void installClipboardBehavior(JTextComponent... fields);
+
+        /**
+         * Displays an error to the user.
+         */
         void showError(String message);
+
+        /**
+         * Extracts the deepest, most useful message from an exception chain.
+         */
         String rootMessage(Throwable throwable);
+
+        /**
+         * Resolves a printer configuration by ID.
+         */
         PrinterConfig resolvePrinter(String printerId) throws Exception;
     }
 
@@ -74,6 +109,11 @@ final class BarcodeDialogFactory {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies cannot be null");
     }
 
+    /**
+     * Builds and shows the barcode generator modal dialog.
+     *
+     * @param owner parent frame
+     */
     void open(JFrame owner) {
         Objects.requireNonNull(owner, "owner cannot be null");
         JDialog dialog = new JDialog(owner, "Barcode Generator", Dialog.ModalityType.APPLICATION_MODAL);

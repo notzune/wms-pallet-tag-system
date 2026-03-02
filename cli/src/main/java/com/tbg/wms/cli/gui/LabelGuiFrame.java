@@ -28,7 +28,11 @@ import java.util.Objects;
 import java.util.prefs.Preferences;
 
 /**
- * Swing-based GUI for shipment preview and label printing.
+ * Swing desktop GUI for shipment/carrier preview and print workflows.
+ *
+ * <p>This frame coordinates high-level user interactions and delegates focused behaviors
+ * (for example barcode-dialog rendering and text-field clipboard policy) to dedicated helpers
+ * to keep responsibilities separated.</p>
  */
 public final class LabelGuiFrame extends JFrame {
     private static final long serialVersionUID = 1L;

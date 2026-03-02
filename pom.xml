@@ -9,6 +9,12 @@
   <packaging>pom</packaging>
 
   <name>WMS Pallet Tag System</name>
+  <developers>
+    <developer>
+      <name>Zeyad Rashed</name>
+      <email>zeyad.rashed@tropicana.com</email>
+    </developer>
+  </developers>
 
   <modules>
     <module>core</module>

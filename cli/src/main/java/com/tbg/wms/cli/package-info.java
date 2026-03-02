@@ -8,6 +8,7 @@
  * <ul>
  *   <li>{@link com.tbg.wms.cli.CliMain} - application bootstrap and Picocli startup.</li>
  *   <li>{@link com.tbg.wms.cli.commands.RootCommand} - top-level command registration and shared config access.</li>
+ *   <li>{@link com.tbg.wms.cli.gui.LabelGuiFrame} - desktop GUI entry frame for interactive workflows.</li>
  * </ul>
  *
  * @since 1.3.2

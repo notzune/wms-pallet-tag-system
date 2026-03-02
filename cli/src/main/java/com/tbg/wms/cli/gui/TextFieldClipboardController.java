@@ -36,6 +36,11 @@ final class TextFieldClipboardController {
         this.lastRightClickClipboardActionMs = new WeakHashMap<>();
     }
 
+    /**
+     * Installs clipboard behavior on provided text components.
+     *
+     * @param fields text components to bind
+     */
     void install(JTextComponent... fields) {
         for (JTextComponent field : fields) {
             if (field == null) {
