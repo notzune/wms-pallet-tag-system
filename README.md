@@ -1,5 +1,11 @@
 # WMS Pallet Tag System
 
+[![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
+[![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
+![Version](https://img.shields.io/badge/version-1.5.2-blue)
+![Java](https://img.shields.io/badge/java-11%2B-orange)
+![License](https://img.shields.io/badge/license-Custom-green)
+
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
