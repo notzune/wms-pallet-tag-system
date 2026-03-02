@@ -9,8 +9,38 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Get-JavaInfo {
+    $javaCandidates = New-Object System.Collections.Generic.List[string]
+
+    if ($env:JAVA_HOME) {
+        $javaFromEnv = Join-Path $env:JAVA_HOME "bin\java.exe"
+        if (Test-Path -LiteralPath $javaFromEnv) {
+            [void]$javaCandidates.Add($javaFromEnv)
+        }
+    }
+
     $cmd = Get-Command java -ErrorAction SilentlyContinue
-    if (-not $cmd) {
+    if ($cmd -and $cmd.Source -and (Test-Path -LiteralPath $cmd.Source)) {
+        [void]$javaCandidates.Add($cmd.Source)
+    }
+
+    $whereJava = (& where.exe java 2>$null)
+    if ($whereJava) {
+        foreach ($candidate in $whereJava) {
+            if (Test-Path -LiteralPath $candidate) {
+                [void]$javaCandidates.Add($candidate)
+            }
+        }
+    }
+
+    $ordered = $javaCandidates |
+        Select-Object -Unique |
+        Where-Object { $_ -notlike "*\Common Files\Oracle\Java\javapath\java.exe" }
+
+    if (-not $ordered) {
+        $ordered = $javaCandidates | Select-Object -Unique
+    }
+
+    if (-not $ordered) {
         return [pscustomobject]@{
             Exists       = $false
             Version      = $null
@@ -20,11 +50,19 @@ function Get-JavaInfo {
         }
     }
 
-    $javaExe = $cmd.Source
+    $javaExe = $ordered[0]
+    $javaHome = Split-Path -Parent (Split-Path -Parent $javaExe)
+    if (-not (Test-Path -LiteralPath (Join-Path $javaHome "bin\java.exe"))) {
+        if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME "bin\java.exe"))) {
+            $javaHome = $env:JAVA_HOME
+            $javaExe = Join-Path $javaHome "bin\java.exe"
+        }
+    }
+
     $prevErrorAction = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $versionOutput = (& java --version 2>&1) | Out-String
+        $versionOutput = (& $javaExe --version 2>&1) | Out-String
     } catch {
         $versionOutput = ""
     }
@@ -32,7 +70,7 @@ function Get-JavaInfo {
     if (-not $versionOutput.Trim()) {
         $prevErrorAction = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
-        $versionOutput = (& java -version 2>&1) | Out-String
+        $versionOutput = (& $javaExe -version 2>&1) | Out-String
         $ErrorActionPreference = $prevErrorAction
     }
 
@@ -47,7 +85,7 @@ function Get-JavaInfo {
             Version      = $versionOutput.Trim()
             Major        = $null
             JavaExePath  = $javaExe
-            JavaHomePath = Split-Path -Parent (Split-Path -Parent $javaExe)
+            JavaHomePath = $javaHome
         }
     }
 
@@ -58,7 +96,7 @@ function Get-JavaInfo {
         Version      = $versionText
         Major        = $major
         JavaExePath  = $javaExe
-        JavaHomePath = Split-Path -Parent (Split-Path -Parent $javaExe)
+        JavaHomePath = $javaHome
     }
 }
 
@@ -72,7 +110,13 @@ if (-not $BundleDir) {
 }
 
 if (-not $JarPath) {
-    $JarPath = Join-Path $SourceRoot "cli\target\cli-1.5.1.jar"
+    $jarCandidate = Get-ChildItem -Path (Join-Path $SourceRoot "cli\target") -Filter "cli-*.jar" -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notlike "*original*" -and $_.Name -notlike "*shaded*" } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+    if ($jarCandidate) {
+        $JarPath = $jarCandidate.FullName
+    }
 }
 
 if (-not (Test-Path -LiteralPath $JarPath)) {

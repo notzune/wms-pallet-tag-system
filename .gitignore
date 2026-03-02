@@ -55,6 +55,9 @@ core/logs/wms-tags.log
 db/logs/wms-tags.log
 .ai/
 **/wms-tags.log
+**/wms-tags-*.log
+**/wms-tags-*.log.gz
+**/wms-tags-*.tmp
 
 ### Rail macro/template artifacts ###
 m_*.bas

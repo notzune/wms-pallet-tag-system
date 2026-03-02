@@ -83,19 +83,14 @@ if (-not (Test-Path -LiteralPath $SourceRoot)) {
 }
 
 if (-not $JarPath) {
-    $jarCandidate = Join-Path $SourceRoot "cli\target\cli-1.5.1.jar"
-    if (Test-Path -LiteralPath $jarCandidate) {
-        $JarPath = $jarCandidate
-    } else {
-        $fallback = Get-ChildItem -Path (Join-Path $SourceRoot "cli\target") -Filter "cli-*.jar" -File |
-            Where-Object { $_.Name -notlike "*original*" -and $_.Name -notlike "*shaded*" } |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-        if (-not $fallback) {
-            throw "No CLI jar found. Build first with .\mvnw.cmd -DskipTests package"
-        }
-        $JarPath = $fallback.FullName
+    $jarCandidate = Get-ChildItem -Path (Join-Path $SourceRoot "cli\target") -Filter "cli-*.jar" -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notlike "*original*" -and $_.Name -notlike "*shaded*" } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+    if (-not $jarCandidate) {
+        throw "No CLI jar found. Build first with .\mvnw.cmd -DskipTests package"
     }
+    $JarPath = $jarCandidate.FullName
 }
 
 if (-not (Test-Path -LiteralPath $JarPath)) {
