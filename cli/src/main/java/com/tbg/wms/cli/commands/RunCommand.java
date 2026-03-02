@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 Zeyad Rashed
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -84,6 +84,11 @@ public final class RunCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
+    /**
+     * Executes shipment/carrier print workflow for CLI mode.
+     *
+     * @return exit code (0 success, non-zero failure category)
+     */
     @Override
     public Integer call() {
         String jobId = UUID.randomUUID().toString().substring(0, 8);

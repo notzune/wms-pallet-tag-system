@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com

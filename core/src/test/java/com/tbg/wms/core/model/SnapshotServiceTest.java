@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com

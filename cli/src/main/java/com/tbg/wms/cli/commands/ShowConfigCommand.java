@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -24,6 +24,11 @@ import java.util.concurrent.Callable;
 )
 public final class ShowConfigCommand implements Callable<Integer> {
 
+    /**
+     * Prints effective runtime configuration values with secrets redacted.
+     *
+     * @return exit code (0 success, 10 unexpected failure)
+     */
     @Override
     public Integer call() {
         try {

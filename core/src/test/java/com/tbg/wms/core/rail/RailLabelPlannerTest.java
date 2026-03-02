@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.5.0
+ */
 package com.tbg.wms.core.rail;
 
 import org.junit.jupiter.api.Test;
@@ -8,8 +15,14 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Tests deterministic family-share planning for rail helper labels.
+ */
 final class RailLabelPlannerTest {
 
+    /**
+     * Validates top-family ordering and rounded percentages.
+     */
     @Test
     void planComputesDeterministicTopFamilies() {
         RailStopRecord record = new RailStopRecord(
@@ -39,6 +52,9 @@ final class RailLabelPlannerTest {
         assertTrue(first.getMissingFootprintItems().isEmpty());
     }
 
+    /**
+     * Validates planner behavior when footprint lookups are unavailable.
+     */
     @Test
     void planTracksMissingFootprintsWithoutCrashing() {
         RailStopRecord record = new RailStopRecord(

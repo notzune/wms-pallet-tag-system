@@ -157,6 +157,11 @@ public final class BarcodeCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
+    /**
+     * Executes barcode generation and optional print/file output flow.
+     *
+     * @return exit code (0 success, non-zero failure)
+     */
     @Override
     public Integer call() {
         String jobId = UUID.randomUUID().toString().substring(0, 8);

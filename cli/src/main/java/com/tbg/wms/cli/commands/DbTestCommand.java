@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -49,6 +49,11 @@ public final class DbTestCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(DbTestCommand.class);
 
+    /**
+     * Runs connectivity diagnostics for the active DB configuration.
+     *
+     * @return exit code (0 success, 2/3/10 failure categories)
+     */
     @Override
     public Integer call() {
         // Generate a unique job ID for this command execution

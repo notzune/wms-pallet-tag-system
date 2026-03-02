@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.5.0
+ */
 package com.tbg.wms.cli.gui;
 
 import org.junit.jupiter.api.Test;
@@ -7,8 +14,14 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Tests queue text parsing rules used by the GUI queue dialog.
+ */
 final class QueueInputParserTest {
 
+    /**
+     * Supports explicit mixed-item prefixes while preserving unprefixed default type.
+     */
     @Test
     void parseSupportsMixedPrefixes() {
         List<AdvancedPrintWorkflowService.QueueRequestItem> items = QueueInputParser.parse(
@@ -26,6 +39,9 @@ final class QueueInputParserTest {
         assertEquals("8000999999", items.get(2).getId());
     }
 
+    /**
+     * Rejects blank input payloads.
+     */
     @Test
     void parseRejectsEmptyInput() {
         IllegalArgumentException ex = assertThrows(
@@ -35,6 +51,9 @@ final class QueueInputParserTest {
         assertEquals("Queue input is empty.", ex.getMessage());
     }
 
+    /**
+     * Rejects input that exceeds configured queue capacity.
+     */
     @Test
     void parseEnforcesMaximumQueueSize() {
         IllegalArgumentException ex = assertThrows(

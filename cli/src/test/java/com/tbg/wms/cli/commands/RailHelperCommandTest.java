@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.5.0
+ */
 package com.tbg.wms.cli.commands;
 
 import org.junit.jupiter.api.Test;
@@ -11,11 +18,17 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Unit tests for {@link RailHelperCommand}.
+ */
 final class RailHelperCommandTest {
 
     @TempDir
     Path tempDir;
 
+    /**
+     * Verifies filtering by train ID and expected output artifacts.
+     */
     @Test
     void commandGeneratesTrainDetailCsvForFilteredTrain() throws Exception {
         Path inputCsv = tempDir.resolve("input.csv");
@@ -55,6 +68,9 @@ final class RailHelperCommandTest {
         assertTrue(summaryText.contains("Rows with missing footprint: 0"));
     }
 
+    /**
+     * Verifies missing footprint items are reported in the summary.
+     */
     @Test
     void commandReportsMissingFootprintItemsInSummary() throws Exception {
         Path inputCsv = tempDir.resolve("input.csv");

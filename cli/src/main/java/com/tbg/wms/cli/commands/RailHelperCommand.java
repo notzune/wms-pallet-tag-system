@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.5.0
+ */
 package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.core.rail.RailFamilyFootprint;
@@ -52,6 +59,12 @@ public final class RailHelperCommand implements Callable<Integer> {
     @Option(names = {"--train-id"}, description = "Optional train ID filter")
     private String trainIdFilter;
 
+    /**
+     * Builds merge-ready rail output from input and footprint CSVs.
+     *
+     * @return exit code (0 success)
+     * @throws Exception when parsing/export fails
+     */
     @Override
     public Integer call() throws Exception {
         ensureReadable(inputCsv, "input-csv");
