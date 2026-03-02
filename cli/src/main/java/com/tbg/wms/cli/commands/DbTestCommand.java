@@ -159,13 +159,13 @@ public final class DbTestCommand implements Callable<Integer> {
         System.out.println("  Database Version: " + diag.databaseVersion());
         System.out.println("  Connected URL:   " + activeJdbcUrl);
         System.out.println("  Pool Statistics: " + diag.activeConnections() + " active, " +
-                          diag.idleConnections() + " idle");
+                diag.idleConnections() + " idle");
         System.out.println();
         System.out.println("The database is reachable and responding. You may proceed with label operations.");
         System.out.println();
 
         log.info("Database connectivity test succeeded: durationMs={}, dbVersion={}",
-            diag.durationMs(), diag.databaseVersion());
+                diag.durationMs(), diag.databaseVersion());
     }
 
     private void printConfigError(WmsConfigException e) {

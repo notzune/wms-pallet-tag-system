@@ -11,28 +11,9 @@ import com.tbg.wms.core.barcode.BarcodeZplBuilder.Symbology;
 import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 
-import javax.swing.BorderFactory;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JSpinner;
-import javax.swing.JTextField;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.WindowConstants;
+import javax.swing.*;
 import javax.swing.text.JTextComponent;
-import java.awt.BorderLayout;
-import java.awt.Dialog;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,51 +31,8 @@ import java.util.regex.Pattern;
  */
 final class BarcodeDialogFactory {
 
-    /**
-     * Abstraction boundary for dependencies required by barcode dialog behavior.
-     *
-     * <p>Implemented by the frame so dialog logic does not directly depend on frame internals.</p>
-     */
-    interface Dependencies {
-        /**
-         * Creates a printer model for barcode print target selection.
-         */
-        DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption);
-
-        /**
-         * Checks whether the selected printer option routes output to file.
-         */
-        boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected);
-
-        /**
-         * Returns the default print-to-file output directory.
-         */
-        Path defaultPrintToFileOutputDir();
-
-        /**
-         * Installs terminal-like clipboard behavior on given text fields.
-         */
-        void installClipboardBehavior(JTextComponent... fields);
-
-        /**
-         * Displays an error to the user.
-         */
-        void showError(String message);
-
-        /**
-         * Extracts the deepest, most useful message from an exception chain.
-         */
-        String rootMessage(Throwable throwable);
-
-        /**
-         * Resolves a printer configuration by ID.
-         */
-        PrinterConfig resolvePrinter(String printerId) throws Exception;
-    }
-
     private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
     private static final DateTimeFormatter OUTPUT_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-
     private static final int BARCODE_DEFAULT_LABEL_WIDTH_DOTS = 812;
     private static final int BARCODE_DEFAULT_LABEL_HEIGHT_DOTS = 1218;
     private static final int BARCODE_DEFAULT_ORIGIN_X = 60;
@@ -102,11 +40,34 @@ final class BarcodeDialogFactory {
     private static final int BARCODE_DEFAULT_MODULE_WIDTH = 3;
     private static final int BARCODE_DEFAULT_MODULE_RATIO = 3;
     private static final int BARCODE_DEFAULT_HEIGHT = 220;
-
     private final Dependencies dependencies;
 
     BarcodeDialogFactory(Dependencies dependencies) {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies cannot be null");
+    }
+
+    private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.0;
+        JLabel rowLabel = new JLabel(label + ":");
+        form.add(rowLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        form.add(field, gbc);
+        return rowLabel;
+    }
+
+    private static String safeSlug(String value) {
+        if (value == null) {
+            return "data";
+        }
+        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
+        if (slug.isEmpty()) {
+            return "data";
+        }
+        return slug.length() > 40 ? slug.substring(0, 40) : slug;
     }
 
     /**
@@ -372,27 +333,45 @@ final class BarcodeDialogFactory {
         return outputPath.resolve(fileName);
     }
 
-    private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0.0;
-        JLabel rowLabel = new JLabel(label + ":");
-        form.add(rowLabel, gbc);
+    /**
+     * Abstraction boundary for dependencies required by barcode dialog behavior.
+     *
+     * <p>Implemented by the frame so dialog logic does not directly depend on frame internals.</p>
+     */
+    interface Dependencies {
+        /**
+         * Creates a printer model for barcode print target selection.
+         */
+        DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption);
 
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        form.add(field, gbc);
-        return rowLabel;
-    }
+        /**
+         * Checks whether the selected printer option routes output to file.
+         */
+        boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected);
 
-    private static String safeSlug(String value) {
-        if (value == null) {
-            return "data";
-        }
-        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
-        if (slug.isEmpty()) {
-            return "data";
-        }
-        return slug.length() > 40 ? slug.substring(0, 40) : slug;
+        /**
+         * Returns the default print-to-file output directory.
+         */
+        Path defaultPrintToFileOutputDir();
+
+        /**
+         * Installs terminal-like clipboard behavior on given text fields.
+         */
+        void installClipboardBehavior(JTextComponent... fields);
+
+        /**
+         * Displays an error to the user.
+         */
+        void showError(String message);
+
+        /**
+         * Extracts the deepest, most useful message from an exception chain.
+         */
+        String rootMessage(Throwable throwable);
+
+        /**
+         * Resolves a printer configuration by ID.
+         */
+        PrinterConfig resolvePrinter(String printerId) throws Exception;
     }
 }

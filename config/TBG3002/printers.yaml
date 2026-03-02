@@ -10,14 +10,14 @@ printers:
     name: Office_Test
     ip: 10.19.64.106
     port: 9100
-    tags: [TEST, QA]
+    tags: [ TEST, QA ]
     locationHint: "Admin office (backup/test)"
 
   - id: DISPATCH
     name: Dispatch_Prod
     ip: 10.19.64.53
     port: 9100
-    tags: [PROD, DISPATCH]
+    tags: [ PROD, DISPATCH ]
     locationHint: "Dispatch office (production)"
 
   # Placeholder for the new post go-live printer
@@ -26,6 +26,6 @@ printers:
     name: "Floor Printer 1"
     ip: 0.0.0.0
     port: 9100
-    tags: [PROD, FLOOR]
+    tags: [ PROD, FLOOR ]
     locationHint: "Warehouse floor (planned post go-live)"
     enabled: false

@@ -46,6 +46,34 @@ public final class LocationNumberMappingService {
         log.info("Loaded {} sold-to location mappings from {}", dcBySoldToKey.size(), csvFile);
     }
 
+    private static String canonicalSoldToKey(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        String trimmed = value.trim().toUpperCase();
+        if (trimmed.startsWith("C")) {
+            trimmed = trimmed.substring(1);
+        }
+
+        StringBuilder digits = new StringBuilder(trimmed.length());
+        for (int i = 0; i < trimmed.length(); i++) {
+            char c = trimmed.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+        if (digits.length() == 0) {
+            return null;
+        }
+
+        int nonZero = 0;
+        while (nonZero < digits.length() && digits.charAt(nonZero) == '0') {
+            nonZero++;
+        }
+        return nonZero == digits.length() ? "0" : digits.substring(nonZero);
+    }
+
     /**
      * Resolves sold-to value to mapped DC number, or returns original when no mapping exists.
      *
@@ -106,33 +134,5 @@ public final class LocationNumberMappingService {
         }
 
         dcBySoldToKey.put(key, locationNumber);
-    }
-
-    private static String canonicalSoldToKey(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        String trimmed = value.trim().toUpperCase();
-        if (trimmed.startsWith("C")) {
-            trimmed = trimmed.substring(1);
-        }
-
-        StringBuilder digits = new StringBuilder(trimmed.length());
-        for (int i = 0; i < trimmed.length(); i++) {
-            char c = trimmed.charAt(i);
-            if (Character.isDigit(c)) {
-                digits.append(c);
-            }
-        }
-        if (digits.length() == 0) {
-            return null;
-        }
-
-        int nonZero = 0;
-        while (nonZero < digits.length() && digits.charAt(nonZero) == '0') {
-            nonZero++;
-        }
-        return nonZero == digits.length() ? "0" : digits.substring(nonZero);
     }
 }

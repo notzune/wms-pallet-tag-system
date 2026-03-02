@@ -27,12 +27,12 @@ public final class DbConnectivityDiagnostics {
     /**
      * Creates a new connectivity diagnostic record.
      *
-     * @param isConnected whether the connection test succeeded
-     * @param durationMs duration of the connection test in milliseconds
+     * @param isConnected       whether the connection test succeeded
+     * @param durationMs        duration of the connection test in milliseconds
      * @param activeConnections number of active connections in the pool
-     * @param idleConnections number of idle connections in the pool
-     * @param databaseVersion database version string from metadata
-     * @param errorMessage error message if connection failed, null if successful
+     * @param idleConnections   number of idle connections in the pool
+     * @param databaseVersion   database version string from metadata
+     * @param errorMessage      error message if connection failed, null if successful
      */
     public DbConnectivityDiagnostics(
             boolean isConnected,

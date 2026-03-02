@@ -21,9 +21,9 @@ final class QueueInputParser {
     /**
      * Parses queue text into typed queue request items.
      *
-     * @param text free-form queue lines
+     * @param text        free-form queue lines
      * @param defaultType default type applied to unprefixed lines
-     * @param maxItems hard limit for accepted queue items
+     * @param maxItems    hard limit for accepted queue items
      * @return parsed queue request list
      */
     static List<AdvancedPrintWorkflowService.QueueRequestItem> parse(

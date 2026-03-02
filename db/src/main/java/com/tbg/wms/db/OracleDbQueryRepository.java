@@ -9,12 +9,7 @@
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
-import com.tbg.wms.core.model.LineItem;
-import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.model.NormalizationService;
-import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.ShipmentSkuFootprint;
-import com.tbg.wms.core.model.CarrierMoveStopRef;
+import com.tbg.wms.core.model.*;
 import com.tbg.wms.core.rail.RailFootprintCandidate;
 import com.tbg.wms.core.rail.RailStopRecord;
 import org.slf4j.Logger;
@@ -27,27 +22,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Oracle implementation of DbQueryRepository.
- *
+ * <p>
  * This class executes Oracle WMS queries against the WMSP schema to retrieve
  * shipment data with all related information (orders, lines, pallets, lots, etc.).
- *
+ * <p>
  * Uses prepared statements to prevent SQL injection and proper resource
  * management with try-with-resources.
- *
+ * <p>
  * Database: Oracle WMS at site-specific location (e.g., TBG3002 at 10.19.68.61:1521/WMSP)
  * Schema: WMSP (schema name is prepended to all table references)
  * User: RPTADM (read-only reporting user)
@@ -67,6 +54,51 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
      */
     public OracleDbQueryRepository(DataSource dataSource) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource cannot be null");
+    }
+
+    private static String normalizeRailFamilyCode(String prtfam, Integer parsFlag) {
+        String family = NormalizationService.normalizeToUppercase(prtfam);
+        if (family.contains("CAN")) {
+            return "CAN";
+        }
+        if (family.contains("KEV")) {
+            return "KEV";
+        }
+        if (family.contains("DOM")) {
+            return "DOM";
+        }
+        if (parsFlag != null && parsFlag == 1) {
+            return "CAN";
+        }
+        if (family.isBlank()) {
+            return "DOM";
+        }
+        if (family.length() > 3) {
+            return family.substring(0, 3);
+        }
+        return family;
+    }
+
+    private static String sqlPlaceholders(int count) {
+        if (count <= 0) {
+            throw new IllegalArgumentException("count must be > 0");
+        }
+        StringBuilder sb = new StringBuilder(count * 2);
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append('?');
+        }
+        return sb.toString();
+    }
+
+    private static String integerToString(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
+        if (rs.wasNull()) {
+            return "";
+        }
+        return Integer.toString(value);
     }
 
     @Override
@@ -534,7 +566,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     /**
      * Fetches the shipment header information with all related address, order, and carrier details.
-     *
+     * <p>
      * This is the master query that retrieves ALL fields from:
      * - WMSP.SHIPMENT (header)
      * - WMSP.ADRMST (ship-to address)
@@ -641,7 +673,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     /**
      * Fetches all LPNs for a shipment with their line items.
-     *
+     * <p>
      * Uses the PCKWRK_DTL → INVDTL → INVSUB → INVLOD chain to get complete pallet data
      * including lot tracking and dates.
      *
@@ -700,12 +732,12 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     /**
      * Fetches all line items for a specific pallet (LPN) in a shipment.
-     *
+     * <p>
      * Retrieves detailed product, order, and SKU information for each line.
      *
-     * @param conn active database connection
+     * @param conn       active database connection
      * @param shipmentId the shipment ID
-     * @param lpnId the LPN ID
+     * @param lpnId      the LPN ID
      * @return list of line items for the LPN
      * @throws SQLException if database operation fails
      */
@@ -765,7 +797,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
      * Helper: Extract the first order number from a shipment's lines.
      * This is used to populate the orderId field.
      *
-     * @param conn active database connection
+     * @param conn       active database connection
      * @param shipmentId the shipment ID
      * @return first order number, or null
      * @throws SQLException if database operation fails
@@ -781,75 +813,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
             }
         }
         return null;
-    }
-
-    private static String normalizeRailFamilyCode(String prtfam, Integer parsFlag) {
-        String family = NormalizationService.normalizeToUppercase(prtfam);
-        if (family.contains("CAN")) {
-            return "CAN";
-        }
-        if (family.contains("KEV")) {
-            return "KEV";
-        }
-        if (family.contains("DOM")) {
-            return "DOM";
-        }
-        if (parsFlag != null && parsFlag == 1) {
-            return "CAN";
-        }
-        if (family.isBlank()) {
-            return "DOM";
-        }
-        if (family.length() > 3) {
-            return family.substring(0, 3);
-        }
-        return family;
-    }
-
-    private static String sqlPlaceholders(int count) {
-        if (count <= 0) {
-            throw new IllegalArgumentException("count must be > 0");
-        }
-        StringBuilder sb = new StringBuilder(count * 2);
-        for (int i = 0; i < count; i++) {
-            if (i > 0) {
-                sb.append(',');
-            }
-            sb.append('?');
-        }
-        return sb.toString();
-    }
-
-    private static String integerToString(ResultSet rs, String column) throws SQLException {
-        int value = rs.getInt(column);
-        if (rs.wasNull()) {
-            return "";
-        }
-        return Integer.toString(value);
-    }
-
-    private static final class MutableRailStop {
-        private final String date;
-        private final String sequence;
-        private final String trainNumber;
-        private final String vehicleId;
-        private final String warehouse;
-        private final String loadNumber;
-        private final List<RailStopRecord.ItemQuantity> items = new ArrayList<>();
-
-        private MutableRailStop(String date,
-                                String sequence,
-                                String trainNumber,
-                                String vehicleId,
-                                String warehouse,
-                                String loadNumber) {
-            this.date = date == null ? "" : date.trim();
-            this.sequence = sequence == null ? "" : sequence.trim();
-            this.trainNumber = trainNumber == null ? "" : trainNumber.trim();
-            this.vehicleId = vehicleId == null ? "" : vehicleId.trim();
-            this.warehouse = warehouse == null ? "" : warehouse.trim();
-            this.loadNumber = loadNumber == null ? "" : loadNumber.trim();
-        }
     }
 
     private String resolveLocationNumber(String destNum,
@@ -1086,5 +1049,29 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     private Double nullableDouble(ResultSet rs, String column) throws SQLException {
         double value = rs.getDouble(column);
         return rs.wasNull() ? null : value;
+    }
+
+    private static final class MutableRailStop {
+        private final String date;
+        private final String sequence;
+        private final String trainNumber;
+        private final String vehicleId;
+        private final String warehouse;
+        private final String loadNumber;
+        private final List<RailStopRecord.ItemQuantity> items = new ArrayList<>();
+
+        private MutableRailStop(String date,
+                                String sequence,
+                                String trainNumber,
+                                String vehicleId,
+                                String warehouse,
+                                String loadNumber) {
+            this.date = date == null ? "" : date.trim();
+            this.sequence = sequence == null ? "" : sequence.trim();
+            this.trainNumber = trainNumber == null ? "" : trainNumber.trim();
+            this.vehicleId = vehicleId == null ? "" : vehicleId.trim();
+            this.warehouse = warehouse == null ? "" : warehouse.trim();
+            this.loadNumber = loadNumber == null ? "" : loadNumber.trim();
+        }
     }
 }

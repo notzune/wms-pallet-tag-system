@@ -13,7 +13,6 @@ package com.tbg.wms.core.template;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -21,10 +20,10 @@ import java.util.regex.Pattern;
 
 /**
  * ZPL label generation engine for template-driven label production.
- *
+ * <p>
  * Takes a template and field values, performs substitution, and produces
  * deterministic ZPL output suitable for Zebra printers.
- *
+ * <p>
  * Features:
  * - Placeholder substitution with validation
  * - Field length validation
@@ -37,11 +36,15 @@ public final class ZplTemplateEngine {
 
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}");
 
+    private ZplTemplateEngine() {
+        // Utility class - prevent instantiation
+    }
+
     /**
      * Generates a ZPL label from a template and field values.
      *
      * @param template the label template
-     * @param fields map of placeholder names to values
+     * @param fields   map of placeholder names to values
      * @return generated ZPL label
      * @throws IllegalArgumentException if required fields are missing
      * @throws IllegalArgumentException if field values are invalid
@@ -82,7 +85,7 @@ public final class ZplTemplateEngine {
      * Validates that all required template fields are present in the provided map.
      *
      * @param template the template defining required fields
-     * @param fields the provided field values
+     * @param fields   the provided field values
      * @throws IllegalArgumentException if required fields are missing
      */
     private static void validateRequiredFields(LabelTemplate template, Map<String, String> fields) {
@@ -95,7 +98,7 @@ public final class ZplTemplateEngine {
 
     /**
      * Validates field length constraints.
-     *
+     * <p>
      * Maximum ZPL field length is typically 255 characters for most commands.
      *
      * @param fields the fields to validate
@@ -117,12 +120,12 @@ public final class ZplTemplateEngine {
 
     /**
      * Escapes special characters in field values for ZPL format.
-     *
+     * <p>
      * ZPL special characters that need escaping:
      * - ~ (tilde) - ZPL control character (must escape first!)
      * - ^ (caret) - ZPL command prefix
      * - { } (braces) - Our template markers
-     *
+     * <p>
      * CRITICAL: Tilde MUST be escaped first, before caret. Otherwise:
      * 1. Escape caret: "^" → "~~^"
      * 2. Escape tilde (sees the ~~ we just added): "~~^" → "~~~~^" (WRONG!)
@@ -153,9 +156,5 @@ public final class ZplTemplateEngine {
         boolean hasNoUnescapedPlaceholders = !PLACEHOLDER_PATTERN.matcher(zplContent).find();
 
         return hasStart && hasEnd && hasNoUnescapedPlaceholders;
-    }
-
-    private ZplTemplateEngine() {
-        // Utility class - prevent instantiation
     }
 }

@@ -17,11 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Shared helpers for label workflows (CLI/GUI).
@@ -44,6 +40,9 @@ public final class LabelingSupport {
             Paths.get("location_no_matrix.csv"),
             Paths.get("location-no-matrix.csv")
     );
+
+    private LabelingSupport() {
+    }
 
     /**
      * Resolves the Walmart SKU matrix CSV from standard locations.
@@ -174,8 +173,5 @@ public final class LabelingSupport {
      */
     public static boolean isHumanReadable(String value) {
         return value != null && value.chars().anyMatch(Character::isLetter);
-    }
-
-    private LabelingSupport() {
     }
 }

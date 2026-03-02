@@ -13,11 +13,7 @@ import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.label.SiteConfig;
 import com.tbg.wms.core.labeling.LabelingSupport;
-import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.model.PalletPlanningService;
-import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.ShipmentSkuFootprint;
-import com.tbg.wms.core.model.WalmartSkuMapping;
+import com.tbg.wms.core.model.*;
 import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
@@ -33,12 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * GUI workflow service that loads shipment data, builds preview math,
@@ -167,9 +158,9 @@ public final class LabelWorkflowService {
     /**
      * Generates ZPL output and prints labels for the prepared job.
      *
-     * @param job prepared job from preview
-     * @param printerId printer identifier to use
-     * @param outputDir output directory for ZPL artifacts
+     * @param job         prepared job from preview
+     * @param printerId   printer identifier to use
+     * @param outputDir   output directory for ZPL artifacts
      * @param printToFile when true, skip network printing
      * @return summary of labels printed and output path
      * @throws Exception when printing fails
@@ -529,6 +520,10 @@ public final class LabelWorkflowService {
             this.printToFile = true;
         }
 
+        public static PrintResult printToFile(int labelsPrinted, Path outputDirectory) {
+            return new PrintResult(labelsPrinted, outputDirectory);
+        }
+
         public int getLabelsPrinted() {
             return labelsPrinted;
         }
@@ -547,10 +542,6 @@ public final class LabelWorkflowService {
 
         public boolean isPrintToFile() {
             return printToFile;
-        }
-
-        public static PrintResult printToFile(int labelsPrinted, Path outputDirectory) {
-            return new PrintResult(labelsPrinted, outputDirectory);
         }
     }
 }

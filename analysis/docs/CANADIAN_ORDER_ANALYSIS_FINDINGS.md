@@ -8,23 +8,25 @@
 
 ## Executive Summary
 
-Successfully extracted complete data for a Canadian shipment with **17 line items**, demonstrating all table relationships needed for ZPL label generation. The analysis reveals efficient query pathways and identifies several data gaps requiring investigation.
+Successfully extracted complete data for a Canadian shipment with **17 line items**, demonstrating all table
+relationships needed for ZPL label generation. The analysis reveals efficient query pathways and identifies several data
+gaps requiring investigation.
 
 ---
 
 ## Order Overview
 
-| Field | Value |
-|-------|-------|
-| **Shipment ID** | 8000141715 |
-| **Customer** | CJR WHOLESALE GROCERS LTD |
+| Field           | Value                                          |
+|-----------------|------------------------------------------------|
+| **Shipment ID** | 8000141715                                     |
+| **Customer**    | CJR WHOLESALE GROCERS LTD                      |
 | **Destination** | 5876 COOPERS AVE, MISSISSAUGA, ON L4Z 2B9, CAN |
-| **Carrier** | MDLE (Service: TL) |
-| **Doc Number** | 30021144717 |
-| **Ship Date** | 2024-07-17 |
-| **Status** | C (Complete) |
-| **Line Items** | 17 |
-| **Stop ID** | STP0382324 |
+| **Carrier**     | MDLE (Service: TL)                             |
+| **Doc Number**  | 30021144717                                    |
+| **Ship Date**   | 2024-07-17                                     |
+| **Status**      | C (Complete)                                   |
+| **Line Items**  | 17                                             |
+| **Stop ID**     | STP0382324                                     |
 
 ---
 
@@ -33,77 +35,77 @@ Successfully extracted complete data for a Canadian shipment with **17 line item
 ### ✅ Successfully Retrieved
 
 1. **SHIPMENT Header** (1 record)
-   - Carrier, service level, tracking number, dates
-   - Stop ID, warehouse code, external doc number
-   - Status and timestamps
+    - Carrier, service level, tracking number, dates
+    - Stop ID, warehouse code, external doc number
+    - Status and timestamps
 
 2. **SHIPMENT_LINE** (17 records)
-   - Consolidation batch IDs (CNS3244402-CNS3244424)
-   - Shipped quantities (0-224 units per line)
-   - Links to order lines (format: ordernum/linenum e.g., "10/0000")
+    - Consolidation batch IDs (CNS3244402-CNS3244424)
+    - Shipped quantities (0-224 units per line)
+    - Links to order lines (format: ordernum/linenum e.g., "10/0000")
 
 3. **ORD_LINE** (17 records)
-   - SKU part numbers (e.g., 10048500019792000)
-   - Order/shipped quantities
-   - Sales order reference (1000241082)
+    - SKU part numbers (e.g., 10048500019792000)
+    - Order/shipped quantities
+    - Sales order reference (1000241082)
 
 4. **PRTMST** (17 records)
-   - Part numbers retrieved
-   - ❗ **Descriptions showing "N/A"** - may need different query or table
+    - Part numbers retrieved
+    - ❗ **Descriptions showing "N/A"** - may need different query or table
 
 5. **ALT_PRTMST** (136 records, 8 per product)
-   - Types: GTIN, GTINCS, GTINEA, GTINPAL, GTINRU, SSC, Short, UPC
-   - Example: Base `10048500019792000` → UPC `01979`, GTIN `10048500019792`
-   - ❗ **No Walmart-specific codes found yet** (may need different ALT_PRT_TYP or table)
+    - Types: GTIN, GTINCS, GTINEA, GTINPAL, GTINRU, SSC, Short, UPC
+    - Example: Base `10048500019792000` → UPC `01979`, GTIN `10048500019792`
+    - ❗ **No Walmart-specific codes found yet** (may need different ALT_PRT_TYP or table)
 
 6. **ADRMST** (1 record)
-   - Complete ship-to address with all fields
-   - Phone: 9058902436-218
+    - Complete ship-to address with all fields
+    - Phone: 9058902436-218
 
 7. **STOP** (1 record)
-   - Stop ID: STP0382324
-   - Linked via SHIPMENT.STOP_ID
+    - Stop ID: STP0382324
+    - Linked via SHIPMENT.STOP_ID
 
 ### ❌ Table Access Issues
 
 1. **TRLR_LOAD** - ORA-00942 (table or view does not exist)
-   - RPTADM user lacks access
-   - May need DBA to grant permissions or use alternative trailer source
+    - RPTADM user lacks access
+    - May need DBA to grant permissions or use alternative trailer source
 
 2. **CARMST** - ORA-00942 (table or view does not exist)
-   - RPTADM user lacks access
-   - Carrier details limited to SHIPMENT.SCAC_CARRIER_ID field
+    - RPTADM user lacks access
+    - Carrier details limited to SHIPMENT.SCAC_CARRIER_ID field
 
 ### ⚠️ Data Gaps Requiring Investigation
 
 1. **LPN/Pallet Linkage** (0 LPNs found)
-   - Query attempt: `WHERE DSTLOC = SHIPMENT.STGZON` returned 0 results
-   - **Next Steps**:
-     - Try joining via `INVLOD.CONS_BATCH = SHIPMENT_LINE.CONS_BATCH`
-     - Check `INVLOD.ORDNUM` = order number
-     - Examine `INVLOD.PCKGR1, PCKGR2, PCKGR3, PCKGR4` fields for linkage
-     - Query work orders or wave tables if available
+    - Query attempt: `WHERE DSTLOC = SHIPMENT.STGZON` returned 0 results
+    - **Next Steps**:
+        - Try joining via `INVLOD.CONS_BATCH = SHIPMENT_LINE.CONS_BATCH`
+        - Check `INVLOD.ORDNUM` = order number
+        - Examine `INVLOD.PCKGR1, PCKGR2, PCKGR3, PCKGR4` fields for linkage
+        - Query work orders or wave tables if available
 
 2. **Product Descriptions**
-   - PRTMST descriptions returned "N/A" (might be NULL in database)
-   - May need:
-     - Different column name (LNGDSC, ABRVSC, etc.)
-     - Separate product detail table
-     - Customer-specific product master
+    - PRTMST descriptions returned "N/A" (might be NULL in database)
+    - May need:
+        - Different column name (LNGDSC, ABRVSC, etc.)
+        - Separate product detail table
+        - Customer-specific product master
 
 3. **Walmart Item Codes**
-   - ALT_PRTMST has 8 types per product but none labeled as "Walmart" or "Customer"
-   - Check if:
-     - Walmart codes in ORD_LINE.CSTPRT (Customer Part) field (currently NULL)
-     - Need different ALT_PRT_TYP value
-     - Cross-reference table exists for customer-specific SKUs
+    - ALT_PRTMST has 8 types per product but none labeled as "Walmart" or "Customer"
+    - Check if:
+        - Walmart codes in ORD_LINE.CSTPRT (Customer Part) field (currently NULL)
+        - Need different ALT_PRT_TYP value
+        - Cross-reference table exists for customer-specific SKUs
 
 4. **Pallet Sequence** ("1 of N" logic)
-   - Need to determine total pallet count per shipment
-   - Options:
-     - Count distinct LPNs per shipment
-     - Aggregate SHIPMENT_LINE.PALLET_QTY
-     - Query pallet transaction/history table
+    - Need to determine total pallet count per shipment
+    - Options:
+        - Count distinct LPNs per shipment
+        - Aggregate SHIPMENT_LINE.PALLET_QTY
+        - Query pallet transaction/history table
 
 ---
 
@@ -167,6 +169,7 @@ ORDER BY sl.SHPLIN_LINE, ol.ORDLIN;
 ```
 
 **LPN Join** (once linkage confirmed):
+
 ```sql
 -- Add to FROM clause:
 LEFT JOIN WMSP.INVLOD lpn ON sl.CONS_BATCH = lpn.CONS_BATCH
@@ -174,6 +177,7 @@ LEFT JOIN WMSP.INVLOD lpn ON sl.CONS_BATCH = lpn.CONS_BATCH
 ```
 
 **Alternate Parts** (separate query due to 1:N relationship):
+
 ```sql
 SELECT 
     alt.PRTNUM AS BASE_PRTNUM,
@@ -259,12 +263,14 @@ AND ALT_PRT_TYP IN ('UPC', 'GTIN', 'WALMART');
 ### Architecture Recommendation
 
 **For v1.0 (Current Sprint)**:
+
 - Use **Approach 2 (Hierarchical)** initially
 - Easier to debug and validate data correctness
 - Clear entity mapping matches domain model
 - Performance adequate for single shipment queries
 
 **For v2.0 (Optimization)**:
+
 - Migrate to **Approach 1 (Single Join)** if performance testing shows issues
 - Critical for batch label generation (multiple shipments)
 - Add result set deduplication logic
@@ -279,6 +285,7 @@ AND ALT_PRT_TYP IN ('UPC', 'GTIN', 'WALMART');
 **Current Status**: INVLOD query returned 0 results using `DSTLOC = STGZON` approach
 
 **Recommended Investigation Steps**:
+
 ```sql
 -- Test 1: Direct consolidation batch link
 SELECT COUNT(*) FROM WMSP.INVLOD 
@@ -304,6 +311,7 @@ SELECT * FROM WMSP.WAVE_ALLOCATION WHERE ORDNUM = '8000141715';
 **Issue**: PRTMST.LNGDSC returning NULL or "N/A"
 
 **Options**:
+
 ```sql
 -- Try alternative description columns
 SELECT PRTNUM, 
@@ -323,6 +331,7 @@ SELECT * FROM WMSP.PRODUCT_DETAIL WHERE PRTNUM = '10048500019792000';
 **Goal**: Find Walmart's customer-facing SKU (different from internal TBG SKU)
 
 **Search Strategy**:
+
 ```sql
 -- Check order line customer part field
 SELECT ORDNUM, ORDLIN, PRTNUM, CSTPRT 
@@ -361,6 +370,7 @@ ORDER BY s.ADD_DTE DESC;
 **Implementation Options**:
 
 **Option A**: Count LPNs per shipment
+
 ```sql
 SELECT 
     lpn.LODNUM AS pallet_id,
@@ -372,6 +382,7 @@ WHERE sl.SHPNUM = ?;
 ```
 
 **Option B**: Use pallet quantity aggregation
+
 ```sql
 SELECT SUM(PALLET_QTY) AS total_pallets
 FROM WMSP.SHIPMENT_LINE
@@ -379,6 +390,7 @@ WHERE SHPNUM = ?;
 ```
 
 **Option C**: Query pallet transaction history
+
 ```sql
 SELECT COUNT(DISTINCT LODNUM) AS total_pallets
 FROM WMSP.PALLET_MOVE
@@ -390,13 +402,16 @@ WHERE SHPNUM = ?;
 ## Sample Data Reference
 
 ### Representative SKUs
+
 - `10098100010019000` - 15 units shipped
 - `10048500019792000` - 30 units shipped
 - `10048500019815000` - 60 units shipped
 - `10048500203542000` - 224 units shipped (largest line)
 
 ### Alternate Part Number Patterns
+
 Base SKU: `10048500019792000`
+
 - UPC: `01979`
 - GTIN: `10048500019792`
 - GTINEA: `48500019795`
@@ -405,6 +420,7 @@ Base SKU: `10048500019792000`
 - Short: `A01979000`
 
 ### Consolidation Batches
+
 Format: `CNS3244402` through `CNS3244424` (23 batches for 17 lines)
 
 ---
@@ -412,24 +428,24 @@ Format: `CNS3244402` through `CNS3244424` (23 batches for 17 lines)
 ## Next Steps for Java Implementation
 
 1. **Immediate** (Blocking label generation):
-   - [ ] Investigate LPN linkage (test consolidation batch join)
-   - [ ] Confirm product description column name/table
-   - [ ] Determine Walmart item code source
+    - [ ] Investigate LPN linkage (test consolidation batch join)
+    - [ ] Confirm product description column name/table
+    - [ ] Determine Walmart item code source
 
 2. **High Priority** (Required for complete labels):
-   - [ ] Implement `OracleDbQueryRepository.java` with hierarchical queries
-   - [ ] Add null-safe handling for all optional fields
-   - [ ] Create integration tests using order 8000141715 as golden sample
+    - [ ] Implement `OracleDbQueryRepository.java` with hierarchical queries
+    - [ ] Add null-safe handling for all optional fields
+    - [ ] Create integration tests using order 8000141715 as golden sample
 
 3. **Medium Priority** (Optimization):
-   - [ ] Test query performance with various shipment sizes
-   - [ ] Implement single-join approach if needed
-   - [ ] Add query result caching for product/alternate lookups
+    - [ ] Test query performance with various shipment sizes
+    - [ ] Implement single-join approach if needed
+    - [ ] Add query result caching for product/alternate lookups
 
 4. **Low Priority** (Enhancement):
-   - [ ] Request DBA access to TRLR_LOAD and CARMST tables
-   - [ ] Implement archived shipment support (ARC_SHIPMENT)
-   - [ ] Add support for multi-stop shipments
+    - [ ] Request DBA access to TRLR_LOAD and CARMST tables
+    - [ ] Implement archived shipment support (ARC_SHIPMENT)
+    - [ ] Add support for multi-stop shipments
 
 ---
 

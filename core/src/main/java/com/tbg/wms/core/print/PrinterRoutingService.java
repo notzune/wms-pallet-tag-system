@@ -21,10 +21,10 @@ import java.util.*;
 
 /**
  * Service for printer routing based on YAML configuration.
- *
+ * <p>
  * Loads printer definitions and routing rules from site-specific YAML files,
  * then evaluates rules against runtime context to select the appropriate printer.
- *
+ * <p>
  * Thread-safe once initialized (immutable configuration).
  *
  * @since 1.0.0
@@ -41,15 +41,15 @@ public final class PrinterRoutingService {
     /**
      * Creates a new printer routing service.
      *
-     * @param printers available printers by ID
-     * @param rules routing rules (evaluated in order)
+     * @param printers         available printers by ID
+     * @param rules            routing rules (evaluated in order)
      * @param defaultPrinterId fallback printer ID if no rules match
-     * @param siteCode site code for this configuration
+     * @param siteCode         site code for this configuration
      */
     public PrinterRoutingService(Map<String, PrinterConfig> printers,
-                                List<RoutingRule> rules,
-                                String defaultPrinterId,
-                                String siteCode) {
+                                 List<RoutingRule> rules,
+                                 String defaultPrinterId,
+                                 String siteCode) {
         this.printers = Map.copyOf(Objects.requireNonNull(printers, "printers cannot be null"));
         this.rules = List.copyOf(Objects.requireNonNull(rules, "rules cannot be null"));
         this.defaultPrinterId = Objects.requireNonNull(defaultPrinterId, "defaultPrinterId cannot be null");
@@ -65,15 +65,15 @@ public final class PrinterRoutingService {
 
     /**
      * Loads printer routing configuration from YAML files.
-     *
+     * <p>
      * Expects two files in config/{siteCode}/:
      * - printers.yaml (printer definitions)
      * - printer-routing.yaml (routing rules)
      *
-     * @param siteCode site code (e.g., "TBG3002")
+     * @param siteCode      site code (e.g., "TBG3002")
      * @param configBaseDir base config directory (typically "./config")
      * @return configured PrinterRoutingService
-     * @throws IOException if files cannot be read or parsed
+     * @throws IOException              if files cannot be read or parsed
      * @throws IllegalArgumentException if configuration is invalid
      */
     public static PrinterRoutingService load(String siteCode, Path configBaseDir) throws IOException {
@@ -149,9 +149,29 @@ public final class PrinterRoutingService {
         return new PrinterRoutingService(printers, rules, defaultPrinterId, siteCode);
     }
 
+    private static String requireYamlValue(String value, String field, Path sourceFile) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing required field '" + field + "' in " + sourceFile);
+        }
+        return value;
+    }
+
+    private static void validateOptionalSiteCode(String expectedSiteCode, String configuredSiteCode, Path sourceFile) {
+        if (configuredSiteCode == null || configuredSiteCode.isBlank()) {
+            return;
+        }
+
+        if (!expectedSiteCode.equalsIgnoreCase(configuredSiteCode)) {
+            throw new IllegalArgumentException(
+                    "Site code mismatch in " + sourceFile
+                            + ": expected '" + expectedSiteCode + "' but found '" + configuredSiteCode + "'"
+            );
+        }
+    }
+
     /**
      * Selects a printer based on routing context.
-     *
+     * <p>
      * Evaluates rules in order. First matching rule wins.
      * If no rules match, returns default printer.
      *
@@ -223,26 +243,6 @@ public final class PrinterRoutingService {
 
     public String getSiteCode() {
         return siteCode;
-    }
-
-    private static String requireYamlValue(String value, String field, Path sourceFile) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Missing required field '" + field + "' in " + sourceFile);
-        }
-        return value;
-    }
-
-    private static void validateOptionalSiteCode(String expectedSiteCode, String configuredSiteCode, Path sourceFile) {
-        if (configuredSiteCode == null || configuredSiteCode.isBlank()) {
-            return;
-        }
-
-        if (!expectedSiteCode.equalsIgnoreCase(configuredSiteCode)) {
-            throw new IllegalArgumentException(
-                    "Site code mismatch in " + sourceFile
-                            + ": expected '" + expectedSiteCode + "' but found '" + configuredSiteCode + "'"
-            );
-        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -23,14 +23,14 @@ import java.util.Objects;
 
 /**
  * Service for loading and accessing Walmart SKU mappings from CSV.
- *
+ * <p>
  * This service loads a CSV file mapping TBG internal SKU numbers to Walmart
  * item numbers. It provides O(1) lookup by either TBG SKU or Walmart item number.
- *
+ * <p>
  * CSV Format (4 columns):
- *   TBG SKU#,WALMART ITEM#,Item Description,check based on TBG SKU
- *   205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN
- *   ...
+ * TBG SKU#,WALMART ITEM#,Item Description,check based on TBG SKU
+ * 205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN
+ * ...
  */
 public final class SkuMappingService {
 
@@ -47,7 +47,7 @@ public final class SkuMappingService {
      * Creates a new SkuMappingService and loads mappings from CSV file.
      *
      * @param csvFile path to the CSV file
-     * @throws IOException if file cannot be read
+     * @throws IOException              if file cannot be read
      * @throws IllegalArgumentException if CSV format is invalid
      */
     public SkuMappingService(Path csvFile) throws IOException {
@@ -58,6 +58,25 @@ public final class SkuMappingService {
 
         loadMappingsFromCsv(csvFile);
         log.info("Loaded {} SKU mappings from {}", mappingByTbgSku.size(), csvFile);
+    }
+
+    private static String normalizeLookupKey(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static String extractDigits(String value) {
+        StringBuilder digits = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+        return digits.toString();
     }
 
     /**
@@ -90,10 +109,10 @@ public final class SkuMappingService {
 
     /**
      * Attempts to find mapping by extracting TBG SKU from a database PRTNUM.
-     *
+     * <p>
      * PRTNUM format from database is 17 digits (e.g., "10048500019792000").
      * CSV uses short TBG SKU (5-6 digits, e.g., "205641").
-     *
+     * <p>
      * This method tries multiple extraction strategies:
      * 1. Last 6 digits of PRTNUM
      * 2. Middle portion (digits 5-11)
@@ -168,13 +187,13 @@ public final class SkuMappingService {
 
     /**
      * Loads all mappings from CSV file.
-     *
+     * <p>
      * CSV Format:
-     *   Line 1 (header): TBG SKU#,WALMART ITEM#,Item Description,check based on TBG SKU
-     *   Lines 2+: 205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN
+     * Line 1 (header): TBG SKU#,WALMART ITEM#,Item Description,check based on TBG SKU
+     * Lines 2+: 205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN
      *
      * @param csvFile path to CSV file
-     * @throws IOException if file cannot be read
+     * @throws IOException              if file cannot be read
      * @throws IllegalArgumentException if CSV format is invalid
      */
     private void loadMappingsFromCsv(Path csvFile) throws IOException {
@@ -202,7 +221,7 @@ public final class SkuMappingService {
     /**
      * Parses a single CSV line and adds mapping.
      *
-     * @param line CSV line with 4 comma-separated fields
+     * @param line    CSV line with 4 comma-separated fields
      * @param lineNum line number (for error reporting)
      */
     private void parseCsvLine(String line, int lineNum) {
@@ -237,25 +256,6 @@ public final class SkuMappingService {
         return "SkuMappingService{" +
                 "mappingCount=" + mappingByTbgSku.size() +
                 '}';
-    }
-
-    private static String normalizeLookupKey(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private static String extractDigits(String value) {
-        StringBuilder digits = new StringBuilder(value.length());
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (Character.isDigit(c)) {
-                digits.append(c);
-            }
-        }
-        return digits.toString();
     }
 }
 

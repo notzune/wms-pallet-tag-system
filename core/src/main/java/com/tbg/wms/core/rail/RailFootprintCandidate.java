@@ -28,6 +28,14 @@ public final class RailFootprintCandidate {
         this.casesPerPallet = casesPerPallet;
     }
 
+    private static String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static String normalizeUpper(String value) {
+        return normalize(value).toUpperCase();
+    }
+
     public String getShortCode() {
         return shortCode;
     }
@@ -46,14 +54,6 @@ public final class RailFootprintCandidate {
 
     public boolean isValid() {
         return !shortCode.isBlank() && !itemNumber.isBlank() && !familyCode.isBlank() && casesPerPallet > 0;
-    }
-
-    private static String normalize(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private static String normalizeUpper(String value) {
-        return normalize(value).toUpperCase();
     }
 
     @Override

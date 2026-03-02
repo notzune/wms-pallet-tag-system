@@ -18,15 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,6 +50,39 @@ public final class RailHelperCommand implements Callable<Integer> {
 
     @Option(names = {"--train-id"}, description = "Optional train ID filter")
     private String trainIdFilter;
+
+    private static String raw(Map<String, String> row, String... keys) {
+        for (String key : keys) {
+            String value = row.get(normalizeHeader(key));
+            if (value != null) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private static String normalizeHeader(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static int parseInt(String raw, int fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        String normalized = raw.replace(",", "").trim();
+        try {
+            return Integer.parseInt(normalized);
+        } catch (NumberFormatException ex) {
+            return fallback;
+        }
+    }
 
     /**
      * Builds merge-ready rail output from input and footprint CSVs.
@@ -207,39 +232,6 @@ public final class RailHelperCommand implements Callable<Integer> {
         return sb.toString();
     }
 
-    private static String raw(Map<String, String> row, String... keys) {
-        for (String key : keys) {
-            String value = row.get(normalizeHeader(key));
-            if (value != null) {
-                return value;
-            }
-        }
-        return "";
-    }
-
-    private static String normalizeHeader(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
-    }
-
-    private static String normalize(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private static int parseInt(String raw, int fallback) {
-        if (raw == null || raw.isBlank()) {
-            return fallback;
-        }
-        String normalized = raw.replace(",", "").trim();
-        try {
-            return Integer.parseInt(normalized);
-        } catch (NumberFormatException ex) {
-            return fallback;
-        }
-    }
-
     private void readCsv(Path path, CsvRowConsumer rowConsumer) throws Exception {
         List<String> normalizedHeaders;
         try (java.io.BufferedReader reader = Files.newBufferedReader(path)) {
@@ -296,6 +288,11 @@ public final class RailHelperCommand implements Callable<Integer> {
         return values;
     }
 
+    @FunctionalInterface
+    private interface CsvRowConsumer {
+        void accept(Map<String, String> row) throws Exception;
+    }
+
     /**
      * Extracts numbered column groups such as ITEM_NBR_1 ... ITEM_NBR_13.
      */
@@ -329,10 +326,5 @@ public final class RailHelperCommand implements Callable<Integer> {
             }
             return byIndex;
         }
-    }
-
-    @FunctionalInterface
-    private interface CsvRowConsumer {
-        void accept(Map<String, String> row) throws Exception;
     }
 }

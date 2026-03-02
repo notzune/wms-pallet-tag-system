@@ -11,12 +11,12 @@ package com.tbg.wms.cli.commands;
 import com.tbg.wms.cli.gui.LabelGuiFrame;
 import picocli.CommandLine.Command;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import java.util.concurrent.Callable;
 
 /**
  * Launches the Swing desktop workflow.
- *
+ * <p>
  * This command returns immediately after scheduling the GUI startup on the
  * EDT (Event Dispatch Thread).
  */

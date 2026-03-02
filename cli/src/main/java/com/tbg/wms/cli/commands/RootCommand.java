@@ -56,16 +56,6 @@ public final class RootCommand implements Callable<Integer> {
     boolean versionRequested;
 
     /**
-     * Default root command handler.
-     *
-     * @return always {@code 0}
-     */
-    @Override
-    public Integer call() {
-        return 0;
-    }
-
-    /**
      * Factory method for creating the application configuration.
      * <p>
      * Loads configuration from `.env` file and environment variables with precedence:
@@ -80,5 +70,15 @@ public final class RootCommand implements Callable<Integer> {
      */
     static AppConfig config() {
         return new AppConfig();
+    }
+
+    /**
+     * Default root command handler.
+     *
+     * @return always {@code 0}
+     */
+    @Override
+    public Integer call() {
+        return 0;
     }
 }

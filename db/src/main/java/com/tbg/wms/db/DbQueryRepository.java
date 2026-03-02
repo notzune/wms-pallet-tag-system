@@ -8,28 +8,28 @@
 
 package com.tbg.wms.db;
 
+import com.tbg.wms.core.model.CarrierMoveStopRef;
+import com.tbg.wms.core.model.Shipment;
+import com.tbg.wms.core.model.ShipmentSkuFootprint;
 import com.tbg.wms.core.rail.RailFootprintCandidate;
 import com.tbg.wms.core.rail.RailStopRecord;
-import com.tbg.wms.core.model.ShipmentSkuFootprint;
-import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.CarrierMoveStopRef;
 
 import java.util.List;
 import java.util.Map;
 
 /**
  * Repository interface for querying WMS data from Oracle database.
- *
+ * <p>
  * This interface provides clean boundaries for database access and allows
  * for different implementations (real Oracle queries, test mocks, etc.).
- *
+ * <p>
  * All query failures are surfaced as typed runtime exceptions for consistent CLI/GUI handling.
  */
 public interface DbQueryRepository {
 
     /**
      * Retrieves a complete shipment with all LPNs and line items.
-     *
+     * <p>
      * This is a read-only operation that gathers:
      * - Shipment header information (destination, carrier, dates)
      * - All LPNs (pallets) tied to this shipment
@@ -39,33 +39,33 @@ public interface DbQueryRepository {
      * @param shipmentId the shipment identifier
      * @return the complete shipment with all associated data
      * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
-     * @throws IllegalArgumentException if shipmentId is null or empty
+     * @throws IllegalArgumentException                              if shipmentId is null or empty
      */
     Shipment findShipmentWithLpnsAndLineItems(String shipmentId);
 
     /**
      * Validates that a shipment exists and has at least one LPN.
-     *
+     * <p>
      * Lightweight check to verify shipment is printable without
      * fetching all associated data.
      *
      * @param shipmentId the shipment identifier
      * @return true if shipment exists and has at least one LPN, false otherwise
      * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
-     * @throws IllegalArgumentException if shipmentId is null or empty
+     * @throws IllegalArgumentException                              if shipmentId is null or empty
      */
     boolean shipmentExists(String shipmentId);
 
     /**
      * Returns the staging location for a shipment.
-     *
+     * <p>
      * Used for printer routing decisions. All LPNs in a shipment
      * should be in the same staging location.
      *
      * @param shipmentId the shipment identifier
      * @return the staging location (e.g., "ROSSI", "OFFICE"), or null if not found
      * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
-     * @throws IllegalArgumentException if shipmentId is null or empty
+     * @throws IllegalArgumentException                              if shipmentId is null or empty
      */
     String getStagingLocation(String shipmentId);
 
@@ -111,7 +111,7 @@ public interface DbQueryRepository {
 
     /**
      * Closes the repository and releases any resources.
-     *
+     * <p>
      * Implementors must ensure underlying connections are closed properly.
      */
     void close();

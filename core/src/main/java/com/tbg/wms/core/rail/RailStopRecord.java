@@ -42,6 +42,10 @@ public final class RailStopRecord {
                 : Collections.unmodifiableList(new ArrayList<>(items));
     }
 
+    private static String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
     public String getDate() {
         return date;
     }
@@ -107,9 +111,5 @@ public final class RailStopRecord {
         public int hashCode() {
             return Objects.hash(itemNumber, cases);
         }
-    }
-
-    private static String normalize(String value) {
-        return value == null ? "" : value.trim();
     }
 }

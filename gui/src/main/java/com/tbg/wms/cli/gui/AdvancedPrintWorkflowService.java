@@ -29,37 +29,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
  * Higher-level workflow for carrier move jobs, queueing, and checkpoint resume.
  */
 public final class AdvancedPrintWorkflowService {
-
-    public enum InputMode {
-        CARRIER_MOVE,
-        SHIPMENT
-    }
-
-    public enum QueueItemType {
-        CARRIER_MOVE,
-        SHIPMENT
-    }
-
-    public enum TaskKind {
-        PALLET_LABEL,
-        STOP_INFO_TAG,
-        FINAL_INFO_TAG
-    }
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final int MAX_QUEUE_ITEMS = 500;
@@ -71,10 +47,8 @@ public final class AdvancedPrintWorkflowService {
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
     private final AppConfig config;
     private final LabelWorkflowService shipmentService;
-
     public AdvancedPrintWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
         this.shipmentService = new LabelWorkflowService(config);
@@ -216,11 +190,11 @@ public final class AdvancedPrintWorkflowService {
                 Path file = limitedIterator.next();
                 try {
                     JobCheckpoint checkpoint = MAPPER.readValue(file.toFile(), JobCheckpoint.class);
-                if (!checkpoint.completed) {
-                    int total = checkpoint.tasks == null ? 0 : checkpoint.tasks.size();
-                    items.add(new ResumeCandidate(checkpoint.id, checkpoint.mode, checkpoint.sourceId, checkpoint.outputDirectory,
-                            checkpoint.nextTaskIndex, total, checkpoint.updatedAt, checkpoint.lastError));
-                }
+                    if (!checkpoint.completed) {
+                        int total = checkpoint.tasks == null ? 0 : checkpoint.tasks.size();
+                        items.add(new ResumeCandidate(checkpoint.id, checkpoint.mode, checkpoint.sourceId, checkpoint.outputDirectory,
+                                checkpoint.nextTaskIndex, total, checkpoint.updatedAt, checkpoint.lastError));
+                    }
                 } catch (Exception ignored) {
                     // Skip malformed checkpoint files and continue scanning.
                 }
@@ -499,6 +473,22 @@ public final class AdvancedPrintWorkflowService {
         return value.replace("~", "~~").replace("^", "~~^").replace("{", "{{").replace("}", "}}");
     }
 
+    public enum InputMode {
+        CARRIER_MOVE,
+        SHIPMENT
+    }
+
+    public enum QueueItemType {
+        CARRIER_MOVE,
+        SHIPMENT
+    }
+
+    public enum TaskKind {
+        PALLET_LABEL,
+        STOP_INFO_TAG,
+        FINAL_INFO_TAG
+    }
+
     public static final class PreparedCarrierMoveJob {
         private final String carrierMoveId;
         private final List<PreparedStopGroup> stopGroups;
@@ -508,9 +498,17 @@ public final class AdvancedPrintWorkflowService {
             this.stopGroups = List.copyOf(stopGroups);
         }
 
-        public String getCarrierMoveId() { return carrierMoveId; }
-        public List<PreparedStopGroup> getStopGroups() { return stopGroups; }
-        public int getTotalStops() { return stopGroups.size(); }
+        public String getCarrierMoveId() {
+            return carrierMoveId;
+        }
+
+        public List<PreparedStopGroup> getStopGroups() {
+            return stopGroups;
+        }
+
+        public int getTotalStops() {
+            return stopGroups.size();
+        }
     }
 
     public static final class PreparedStopGroup {
@@ -524,20 +522,35 @@ public final class AdvancedPrintWorkflowService {
             this.shipmentJobs = List.copyOf(shipmentJobs);
         }
 
-        public Integer getStopSequence() { return stopSequence; }
-        public int getStopPosition() { return stopPosition; }
-        public List<LabelWorkflowService.PreparedJob> getShipmentJobs() { return shipmentJobs; }
+        public Integer getStopSequence() {
+            return stopSequence;
+        }
+
+        public int getStopPosition() {
+            return stopPosition;
+        }
+
+        public List<LabelWorkflowService.PreparedJob> getShipmentJobs() {
+            return shipmentJobs;
+        }
     }
 
     public static final class QueueRequestItem {
         private final QueueItemType type;
         private final String id;
+
         public QueueRequestItem(QueueItemType type, String id) {
             this.type = Objects.requireNonNull(type, "type");
             this.id = Objects.requireNonNull(id, "id").trim();
         }
-        public QueueItemType getType() { return type; }
-        public String getId() { return id; }
+
+        public QueueItemType getType() {
+            return type;
+        }
+
+        public String getId() {
+            return id;
+        }
     }
 
     public static final class PreparedQueueItem {
@@ -556,6 +569,7 @@ public final class AdvancedPrintWorkflowService {
         private static PreparedQueueItem forShipment(String id, LabelWorkflowService.PreparedJob job) {
             return new PreparedQueueItem(QueueItemType.SHIPMENT, id, job, null);
         }
+
         private static PreparedQueueItem forCarrier(String id, PreparedCarrierMoveJob job) {
             return new PreparedQueueItem(QueueItemType.CARRIER_MOVE, id, null, job);
         }
@@ -579,8 +593,14 @@ public final class AdvancedPrintWorkflowService {
 
     public static final class PreparedQueueJob {
         private final List<PreparedQueueItem> items;
-        private PreparedQueueJob(List<PreparedQueueItem> items) { this.items = List.copyOf(items); }
-        public List<PreparedQueueItem> getItems() { return items; }
+
+        private PreparedQueueJob(List<PreparedQueueItem> items) {
+            this.items = List.copyOf(items);
+        }
+
+        public List<PreparedQueueItem> getItems() {
+            return items;
+        }
     }
 
     public static final class PrintResult {
@@ -600,26 +620,53 @@ public final class AdvancedPrintWorkflowService {
             this.printToFile = printToFile;
         }
 
-        public int getLabelsPrinted() { return labelsPrinted; }
-        public int getInfoTagsPrinted() { return infoTagsPrinted; }
-        public Path getOutputDirectory() { return outputDirectory; }
-        public String getPrinterId() { return printerId; }
-        public String getPrinterEndpoint() { return printerEndpoint; }
-        public boolean isPrintToFile() { return printToFile; }
+        public int getLabelsPrinted() {
+            return labelsPrinted;
+        }
+
+        public int getInfoTagsPrinted() {
+            return infoTagsPrinted;
+        }
+
+        public Path getOutputDirectory() {
+            return outputDirectory;
+        }
+
+        public String getPrinterId() {
+            return printerId;
+        }
+
+        public String getPrinterEndpoint() {
+            return printerEndpoint;
+        }
+
+        public boolean isPrintToFile() {
+            return printToFile;
+        }
     }
 
     public static final class QueuePrintResult {
         private final List<PrintResult> itemResults;
         private final int totalLabelsPrinted;
         private final int totalInfoTagsPrinted;
+
         private QueuePrintResult(List<PrintResult> itemResults, int totalLabelsPrinted, int totalInfoTagsPrinted) {
             this.itemResults = List.copyOf(itemResults);
             this.totalLabelsPrinted = totalLabelsPrinted;
             this.totalInfoTagsPrinted = totalInfoTagsPrinted;
         }
-        public List<PrintResult> getItemResults() { return itemResults; }
-        public int getTotalLabelsPrinted() { return totalLabelsPrinted; }
-        public int getTotalInfoTagsPrinted() { return totalInfoTagsPrinted; }
+
+        public List<PrintResult> getItemResults() {
+            return itemResults;
+        }
+
+        public int getTotalLabelsPrinted() {
+            return totalLabelsPrinted;
+        }
+
+        public int getTotalInfoTagsPrinted() {
+            return totalInfoTagsPrinted;
+        }
     }
 
     public static final class ResumeCandidate {
@@ -643,14 +690,37 @@ public final class AdvancedPrintWorkflowService {
             this.lastError = lastError;
         }
 
-        public String checkpointId() { return checkpointId; }
-        public InputMode mode() { return mode; }
-        public String sourceId() { return sourceId; }
-        public String outputDirectory() { return outputDirectory; }
-        public int nextTaskIndex() { return nextTaskIndex; }
-        public int totalTasks() { return totalTasks; }
-        public LocalDateTime updatedAt() { return updatedAt; }
-        public String lastError() { return lastError; }
+        public String checkpointId() {
+            return checkpointId;
+        }
+
+        public InputMode mode() {
+            return mode;
+        }
+
+        public String sourceId() {
+            return sourceId;
+        }
+
+        public String outputDirectory() {
+            return outputDirectory;
+        }
+
+        public int nextTaskIndex() {
+            return nextTaskIndex;
+        }
+
+        public int totalTasks() {
+            return totalTasks;
+        }
+
+        public LocalDateTime updatedAt() {
+            return updatedAt;
+        }
+
+        public String lastError() {
+            return lastError;
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

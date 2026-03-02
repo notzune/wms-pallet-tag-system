@@ -8,11 +8,7 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
-import com.tbg.wms.core.rail.RailFamilyFootprint;
-import com.tbg.wms.core.rail.RailFootprintCandidate;
-import com.tbg.wms.core.rail.RailLabelPlanner;
-import com.tbg.wms.core.rail.RailStopRecord;
-import com.tbg.wms.core.rail.RailTrainDetailExporter;
+import com.tbg.wms.core.rail.*;
 import com.tbg.wms.db.DbConnectionPool;
 import com.tbg.wms.db.DbQueryRepository;
 import com.tbg.wms.db.OracleDbQueryRepository;
@@ -22,17 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -48,174 +34,6 @@ public final class RailWorkflowService {
     public RailWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
         this.artifactService = new RailArtifactService();
-    }
-
-    public String defaultFootprintCsvPath() {
-        Path downloads = Path.of(System.getProperty("user.home"), "Downloads");
-        return downloads.resolve("JC Labels v7 (Updated 1.5.21).csv").toString();
-    }
-
-    public PreparedRailJob prepareRailJob(String trainId, Path csvOverridePath, boolean useCsvOverride) throws Exception {
-        String normalizedTrainId = normalizeTrainId(trainId);
-        try (DbConnectionPool pool = new DbConnectionPool(config)) {
-            DbQueryRepository repo = new OracleDbQueryRepository(pool.getDataSource());
-
-            List<RailStopRecord> records = repo.findRailStopsByTrainId(normalizedTrainId);
-            if (records.isEmpty()) {
-                throw new IllegalArgumentException("No rail rows found for train: " + normalizedTrainId);
-            }
-
-            Set<String> shortCodes = collectShortCodes(records);
-            Map<String, List<RailFootprintCandidate>> wmsCandidates = repo.findRailFootprintsByShortCode(new ArrayList<>(shortCodes));
-            Map<String, RailFamilyFootprint> resolved = resolveWmsFootprints(wmsCandidates);
-
-            CsvFootprintLoad csvLoad = CsvFootprintLoad.empty();
-            if (useCsvOverride && csvOverridePath != null && Files.exists(csvOverridePath)) {
-                csvLoad = loadCsvFootprints(csvOverridePath);
-                resolved.putAll(csvLoad.byShortCode);
-            }
-
-            RailLabelPlanner planner = new RailLabelPlanner(ITEM_SLOTS);
-            List<RailLabelPlanner.PlannedRailLabel> planned = planner.plan(records, resolved);
-            RailDiagnostics diagnostics = buildDiagnostics(records, planned, shortCodes, resolved, wmsCandidates, csvLoad);
-            return new PreparedRailJob(
-                    normalizedTrainId,
-                    records,
-                    planned,
-                    resolved,
-                    diagnostics,
-                    csvOverridePath,
-                    useCsvOverride
-            );
-        }
-    }
-
-    public GenerationResult generateArtifacts(PreparedRailJob job, Path outputDir, Path templateDocx) throws Exception {
-        Objects.requireNonNull(job, "job cannot be null");
-        Path targetDir = outputDir == null
-                ? Path.of("out", "rail-gui-" + job.trainId + "-" + TS.format(LocalDateTime.now()))
-                : outputDir;
-        Files.createDirectories(targetDir);
-
-        Path csvPath = targetDir.resolve("_TrainDetail.csv");
-        new RailTrainDetailExporter().exportTrainDetailCsv(job.plannedRows, csvPath);
-
-        Path summaryPath = targetDir.resolve("rail-helper-summary.txt");
-        Files.writeString(summaryPath, buildSummaryText(job));
-
-        RailArtifactService.WordArtifactResult wordArtifacts =
-                artifactService.generateWordArtifacts(templateDocx, csvPath, targetDir);
-        return new GenerationResult(targetDir, csvPath, summaryPath, wordArtifacts);
-    }
-
-    public String buildMergePreviewText(PreparedRailJob job, int maxRows) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Merge Row Preview\n");
-        sb.append("=================\n");
-        int shown = 0;
-        for (RailLabelPlanner.PlannedRailLabel row : job.plannedRows) {
-            if (shown >= maxRows) {
-                break;
-            }
-            Map<String, String> fields = row.toMergeFields();
-            sb.append("Row ").append(shown + 1).append(": ")
-                    .append(fields.getOrDefault("TRAIN_NBR", ""))
-                    .append(" / seq ").append(fields.getOrDefault("SEQ", ""))
-                    .append(" / vehicle ").append(fields.getOrDefault("VEHICLE_ID", ""))
-                    .append(" / load ").append(fields.getOrDefault("LOAD_NBR", ""))
-                    .append('\n');
-            for (int i = 1; i <= ITEM_SLOTS; i++) {
-                String item = fields.getOrDefault("ITEM_NBR_" + i, "");
-                String qty = fields.getOrDefault("TOTAL_CS_ITM_" + i, "");
-                if (!item.isBlank()) {
-                    sb.append("  [").append(i).append("] ")
-                            .append(item)
-                            .append(" -> ")
-                            .append(qty)
-                            .append('\n');
-                }
-            }
-            sb.append("  Families: ")
-                    .append(nonBlank(fields.getOrDefault("Item_1", ""), fields.getOrDefault("Item_2", ""), fields.getOrDefault("Item_3", "")))
-                    .append('\n');
-            if (!row.getMissingFootprintItems().isEmpty()) {
-                sb.append("  Missing footprint: ").append(String.join(", ", row.getMissingFootprintItems())).append('\n');
-            }
-            if (!row.getOverflowItems().isEmpty()) {
-                sb.append("  Overflow (>13): ")
-                        .append(row.getOverflowItems().stream()
-                                .map(RailStopRecord.ItemQuantity::getItemNumber)
-                                .collect(Collectors.joining(", ")))
-                        .append('\n');
-            }
-            sb.append('\n');
-            shown++;
-        }
-        if (job.plannedRows.size() > shown) {
-            sb.append("... ").append(job.plannedRows.size() - shown).append(" more rows not shown.\n");
-        }
-        return sb.toString();
-    }
-
-    public String buildDiagnosticsText(PreparedRailJob job) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Rail Diagnostics\n");
-        sb.append("================\n");
-        sb.append("Train ID: ").append(job.trainId).append('\n');
-        sb.append("Rows loaded from WMS: ").append(job.records.size()).append('\n');
-        sb.append("Rows planned: ").append(job.plannedRows.size()).append('\n');
-        sb.append("Distinct short codes: ").append(job.diagnostics.shortCodes.size()).append('\n');
-        sb.append("Resolved footprints: ").append(job.resolvedFootprints.size()).append('\n');
-        sb.append("Missing footprint short codes: ").append(job.diagnostics.missingFootprintShortCodes.size()).append('\n');
-        sb.append("Rows with missing footprint: ").append(job.diagnostics.rowsWithMissingFootprint).append('\n');
-        sb.append("Rows exceeding 13 item slots: ").append(job.diagnostics.rowsWithOverflow).append('\n');
-        sb.append("Ambiguous WMS short-code mappings: ").append(job.diagnostics.ambiguousWmsShortCodes.size()).append('\n');
-        sb.append("CSV duplicate conflicts: ").append(job.diagnostics.csvConflictingShortCodes.size()).append('\n');
-        sb.append('\n');
-
-        if (!job.diagnostics.ambiguousWmsShortCodes.isEmpty()) {
-            sb.append("Ambiguous WMS mappings:\n");
-            for (String code : job.diagnostics.ambiguousWmsShortCodes) {
-                sb.append(" - ").append(code).append('\n');
-            }
-            sb.append('\n');
-        }
-        if (!job.diagnostics.csvConflictingShortCodes.isEmpty()) {
-            sb.append("Conflicting CSV short codes:\n");
-            for (String code : job.diagnostics.csvConflictingShortCodes) {
-                sb.append(" - ").append(code).append('\n');
-            }
-            sb.append('\n');
-        }
-        if (!job.diagnostics.missingFootprintShortCodes.isEmpty()) {
-            sb.append("Missing footprint short codes:\n");
-            for (String code : job.diagnostics.missingFootprintShortCodes) {
-                sb.append(" - ").append(code).append('\n');
-            }
-            sb.append('\n');
-        }
-        return sb.toString();
-    }
-
-    private String buildSummaryText(PreparedRailJob job) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Rail Helper Summary\n");
-        sb.append("===================\n");
-        sb.append("Train ID: ").append(job.trainId).append('\n');
-        sb.append("Rows exported: ").append(job.plannedRows.size()).append('\n');
-        sb.append("Distinct short codes: ").append(job.diagnostics.shortCodes.size()).append('\n');
-        sb.append("Resolved footprints: ").append(job.resolvedFootprints.size()).append('\n');
-        sb.append("Rows with missing footprint: ").append(job.diagnostics.rowsWithMissingFootprint).append('\n');
-        sb.append("Rows exceeding item slot limit: ").append(job.diagnostics.rowsWithOverflow).append('\n');
-        sb.append("Ambiguous WMS short-code mappings: ").append(job.diagnostics.ambiguousWmsShortCodes.size()).append('\n');
-        sb.append("CSV duplicate conflicts: ").append(job.diagnostics.csvConflictingShortCodes.size()).append('\n');
-        if (!job.diagnostics.missingFootprintShortCodes.isEmpty()) {
-            sb.append("Missing short codes: ").append(String.join(", ", job.diagnostics.missingFootprintShortCodes)).append('\n');
-        }
-        sb.append('\n');
-        sb.append("Template merge fields used:\n");
-        sb.append("DATE, SEQ, TRAIN_NBR, VEHICLE_ID, DCS_WHSE, LOAD_NBR, ITEM_NBR_1..13, TOTAL_CS_ITM_1..13, Item_1..3\n");
-        return sb.toString();
     }
 
     private static String normalizeTrainId(String trainId) {
@@ -431,6 +249,174 @@ public final class RailWorkflowService {
             }
         }
         return parts.isEmpty() ? "-" : String.join(", ", parts);
+    }
+
+    public String defaultFootprintCsvPath() {
+        Path downloads = Path.of(System.getProperty("user.home"), "Downloads");
+        return downloads.resolve("JC Labels v7 (Updated 1.5.21).csv").toString();
+    }
+
+    public PreparedRailJob prepareRailJob(String trainId, Path csvOverridePath, boolean useCsvOverride) throws Exception {
+        String normalizedTrainId = normalizeTrainId(trainId);
+        try (DbConnectionPool pool = new DbConnectionPool(config)) {
+            DbQueryRepository repo = new OracleDbQueryRepository(pool.getDataSource());
+
+            List<RailStopRecord> records = repo.findRailStopsByTrainId(normalizedTrainId);
+            if (records.isEmpty()) {
+                throw new IllegalArgumentException("No rail rows found for train: " + normalizedTrainId);
+            }
+
+            Set<String> shortCodes = collectShortCodes(records);
+            Map<String, List<RailFootprintCandidate>> wmsCandidates = repo.findRailFootprintsByShortCode(new ArrayList<>(shortCodes));
+            Map<String, RailFamilyFootprint> resolved = resolveWmsFootprints(wmsCandidates);
+
+            CsvFootprintLoad csvLoad = CsvFootprintLoad.empty();
+            if (useCsvOverride && csvOverridePath != null && Files.exists(csvOverridePath)) {
+                csvLoad = loadCsvFootprints(csvOverridePath);
+                resolved.putAll(csvLoad.byShortCode);
+            }
+
+            RailLabelPlanner planner = new RailLabelPlanner(ITEM_SLOTS);
+            List<RailLabelPlanner.PlannedRailLabel> planned = planner.plan(records, resolved);
+            RailDiagnostics diagnostics = buildDiagnostics(records, planned, shortCodes, resolved, wmsCandidates, csvLoad);
+            return new PreparedRailJob(
+                    normalizedTrainId,
+                    records,
+                    planned,
+                    resolved,
+                    diagnostics,
+                    csvOverridePath,
+                    useCsvOverride
+            );
+        }
+    }
+
+    public GenerationResult generateArtifacts(PreparedRailJob job, Path outputDir, Path templateDocx) throws Exception {
+        Objects.requireNonNull(job, "job cannot be null");
+        Path targetDir = outputDir == null
+                ? Path.of("out", "rail-gui-" + job.trainId + "-" + TS.format(LocalDateTime.now()))
+                : outputDir;
+        Files.createDirectories(targetDir);
+
+        Path csvPath = targetDir.resolve("_TrainDetail.csv");
+        new RailTrainDetailExporter().exportTrainDetailCsv(job.plannedRows, csvPath);
+
+        Path summaryPath = targetDir.resolve("rail-helper-summary.txt");
+        Files.writeString(summaryPath, buildSummaryText(job));
+
+        RailArtifactService.WordArtifactResult wordArtifacts =
+                artifactService.generateWordArtifacts(templateDocx, csvPath, targetDir);
+        return new GenerationResult(targetDir, csvPath, summaryPath, wordArtifacts);
+    }
+
+    public String buildMergePreviewText(PreparedRailJob job, int maxRows) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Merge Row Preview\n");
+        sb.append("=================\n");
+        int shown = 0;
+        for (RailLabelPlanner.PlannedRailLabel row : job.plannedRows) {
+            if (shown >= maxRows) {
+                break;
+            }
+            Map<String, String> fields = row.toMergeFields();
+            sb.append("Row ").append(shown + 1).append(": ")
+                    .append(fields.getOrDefault("TRAIN_NBR", ""))
+                    .append(" / seq ").append(fields.getOrDefault("SEQ", ""))
+                    .append(" / vehicle ").append(fields.getOrDefault("VEHICLE_ID", ""))
+                    .append(" / load ").append(fields.getOrDefault("LOAD_NBR", ""))
+                    .append('\n');
+            for (int i = 1; i <= ITEM_SLOTS; i++) {
+                String item = fields.getOrDefault("ITEM_NBR_" + i, "");
+                String qty = fields.getOrDefault("TOTAL_CS_ITM_" + i, "");
+                if (!item.isBlank()) {
+                    sb.append("  [").append(i).append("] ")
+                            .append(item)
+                            .append(" -> ")
+                            .append(qty)
+                            .append('\n');
+                }
+            }
+            sb.append("  Families: ")
+                    .append(nonBlank(fields.getOrDefault("Item_1", ""), fields.getOrDefault("Item_2", ""), fields.getOrDefault("Item_3", "")))
+                    .append('\n');
+            if (!row.getMissingFootprintItems().isEmpty()) {
+                sb.append("  Missing footprint: ").append(String.join(", ", row.getMissingFootprintItems())).append('\n');
+            }
+            if (!row.getOverflowItems().isEmpty()) {
+                sb.append("  Overflow (>13): ")
+                        .append(row.getOverflowItems().stream()
+                                .map(RailStopRecord.ItemQuantity::getItemNumber)
+                                .collect(Collectors.joining(", ")))
+                        .append('\n');
+            }
+            sb.append('\n');
+            shown++;
+        }
+        if (job.plannedRows.size() > shown) {
+            sb.append("... ").append(job.plannedRows.size() - shown).append(" more rows not shown.\n");
+        }
+        return sb.toString();
+    }
+
+    public String buildDiagnosticsText(PreparedRailJob job) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Rail Diagnostics\n");
+        sb.append("================\n");
+        sb.append("Train ID: ").append(job.trainId).append('\n');
+        sb.append("Rows loaded from WMS: ").append(job.records.size()).append('\n');
+        sb.append("Rows planned: ").append(job.plannedRows.size()).append('\n');
+        sb.append("Distinct short codes: ").append(job.diagnostics.shortCodes.size()).append('\n');
+        sb.append("Resolved footprints: ").append(job.resolvedFootprints.size()).append('\n');
+        sb.append("Missing footprint short codes: ").append(job.diagnostics.missingFootprintShortCodes.size()).append('\n');
+        sb.append("Rows with missing footprint: ").append(job.diagnostics.rowsWithMissingFootprint).append('\n');
+        sb.append("Rows exceeding 13 item slots: ").append(job.diagnostics.rowsWithOverflow).append('\n');
+        sb.append("Ambiguous WMS short-code mappings: ").append(job.diagnostics.ambiguousWmsShortCodes.size()).append('\n');
+        sb.append("CSV duplicate conflicts: ").append(job.diagnostics.csvConflictingShortCodes.size()).append('\n');
+        sb.append('\n');
+
+        if (!job.diagnostics.ambiguousWmsShortCodes.isEmpty()) {
+            sb.append("Ambiguous WMS mappings:\n");
+            for (String code : job.diagnostics.ambiguousWmsShortCodes) {
+                sb.append(" - ").append(code).append('\n');
+            }
+            sb.append('\n');
+        }
+        if (!job.diagnostics.csvConflictingShortCodes.isEmpty()) {
+            sb.append("Conflicting CSV short codes:\n");
+            for (String code : job.diagnostics.csvConflictingShortCodes) {
+                sb.append(" - ").append(code).append('\n');
+            }
+            sb.append('\n');
+        }
+        if (!job.diagnostics.missingFootprintShortCodes.isEmpty()) {
+            sb.append("Missing footprint short codes:\n");
+            for (String code : job.diagnostics.missingFootprintShortCodes) {
+                sb.append(" - ").append(code).append('\n');
+            }
+            sb.append('\n');
+        }
+        return sb.toString();
+    }
+
+    private String buildSummaryText(PreparedRailJob job) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Rail Helper Summary\n");
+        sb.append("===================\n");
+        sb.append("Train ID: ").append(job.trainId).append('\n');
+        sb.append("Rows exported: ").append(job.plannedRows.size()).append('\n');
+        sb.append("Distinct short codes: ").append(job.diagnostics.shortCodes.size()).append('\n');
+        sb.append("Resolved footprints: ").append(job.resolvedFootprints.size()).append('\n');
+        sb.append("Rows with missing footprint: ").append(job.diagnostics.rowsWithMissingFootprint).append('\n');
+        sb.append("Rows exceeding item slot limit: ").append(job.diagnostics.rowsWithOverflow).append('\n');
+        sb.append("Ambiguous WMS short-code mappings: ").append(job.diagnostics.ambiguousWmsShortCodes.size()).append('\n');
+        sb.append("CSV duplicate conflicts: ").append(job.diagnostics.csvConflictingShortCodes.size()).append('\n');
+        if (!job.diagnostics.missingFootprintShortCodes.isEmpty()) {
+            sb.append("Missing short codes: ").append(String.join(", ", job.diagnostics.missingFootprintShortCodes)).append('\n');
+        }
+        sb.append('\n');
+        sb.append("Template merge fields used:\n");
+        sb.append("DATE, SEQ, TRAIN_NBR, VEHICLE_ID, DCS_WHSE, LOAD_NBR, ITEM_NBR_1..13, TOTAL_CS_ITM_1..13, Item_1..3\n");
+        return sb.toString();
     }
 
     private static final class CsvFootprintLoad {

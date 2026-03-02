@@ -15,16 +15,20 @@ import java.util.Locale;
 
 /**
  * Service for normalizing and transforming WMS data.
- *
+ * <p>
  * This service applies data cleaning, trimming, uppercase conversion, and
  * validation to raw WMS data before it enters the domain model layer.
- *
+ * <p>
  * All normalizations are idempotent - applying them multiple times produces
  * the same result.
  */
 public final class NormalizationService {
 
     private static final Logger log = LoggerFactory.getLogger(NormalizationService.class);
+
+    private NormalizationService() {
+        // Utility class - prevent instantiation
+    }
 
     /**
      * Normalizes a string value: trim whitespace and handle nulls.
@@ -50,7 +54,7 @@ public final class NormalizationService {
     /**
      * Normalizes a numeric string to an integer.
      *
-     * @param value the raw string value
+     * @param value        the raw string value
      * @param defaultValue value to return if parsing fails
      * @return parsed integer or defaultValue if null or invalid
      */
@@ -67,7 +71,7 @@ public final class NormalizationService {
     /**
      * Normalizes a numeric string to a double.
      *
-     * @param value the raw string value
+     * @param value        the raw string value
      * @param defaultValue value to return if parsing fails
      * @return parsed double or defaultValue if null or invalid
      */
@@ -84,7 +88,7 @@ public final class NormalizationService {
     /**
      * Validates that a required string field is not empty.
      *
-     * @param value the value to validate
+     * @param value     the value to validate
      * @param fieldName the field name (for error messages)
      * @return the normalized value
      * @throws IllegalArgumentException if value is null or empty after normalization
@@ -99,7 +103,7 @@ public final class NormalizationService {
 
     /**
      * Normalizes a line item field name for consistency.
-     *
+     * <p>
      * Applies uppercase and trimming but preserves special characters.
      *
      * @param value the raw field value
@@ -111,7 +115,7 @@ public final class NormalizationService {
 
     /**
      * Normalizes a SKU for database lookup.
-     *
+     * <p>
      * SKUs are typically uppercase alphanumeric codes.
      *
      * @param sku the raw SKU value
@@ -124,7 +128,7 @@ public final class NormalizationService {
 
     /**
      * Normalizes a staging location for routing.
-     *
+     * <p>
      * Staging locations are uppercase identifiers (e.g., "ROSSI", "OFFICE").
      *
      * @param location the raw location value
@@ -148,7 +152,7 @@ public final class NormalizationService {
 
     /**
      * Normalizes a barcode value for printing.
-     *
+     * <p>
      * Barcodes are case-sensitive and should not be modified beyond trimming.
      *
      * @param barcode the raw barcode value
@@ -161,7 +165,7 @@ public final class NormalizationService {
 
     /**
      * Normalizes a carrier code.
-     *
+     * <p>
      * Carrier codes are uppercase short codes (e.g., "UPS", "FDX").
      *
      * @param carrierCode the raw carrier code
@@ -170,10 +174,6 @@ public final class NormalizationService {
      */
     public static String normalizeCarrierCode(String carrierCode) {
         return requireNonEmpty(normalizeToUppercase(carrierCode), "carrierCode");
-    }
-
-    private NormalizationService() {
-        // Utility class - prevent instantiation
     }
 }
 

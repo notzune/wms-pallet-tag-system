@@ -10,7 +10,7 @@ package com.tbg.wms.core.exception;
 
 /**
  * Exception thrown when printing operations fail.
- *
+ * <p>
  * Indicates issues with network printing such as:
  * - Printer unreachable
  * - Connection timeout
@@ -26,7 +26,7 @@ public class WmsPrintException extends WmsException {
     /**
      * Creates a new print exception.
      *
-     * @param message error description
+     * @param message     error description
      * @param remediation suggested remediation steps
      */
     public WmsPrintException(String message, String remediation) {
@@ -36,8 +36,8 @@ public class WmsPrintException extends WmsException {
     /**
      * Creates a new print exception with cause.
      *
-     * @param message error description
-     * @param cause underlying exception
+     * @param message     error description
+     * @param cause       underlying exception
      * @param remediation suggested remediation steps
      */
     public WmsPrintException(String message, Throwable cause, String remediation) {

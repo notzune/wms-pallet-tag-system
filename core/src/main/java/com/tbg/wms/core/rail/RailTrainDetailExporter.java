@@ -60,11 +60,28 @@ public final class RailTrainDetailExporter {
             "TOTAL_CS_ITM_13"
     );
 
+    private static String toCsvLine(Map<String, String> fields) {
+        List<String> values = new ArrayList<>(MERGE_HEADERS.size());
+        for (String header : MERGE_HEADERS) {
+            values.add(escapeCsv(fields.getOrDefault(header, "")));
+        }
+        return String.join(",", values);
+    }
+
+    private static String escapeCsv(String value) {
+        String safe = value == null ? "" : value;
+        boolean needsQuotes = safe.contains(",") || safe.contains("\"") || safe.contains("\n") || safe.contains("\r");
+        if (!needsQuotes) {
+            return safe;
+        }
+        return "\"" + safe.replace("\"", "\"\"") + "\"";
+    }
+
     /**
      * Exports merge rows with template-compatible column names.
      *
      * @param plannedRows planned rail rows
-     * @param outputCsv output file path
+     * @param outputCsv   output file path
      * @throws IOException if output cannot be written
      */
     public void exportTrainDetailCsv(List<RailLabelPlanner.PlannedRailLabel> plannedRows, Path outputCsv) throws IOException {
@@ -84,22 +101,5 @@ public final class RailTrainDetailExporter {
                 writer.newLine();
             }
         }
-    }
-
-    private static String toCsvLine(Map<String, String> fields) {
-        List<String> values = new ArrayList<>(MERGE_HEADERS.size());
-        for (String header : MERGE_HEADERS) {
-            values.add(escapeCsv(fields.getOrDefault(header, "")));
-        }
-        return String.join(",", values);
-    }
-
-    private static String escapeCsv(String value) {
-        String safe = value == null ? "" : value;
-        boolean needsQuotes = safe.contains(",") || safe.contains("\"") || safe.contains("\n") || safe.contains("\r");
-        if (!needsQuotes) {
-            return safe;
-        }
-        return "\"" + safe.replace("\"", "\"\"") + "\"";
     }
 }

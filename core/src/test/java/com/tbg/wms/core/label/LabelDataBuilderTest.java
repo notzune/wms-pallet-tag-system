@@ -12,7 +12,6 @@ import com.tbg.wms.core.location.LocationNumberMappingService;
 import com.tbg.wms.core.model.LineItem;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.WalmartSkuMapping;
 import com.tbg.wms.core.sku.SkuMappingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

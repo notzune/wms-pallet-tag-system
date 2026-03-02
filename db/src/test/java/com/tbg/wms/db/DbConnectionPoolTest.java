@@ -21,7 +21,7 @@ import java.sql.DatabaseMetaData;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link DbConnectionPool}.
@@ -64,12 +64,12 @@ class DbConnectionPoolTest {
     void testConnectivityDiagnosticsRecord() {
         // Test the diagnostic class
         DbConnectivityDiagnostics diag = new DbConnectivityDiagnostics(
-            true,
-            150,
-            2,
-            3,
-            "Oracle Database 19c",
-            null
+                true,
+                150,
+                2,
+                3,
+                "Oracle Database 19c",
+                null
         );
 
         assertTrue(diag.isConnected());

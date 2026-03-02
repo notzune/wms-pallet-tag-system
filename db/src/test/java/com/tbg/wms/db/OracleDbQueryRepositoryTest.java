@@ -9,7 +9,6 @@
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
-import com.tbg.wms.core.model.Shipment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +23,8 @@ import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for OracleDbQueryRepository using mocked database connections.

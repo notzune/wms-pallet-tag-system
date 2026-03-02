@@ -14,6 +14,10 @@ import java.util.Objects;
  */
 final class LabelPreviewFormatter {
 
+    private static String value(String v) {
+        return (v == null || v.isBlank()) ? "-" : v;
+    }
+
     String buildShipmentSummaryText(LabelWorkflowService.PreparedJob job, int infoTagsToGenerate) {
         Objects.requireNonNull(job, "job cannot be null");
         StringBuilder summary = new StringBuilder();
@@ -273,10 +277,6 @@ final class LabelPreviewFormatter {
                 .append(" | Labels Needed(Footprint): ").append(totals.stopLabelsNeeded)
                 .append(" | Actual Labels: ").append(totals.stopActualLabels)
                 .append('\n');
-    }
-
-    private static String value(String v) {
-        return (v == null || v.isBlank()) ? "-" : v;
     }
 
     private static final class CarrierMoveTotals {

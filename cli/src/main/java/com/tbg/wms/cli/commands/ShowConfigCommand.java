@@ -25,6 +25,24 @@ import java.util.concurrent.Callable;
 public final class ShowConfigCommand implements Callable<Integer> {
 
     /**
+     * Redacts sensitive values for safe display in logs.
+     * Returns a placeholder string for any non-null, non-empty value.
+     *
+     * @param value the value to redact
+     * @return a redacted representation, or "(not set)" if value is null/empty
+     */
+    private static String redact(String value) {
+        if (value == null || value.isEmpty()) {
+            return "(not set)";
+        }
+        return "***" + (value.length() > 3 ? value.substring(value.length() - 3) : "***");
+    }
+
+    private static String valueOrDash(String value) {
+        return (value == null || value.isBlank()) ? "-" : value;
+    }
+
+    /**
      * Prints effective runtime configuration values with secrets redacted.
      *
      * @return exit code (0 success, 10 unexpected failure)
@@ -75,23 +93,5 @@ public final class ShowConfigCommand implements Callable<Integer> {
             System.err.println("ERROR: " + e.getMessage());
             return 2; // User input/config error
         }
-    }
-
-    /**
-     * Redacts sensitive values for safe display in logs.
-     * Returns a placeholder string for any non-null, non-empty value.
-     *
-     * @param value the value to redact
-     * @return a redacted representation, or "(not set)" if value is null/empty
-     */
-    private static String redact(String value) {
-        if (value == null || value.isEmpty()) {
-            return "(not set)";
-        }
-        return "***" + (value.length() > 3 ? value.substring(value.length() - 3) : "***");
-    }
-
-    private static String valueOrDash(String value) {
-        return (value == null || value.isBlank()) ? "-" : value;
     }
 }

@@ -12,10 +12,10 @@ import java.util.Objects;
 
 /**
  * Site-specific configuration for label generation.
- *
+ * <p>
  * Holds information about the shipping site (warehouse) such as the "ship from"
  * address and other site-specific metadata used on labels.
- *
+ * <p>
  * This is typically loaded from environment configuration or hardcoded per site.
  */
 public final class SiteConfig {
@@ -27,8 +27,8 @@ public final class SiteConfig {
     /**
      * Creates a new SiteConfig.
      *
-     * @param shipFromName the shipping company/site name
-     * @param shipFromAddress the street address
+     * @param shipFromName         the shipping company/site name
+     * @param shipFromAddress      the street address
      * @param shipFromCityStateZip the city, state, and zip code (pre-formatted)
      */
     public SiteConfig(String shipFromName, String shipFromAddress, String shipFromCityStateZip) {

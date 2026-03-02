@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for NormalizationService utility methods.
- *
+ * <p>
  * Tests verify all normalization operations including null handling,
  * type conversions, validation, and error scenarios.
  */

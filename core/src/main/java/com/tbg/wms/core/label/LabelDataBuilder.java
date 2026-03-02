@@ -10,37 +10,29 @@ package com.tbg.wms.core.label;
 
 import com.tbg.wms.core.labeling.LabelingSupport;
 import com.tbg.wms.core.location.LocationNumberMappingService;
-import com.tbg.wms.core.model.LineItem;
-import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.ShipmentSkuFootprint;
-import com.tbg.wms.core.model.WalmartSkuMapping;
+import com.tbg.wms.core.model.*;
 import com.tbg.wms.core.sku.SkuMappingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Builds label data by mapping rich domain objects to ZPL template field values.
- *
+ * <p>
  * This is the critical architectural bridge between the database-populated domain
  * models (Shipment, Lpn, LineItem) and the generic ZplTemplateEngine which requires
  * a {@code Map<String, String>} for field substitution.
- *
+ * <p>
  * Different label formats need different subsets of fields. The builder handles:
  * - Required fields (throw if missing)
  * - Optional fields (safe defaults like " " if not available)
  * - Type conversions (int→String, LocalDateTime→formatted date, etc.)
  * - SKU lookups (TBG PRTNUM → Walmart item code via SkuMappingService)
  * - Composite field formatting (address combining, date formatting, etc.)
- *
+ * <p>
  * This design allows adding/removing label fields with just one line of code
  * in the builder, without changing domain models or template engine.
  */
@@ -69,8 +61,8 @@ public final class LabelDataBuilder {
     /**
      * Creates a new LabelDataBuilder with optional per-SKU footprint metadata.
      *
-     * @param skuMapping service for Walmart SKU code lookups
-     * @param siteConfig site-specific configuration (ship-from address, etc.)
+     * @param skuMapping     service for Walmart SKU code lookups
+     * @param siteConfig     site-specific configuration (ship-from address, etc.)
      * @param footprintBySku shipment footprint map keyed by SKU
      */
     public LabelDataBuilder(SkuMappingService skuMapping,
@@ -89,17 +81,32 @@ public final class LabelDataBuilder {
         this.locationNumberMapping = locationNumberMapping;
     }
 
+    private static LocationNumberMappingService loadLocationNumberMappingOrNull() {
+        try {
+            java.nio.file.Path matrix = LabelingSupport.resolveLocationMatrixCsv();
+            if (matrix == null) {
+                return null;
+            }
+            return new LocationNumberMappingService(matrix);
+        } catch (Exception e) {
+            log.warn("Location number matrix could not be loaded; sold-to to DC mapping is disabled: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // ── Helper methods ──
+
     /**
      * Builds label data for a specific pallet within a shipment.
-     *
+     * <p>
      * Populates the exact fields needed for the given label type. Required fields
      * (ship-to name, SSCC, etc.) throw IllegalArgumentException if missing. Optional
      * fields fall back to safe defaults.
      *
-     * @param shipment the parent shipment
-     * @param lpn the specific pallet (LPN) to label
+     * @param shipment    the parent shipment
+     * @param lpn         the specific pallet (LPN) to label
      * @param palletIndex 0-based index (will be converted to 1-based "1 of N" format)
-     * @param labelType the label format type (WALMART_CANADA, etc.)
+     * @param labelType   the label format type (WALMART_CANADA, etc.)
      * @return {@code Map<String, String>} ready for ZplTemplateEngine
      * @throws IllegalArgumentException if required fields are missing
      */
@@ -223,12 +230,10 @@ public final class LabelDataBuilder {
         return Collections.unmodifiableMap(fields);
     }
 
-    // ── Helper methods ──
-
     /**
      * Require a non-empty value or throw.
      *
-     * @param value the value to check
+     * @param value     the value to check
      * @param fieldName name of field (for error message)
      * @return the value if non-empty
      * @throws IllegalArgumentException if value is null or empty
@@ -243,7 +248,7 @@ public final class LabelDataBuilder {
     /**
      * Return value if non-empty, otherwise default.
      *
-     * @param value the value to check
+     * @param value        the value to check
      * @param defaultValue fallback if value is null/empty
      * @return value or default
      */
@@ -310,19 +315,6 @@ public final class LabelDataBuilder {
             return raw;
         }
         return locationNumberMapping.resolveDcLocation(raw);
-    }
-
-    private static LocationNumberMappingService loadLocationNumberMappingOrNull() {
-        try {
-            java.nio.file.Path matrix = LabelingSupport.resolveLocationMatrixCsv();
-            if (matrix == null) {
-                return null;
-            }
-            return new LocationNumberMappingService(matrix);
-        } catch (Exception e) {
-            log.warn("Location number matrix could not be loaded; sold-to to DC mapping is disabled: {}", e.getMessage());
-            return null;
-        }
     }
 }
 

@@ -1,6 +1,7 @@
 # Python WMS Analysis Tool - Quick Reference
 
 ## ONE-LINE SETUP
+
 ```bash
 pip install oracledb && python wms_analysis.py
 ```
@@ -8,18 +9,21 @@ pip install oracledb && python wms_analysis.py
 ## WHAT WE NEED FROM DATABASE
 
 **Order/Shipment:**
+
 - Order/Shipment/Load ID
 - Ship-To Address
 - Carrier Info
 - Dates
 
 **Pallet/LPN:**
+
 - LPN identifier
 - Pallet sequence
 - Case count, unit count
 - Weight/dimensions
 
 **Line Items:**
+
 - SKU
 - Description
 - Quantity/UOM
@@ -27,6 +31,7 @@ pip install oracledb && python wms_analysis.py
 - **Walmart Item Code** (important!)
 
 **Location:**
+
 - Staging location (ROSSI=Canada)
 - Zone/facility
 
@@ -56,30 +61,34 @@ db-dumps/
 ## WHAT TO LOOK FOR
 
 In **01_schema_discovery.txt**:
+
 - Find tables: SHIPMENT, ORDER, LOAD, PALLET, LPN, LINE_ITEM, CUSTOMER
 
 In **03_shipment_analysis.txt**:
+
 - How tables relate to each other
 - What columns contain key data
 - Sample data to understand format
 
 In **04_canadian_orders.txt**:
+
 - Canadian customer identifier
 - Complete order -> pallet -> items flow
 - Walmart-specific fields
 
 ## TROUBLESHOOTING
 
-| Issue | Fix |
-|-------|-----|
-| `No module named 'oracledb'` | `pip install oracledb` |
-| `ORA-12170 TCP timeout` | Check VPN, ping 10.19.68.61 |
-| `Connection refused` | Verify .env credentials |
-| `Invalid username/password` | Check RPTADM password in .env |
+| Issue                        | Fix                           |
+|------------------------------|-------------------------------|
+| `No module named 'oracledb'` | `pip install oracledb`        |
+| `ORA-12170 TCP timeout`      | Check VPN, ping 10.19.68.61   |
+| `Connection refused`         | Verify .env credentials       |
+| `Invalid username/password`  | Check RPTADM password in .env |
 
 ## DOCUMENT YOUR FINDINGS
 
 Create FINDINGS.txt with:
+
 ```
 Table Names:
   Shipment Table: [actual name]

@@ -8,24 +8,17 @@
 
 package com.tbg.wms.core;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.BufferedReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.CodeSource;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Loads and manages runtime configuration from environment variables and `.env` file.
@@ -74,7 +67,7 @@ public final class AppConfig {
      * <p>Primarily intended for deterministic tests where host process environment and working-directory
      * `.env` files must be ignored.</p>
      *
-     * @param envVars environment key/value pairs to use for resolution precedence
+     * @param envVars            environment key/value pairs to use for resolution precedence
      * @param explicitConfigFile explicit env-style config file, or {@code null} to use normal discovery
      */
     AppConfig(Map<String, String> envVars, Path explicitConfigFile) {

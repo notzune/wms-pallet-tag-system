@@ -16,10 +16,10 @@ import java.util.regex.Pattern;
 
 /**
  * Represents a ZPL label template with placeholders for dynamic field substitution.
- *
+ * <p>
  * Templates are immutable and can be reused for multiple label generations.
  * Placeholders are marked with curly braces: {fieldName}
- *
+ * <p>
  * Example template:
  * <pre>
  * ^XA
@@ -40,7 +40,7 @@ public final class LabelTemplate {
     /**
      * Creates a new LabelTemplate.
      *
-     * @param name template name (e.g., "PALLET_LABEL", "SHIPPING_LABEL")
+     * @param name            template name (e.g., "PALLET_LABEL", "SHIPPING_LABEL")
      * @param templateContent ZPL template with {placeholder} markers
      * @throws IllegalArgumentException if name is empty or template is empty
      * @throws IllegalArgumentException if template contains invalid placeholders
@@ -140,6 +140,14 @@ public final class LabelTemplate {
         return placeholders.containsKey(placeholderName);
     }
 
+    @Override
+    public String toString() {
+        return "LabelTemplate{" +
+                "name='" + name + '\'' +
+                ", placeholders=" + placeholders.size() +
+                '}';
+    }
+
     /**
      * Represents information about a placeholder in the template.
      */
@@ -165,13 +173,5 @@ public final class LabelTemplate {
         public int getOccurrenceCount() {
             return occurrenceCount;
         }
-    }
-
-    @Override
-    public String toString() {
-        return "LabelTemplate{" +
-                "name='" + name + '\'' +
-                ", placeholders=" + placeholders.size() +
-                '}';
     }
 }

@@ -23,6 +23,14 @@ public final class RailFamilyFootprint {
         this.casesPerPallet = casesPerPallet;
     }
 
+    private static String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static String normalizeUpper(String value) {
+        return normalize(value).toUpperCase();
+    }
+
     public String getItemNumber() {
         return itemNumber;
     }
@@ -37,14 +45,6 @@ public final class RailFamilyFootprint {
 
     public boolean isValid() {
         return !itemNumber.isBlank() && !familyCode.isBlank() && casesPerPallet > 0;
-    }
-
-    private static String normalize(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private static String normalizeUpper(String value) {
-        return normalize(value).toUpperCase();
     }
 
     @Override

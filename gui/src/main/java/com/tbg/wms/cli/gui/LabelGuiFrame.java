@@ -35,7 +35,16 @@ import java.util.prefs.Preferences;
  */
 public final class LabelGuiFrame extends JFrame {
     private static final long serialVersionUID = 1L;
-
+    // Synthetic printer option used to enable print-to-file from the dropdown.
+    private static final String FILE_PRINTER_ID = "FILE";
+    private static final String PREF_PRINT_TO_FILE_DIR = "printToFile.defaultOutputDir";
+    private static final int SHIPMENT_MIN_CHARS = 11;
+    private static final int COMBO_WIDTH_REDUCTION_PX = 12;
+    private static final DateTimeFormatter OUTPUT_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final int MAX_QUEUE_ITEMS = 500;
+    private static final int MAX_PREVIEW_STOPS = 250;
+    private static final int MAX_PREVIEW_SHIPMENTS_PER_STOP = 250;
+    private static final int MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT = 1000;
     private final JLabel inputLabel = new JLabel("Carrier Move ID:");
     private final JTextField shipmentField = new JTextField(24);
     private final JRadioButton carrierMoveModeButton = new JRadioButton("Carrier Move ID", true);
@@ -48,17 +57,6 @@ public final class LabelGuiFrame extends JFrame {
     private final JPanel shipmentPreviewPanel = new JPanel();
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
-
-    // Synthetic printer option used to enable print-to-file from the dropdown.
-    private static final String FILE_PRINTER_ID = "FILE";
-    private static final String PREF_PRINT_TO_FILE_DIR = "printToFile.defaultOutputDir";
-    private static final int SHIPMENT_MIN_CHARS = 11;
-    private static final int COMBO_WIDTH_REDUCTION_PX = 12;
-    private static final DateTimeFormatter OUTPUT_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-    private static final int MAX_QUEUE_ITEMS = 500;
-    private static final int MAX_PREVIEW_STOPS = 250;
-    private static final int MAX_PREVIEW_SHIPMENTS_PER_STOP = 250;
-    private static final int MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT = 1000;
     private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
 
@@ -93,6 +91,48 @@ public final class LabelGuiFrame extends JFrame {
         applyTopRowSizing();
         loadPrintersAsync();
         printButton.setEnabled(false);
+    }
+
+    private static String buildWindowTitle() {
+        Package pkg = LabelGuiFrame.class.getPackage();
+        String version = pkg == null ? null : pkg.getImplementationVersion();
+        if (version == null || version.isBlank()) {
+            version = System.getProperty("wms.tags.version", "");
+        }
+        return version == null || version.isBlank()
+                ? "WMS Pallet Tag System"
+                : "WMS Pallet Tag System - " + version;
+    }
+
+    private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.0;
+        JLabel rowLabel = new JLabel(label + ":");
+        form.add(rowLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        form.add(field, gbc);
+        return rowLabel;
+    }
+
+    private static Path resolveJarOutputDir() {
+        try {
+            Path codeSource = Paths.get(Objects.requireNonNull(LabelGuiFrame.class
+                            .getProtectionDomain()
+                            .getCodeSource())
+                    .getLocation()
+                    .toURI());
+            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
+            return baseDir.resolve("out");
+        } catch (Exception e) {
+            return Paths.get("out");
+        }
+    }
+
+    private static boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
+        return selected != null && FILE_PRINTER_ID.equals(selected.getId());
     }
 
     private JComponent buildToolBar() {
@@ -475,17 +515,6 @@ public final class LabelGuiFrame extends JFrame {
         printButton.setEnabled(false);
     }
 
-    private static String buildWindowTitle() {
-        Package pkg = LabelGuiFrame.class.getPackage();
-        String version = pkg == null ? null : pkg.getImplementationVersion();
-        if (version == null || version.isBlank()) {
-            version = System.getProperty("wms.tags.version", "");
-        }
-        return version == null || version.isBlank()
-                ? "WMS Pallet Tag System"
-                : "WMS Pallet Tag System - " + version;
-    }
-
     private void setReady(String message) {
         statusLabel.setText(message);
         previewButton.setEnabled(true);
@@ -733,19 +762,6 @@ public final class LabelGuiFrame extends JFrame {
         return model;
     }
 
-    private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0.0;
-        JLabel rowLabel = new JLabel(label + ":");
-        form.add(rowLabel, gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        form.add(field, gbc);
-        return rowLabel;
-    }
-
     private Path defaultPrintToFileOutputDir() {
         String configured = preferences.get(PREF_PRINT_TO_FILE_DIR, "");
         if (configured != null && !configured.isBlank()) {
@@ -852,24 +868,6 @@ public final class LabelGuiFrame extends JFrame {
         if (printerCombo.getItemCount() > 0) {
             printerCombo.setSelectedIndex(0);
         }
-    }
-
-    private static Path resolveJarOutputDir() {
-        try {
-            Path codeSource = Paths.get(Objects.requireNonNull(LabelGuiFrame.class
-                    .getProtectionDomain()
-                    .getCodeSource())
-                    .getLocation()
-                    .toURI());
-            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
-            return baseDir.resolve("out");
-        } catch (Exception e) {
-            return Paths.get("out");
-        }
-    }
-
-    private static boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
-        return selected != null && FILE_PRINTER_ID.equals(selected.getId());
     }
 
     private void installTerminalLikeMouseClipboardBehavior(JTextComponent... fields) {

@@ -8,6 +8,7 @@ Current release: `1.5.1` (2026-03-02).
 ## Current Scope
 
 Implemented and supported:
+
 - `config` command (resolved runtime config with redaction)
 - `db-test` command (database connectivity diagnostics)
 - `run` command (shipment or carrier-move label generation and printing)
@@ -23,6 +24,7 @@ Implemented and supported:
 - Dedicated `gui` Maven module for Swing workflows (separated from CLI command module)
 
 Not implemented yet:
+
 - `template`, `print-template`, `manual`, `replay` commands
 
 ## Prerequisites
@@ -93,6 +95,7 @@ On Linux/macOS:
 ## Configuration
 
 Configuration file precedence:
+
 1. Environment variables
 2. `WMS_CONFIG_FILE` path, if set
 3. `wms-tags.env` next to the JAR (or working directory)
@@ -100,6 +103,7 @@ Configuration file precedence:
 5. Built-in defaults
 
 Key settings:
+
 - `WMS_ENV=PROD` (default)
 - `ACTIVE_SITE=TBG3002`
 - `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `ORACLE_PORT`, `ORACLE_SERVICE`
@@ -111,6 +115,7 @@ Key settings:
 - `RIGHT_CLICK_COOLDOWN_MS=250` (GUI right-click copy/paste debounce)
 
 Connection fallback order:
+
 1. Primary JDBC URL (`ORACLE_JDBC_URL`, then `ORACLE_DSN`, then host/port/service)
 2. Oracle Net alias (`ORACLE_ODBC_DSN` or `ACTIVE_SITE`, e.g. `TBG3002`)
 3. Host/port/service URL
@@ -122,6 +127,7 @@ java -jar cli/target/cli-*.jar run (--shipment-id <ID> | --carrier-move-id <ID>)
 ```
 
 Options:
+
 - `--shipment-id` (mutually exclusive with `--carrier-move-id`)
 - `--carrier-move-id` (mutually exclusive with `--shipment-id`)
 - `--dry-run`
@@ -136,6 +142,7 @@ java -jar cli/target/cli-*.jar barcode --data <PAYLOAD> [OPTIONS]
 ```
 
 Options:
+
 - `--data <PAYLOAD>` (required)
 - `--type CODE128|GS1_128` (default `CODE128`)
 - `--orientation PORTRAIT|LANDSCAPE` (default `PORTRAIT`)
@@ -160,6 +167,7 @@ java -jar cli/target/cli-*.jar rail-helper --input-csv <INPUT.csv> --item-footpr
 ```
 
 Options:
+
 - `--input-csv <FILE>` (required): rail rows with metadata and `ITEM_NBR*` / `TOTAL_CS_ITM*` columns
 - `--item-footprint-csv <FILE>` (required): item-to-family footprint lookup
 - `--output-dir <DIR>` (default `out/rail-helper`)
@@ -167,12 +175,15 @@ Options:
 - `--train-id <ID>` (optional): export only one train
 
 Output:
+
 - `_TrainDetail.csv` (Word merge-ready columns used by `Print .docx`)
 - `rail-helper-summary.txt` (missing-footprint diagnostics and run summary)
 
 Notes:
+
 - Portrait is the default.
-- Landscape rotates barcode fields in ZPL (`^FWR` and rotated `^BC`) while keeping the printer in portrait mode (`^PON`).
+- Landscape rotates barcode fields in ZPL (`^FWR` and rotated `^BC`) while keeping the printer in portrait mode (
+  `^PON`).
 - Printer-level landscape must be configured on the device if true landscape output is required.
 
 ## GUI Workflow
@@ -180,7 +191,8 @@ Notes:
 - Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
 - Enter ID, select printer, and click `Preview`.
 - Shipment preview shows shipment summary, label plan, and SKU-level pallet math (full vs partial).
-- Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU breakdown.
+- Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU
+  breakdown.
 - Click `Confirm Print` to execute and persist artifacts.
 - Shipment mode output path: `out/gui-<shipment>-<timestamp>/`.
 - Carrier mode output path: `out/gui-cmid-<cmid>-<timestamp>/`.
@@ -195,7 +207,8 @@ Notes:
 
 - The label field `WAL-MART ITEM #` is populated only when SKU matches the Walmart matrix CSV.
 - If SKU does not match (for non-Walmart or non-Canada orders), that field is intentionally left blank.
-- If a shipment has no LPN records but has shipment SKU rows, labels are generated from SKU data using virtual pallet rows.
+- If a shipment has no LPN records but has shipment SKU rows, labels are generated from SKU data using virtual pallet
+  rows.
 - Walmart orders are palletized per pallet, so each pallet receives its own label even for identical SKUs.
 
 ## Safety and Data Access
@@ -221,7 +234,8 @@ mvnw.cmd -DskipTests javadoc:aggregate
 
 Output is written to `target/site/apidocs`.
 
-The `Javadoc Pages` GitHub Actions workflow publishes the aggregated site to GitHub Pages when enabled in repository settings.
+The `Javadoc Pages` GitHub Actions workflow publishes the aggregated site to GitHub Pages when enabled in repository
+settings.
 
 ## CI Workflows
 
@@ -235,13 +249,16 @@ Triggers on pushes to `main` and `dev`, plus manual dispatch.
 ### Release Bundle (`.github/workflows/release.yml`)
 
 Triggers on:
+
 - PRs targeting `main` (builds and uploads a portable ZIP as a workflow artifact).
 - Tag pushes matching `v*.*.*` (creates a GitHub Release).
 
 Behavior:
+
 - Builds the CLI JAR.
 - Builds the portable bundle using `dist/temurin11-jre.zip`.
-- PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from `cli/target/maven-archiver/pom.properties`.
+- PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from
+  `cli/target/maven-archiver/pom.properties`.
 - Tags: attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
 - Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
@@ -278,7 +295,8 @@ wms-pallet-tag-system/
 - Config check: `java -jar cli/target/cli-*.jar config`
 - DB diagnostics: `java -jar cli/target/cli-*.jar db-test`
 - Safe execution first: `--dry-run`
-- Build failure `No compiler is provided in this environment`: switch from JRE to JDK, then verify with `javac -version` and rerun `mvnw.cmd test`.
+- Build failure `No compiler is provided in this environment`: switch from JRE to JDK, then verify with `javac -version`
+  and rerun `mvnw.cmd test`.
 
 ## Contact
 

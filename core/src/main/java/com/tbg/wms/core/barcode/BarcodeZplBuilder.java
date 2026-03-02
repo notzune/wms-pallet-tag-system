@@ -15,6 +15,89 @@ import java.util.Objects;
  */
 public final class BarcodeZplBuilder {
 
+    private BarcodeZplBuilder() {
+    }
+
+    /**
+     * Builds a ZPL document containing a single barcode label.
+     * <p>
+     * Orientation defaults to portrait; landscape rotates the field while keeping
+     * the printer in portrait mode for consistent behavior.
+     *
+     * @param request barcode request
+     * @return ZPL content
+     */
+    public static String build(BarcodeRequest request) {
+        Objects.requireNonNull(request, "request cannot be null");
+        boolean landscape = request.getOrientation() == Orientation.LANDSCAPE;
+
+        StringBuilder zpl = new StringBuilder(256);
+        zpl.append("^XA\n");
+        zpl.append("^PON\n");
+        zpl.append("^PW").append(request.getLabelWidthDots()).append('\n');
+        zpl.append("^LL").append(request.getLabelHeightDots()).append('\n');
+        zpl.append(landscape ? "^FWR\n" : "^FWN\n");
+        zpl.append("^BY")
+                .append(request.getModuleWidth())
+                .append(',')
+                .append(request.getModuleRatio())
+                .append(',')
+                .append(request.getBarcodeHeight())
+                .append('\n');
+        zpl.append("^FO")
+                .append(request.getOriginX())
+                .append(',')
+                .append(request.getOriginY())
+                .append('\n');
+        zpl.append("^BC")
+                .append(landscape ? "R" : "N")
+                .append(',')
+                .append(request.getBarcodeHeight())
+                .append(',')
+                .append(request.isHumanReadable() ? "Y" : "N")
+                .append(",N,N\n");
+        zpl.append("^FD");
+        if (request.getSymbology() == Symbology.GS1_128) {
+            zpl.append(">;");
+        }
+        zpl.append(escapeZpl(request.getData()));
+        zpl.append("^FS\n");
+        if (request.getCopies() > 1) {
+            zpl.append("^PQ").append(request.getCopies()).append('\n');
+        }
+        zpl.append("^XZ\n");
+        return zpl.toString();
+    }
+
+    private static String escapeZpl(String value) {
+        return value
+                .replace("~", "~~")
+                .replace("^", "~~^")
+                .replace("{", "{{")
+                .replace("}", "}}");
+    }
+
+    private static int requirePositive(int value, String field) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(field + " must be greater than 0");
+        }
+        return value;
+    }
+
+    private static int requireNonNegative(int value, String field) {
+        if (value < 0) {
+            throw new IllegalArgumentException(field + " must be >= 0");
+        }
+        return value;
+    }
+
+    private static String requireNonBlank(String value, String field) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException(field + " cannot be blank");
+        }
+        return value.trim();
+    }
+
     /**
      * Supported barcode symbologies for standalone labels.
      */
@@ -121,88 +204,5 @@ public final class BarcodeZplBuilder {
         public int getCopies() {
             return copies;
         }
-    }
-
-    /**
-     * Builds a ZPL document containing a single barcode label.
-     *
-     * Orientation defaults to portrait; landscape rotates the field while keeping
-     * the printer in portrait mode for consistent behavior.
-     *
-     * @param request barcode request
-     * @return ZPL content
-     */
-    public static String build(BarcodeRequest request) {
-        Objects.requireNonNull(request, "request cannot be null");
-        boolean landscape = request.getOrientation() == Orientation.LANDSCAPE;
-
-        StringBuilder zpl = new StringBuilder(256);
-        zpl.append("^XA\n");
-        zpl.append("^PON\n");
-        zpl.append("^PW").append(request.getLabelWidthDots()).append('\n');
-        zpl.append("^LL").append(request.getLabelHeightDots()).append('\n');
-        zpl.append(landscape ? "^FWR\n" : "^FWN\n");
-        zpl.append("^BY")
-                .append(request.getModuleWidth())
-                .append(',')
-                .append(request.getModuleRatio())
-                .append(',')
-                .append(request.getBarcodeHeight())
-                .append('\n');
-        zpl.append("^FO")
-                .append(request.getOriginX())
-                .append(',')
-                .append(request.getOriginY())
-                .append('\n');
-        zpl.append("^BC")
-                .append(landscape ? "R" : "N")
-                .append(',')
-                .append(request.getBarcodeHeight())
-                .append(',')
-                .append(request.isHumanReadable() ? "Y" : "N")
-                .append(",N,N\n");
-        zpl.append("^FD");
-        if (request.getSymbology() == Symbology.GS1_128) {
-            zpl.append(">;");
-        }
-        zpl.append(escapeZpl(request.getData()));
-        zpl.append("^FS\n");
-        if (request.getCopies() > 1) {
-            zpl.append("^PQ").append(request.getCopies()).append('\n');
-        }
-        zpl.append("^XZ\n");
-        return zpl.toString();
-    }
-
-    private static String escapeZpl(String value) {
-        return value
-                .replace("~", "~~")
-                .replace("^", "~~^")
-                .replace("{", "{{")
-                .replace("}", "}}");
-    }
-
-    private static int requirePositive(int value, String field) {
-        if (value <= 0) {
-            throw new IllegalArgumentException(field + " must be greater than 0");
-        }
-        return value;
-    }
-
-    private static int requireNonNegative(int value, String field) {
-        if (value < 0) {
-            throw new IllegalArgumentException(field + " must be >= 0");
-        }
-        return value;
-    }
-
-    private static String requireNonBlank(String value, String field) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(field + " cannot be blank");
-        }
-        return value.trim();
-    }
-
-    private BarcodeZplBuilder() {
     }
 }

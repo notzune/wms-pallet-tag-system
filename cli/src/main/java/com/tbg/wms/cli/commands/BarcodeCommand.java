@@ -157,6 +157,31 @@ public final class BarcodeCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
+    private static Path resolveJarOutputDir() {
+        try {
+            Path codeSource = Paths.get(Objects.requireNonNull(BarcodeCommand.class
+                            .getProtectionDomain()
+                            .getCodeSource())
+                    .getLocation()
+                    .toURI());
+            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
+            return baseDir.resolve("out");
+        } catch (Exception e) {
+            return Paths.get("out");
+        }
+    }
+
+    private static String safeSlug(String value) {
+        if (value == null) {
+            return "data";
+        }
+        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
+        if (slug.isEmpty()) {
+            return "data";
+        }
+        return slug.length() > 40 ? slug.substring(0, 40) : slug;
+    }
+
     /**
      * Executes barcode generation and optional print/file output flow.
      *
@@ -268,30 +293,5 @@ public final class BarcodeCommand implements Callable<Integer> {
             return null;
         }
         return printer;
-    }
-
-    private static Path resolveJarOutputDir() {
-        try {
-            Path codeSource = Paths.get(Objects.requireNonNull(BarcodeCommand.class
-                    .getProtectionDomain()
-                    .getCodeSource())
-                    .getLocation()
-                    .toURI());
-            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
-            return baseDir.resolve("out");
-        } catch (Exception e) {
-            return Paths.get("out");
-        }
-    }
-
-    private static String safeSlug(String value) {
-        if (value == null) {
-            return "data";
-        }
-        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
-        if (slug.isEmpty()) {
-            return "data";
-        }
-        return slug.length() > 40 ? slug.substring(0, 40) : slug;
     }
 }

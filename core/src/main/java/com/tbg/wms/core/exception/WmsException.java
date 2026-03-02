@@ -24,8 +24,8 @@ public abstract class WmsException extends RuntimeException {
     /**
      * Creates a new WMS exception.
      *
-     * @param message the error message
-     * @param exitCode the recommended CLI exit code (2 for user error, 3+ for system error)
+     * @param message         the error message
+     * @param exitCode        the recommended CLI exit code (2 for user error, 3+ for system error)
      * @param remediationHint an actionable hint for resolving the error
      */
     protected WmsException(String message, int exitCode, String remediationHint) {
@@ -37,9 +37,9 @@ public abstract class WmsException extends RuntimeException {
     /**
      * Creates a new WMS exception with cause.
      *
-     * @param message the error message
-     * @param cause the underlying exception
-     * @param exitCode the recommended CLI exit code
+     * @param message         the error message
+     * @param cause           the underlying exception
+     * @param exitCode        the recommended CLI exit code
      * @param remediationHint an actionable hint for resolving the error
      */
     protected WmsException(String message, Throwable cause, int exitCode, String remediationHint) {

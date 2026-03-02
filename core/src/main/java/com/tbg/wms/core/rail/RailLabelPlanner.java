@@ -9,14 +9,7 @@ package com.tbg.wms.core.rail;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Computes deterministic family percentages for rail labels using item footprint lookup data.
@@ -39,7 +32,7 @@ public final class RailLabelPlanner {
     /**
      * Calculates per-row rail label callouts.
      *
-     * @param records flattened rail rows
+     * @param records    flattened rail rows
      * @param footprints item-family footprint lookup by item number
      * @return list of planned rows in input order
      */
@@ -139,40 +132,6 @@ public final class RailLabelPlanner {
             this.itemSlots = itemSlots;
         }
 
-        public RailStopRecord getSourceRecord() {
-            return sourceRecord;
-        }
-
-        public List<FamilyShare> getTopFamilies() {
-            return topFamilies;
-        }
-
-        public List<String> getMissingFootprintItems() {
-            return missingFootprintItems;
-        }
-
-        public double getTotalPalletEquivalent() {
-            return totalPalletEquivalent;
-        }
-
-        public List<RailStopRecord.ItemQuantity> getOverflowItems() {
-            return overflowItems;
-        }
-
-        public Map<String, String> toMergeFields() {
-            Map<String, String> fields = new LinkedHashMap<>();
-            fields.put("DATE", sourceRecord.getDate());
-            fields.put("SEQ", sourceRecord.getSequence());
-            fields.put("TRAIN_NBR", sourceRecord.getTrainNumber());
-            fields.put("VEHICLE_ID", sourceRecord.getVehicleId());
-            fields.put("DCS_WHSE", sourceRecord.getWarehouse());
-            fields.put("LOAD_NBR", sourceRecord.getLoadNumber());
-
-            appendItemPairs(fields, sourceRecord.getItems(), itemSlots);
-            appendTopFamilies(fields, topFamilies);
-            return fields;
-        }
-
         private static void appendItemPairs(Map<String, String> fields,
                                             List<RailStopRecord.ItemQuantity> items,
                                             int slots) {
@@ -206,6 +165,40 @@ public final class RailLabelPlanner {
                     fields.put("Item_" + (i + 1), "");
                 }
             }
+        }
+
+        public RailStopRecord getSourceRecord() {
+            return sourceRecord;
+        }
+
+        public List<FamilyShare> getTopFamilies() {
+            return topFamilies;
+        }
+
+        public List<String> getMissingFootprintItems() {
+            return missingFootprintItems;
+        }
+
+        public double getTotalPalletEquivalent() {
+            return totalPalletEquivalent;
+        }
+
+        public List<RailStopRecord.ItemQuantity> getOverflowItems() {
+            return overflowItems;
+        }
+
+        public Map<String, String> toMergeFields() {
+            Map<String, String> fields = new LinkedHashMap<>();
+            fields.put("DATE", sourceRecord.getDate());
+            fields.put("SEQ", sourceRecord.getSequence());
+            fields.put("TRAIN_NBR", sourceRecord.getTrainNumber());
+            fields.put("VEHICLE_ID", sourceRecord.getVehicleId());
+            fields.put("DCS_WHSE", sourceRecord.getWarehouse());
+            fields.put("LOAD_NBR", sourceRecord.getLoadNumber());
+
+            appendItemPairs(fields, sourceRecord.getItems(), itemSlots);
+            appendTopFamilies(fields, topFamilies);
+            return fields;
         }
     }
 

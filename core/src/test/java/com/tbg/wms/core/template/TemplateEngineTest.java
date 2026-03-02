@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for LabelTemplate and ZplTemplateEngine.
- *
+ * <p>
  * Tests template creation, placeholder extraction, validation,
  * and ZPL generation with field substitution and escaping.
  */

@@ -84,6 +84,20 @@ public final class RunCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
+    private static Path resolveJarOutputDir() {
+        try {
+            Path codeSource = Paths.get(Objects.requireNonNull(RunCommand.class
+                            .getProtectionDomain()
+                            .getCodeSource())
+                    .getLocation()
+                    .toURI());
+            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
+            return baseDir.resolve("out");
+        } catch (Exception e) {
+            return Paths.get("out");
+        }
+    }
+
     /**
      * Executes shipment/carrier print workflow for CLI mode.
      *
@@ -324,20 +338,6 @@ public final class RunCommand implements Callable<Integer> {
             System.out.println("(Print-to-file mode: labels were not sent to printer)");
         } else {
             System.out.println("Printed to: " + result.getPrinterId() + " (" + result.getPrinterEndpoint() + ")");
-        }
-    }
-
-    private static Path resolveJarOutputDir() {
-        try {
-            Path codeSource = Paths.get(Objects.requireNonNull(RunCommand.class
-                    .getProtectionDomain()
-                    .getCodeSource())
-                    .getLocation()
-                    .toURI());
-            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
-            return baseDir.resolve("out");
-        } catch (Exception e) {
-            return Paths.get("out");
         }
     }
 }

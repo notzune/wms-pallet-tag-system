@@ -4,7 +4,7 @@
 
 package com.tbg.wms.cli.gui;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -34,6 +34,18 @@ final class TextFieldClipboardController {
     TextFieldClipboardController() {
         this.rightClickCooldownMs = resolveRightClickCooldownMs();
         this.lastRightClickClipboardActionMs = new WeakHashMap<>();
+    }
+
+    private static Long tryParsePositiveLong(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            long parsed = Long.parseLong(value.trim());
+            return parsed < 0 ? null : parsed;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     /**
@@ -114,17 +126,5 @@ final class TextFieldClipboardController {
         envValue = System.getenv(LEGACY_RIGHT_CLICK_COOLDOWN_ENV);
         parsed = tryParsePositiveLong(envValue);
         return parsed == null ? DEFAULT_RIGHT_CLICK_COOLDOWN_MS : parsed;
-    }
-
-    private static Long tryParsePositiveLong(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            long parsed = Long.parseLong(value.trim());
-            return parsed < 0 ? null : parsed;
-        } catch (NumberFormatException ex) {
-            return null;
-        }
     }
 }

@@ -6,14 +6,14 @@ Environment validated: `WMSP` (PROD, read-only)
 ## Executive Summary
 
 - Authoritative Carrier Move mapping is:
-  - `WMSP.STOP.CAR_MOVE_ID = :carrier_move_id`
-  - `WMSP.SHIPMENT.STOP_ID = WMSP.STOP.STOP_ID`
+    - `WMSP.STOP.CAR_MOVE_ID = :carrier_move_id`
+    - `WMSP.SHIPMENT.STOP_ID = WMSP.STOP.STOP_ID`
 - Authoritative stop order field is:
-  - `WMSP.STOP.STOP_SEQ`
+    - `WMSP.STOP.STOP_SEQ`
 - `WMSP.SHIPMENT.TMS_MOVE_ID` is not usable for this feature in current PROD data:
-  - In sampled recent data, it is null for all rows checked.
+    - In sampled recent data, it is null for all rows checked.
 - `WMSP.STOP.TMS_STOP_SEQ` is not reliable as primary ordering:
-  - Frequently `0` and often mismatched vs `STOP_SEQ`.
+    - Frequently `0` and often mismatched vs `STOP_SEQ`.
 
 ## Validated Sample Mapping (Requested IDs)
 
@@ -30,15 +30,15 @@ This exactly matches the observed examples.
 Tables:
 
 - `WMSP.STOP`
-  - `STOP_ID` (PK/identifier)
-  - `CAR_MOVE_ID` (carrier move ID)
-  - `STOP_SEQ` (primary stop order field)
-  - `TMS_STOP_SEQ` (secondary/reference only; not reliable)
+    - `STOP_ID` (PK/identifier)
+    - `CAR_MOVE_ID` (carrier move ID)
+    - `STOP_SEQ` (primary stop order field)
+    - `TMS_STOP_SEQ` (secondary/reference only; not reliable)
 - `WMSP.SHIPMENT`
-  - `SHIP_ID` (shipment/800 number)
-  - `STOP_ID` (FK-like link to `STOP`)
-  - `SHPSTS` (shipment status)
-  - `ADDDTE` (created datetime)
+    - `SHIP_ID` (shipment/800 number)
+    - `STOP_ID` (FK-like link to `STOP`)
+    - `SHPSTS` (shipment status)
+    - `ADDDTE` (created datetime)
 
 Join path:
 
@@ -89,23 +89,28 @@ Why this is best available truth:
 ## Edge Cases and Handling Notes
 
 1. Multiple shipments on the same stop sequence
+
 - Seen in non-numeric/route-style moves (example patterns like `FR...`).
 - Handling: group by stop sequence for per-stop actions; within stop, process shipments sorted by `SHIP_ID`.
 
 2. Non-contiguous stop sequences (e.g., starts at 2, gaps)
+
 - Exists in historical numeric moves.
 - Handling: do not renumber for STOP box; preserve `STOP_SEQ` as system-of-record.
 - UI can still show positional index separately if needed, but printed STOP should be `STOP_SEQ`.
 
 3. No shipment rows for a CMID
+
 - Treat as validation error: "Carrier Move not found or has no shipments."
 
 4. Status filtering ambiguity (`SHPSTS`)
+
 - Current shipment mode does not apply status filtering beyond existence.
 - Recommended Phase 1 behavior: include all resolved rows by default to avoid hidden shipments; show status in preview.
 - Optional future hardening: configurable include/exclude status list after business confirmation.
 
 5. Duplicate rows risk
+
 - Use `SELECT DISTINCT` only if duplicate joins are observed in implementation testing.
 - Current join path (`STOP` -> `SHIPMENT`) did not show missing-stop join issues in sampled diagnostics.
 

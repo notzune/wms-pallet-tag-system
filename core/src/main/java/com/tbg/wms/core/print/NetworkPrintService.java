@@ -21,10 +21,10 @@ import java.util.Objects;
 
 /**
  * Network printing service for Zebra printers via TCP port 9100.
- *
+ * <p>
  * Sends ZPL data directly to printers using RAW socket protocol.
  * Implements retry logic with exponential backoff for transient failures.
- *
+ * <p>
  * Thread-safe (stateless operations).
  *
  * @since 1.0.0
@@ -48,19 +48,19 @@ public final class NetworkPrintService {
      */
     public NetworkPrintService() {
         this(DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS,
-             DEFAULT_MAX_RETRIES, DEFAULT_RETRY_DELAY_MS);
+                DEFAULT_MAX_RETRIES, DEFAULT_RETRY_DELAY_MS);
     }
 
     /**
      * Creates a new network print service with custom settings.
      *
      * @param connectTimeoutMs connection timeout in milliseconds
-     * @param readTimeoutMs read timeout in milliseconds
-     * @param maxRetries maximum number of retry attempts
-     * @param retryDelayMs base delay between retries (exponential backoff)
+     * @param readTimeoutMs    read timeout in milliseconds
+     * @param maxRetries       maximum number of retry attempts
+     * @param retryDelayMs     base delay between retries (exponential backoff)
      */
     public NetworkPrintService(int connectTimeoutMs, int readTimeoutMs,
-                              int maxRetries, int retryDelayMs) {
+                               int maxRetries, int retryDelayMs) {
         this.connectTimeoutMs = connectTimeoutMs;
         this.readTimeoutMs = readTimeoutMs;
         this.maxRetries = maxRetries;
@@ -69,13 +69,13 @@ public final class NetworkPrintService {
 
     /**
      * Prints ZPL content to a network printer.
-     *
+     * <p>
      * Sends data via TCP socket on port 9100 (Zebra RAW protocol).
      * Implements retry logic with exponential backoff for transient failures.
      *
-     * @param printer target printer configuration
+     * @param printer    target printer configuration
      * @param zplContent ZPL content to print
-     * @param labelId label identifier for logging
+     * @param labelId    label identifier for logging
      * @throws WmsPrintException if printing fails after all retries
      */
     public void print(PrinterConfig printer, String zplContent, String labelId) {
@@ -137,7 +137,7 @@ public final class NetworkPrintService {
     /**
      * Sends ZPL content to printer via TCP socket.
      *
-     * @param printer target printer
+     * @param printer    target printer
      * @param zplContent ZPL content
      * @throws IOException if network communication fails
      */
