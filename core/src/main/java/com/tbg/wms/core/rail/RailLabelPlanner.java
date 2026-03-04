@@ -53,12 +53,18 @@ public final class RailLabelPlanner {
     private PlannedRailLabel planRecord(RailStopRecord record, Map<String, RailFamilyFootprint> footprints) {
         Map<String, Double> equivalentByFamily = new HashMap<>();
         List<String> missingItems = new ArrayList<>();
+        List<RailStopRecord.ItemQuantity> overflowItems = new ArrayList<>();
         double totalEquivalent = 0.0d;
+        int slotCount = 0;
 
         for (RailStopRecord.ItemQuantity item : record.getItems()) {
             if (item == null || !item.isValid()) {
                 continue;
             }
+            if (slotCount >= itemSlots) {
+                overflowItems.add(item);
+            }
+            slotCount++;
             RailFamilyFootprint footprint = footprints.get(item.getItemNumber());
             if (footprint == null || !footprint.isValid()) {
                 missingItems.add(item.getItemNumber());
@@ -71,25 +77,11 @@ public final class RailLabelPlanner {
 
         List<FamilyShare> shares = buildSortedShares(equivalentByFamily, totalEquivalent);
         List<FamilyShare> topThree = shares.size() <= 3 ? shares : shares.subList(0, 3);
-        List<RailStopRecord.ItemQuantity> overflowItems = collectOverflowItems(record);
         return new PlannedRailLabel(record, topThree, missingItems, overflowItems, totalEquivalent, itemSlots);
     }
 
-    private List<RailStopRecord.ItemQuantity> collectOverflowItems(RailStopRecord record) {
-        List<RailStopRecord.ItemQuantity> validItems = new ArrayList<>();
-        for (RailStopRecord.ItemQuantity item : record.getItems()) {
-            if (item != null && item.isValid()) {
-                validItems.add(item);
-            }
-        }
-        if (validItems.size() <= itemSlots) {
-            return List.of();
-        }
-        return new ArrayList<>(validItems.subList(itemSlots, validItems.size()));
-    }
-
     private List<FamilyShare> buildSortedShares(Map<String, Double> equivalentByFamily, double totalEquivalent) {
-        List<FamilyShare> shares = new ArrayList<>();
+        List<FamilyShare> shares = new ArrayList<>(equivalentByFamily.size());
         if (totalEquivalent <= 0.0d) {
             return shares;
         }

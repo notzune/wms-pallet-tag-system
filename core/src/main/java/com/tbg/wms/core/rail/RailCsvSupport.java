@@ -9,7 +9,6 @@ package com.tbg.wms.core.rail;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Shared CSV helpers for rail import/export workflows.
@@ -29,7 +28,20 @@ public final class RailCsvSupport {
         if (header == null) {
             return "";
         }
-        return header.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+        String trimmed = header.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        StringBuilder normalized = new StringBuilder(trimmed.length());
+        for (int i = 0; i < trimmed.length(); i++) {
+            char ch = trimmed.charAt(i);
+            if (ch >= 'a' && ch <= 'z') {
+                normalized.append((char) (ch - ('a' - 'A')));
+            } else if ((ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9')) {
+                normalized.append(ch);
+            }
+        }
+        return normalized.toString();
     }
 
     /**
@@ -39,7 +51,7 @@ public final class RailCsvSupport {
      * @return ordered field values
      */
     public static List<String> parseCsvLine(String line) {
-        List<String> values = new ArrayList<>();
+        List<String> values = new ArrayList<>(8);
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
         for (int i = 0; i < line.length(); i++) {
