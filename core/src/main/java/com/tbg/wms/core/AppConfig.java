@@ -12,12 +12,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.CodeSource;
 import java.util.*;
 
 /**
@@ -74,8 +71,10 @@ public final class AppConfig {
         this.envVars = Map.copyOf(Objects.requireNonNull(envVars, "envVars cannot be null"));
         this.classpathDefaults = loadClasspathDefaults();
 
-        Path explicitPath = explicitConfigFile != null ? validateConfigFile(explicitConfigFile) : resolveExplicitConfigPath();
-        Path selectedFile = explicitPath != null ? explicitPath : discoverConfigFile();
+        Path explicitPath = explicitConfigFile != null
+                ? ConfigFileLocator.validateConfigFile(explicitConfigFile)
+                : ConfigFileLocator.resolveExplicitConfigPath(CONFIG_FILE_PROP, CONFIG_FILE_ENV);
+        Path selectedFile = explicitPath != null ? explicitPath : ConfigFileLocator.discoverConfigFile(DEFAULT_FILE_NAME, AppConfig.class);
         this.fileValues = selectedFile == null ? Map.of() : loadEnvStyleFile(selectedFile);
         this.loadedConfigFile = selectedFile == null ? null : selectedFile.toAbsolutePath().toString();
     }
@@ -420,65 +419,6 @@ public final class AppConfig {
             return fromFile.trim();
         }
         return null;
-    }
-
-    private Path resolveExplicitConfigPath() {
-        String explicit = System.getProperty(CONFIG_FILE_PROP);
-        if (explicit == null || explicit.isBlank()) {
-            explicit = System.getenv(CONFIG_FILE_ENV);
-        }
-        if (explicit == null || explicit.isBlank()) {
-            return null;
-        }
-
-        return validateConfigFile(Paths.get(explicit.trim()));
-    }
-
-    private Path validateConfigFile(Path path) {
-        if (Files.exists(path) && Files.isRegularFile(path)) {
-            return path;
-        }
-        throw new IllegalStateException("Configured file not found: " + path);
-    }
-
-    private Path discoverConfigFile() {
-        List<Path> candidates = new ArrayList<>();
-        candidates.add(Paths.get(DEFAULT_FILE_NAME));
-        candidates.add(Paths.get(".env"));
-        candidates.add(Paths.get("config", DEFAULT_FILE_NAME));
-
-        Path executableDir = resolveExecutableDirectory();
-        if (executableDir != null) {
-            candidates.add(executableDir.resolve(DEFAULT_FILE_NAME));
-            candidates.add(executableDir.resolve(".env"));
-            candidates.add(executableDir.resolve("config").resolve(DEFAULT_FILE_NAME));
-        }
-
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate) && Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    private Path resolveExecutableDirectory() {
-        try {
-            CodeSource codeSource = AppConfig.class.getProtectionDomain().getCodeSource();
-            if (codeSource == null) {
-                return null;
-            }
-
-            URI locationUri = codeSource.getLocation().toURI();
-            Path location = Paths.get(locationUri);
-            if (Files.isDirectory(location)) {
-                return location;
-            }
-            Path parent = location.getParent();
-            return parent == null ? null : parent;
-        } catch (Exception ignored) {
-            return null;
-        }
     }
 
     private Map<String, String> loadClasspathDefaults() {

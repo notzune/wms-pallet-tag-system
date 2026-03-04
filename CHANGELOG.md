@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enforced SRP in GUI print workflow by extracting info-tag ZPL rendering into a dedicated `InfoTagZplBuilder`.
 - Enforced SRP in GUI print workflow by extracting checkpoint persistence/scanning into a dedicated `JobCheckpointStore`.
 - Enforced SRP in core configuration loading by extracting dotenv/env-style parsing into `EnvStyleConfigParser`.
+- Enforced SRP in core configuration loading by extracting config file discovery/validation into `ConfigFileLocator`.
 
 ### Deprecated
 
