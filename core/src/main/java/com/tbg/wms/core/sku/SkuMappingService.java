@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Service for loading and accessing Walmart SKU mappings from CSV.
@@ -42,6 +44,7 @@ public final class SkuMappingService {
 
     // Map: Walmart Item# → WalmartSkuMapping (reverse lookup)
     private final Map<String, WalmartSkuMapping> mappingByWalmartItem;
+    private final Map<String, Optional<WalmartSkuMapping>> prtnumLookupCache;
 
     /**
      * Creates a new SkuMappingService and loads mappings from CSV file.
@@ -55,6 +58,7 @@ public final class SkuMappingService {
 
         this.mappingByTbgSku = new HashMap<>();
         this.mappingByWalmartItem = new HashMap<>();
+        this.prtnumLookupCache = new ConcurrentHashMap<>();
 
         loadMappingsFromCsv(csvFile);
         log.info("Loaded {} SKU mappings from {}", mappingByTbgSku.size(), csvFile);
@@ -126,11 +130,18 @@ public final class SkuMappingService {
         if (normalizedPrtnum == null) {
             return null;
         }
+        Optional<WalmartSkuMapping> cached = prtnumLookupCache.computeIfAbsent(
+                normalizedPrtnum,
+                this::findByPrtnumUncached
+        );
+        return cached.orElse(null);
+    }
 
+    private Optional<WalmartSkuMapping> findByPrtnumUncached(String normalizedPrtnum) {
         // Strategy 1: Try direct match (in case it's already short format)
         WalmartSkuMapping mapping = findByTbgSku(normalizedPrtnum);
         if (mapping != null) {
-            return mapping;
+            return Optional.of(mapping);
         }
 
         // Strategy 2: Sliding windows (5-N digits) with optional leading-zero trim.
@@ -147,16 +158,16 @@ public final class SkuMappingService {
 
                     mapping = findByTbgSku(candidate);
                     if (mapping != null) {
-                        log.debug("Found mapping via embedded PRTNUM segment: {} -> {}", prtnum, mapping.getWalmartItemNo());
-                        return mapping;
+                        log.debug("Found mapping via embedded PRTNUM segment: {} -> {}", normalizedPrtnum, mapping.getWalmartItemNo());
+                        return Optional.of(mapping);
                     }
 
-                    String noLeadingZeros = candidate.replaceFirst("^0+(?!$)", "");
+                    String noLeadingZeros = trimLeadingZeros(candidate);
                     if (!noLeadingZeros.equals(candidate)) {
                         mapping = findByTbgSku(noLeadingZeros);
                         if (mapping != null) {
-                            log.debug("Found mapping via zero-trimmed PRTNUM segment: {} -> {}", prtnum, mapping.getWalmartItemNo());
-                            return mapping;
+                            log.debug("Found mapping via zero-trimmed PRTNUM segment: {} -> {}", normalizedPrtnum, mapping.getWalmartItemNo());
+                            return Optional.of(mapping);
                         }
                     }
                 }
@@ -164,7 +175,16 @@ public final class SkuMappingService {
         }
 
         log.debug("No SKU mapping found for PRTNUM: {}", normalizedPrtnum);
-        return null;
+        return Optional.empty();
+    }
+
+    private String trimLeadingZeros(String value) {
+        int i = 0;
+        int max = value.length() - 1;
+        while (i < max && value.charAt(i) == '0') {
+            i++;
+        }
+        return i == 0 ? value : value.substring(i);
     }
 
     /**

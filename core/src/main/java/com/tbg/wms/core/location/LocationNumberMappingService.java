@@ -51,13 +51,17 @@ public final class LocationNumberMappingService {
             return null;
         }
 
-        String trimmed = value.trim().toUpperCase();
-        if (trimmed.startsWith("C")) {
-            trimmed = trimmed.substring(1);
+        String trimmed = value.trim();
+        int start = 0;
+        if (!trimmed.isEmpty()) {
+            char first = trimmed.charAt(0);
+            if (first == 'C' || first == 'c') {
+                start = 1;
+            }
         }
 
-        StringBuilder digits = new StringBuilder(trimmed.length());
-        for (int i = 0; i < trimmed.length(); i++) {
+        StringBuilder digits = new StringBuilder(trimmed.length() - start);
+        for (int i = start; i < trimmed.length(); i++) {
             char c = trimmed.charAt(i);
             if (Character.isDigit(c)) {
                 digits.append(c);
