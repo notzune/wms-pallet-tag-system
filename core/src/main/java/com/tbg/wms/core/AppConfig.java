@@ -488,7 +488,7 @@ public final class AppConfig {
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-            return loadEnvStyleReader(reader);
+            return EnvStyleConfigParser.parseReader(reader);
         } catch (Exception ignored) {
             return Map.of();
         }
@@ -497,68 +497,9 @@ public final class AppConfig {
     private Map<String, String> loadEnvStyleFile(Path path) {
         try {
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            return loadEnvStyleLines(lines);
+            return EnvStyleConfigParser.parseLines(lines);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read config file: " + path, e);
         }
-    }
-
-    private Map<String, String> loadEnvStyleReader(BufferedReader reader) throws IOException {
-        Map<String, String> values = new HashMap<>();
-        String rawLine;
-        while ((rawLine = reader.readLine()) != null) {
-            parseEnvStyleLine(values, rawLine);
-        }
-        return values;
-    }
-
-    private Map<String, String> loadEnvStyleLines(List<String> lines) {
-        Map<String, String> values = new HashMap<>();
-        for (String rawLine : lines) {
-            parseEnvStyleLine(values, rawLine);
-        }
-
-        return values;
-    }
-
-    private void parseEnvStyleLine(Map<String, String> values, String rawLine) {
-        if (rawLine == null) {
-            return;
-        }
-
-        String line = rawLine.trim();
-        if (line.isEmpty() || line.startsWith("#")) {
-            return;
-        }
-
-        if (line.startsWith("export ")) {
-            // Accept shell-style .env files that prefix entries with `export`.
-            line = line.substring("export ".length()).trim();
-        }
-
-        int sep = line.indexOf('=');
-        if (sep <= 0) {
-            return;
-        }
-
-        String key = line.substring(0, sep).trim();
-        String value = line.substring(sep + 1).trim();
-        if (key.isEmpty()) {
-            return;
-        }
-
-        values.put(key, stripQuotes(value));
-    }
-
-    private String stripQuotes(String value) {
-        if (value == null || value.length() < 2) {
-            return value;
-        }
-        char first = value.charAt(0);
-        char last = value.charAt(value.length() - 1);
-        if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
-            return value.substring(1, value.length() - 1);
-        }
-        return value;
     }
 }
