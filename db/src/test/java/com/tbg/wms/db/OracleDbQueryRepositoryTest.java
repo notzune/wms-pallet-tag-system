@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -203,6 +204,27 @@ class OracleDbQueryRepositoryTest {
         assertEquals(2, candidates.size());
         assertEquals("ITEMA", candidates.get(0).getItemNumber());
         assertEquals("ITEMB", candidates.get(1).getItemNumber());
+    }
+
+    @Test
+    void testFindRailFootprintsByShortCodeDeduplicatesQueryParameters() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("IN (?)"))))
+                .thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, false);
+        when(mockResultSet.wasNull()).thenReturn(false);
+        when(mockResultSet.getString("SHORT_CODE")).thenReturn("01830");
+        when(mockResultSet.getString("ITEM_NBR")).thenReturn("ITEMA");
+        when(mockResultSet.getString("PRTFAM")).thenReturn("Domestic");
+        when(mockResultSet.getInt("UC_PARS_FLG")).thenReturn(0);
+        when(mockResultSet.getInt("UNITS_PER_PALLET")).thenReturn(56);
+
+        Map<String, List<RailFootprintCandidate>> byShortCode =
+                repository.findRailFootprintsByShortCode(List.of("01830", "01830"));
+
+        assertEquals(1, byShortCode.size());
+        assertEquals(1, byShortCode.get("01830").size());
     }
 
     @Test

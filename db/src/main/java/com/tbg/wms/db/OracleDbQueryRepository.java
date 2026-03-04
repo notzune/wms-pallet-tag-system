@@ -476,13 +476,14 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     public Map<String, List<RailFootprintCandidate>> findRailFootprintsByShortCode(List<String> shortCodes) {
         Objects.requireNonNull(shortCodes, "shortCodes cannot be null");
 
-        List<String> normalized = new ArrayList<>();
+        Set<String> normalizedSet = new LinkedHashSet<>();
         for (String code : shortCodes) {
             String value = NormalizationService.normalizeString(code);
             if (!value.isBlank()) {
-                normalized.add(value);
+                normalizedSet.add(value);
             }
         }
+        List<String> normalized = new ArrayList<>(normalizedSet);
         if (normalized.isEmpty()) {
             return Map.of();
         }
