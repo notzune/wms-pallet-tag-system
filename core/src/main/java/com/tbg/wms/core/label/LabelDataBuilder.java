@@ -174,14 +174,15 @@ public final class LabelDataBuilder {
 
         // ── Product/line item data (from first line item on this pallet) ──
         if (!lpn.getLineItems().isEmpty()) {
-            LineItem item = selectRepresentativeItem(lpn);
+            RepresentativeItemSelection selection = selectRepresentativeItem(lpn);
+            LineItem item = selection.item;
 
             fields.put("tbgSku", require(item.getSku(), "tbgSku"));
             fields.put("quantity", String.valueOf(item.getQuantity()));
             fields.put("unitOfMeasure", orDefault(item.getUom(), "EA"));
 
             // Walmart item code lookup (critical for labels)
-            WalmartSkuMapping mapping = skuMapping.findByPrtnum(item.getSku());
+            WalmartSkuMapping mapping = selection.mapping;
             if (mapping != null) {
                 fields.put("walmartItemNumber", mapping.getWalmartItemNo());
                 fields.put("itemDescription", mapping.getDescription());
@@ -300,13 +301,25 @@ public final class LabelDataBuilder {
      *
      * <p>Prefer a SKU that exists in Walmart mapping, otherwise fallback to first item.</p>
      */
-    private LineItem selectRepresentativeItem(Lpn lpn) {
+    private RepresentativeItemSelection selectRepresentativeItem(Lpn lpn) {
+        LineItem fallback = null;
         for (LineItem item : lpn.getLineItems()) {
-            if (item != null && item.getSku() != null && skuMapping.findByPrtnum(item.getSku()) != null) {
-                return item;
+            if (fallback == null && item != null) {
+                fallback = item;
+            }
+            if (item == null || item.getSku() == null) {
+                continue;
+            }
+            WalmartSkuMapping mapping = skuMapping.findByPrtnum(item.getSku());
+            if (mapping != null) {
+                return new RepresentativeItemSelection(item, mapping);
             }
         }
-        return lpn.getLineItems().get(0);
+        if (fallback == null) {
+            fallback = lpn.getLineItems().get(0);
+        }
+        String fallbackSku = fallback == null ? null : fallback.getSku();
+        return new RepresentativeItemSelection(fallback, skuMapping.findByPrtnum(fallbackSku));
     }
 
     private String resolveLocationNumber(Shipment shipment) {
@@ -315,6 +328,16 @@ public final class LabelDataBuilder {
             return raw;
         }
         return locationNumberMapping.resolveDcLocation(raw);
+    }
+
+    private static final class RepresentativeItemSelection {
+        private final LineItem item;
+        private final WalmartSkuMapping mapping;
+
+        private RepresentativeItemSelection(LineItem item, WalmartSkuMapping mapping) {
+            this.item = item;
+            this.mapping = mapping;
+        }
     }
 }
 

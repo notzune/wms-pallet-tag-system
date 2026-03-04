@@ -13,6 +13,13 @@ import java.util.Objects;
  * Builds text shown by the GUI preview panes and queue preview dialog.
  */
 final class LabelPreviewFormatter {
+    private static final String SHIPMENT_TABLE_SEPARATOR =
+            "----------------------------------------------------------------------------------------------------\n";
+    private static final String CARRIER_TABLE_SEPARATOR =
+            "----------------------------------------------------------------------------------------------------------------------\n";
+    private static final String STOP_BLOCK_SEPARATOR =
+            "====================================================================================================\n";
+    private static final int CARRIER_MOVE_SUMMARY_INFO_TAG_BASE = 1;
 
     private static String value(String v) {
         return (v == null || v.isBlank()) ? "-" : v;
@@ -59,7 +66,7 @@ final class LabelPreviewFormatter {
         math.append("Pallet Math (Full vs Partial)\n");
         math.append(String.format("%-20s %-10s %-14s %-8s %-10s %-10s %s%n",
                 "SKU", "Units", "Units/Pallet", "Full", "Partial", "TotalPal", "Description"));
-        math.append("----------------------------------------------------------------------------------------------------\n");
+        math.append(SHIPMENT_TABLE_SEPARATOR);
         int skuRows = 0;
         for (LabelWorkflowService.SkuMathRow row : job.getSkuMathRows()) {
             if (skuRows >= maxPreviewSkuRowsPerShipment) {
@@ -83,7 +90,7 @@ final class LabelPreviewFormatter {
         int totalFull = job.getPlanResult().getFullPallets();
         int totalPartial = job.getPlanResult().getPartialPallets();
         int totalLabels = job.getPlanResult().getEstimatedPallets();
-        math.append("----------------------------------------------------------------------------------------------------\n");
+        math.append(SHIPMENT_TABLE_SEPARATOR);
         math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual Labels: %d%n",
                 totalFull, totalPartial, totalLabels, job.getLpnsForLabels().size()));
         return math.toString();
@@ -94,7 +101,7 @@ final class LabelPreviewFormatter {
         summary.append("Carrier Move ID: ").append(job.getCarrierMoveId()).append('\n');
         summary.append("Total Stops: ").append(job.getTotalStops()).append('\n');
         summary.append("Estimated Labels: ").append(countCarrierMoveLabels(job)).append('\n');
-        summary.append("Estimated Info Tags: ").append(job.getTotalStops() + 1).append('\n');
+        summary.append("Estimated Info Tags: ").append(job.getTotalStops() + CARRIER_MOVE_SUMMARY_INFO_TAG_BASE).append('\n');
         return summary.toString();
     }
 
@@ -105,10 +112,10 @@ final class LabelPreviewFormatter {
         math.append("Carrier Move Pallet Math (Full vs Partial)\n");
         math.append(String.format("%-8s %-16s %-10s %-10s %-10s %-10s %-10s %s%n",
                 "Stop", "Shipment", "Units", "Full", "Partial", "TotalPal", "Labels", "Ship To"));
-        math.append("----------------------------------------------------------------------------------------------------------------------\n");
+        math.append(CARRIER_TABLE_SEPARATOR);
         CarrierMoveTotals totals = new CarrierMoveTotals();
         appendCarrierMoveMathRows(math, totals, job, maxPreviewStops, maxPreviewShipmentsPerStop);
-        math.append("----------------------------------------------------------------------------------------------------------------------\n");
+        math.append(CARRIER_TABLE_SEPARATOR);
         math.append(String.format("Totals -> Full: %d | Partial: %d | Labels Needed (Footprint): %d | Actual Labels: %d%n",
                 totals.totalFull, totals.totalPartial, totals.totalLabelsNeeded, totals.totalActualLabels));
         return math.toString();
@@ -253,12 +260,12 @@ final class LabelPreviewFormatter {
                 .append('\n')
                 .append("  Ship To: ").append(value(shipmentJob.getShipment().getShipToName()))
                 .append('\n')
-                .append("----------------------------------------------------------------------------------------------------\n")
+                .append(SHIPMENT_TABLE_SEPARATOR)
                 .append(buildShipmentSummaryText(shipmentJob, 0))
                 .append('\n')
                 .append(buildShipmentMathText(shipmentJob, maxPreviewSkuRowsPerShipment))
                 .append('\n')
-                .append("====================================================================================================\n")
+                .append(STOP_BLOCK_SEPARATOR)
                 .append('\n');
     }
 
