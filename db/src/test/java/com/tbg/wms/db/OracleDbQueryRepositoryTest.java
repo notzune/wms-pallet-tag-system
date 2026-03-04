@@ -104,30 +104,28 @@ class OracleDbQueryRepositoryTest {
     }
 
     @Test
-    void testShipmentExistsWhenNoLpns() throws SQLException {
+    void testShipmentExistsWhenNoMatch() throws SQLException {
         when(mockDataSource.getConnection()).thenReturn(mockConnection);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
         when(mockStatement.executeQuery()).thenReturn(mockResultSet);
-        when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("shipment_count")).thenReturn(0);
+        when(mockResultSet.next()).thenReturn(false);
 
         boolean exists = repository.shipmentExists("SHIP123");
 
-        assertFalse(exists, "Shipment with no LPNs should return false");
+        assertFalse(exists, "Missing shipment should return false");
         verify(mockConnection).close();
     }
 
     @Test
-    void testShipmentExistsWhenLpnsPresent() throws SQLException {
+    void testShipmentExistsWhenMatchPresent() throws SQLException {
         when(mockDataSource.getConnection()).thenReturn(mockConnection);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
         when(mockStatement.executeQuery()).thenReturn(mockResultSet);
         when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("shipment_count")).thenReturn(3);
 
         boolean exists = repository.shipmentExists("SHIP123");
 
-        assertTrue(exists, "Shipment with LPNs should return true");
+        assertTrue(exists, "Existing shipment should return true");
     }
 
     @Test

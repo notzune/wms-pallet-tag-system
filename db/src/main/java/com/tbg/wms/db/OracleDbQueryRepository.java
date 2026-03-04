@@ -178,21 +178,17 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         }
 
         String normalizedId = NormalizationService.normalizeString(shipmentId);
-        String sql = "SELECT COUNT(*) as shipment_count FROM WMSP.SHIPMENT WHERE SHIP_ID = ?";
+        String sql = "SELECT 1 FROM WMSP.SHIPMENT WHERE SHIP_ID = ? AND ROWNUM = 1";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, normalizedId);
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    int count = rs.getInt("shipment_count");
-                    boolean exists = count > 0;
-                    log.debug("Shipment {} exists: {}", normalizedId, exists);
-                    return exists;
-                }
+                boolean exists = rs.next();
+                log.debug("Shipment {} exists: {}", normalizedId, exists);
+                return exists;
             }
-            return false;
         } catch (SQLException e) {
             log.error("Database error checking shipment existence for {}: {}", normalizedId, e.getSQLState());
             throw new WmsDbConnectivityException(
