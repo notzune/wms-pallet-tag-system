@@ -116,13 +116,9 @@ public final class RunCommand implements Callable<Integer> {
             boolean carrierMode = isCarrierMoveMode();
             MDC.put(carrierMode ? "carrierMoveId" : "shipmentId", inputId);
 
-            if (printToFile) {
-                dryRun = true;
-                outputDir = resolveJarOutputDir().toString();
-            }
-
-            Path outputPath = prepareOutputDirectory();
             boolean printToFileMode = dryRun || printToFile;
+            String effectiveOutputDir = printToFile ? resolveJarOutputDir().toString() : outputDir;
+            Path outputPath = prepareOutputDirectory(effectiveOutputDir);
             AdvancedPrintWorkflowService workflow = new AdvancedPrintWorkflowService(config);
 
             if (carrierMode) {
@@ -232,8 +228,8 @@ public final class RunCommand implements Callable<Integer> {
         return carrierMoveId != null && !carrierMoveId.isBlank();
     }
 
-    private Path prepareOutputDirectory() throws Exception {
-        Path outputPath = Paths.get(outputDir);
+    private Path prepareOutputDirectory(String outputDirectory) throws Exception {
+        Path outputPath = Paths.get(outputDirectory);
         Files.createDirectories(outputPath);
         log.debug("Output directory: {}", outputPath.toAbsolutePath());
         return outputPath;
