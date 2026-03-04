@@ -46,6 +46,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     private static final String DEFAULT_LINE_ITEM_UOM = "EA";
 
     private final DataSource dataSource;
+    private volatile List<String> prtmstDescriptionColumnsCache;
 
     /**
      * Creates a new OracleDbQueryRepository.
@@ -293,7 +294,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            List<String> descriptionColumns = resolvePrtmstDescriptionColumns(conn);
+            List<String> descriptionColumns = getPrtmstDescriptionColumns(conn);
             stmt.setString(1, normalizedId);
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -854,6 +855,16 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         return null;
     }
 
+    private List<String> getPrtmstDescriptionColumns(Connection conn) {
+        List<String> cached = prtmstDescriptionColumnsCache;
+        if (cached != null) {
+            return cached;
+        }
+        List<String> resolved = resolvePrtmstDescriptionColumns(conn);
+        prtmstDescriptionColumnsCache = resolved;
+        return resolved;
+    }
+
     private List<String> resolvePrtmstDescriptionColumns(Connection conn) {
         final String sql = "SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE OWNER = 'WMSP' AND TABLE_NAME = 'PRTMST'";
         Set<String> columns = new LinkedHashSet<>();
@@ -1015,22 +1026,44 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     }
 
     private List<String> buildSkuCandidates(String sku) {
-        List<String> candidates = new ArrayList<>();
+        List<String> candidates = new ArrayList<>(3);
         if (sku == null || sku.isBlank()) {
             return candidates;
         }
-        candidates.add(sku);
+        String trimmed = sku.trim();
+        candidates.add(trimmed);
 
-        if (sku.startsWith("100") && sku.length() > 3) {
-            candidates.add(sku.substring(3));
+        if (trimmed.startsWith("100") && trimmed.length() > 3) {
+            addIfUnique(candidates, trimmed.substring(3));
         }
 
-        String noLeadingZeros = sku.replaceFirst("^0+(?!$)", "");
-        if (!noLeadingZeros.equals(sku)) {
-            candidates.add(noLeadingZeros);
-        }
+        addIfUnique(candidates, trimLeadingZeros(trimmed));
 
         return candidates;
+    }
+
+    private static void addIfUnique(List<String> candidates, String candidate) {
+        if (candidate == null || candidate.isBlank()) {
+            return;
+        }
+        for (String existing : candidates) {
+            if (existing.equals(candidate)) {
+                return;
+            }
+        }
+        candidates.add(candidate);
+    }
+
+    private static String trimLeadingZeros(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        int index = 0;
+        int maxIndex = value.length() - 1;
+        while (index < maxIndex && value.charAt(index) == '0') {
+            index++;
+        }
+        return index == 0 ? value : value.substring(index);
     }
 
     private boolean isHumanReadableDescription(String value) {
