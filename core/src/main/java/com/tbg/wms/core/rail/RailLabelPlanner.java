@@ -7,8 +7,6 @@
  */
 package com.tbg.wms.core.rail;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -91,9 +89,7 @@ public final class RailLabelPlanner {
                 .thenComparing(Map.Entry::getKey));
 
         for (Map.Entry<String, Double> entry : entries) {
-            int percent = BigDecimal.valueOf((entry.getValue() / totalEquivalent) * 100.0d)
-                    .setScale(0, RoundingMode.HALF_UP)
-                    .intValue();
+            int percent = (int) Math.round((entry.getValue() / totalEquivalent) * 100.0d);
             shares.add(new FamilyShare(entry.getKey(), percent, entry.getValue()));
         }
         return shares;
