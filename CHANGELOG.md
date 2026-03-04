@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Performance tuning pass across rail/sku/gui services to reduce repeated allocations and repeated scans.
+- Reduced rail planner and CSV helper overhead by removing redundant record scans and regex-based header normalization.
+- Reduced DB SKU candidate and description lookup overhead with deduplicated candidate generation and cached PRTMST column discovery.
+- Reduced GUI queue parser allocation churn via single-pass newline parsing.
 
 ### Deprecated
 
