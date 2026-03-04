@@ -10,6 +10,7 @@ package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.print.PrinterConfig;
 
 import javax.swing.*;
@@ -17,7 +18,6 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -116,20 +116,6 @@ public final class LabelGuiFrame extends JFrame {
         gbc.weightx = 1.0;
         form.add(field, gbc);
         return rowLabel;
-    }
-
-    private static Path resolveJarOutputDir() {
-        try {
-            Path codeSource = Paths.get(Objects.requireNonNull(LabelGuiFrame.class
-                            .getProtectionDomain()
-                            .getCodeSource())
-                    .getLocation()
-                    .toURI());
-            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
-            return baseDir.resolve("out");
-        } catch (Exception e) {
-            return Paths.get("out");
-        }
     }
 
     private static boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
@@ -772,7 +758,7 @@ public final class LabelGuiFrame extends JFrame {
                 // Fallback to runtime-derived default if persisted value is invalid.
             }
         }
-        return resolveJarOutputDir();
+        return RuntimePathResolver.resolveJarSiblingDir(LabelGuiFrame.class, "out");
     }
 
     private void openSettingsDialog() {

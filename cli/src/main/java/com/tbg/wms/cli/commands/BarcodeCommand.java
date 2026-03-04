@@ -9,6 +9,7 @@
 package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.BarcodeRequest;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.Orientation;
@@ -27,7 +28,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
@@ -159,20 +159,6 @@ public final class BarcodeCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
-    private static Path resolveJarOutputDir() {
-        try {
-            Path codeSource = Paths.get(Objects.requireNonNull(BarcodeCommand.class
-                            .getProtectionDomain()
-                            .getCodeSource())
-                    .getLocation()
-                    .toURI());
-            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
-            return baseDir.resolve("out");
-        } catch (Exception e) {
-            return Paths.get("out");
-        }
-    }
-
     private static String safeSlug(String value) {
         if (value == null) {
             return "data";
@@ -198,7 +184,9 @@ public final class BarcodeCommand implements Callable<Integer> {
         String zpl = BarcodeZplBuilder.build(request);
 
         boolean effectiveDryRun = dryRun || printToFile;
-        String effectiveOutputDir = printToFile ? resolveJarOutputDir().toString() : outputDir;
+        String effectiveOutputDir = printToFile
+                ? RuntimePathResolver.resolveJarSiblingDir(BarcodeCommand.class, "out").toString()
+                : outputDir;
         Path zplFile = writeZplFile(zpl, effectiveOutputDir);
         if (zplFile == null) {
             return 2;

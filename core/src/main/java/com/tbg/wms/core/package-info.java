@@ -11,6 +11,7 @@
  * <p><strong>Key Types</strong></p>
  * <ul>
  *   <li>{@link com.tbg.wms.core.AppConfig} - immutable runtime configuration model.</li>
+ *   <li>{@link com.tbg.wms.core.RuntimePathResolver} - shared runtime path resolver for jar-adjacent output directories.</li>
  * </ul>
  *
  * @since 1.5.0

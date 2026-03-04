@@ -11,6 +11,7 @@ package com.tbg.wms.cli.commands;
 import com.tbg.wms.cli.gui.AdvancedPrintWorkflowService;
 import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
 import com.tbg.wms.core.exception.WmsPrintException;
 import com.tbg.wms.core.print.PrinterConfig;
@@ -25,7 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -85,20 +85,6 @@ public final class RunCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
-    private static Path resolveJarOutputDir() {
-        try {
-            Path codeSource = Paths.get(Objects.requireNonNull(RunCommand.class
-                            .getProtectionDomain()
-                            .getCodeSource())
-                    .getLocation()
-                    .toURI());
-            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
-            return baseDir.resolve("out");
-        } catch (Exception e) {
-            return Paths.get("out");
-        }
-    }
-
     /**
      * Executes shipment/carrier print workflow for CLI mode.
      *
@@ -118,7 +104,9 @@ public final class RunCommand implements Callable<Integer> {
             MDC.put(carrierMode ? "carrierMoveId" : "shipmentId", inputId);
 
             boolean printToFileMode = dryRun || printToFile;
-            String effectiveOutputDir = printToFile ? resolveJarOutputDir().toString() : outputDir;
+            String effectiveOutputDir = printToFile
+                    ? RuntimePathResolver.resolveJarSiblingDir(RunCommand.class, "out").toString()
+                    : outputDir;
             Path outputPath = prepareOutputDirectory(effectiveOutputDir);
             AdvancedPrintWorkflowService workflow = new AdvancedPrintWorkflowService(config);
 

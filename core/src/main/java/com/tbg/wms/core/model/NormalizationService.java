@@ -48,7 +48,7 @@ public final class NormalizationService {
      */
     public static String normalizeToUppercase(String value) {
         String normalized = normalizeString(value);
-        return normalized.isEmpty() ? normalized : normalized.toUpperCase(Locale.ROOT);
+        return normalized.toUpperCase(Locale.ROOT);
     }
 
     /**

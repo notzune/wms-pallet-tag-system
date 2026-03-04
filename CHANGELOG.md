@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced remaining magic-value usage in CLI/core flows by extracting job-id/default-port constants and simplified PRTMST direct-probe execution to avoid warning-prone unused assignments.
 - Reduced `shipmentExists` database overhead by switching from `COUNT(*)` to an existence probe (`ROWNUM = 1`) in `OracleDbQueryRepository`.
 - Reduced rail-footprint lookup query overhead by de-duplicating normalized short codes before batched SQL execution.
+- Enforced SRP for runtime output-directory resolution by introducing shared `RuntimePathResolver` and reusing it across CLI/GUI print-to-file flows.
+- Simplified `NormalizationService.normalizeToUppercase` by removing a redundant conditional branch.
 
 ### Deprecated
 
