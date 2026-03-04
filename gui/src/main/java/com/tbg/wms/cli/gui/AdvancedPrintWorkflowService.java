@@ -9,9 +9,6 @@
 package com.tbg.wms.cli.gui;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelType;
@@ -24,7 +21,6 @@ import com.tbg.wms.db.DbConnectionPool;
 import com.tbg.wms.db.DbQueryRepository;
 import com.tbg.wms.db.OracleDbQueryRepository;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -43,14 +39,14 @@ public final class AdvancedPrintWorkflowService {
     private static final int MAX_TASKS_PER_JOB = 50_000;
     private static final int MAX_CHECKPOINT_FILES_SCANNED = 5_000;
     private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     private final AppConfig config;
     private final LabelWorkflowService shipmentService;
+    private final JobCheckpointStore checkpointStore;
+
     public AdvancedPrintWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
         this.shipmentService = new LabelWorkflowService(config);
+        this.checkpointStore = new JobCheckpointStore();
     }
 
     public LabelWorkflowService.PreparedJob prepareShipmentJob(String shipmentId) throws Exception {
@@ -175,28 +171,17 @@ public final class AdvancedPrintWorkflowService {
     }
 
     public List<ResumeCandidate> listIncompleteJobs() throws Exception {
-        Path dir = checkpointDir();
-        if (!Files.exists(dir)) {
-            return List.of();
-        }
         List<ResumeCandidate> items = new ArrayList<>();
-        try (var stream = Files.list(dir)) {
-            var limitedIterator = stream
-                    .filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json"))
-                    .limit(MAX_CHECKPOINT_FILES_SCANNED)
-                    .iterator();
-            while (limitedIterator.hasNext()) {
-                Path file = limitedIterator.next();
-                try {
-                    JobCheckpoint checkpoint = MAPPER.readValue(file.toFile(), JobCheckpoint.class);
-                    if (!checkpoint.completed) {
-                        int total = checkpoint.tasks == null ? 0 : checkpoint.tasks.size();
-                        items.add(new ResumeCandidate(checkpoint.id, checkpoint.mode, checkpoint.sourceId, checkpoint.outputDirectory,
-                                checkpoint.nextTaskIndex, total, checkpoint.updatedAt, checkpoint.lastError));
-                    }
-                } catch (Exception ignored) {
-                    // Skip malformed checkpoint files and continue scanning.
+        for (Path file : checkpointStore.listCheckpointFiles(MAX_CHECKPOINT_FILES_SCANNED)) {
+            try {
+                JobCheckpoint checkpoint = checkpointStore.read(stripJsonExtension(file.getFileName().toString()));
+                if (checkpoint != null && !checkpoint.completed) {
+                    int total = checkpoint.tasks == null ? 0 : checkpoint.tasks.size();
+                    items.add(new ResumeCandidate(checkpoint.id, checkpoint.mode, checkpoint.sourceId, checkpoint.outputDirectory,
+                            checkpoint.nextTaskIndex, total, checkpoint.updatedAt, checkpoint.lastError));
                 }
+            } catch (Exception ignored) {
+                // Skip malformed checkpoint files and continue scanning.
             }
         }
         items.sort(Comparator.comparing(ResumeCandidate::updatedAt, Comparator.nullsLast(LocalDateTime::compareTo)).reversed());
@@ -336,14 +321,14 @@ public final class AdvancedPrintWorkflowService {
             throw new IllegalArgumentException("Task count exceeds max limit: " + MAX_TASKS_PER_JOB);
         }
         Path outDir = Paths.get(checkpoint.outputDirectory);
-        Files.createDirectories(outDir);
+        java.nio.file.Files.createDirectories(outDir);
         NetworkPrintService printService = new NetworkPrintService();
         int start = Math.max(0, Math.min(startIndex, checkpoint.tasks.size()));
         for (int i = start; i < checkpoint.tasks.size(); i++) {
             PrintTask task = checkpoint.tasks.get(i);
             Path outFile = outDir.resolve(task.fileName);
             try {
-                Files.writeString(outFile, task.zpl);
+                java.nio.file.Files.writeString(outFile, task.zpl);
                 if (!checkpoint.printToFile) {
                     if (printer == null) {
                         throw new IllegalStateException("Printer is required.");
@@ -382,22 +367,20 @@ public final class AdvancedPrintWorkflowService {
     }
 
     private JobCheckpoint readCheckpoint(String id) throws Exception {
-        Path file = checkpointDir().resolve(id + ".json");
-        if (!Files.exists(file)) {
-            return null;
-        }
-        return MAPPER.readValue(file.toFile(), JobCheckpoint.class);
+        return checkpointStore.read(id);
     }
 
     private void writeCheckpoint(JobCheckpoint checkpoint) throws Exception {
-        Path dir = checkpointDir();
-        Files.createDirectories(dir);
-        Path file = dir.resolve(checkpoint.id + ".json");
-        MAPPER.writerWithDefaultPrettyPrinter().writeValue(file.toFile(), checkpoint);
+        checkpointStore.write(checkpoint);
     }
 
-    private Path checkpointDir() {
-        return Paths.get("out", "gui-jobs");
+    private String stripJsonExtension(String fileName) {
+        if (fileName == null) {
+            return "";
+        }
+        return fileName.toLowerCase(Locale.ROOT).endsWith(".json")
+                ? fileName.substring(0, fileName.length() - 5)
+                : fileName;
     }
 
     private String safeSlug(String value) {
@@ -658,7 +641,7 @@ public final class AdvancedPrintWorkflowService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class JobCheckpoint {
+    static final class JobCheckpoint {
         public String id;
         public InputMode mode;
         public String sourceId;

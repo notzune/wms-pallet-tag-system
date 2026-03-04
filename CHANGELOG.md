@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced DB SKU candidate and description lookup overhead with deduplicated candidate generation and cached PRTMST column discovery.
 - Reduced GUI queue parser allocation churn via single-pass newline parsing.
 - Enforced SRP in GUI print workflow by extracting info-tag ZPL rendering into a dedicated `InfoTagZplBuilder`.
+- Enforced SRP in GUI print workflow by extracting checkpoint persistence/scanning into a dedicated `JobCheckpointStore`.
 
 ### Deprecated
 
