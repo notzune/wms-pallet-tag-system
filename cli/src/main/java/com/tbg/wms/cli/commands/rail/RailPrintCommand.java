@@ -11,12 +11,13 @@ import com.tbg.wms.db.WmsRailDbRepository;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.Callable;
 
 /**
@@ -28,6 +29,7 @@ import java.util.concurrent.Callable;
 )
 public final class RailPrintCommand implements Callable<Integer> {
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final BufferedReader CONSOLE_IN = new BufferedReader(new InputStreamReader(System.in));
 
     @Option(names = {"--train"}, required = true, description = "Train ID (full or 4-digit rail train number)")
     private String trainId;
@@ -41,6 +43,11 @@ public final class RailPrintCommand implements Callable<Integer> {
     @Option(names = {"--yes", "-y"}, defaultValue = "false", description = "Skip interactive confirmation")
     private boolean yes;
 
+    /**
+     * Executes live WMS rail planning and card rendering for one train.
+     *
+     * @return exit code (0 on success)
+     */
     @Override
     public Integer call() throws Exception {
         AppConfig config = new AppConfig();
@@ -102,8 +109,15 @@ public final class RailPrintCommand implements Callable<Integer> {
 
     private boolean confirm(String prompt) {
         System.out.print(prompt);
-        Scanner scanner = new Scanner(System.in);
-        String value = scanner.nextLine();
-        return value != null && value.trim().equalsIgnoreCase("y");
+        try {
+            String value = CONSOLE_IN.readLine();
+            if (value == null) {
+                return false;
+            }
+            String normalized = value.trim();
+            return normalized.equalsIgnoreCase("y") || normalized.equalsIgnoreCase("yes");
+        } catch (Exception ex) {
+            return false;
+        }
     }
 }

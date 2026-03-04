@@ -15,19 +15,28 @@ public final class RailWorkflowService {
     private final RailAggregationService aggregationService;
     private final RailPalletCalculator palletCalculator;
     private final RailLabelPlanner labelPlanner;
+    private final RailFootprintResolver footprintResolver;
 
     public RailWorkflowService(RailDbRepository repository) {
-        this(repository, new RailAggregationService(), new RailPalletCalculator(), new RailLabelPlanner());
+        this(
+                repository,
+                new RailAggregationService(),
+                new RailPalletCalculator(),
+                new RailLabelPlanner(),
+                new RailFootprintResolver()
+        );
     }
 
     RailWorkflowService(RailDbRepository repository,
                         RailAggregationService aggregationService,
                         RailPalletCalculator palletCalculator,
-                        RailLabelPlanner labelPlanner) {
+                        RailLabelPlanner labelPlanner,
+                        RailFootprintResolver footprintResolver) {
         this.repository = Objects.requireNonNull(repository, "repository cannot be null");
         this.aggregationService = Objects.requireNonNull(aggregationService, "aggregationService cannot be null");
         this.palletCalculator = Objects.requireNonNull(palletCalculator, "palletCalculator cannot be null");
         this.labelPlanner = Objects.requireNonNull(labelPlanner, "labelPlanner cannot be null");
+        this.footprintResolver = Objects.requireNonNull(footprintResolver, "footprintResolver cannot be null");
     }
 
     /**
@@ -47,7 +56,7 @@ public final class RailWorkflowService {
         Set<String> shortCodes = collectShortCodes(rawRows);
         Map<String, List<RailFootprintCandidate>> candidates =
                 repository.findRailFootprintsByShortCode(new ArrayList<>(shortCodes));
-        Map<String, RailFamilyFootprint> resolvedFootprints = resolveFootprints(candidates);
+        Map<String, RailFamilyFootprint> resolvedFootprints = footprintResolver.resolve(candidates);
 
         List<RailCarAggregate> aggregates = aggregationService.aggregateByRailcar(rawRows);
         List<RailCarCard> cards = new ArrayList<>(aggregates.size());
@@ -121,32 +130,6 @@ public final class RailWorkflowService {
             }
         }
         return codes;
-    }
-
-    private Map<String, RailFamilyFootprint> resolveFootprints(Map<String, List<RailFootprintCandidate>> candidates) {
-        Map<String, RailFamilyFootprint> resolved = new LinkedHashMap<>();
-        for (Map.Entry<String, List<RailFootprintCandidate>> entry : candidates.entrySet()) {
-            List<RailFootprintCandidate> rows = entry.getValue();
-            if (rows == null || rows.isEmpty()) {
-                continue;
-            }
-            RailFootprintCandidate first = rows.get(0);
-            boolean consistent = true;
-            for (int i = 1; i < rows.size(); i++) {
-                RailFootprintCandidate current = rows.get(i);
-                if (!first.getFamilyCode().equals(current.getFamilyCode())
-                        || first.getCasesPerPallet() != current.getCasesPerPallet()) {
-                    consistent = false;
-                    break;
-                }
-            }
-            if (!consistent) {
-                continue;
-            }
-            resolved.put(entry.getKey(),
-                    new RailFamilyFootprint(entry.getKey(), first.getFamilyCode(), first.getCasesPerPallet()));
-        }
-        return Collections.unmodifiableMap(resolved);
     }
 
     /**

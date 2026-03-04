@@ -30,6 +30,12 @@ public final class RailWorkflowService {
         this.config = Objects.requireNonNull(config, "config cannot be null");
     }
 
+    /**
+     * Loads and prepares railcard preview data from WMS.
+     *
+     * @param trainId train identifier entered by the operator
+     * @return prepared immutable preview payload
+     */
     public PreparedRailJob prepareRailJob(String trainId) throws Exception {
         try (DbConnectionPool pool = new DbConnectionPool(config)) {
             RailDbRepository repository = new WmsRailDbRepository(new OracleDbQueryRepository(pool.getDataSource()));
@@ -40,6 +46,14 @@ public final class RailWorkflowService {
         }
     }
 
+    /**
+     * Renders cards to PDF and optionally sends the result to printer.
+     *
+     * @param job prepared job produced by {@link #prepareRailJob(String)}
+     * @param outputDir optional output directory (null for timestamped default)
+     * @param printNow true to invoke print after render
+     * @return generation result details
+     */
     public GenerationResult generatePdf(PreparedRailJob job, Path outputDir, boolean printNow) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         Path targetDir = outputDir == null
@@ -54,6 +68,9 @@ public final class RailWorkflowService {
         return new GenerationResult(targetDir, pdfPath, printNow);
     }
 
+    /**
+     * Builds the monospace card preview text for GUI display.
+     */
     public String buildCardPreviewText(RailCarCard card) {
         StringBuilder sb = new StringBuilder();
         sb.append("SEQ: ").append(card.getSequence()).append("   VEHICLE: ").append(card.getVehicleId()).append('\n');
@@ -82,6 +99,9 @@ public final class RailWorkflowService {
         return sb.toString();
     }
 
+    /**
+     * Builds diagnostics text shown in the GUI diagnostics panel.
+     */
     public String buildDiagnosticsText(PreparedRailJob job) {
         StringBuilder sb = new StringBuilder();
         sb.append("Rail Diagnostics").append('\n');
