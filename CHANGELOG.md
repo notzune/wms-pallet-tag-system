@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- None.
+- Performance tuning pass across rail/sku/gui services to reduce repeated allocations and repeated scans.
 
 ### Deprecated
 
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- None.
+- Resolved Maven parent-version drift that caused `javadoc:aggregate` failures in CI when resolving module parents.
 
 ### Security
 
