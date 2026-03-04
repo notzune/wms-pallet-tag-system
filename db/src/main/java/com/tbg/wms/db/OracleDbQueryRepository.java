@@ -414,7 +414,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                 "LEFT JOIN WMSP.RCVLIN rl ON rl.TRKNUM = rt.TRKNUM " +
                 "LEFT JOIN WMSP.ALT_PRTMST ap ON ap.PRTNUM = rl.PRTNUM " +
                 "  AND ap.ALT_PRT_TYP = 'UPC' " +
-                "WHERE t.VC_TRAIN_NUM = ? " +
+                "WHERE (t.VC_TRAIN_NUM = ? OR SUBSTR(t.VC_TRAIN_NUM, 3, 4) = ?) " +
                 "  AND ri.INVNUM IS NOT NULL " +
                 "  AND ap.ALT_PRTNUM IS NOT NULL " +
                 "  AND NVL(rl.EXPQTY, 0) > 0 " +
@@ -426,6 +426,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, normalizedTrainId);
+            stmt.setString(2, normalizedTrainId);
             try (ResultSet rs = stmt.executeQuery()) {
                 Map<String, MutableRailStop> grouped = new LinkedHashMap<>();
                 while (rs.next()) {
