@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced rail-footprint lookup query overhead by de-duplicating normalized short codes before batched SQL execution.
 - Enforced SRP for runtime output-directory resolution by introducing shared `RuntimePathResolver` and reusing it across CLI/GUI print-to-file flows.
 - Simplified `NormalizationService.normalizeToUppercase` by removing a redundant conditional branch.
+- Reduced small but repeated allocation/read overhead in label generation loops by caching per-job LPN counts and reusing a single `LocalDate.now()` value for virtual LPN date stamping.
 
 ### Deprecated
 

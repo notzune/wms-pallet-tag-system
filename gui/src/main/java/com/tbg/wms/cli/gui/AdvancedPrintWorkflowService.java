@@ -239,22 +239,24 @@ public final class AdvancedPrintWorkflowService {
         Objects.requireNonNull(job, "job cannot be null");
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
         List<PrintTask> tasks = new ArrayList<>();
-        if (job.getLpnsForLabels().size() > MAX_LABELS_PER_JOB) {
+        List<Lpn> lpnsForLabels = job.getLpnsForLabels();
+        int labelCount = lpnsForLabels.size();
+        if (labelCount > MAX_LABELS_PER_JOB) {
             throw new IllegalArgumentException("Label count exceeds max limit: " + MAX_LABELS_PER_JOB);
         }
-        for (int i = 0; i < job.getLpnsForLabels().size(); i++) {
-            Lpn lpn = job.getLpnsForLabels().get(i);
+        for (int i = 0; i < labelCount; i++) {
+            Lpn lpn = lpnsForLabels.get(i);
             Map<String, String> data = new LinkedHashMap<>(builder.build(job.getShipment(), lpn, i, LabelType.WALMART_CANADA_GRID));
             if (stopSequence != null) {
                 data.put("stopSequence", String.valueOf(stopSequence));
             }
             if (job.getShipment().getLpnCount() == 0) {
                 data.put("palletSeq", String.valueOf(i + 1));
-                data.put("palletTotal", String.valueOf(job.getLpnsForLabels().size()));
+                data.put("palletTotal", String.valueOf(labelCount));
             }
             String zpl = ZplTemplateEngine.generate(job.getTemplate(), data);
             String fileName = String.format("%s_%s_%d_of_%d.zpl",
-                    job.getShipmentId(), lpn.getLpnId(), i + 1, job.getLpnsForLabels().size());
+                    job.getShipmentId(), lpn.getLpnId(), i + 1, labelCount);
             String payload = job.getShipmentId() + ":" + lpn.getLpnId() + (stopPosition == null ? "" : (" stop " + stopPosition));
             tasks.add(new PrintTask(TaskKind.PALLET_LABEL, fileName, zpl, payload));
         }

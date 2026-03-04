@@ -98,6 +98,7 @@ public final class LabelingSupport {
         }
 
         List<Lpn> virtualLpns = new ArrayList<>();
+        LocalDate today = LocalDate.now();
         int seq = 0;
 
         for (ShipmentSkuFootprint row : footprintRows) {
@@ -157,8 +158,8 @@ public final class LabelingSupport {
                         shipment.getDestinationLocation(),
                         null,
                         null,
-                        LocalDate.now(),
-                        LocalDate.now(),
+                        today,
+                        today,
                         List.of(item)
                 );
                 virtualLpns.add(virtualLpn);
