@@ -76,8 +76,10 @@ public final class DbConnectionPool implements AutoCloseable {
             HikariDataSource candidate = null;
             try {
                 candidate = createDataSource(config, jdbcUrlCandidate);
-                Connection validationConnection = candidate.getConnection();
-                validationConnection.close();
+                try (Connection validationConnection = candidate.getConnection()) {
+                    // Touch metadata to keep javac -Werror happy and validate an active borrow.
+                    validationConnection.getMetaData();
+                }
                 selectedDataSource = candidate;
                 selectedJdbcUrl = jdbcUrlCandidate;
                 break;

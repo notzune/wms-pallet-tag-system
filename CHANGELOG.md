@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enforced SRP in DB schema-probing logic by extracting PRTMST description-column resolution/caching into `PrtmstDescriptionColumnResolver`.
 - Reduced per-label SKU lookup overhead in `LabelDataBuilder` by selecting representative line items and Walmart mappings in a single pass.
 - Reduced repeated literal usage in GUI preview formatting by extracting separator/summary constants in `LabelPreviewFormatter`.
+- Hardened DB pool candidate probing in `DbConnectionPool` with try-with-resources validation borrows to avoid transient connection-handle leaks.
 
 ### Deprecated
 
