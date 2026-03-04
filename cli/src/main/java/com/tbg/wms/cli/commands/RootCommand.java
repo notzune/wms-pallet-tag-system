@@ -9,6 +9,7 @@
 package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.cli.commands.rail.RailHelperCommand;
+import com.tbg.wms.cli.commands.rail.RailPrintCommand;
 import com.tbg.wms.core.AppConfig;
 import picocli.CommandLine.Command;
 
@@ -42,6 +43,7 @@ import java.util.concurrent.Callable;
                 DbTestCommand.class,
                 RunCommand.class,
                 RailHelperCommand.class,
+                RailPrintCommand.class,
                 GuiCommand.class,
                 BarcodeCommand.class,
                 VersionCommand.class
