@@ -52,6 +52,13 @@ import java.util.concurrent.Callable;
 public final class RootCommand implements Callable<Integer> {
 
     @picocli.CommandLine.Option(
+            names = {"-h", "--help"},
+            usageHelp = true,
+            description = "Show this help message and exit"
+    )
+    boolean helpRequested;
+
+    @picocli.CommandLine.Option(
             names = {"-v", "--version"},
             versionHelp = true,
             description = "Print version information and exit"

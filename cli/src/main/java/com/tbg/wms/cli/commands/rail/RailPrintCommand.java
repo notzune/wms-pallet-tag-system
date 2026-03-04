@@ -25,11 +25,15 @@ import java.util.concurrent.Callable;
  */
 @Command(
         name = "rail-print",
+        mixinStandardHelpOptions = true,
         description = "Query WMS rail rows, preview CAN/DOM pallets, render rail cards, and optionally print"
 )
 public final class RailPrintCommand implements Callable<Integer> {
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final BufferedReader CONSOLE_IN = new BufferedReader(new InputStreamReader(System.in));
+
+    @Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help message and exit")
+    private boolean helpRequested;
 
     @Option(names = {"--train"}, required = true, description = "Train ID (full or 4-digit rail train number)")
     private String trainId;

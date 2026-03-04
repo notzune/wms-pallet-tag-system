@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.5.2-blue)
+![Version](https://img.shields.io/badge/version-1.6.0-blue)
 ![Java](https://img.shields.io/badge/java-11%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.5.2` (2026-03-02).
+Current release: `1.6.0` (2026-03-04).
 
 ## Current Scope
 
@@ -22,6 +22,7 @@ Implemented and supported:
 - `gui` command (desktop workflow with shipment/carrier-move preview and confirm-print)
 - `barcode` command (standalone barcode ZPL generation and optional printing)
 - `rail-helper` command (rail office merge CSV generation from item footprint data)
+- `rail-print` command (WMS-first railcar preview, direct PDF card rendering, optional printing)
 - Oracle read-only access
 - Printer routing via site YAML
 - Walmart SKU matrix lookup for Walmart item field
@@ -70,6 +71,7 @@ java -jar cli/target/cli-*.jar db-test
 java -jar cli/target/cli-*.jar run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar run --carrier-move-id <CMID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
+java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID> --output-dir out/rail-print
 java -jar cli/target/cli-*.jar gui
 ```
 
@@ -91,6 +93,7 @@ run.bat db-test
 run.bat run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 run.bat run --carrier-move-id <CMID> --dry-run --output-dir out/
 run.bat rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
+run.bat rail-print --train <TRAIN_ID> --output-dir out/rail-print
 ```
 
 On Linux/macOS:
@@ -195,20 +198,40 @@ Notes:
   `^PON`).
 - Printer-level landscape must be configured on the device if true landscape output is required.
 
+## Rail Print Command
+
+```bash
+java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID> [OPTIONS]
+```
+
+Options:
+
+- `--train <ID>` (required): train ID (full WMS train ID or 4-digit rail train number)
+- `--output-dir <DIR>` (default `out/rail-print`)
+- `--print` (send generated PDF to default printer after confirmation)
+- `--yes` / `-y` (non-interactive mode; skip confirmation prompts)
+
+Workflow:
+
+- Query rail rows from WMS by train
+- Aggregate rows by railcar
+- Compute CAN/DOM pallets using per-item `CEILING(cases / casesPerPallet)` math
+- Show preview table (`SEQ`, `VEHICLE`, `CAN`, `DOM`)
+- Confirm
+- Render direct letter-size rail card PDF (no Word mail merge dependency)
+- Optionally print
+
 ## Rail Labels GUI Workflow
 
 - Open `gui`, then go to `Tools -> Rail Labels...`.
 - Enter train ID and click `Load Preview`.
-- System pulls rail rows from WMS and resolves footprints by short code from WMS first.
-- Optional CSV override can be enabled to replace WMS mappings for matching short codes.
+- System pulls rail rows from WMS and resolves footprints by short code from WMS.
 - Preview includes:
-- Merge-row output preview (template field view).
-- Detailed diagnostics (missing footprints, ambiguous WMS mappings, CSV conflicts, overflow beyond 13 item slots).
-- Click `Generate Artifacts` to produce:
-- `_TrainDetail.csv`
-- `rail-helper-summary.txt`
-- `Print-Merged.docx` / `Print-Merged.pdf` / `Print-Merged.prn` (when Word automation is available)
-- Default CSV path is prefilled from `~/Downloads/JC Labels v7 (Updated 1.5.21).csv` but is optional.
+- Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `LOAD_NBR`)
+- Railcar card preview panel (item lines + CAN/DOM + pass/fuel/BH fields)
+- Diagnostics panel (row counts and unresolved footprints)
+- Click `Generate PDF` to produce a letter-size multi-card PDF.
+- Click `Print` to generate PDF and send it to the host default printer.
 
 ## GUI Workflow
 
@@ -364,7 +387,8 @@ wms-pallet-tag-system/
 |       |       |-- VersionCommand.java             # version output
 |       |       |-- BuildVersionProvider.java       # build-filtered version provider
 |       |       `-- rail/
-|       |           `-- RailHelperCommand.java      # CSV-driven rail helper command
+|       |           |-- RailHelperCommand.java      # CSV-driven rail helper command
+|       |           `-- RailPrintCommand.java       # WMS-first rail print workflow command
 |       |-- main/resources/
 |       |   `-- version.txt                         # filtered from Maven project.version
 |       `-- test/java/com/tbg/wms/cli/commands/

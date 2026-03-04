@@ -13,8 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Standardized Java source headers to use consistent copyright formatting.
-- Expanded Javadocs on CLI command entry points and newly added test/documentation surfaces.
+- None.
 
 ### Deprecated
 
@@ -31,6 +30,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - None.
+
+## [1.6.0] - 2026-03-04
+
+### Added
+
+- New `rail-print` CLI command for WMS-first rail processing with preview, confirmation, direct PDF rendering, and
+  optional print dispatch.
+- New core rail workflow services:
+  - `RailDbRepository`
+  - `RailAggregationService`
+  - `RailPalletCalculator`
+  - `RailFootprintResolver`
+  - `RailWorkflowService`
+  - `RailCardRenderer`
+  - `RailPrintService`
+- New rail workflow tests for aggregation, per-railcar pallet math, footprint resolution, workflow integration, and PDF
+  rendering.
+- New rail data-source analysis document at `docs/rail-db-analysis.md`.
+
+### Changed
+
+- GUI `Tools -> Rail Labels...` workflow now uses direct PDF card rendering with railcar table + card preview, replacing
+  the previous merge-artifact-first flow.
+- Rail train lookup now accepts either full train ID or 4-digit train number in `OracleDbQueryRepository`.
+- Project metadata/version updated to `1.6.0` across Maven modules.
+
+### Fixed
+
+- Corrected module parent version drift in `core/pom.xml` that could break full-reactor builds.
 
 ## [1.5.2] - 2026-03-02
 
