@@ -68,7 +68,7 @@ final class PrtmstDescriptionColumnResolver {
             }
         } catch (SQLException e) {
             log.warn("Could not inspect PRTMST columns via ALL_TAB_COLUMNS: {}", e.getMessage());
-            return List.of();
+            // Continue to direct SELECT probes below for environments without dictionary visibility.
         }
 
         List<String> available = new ArrayList<>();

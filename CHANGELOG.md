@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened DB pool candidate probing in `DbConnectionPool` with try-with-resources validation borrows to avoid transient connection-handle leaks.
 - Simplified right-click clipboard cooldown fallback logic in `TextFieldClipboardController` for cleaner null-default resolution.
 - Expanded Javadocs/package docs for helper classes (`DescriptionTextHeuristics`, `PrtmstDescriptionColumnResolver`, `RailFootprintResolver`) to capture creation rationale, ownership boundaries, and necessity.
+- Fixed PRTMST description-column resolution fallback so direct column probes still run when Oracle dictionary visibility is restricted.
 
 ### Deprecated
 
