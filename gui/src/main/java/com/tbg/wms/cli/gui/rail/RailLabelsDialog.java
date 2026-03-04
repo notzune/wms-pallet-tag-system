@@ -1,66 +1,67 @@
 /*
  * Copyright (c) 2026 Tropicana Brands Group
- *
- * @author Zeyad Rashed
- * @email zeyad.rashed@tropicana.com
- * @since 1.5.1
  */
 package com.tbg.wms.cli.gui.rail;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.rail.RailCarCard;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Objects;
 
 /**
- * Rail labels workflow dialog.
+ * Rail labels screen with train load, railcar table preview, card preview, and print action.
  */
 public final class RailLabelsDialog extends JDialog {
     private static final long serialVersionUID = 1L;
 
-    private final JTextField trainIdField = new JTextField(18);
-    private final JTextField footprintCsvField = new JTextField(48);
-    private final JTextField templateDocxField = new JTextField(48);
+    private final JTextField trainIdField = new JTextField(16);
     private final JTextField outputDirField = new JTextField(48);
-    private final JCheckBox csvOverrideCheck =
-            new JCheckBox("Override WMS footprints with CSV where short codes match", false);
-    private final JTextArea mergePreviewArea = new JTextArea();
-    private final JTextArea diagnosticsArea = new JTextArea();
+    private final JCheckBox printNowCheck = new JCheckBox("Print after PDF generation", false);
     private final JLabel statusLabel = new JLabel("Ready.");
-    private final JButton previewButton = new JButton("Load Preview");
-    private final JButton generateButton = new JButton("Generate Artifacts");
+    private final JButton loadButton = new JButton("Load Preview");
+    private final JButton generatePdfButton = new JButton("Generate PDF");
+    private final JButton printButton = new JButton("Print");
 
-    private final transient RailWorkflowService railService;
+    private final DefaultTableModel tableModel = new DefaultTableModel(
+            new Object[]{"SEQ", "VEHICLE", "CAN", "DOM", "LOAD_NBR"}, 0) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
+    };
+    private final JTable previewTable = new JTable(tableModel);
+    private final JTextArea cardPreviewArea = new JTextArea();
+    private final JTextArea diagnosticsArea = new JTextArea();
+
+    private final transient RailWorkflowService service;
     private transient RailWorkflowService.PreparedRailJob preparedJob;
 
     public RailLabelsDialog(JFrame owner, AppConfig config) {
         super(owner, "Rail Labels Workflow", true);
-        this.railService = new RailWorkflowService(Objects.requireNonNull(config, "config cannot be null"));
+        this.service = new RailWorkflowService(Objects.requireNonNull(config, "config cannot be null"));
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setSize(1200, 800);
+        setSize(1220, 820);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(8, 8));
 
-        footprintCsvField.setText(railService.defaultFootprintCsvPath());
-        templateDocxField.setText(Paths.get("out", "Print.docx").toAbsolutePath().toString());
         outputDirField.setText(Paths.get("out", "rail-gui").toAbsolutePath().toString());
+        cardPreviewArea.setEditable(false);
+        diagnosticsArea.setEditable(false);
+        Font mono = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+        cardPreviewArea.setFont(mono);
+        diagnosticsArea.setFont(mono);
 
         add(buildTopPanel(), BorderLayout.NORTH);
         add(buildCenterPanel(), BorderLayout.CENTER);
         add(buildBottomPanel(), BorderLayout.SOUTH);
         wireActions();
-        generateButton.setEnabled(false);
-    }
-
-    private static String rootMessage(Throwable throwable) {
-        Throwable current = throwable;
-        while (current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current.getMessage() == null ? current.toString() : current.getMessage();
+        setButtonsEnabled(false);
     }
 
     private JPanel buildTopPanel() {
@@ -73,114 +74,90 @@ public final class RailLabelsDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 0;
         panel.add(new JLabel("Train ID:"), gbc);
+
         gbc.gridx = 1;
-        gbc.weightx = 0.2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 0.2;
         panel.add(trainIdField, gbc);
+
         gbc.gridx = 2;
-        gbc.weightx = 0;
         gbc.fill = GridBagConstraints.NONE;
-        panel.add(previewButton, gbc);
+        gbc.weightx = 0;
+        panel.add(loadButton, gbc);
         gbc.gridx = 3;
-        panel.add(generateButton, gbc);
+        panel.add(generatePdfButton, gbc);
+        gbc.gridx = 4;
+        panel.add(printButton, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 1;
-        panel.add(new JLabel("Footprint CSV:"), gbc);
-        gbc.gridx = 1;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        panel.add(footprintCsvField, gbc);
-        gbc.gridx = 3;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0;
-        panel.add(buildBrowseButton(footprintCsvField, false), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 2;
-        panel.add(csvOverrideCheck, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        panel.add(new JLabel("Template DOCX:"), gbc);
-        gbc.gridx = 1;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        panel.add(templateDocxField, gbc);
-        gbc.gridx = 3;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0;
-        panel.add(buildBrowseButton(templateDocxField, false), gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 4;
         panel.add(new JLabel("Output Directory:"), gbc);
+
         gbc.gridx = 1;
-        gbc.gridwidth = 2;
+        gbc.gridwidth = 3;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(outputDirField, gbc);
-        gbc.gridx = 3;
+
+        gbc.gridx = 4;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
-        panel.add(buildBrowseButton(outputDirField, true), gbc);
+        JButton browseButton = new JButton("Browse...");
+        browseButton.addActionListener(e -> browseOutputDirectory());
+        panel.add(browseButton, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        panel.add(printNowCheck, gbc);
 
         return panel;
     }
 
-    private JSplitPane buildCenterPanel() {
-        mergePreviewArea.setEditable(false);
-        diagnosticsArea.setEditable(false);
-        Font mono = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-        mergePreviewArea.setFont(mono);
-        diagnosticsArea.setFont(mono);
-        JScrollPane mergeScroll = new JScrollPane(mergePreviewArea);
-        JScrollPane diagScroll = new JScrollPane(diagnosticsArea);
-        mergeScroll.setBorder(BorderFactory.createTitledBorder("Merge Preview"));
-        diagScroll.setBorder(BorderFactory.createTitledBorder("Diagnostics"));
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, mergeScroll, diagScroll);
-        split.setDividerLocation(420);
-        return split;
+    private JComponent buildCenterPanel() {
+        previewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        previewTable.getSelectionModel().addListSelectionListener(e -> updateCardPreviewFromSelection());
+        JScrollPane tableScroll = new JScrollPane(previewTable);
+        tableScroll.setBorder(BorderFactory.createTitledBorder("Railcar Preview Table"));
+
+        JScrollPane cardScroll = new JScrollPane(cardPreviewArea);
+        cardScroll.setBorder(BorderFactory.createTitledBorder("Railcar Card Preview"));
+
+        JSplitPane horizontal = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tableScroll, cardScroll);
+        horizontal.setDividerLocation(560);
+
+        JScrollPane diagnosticsScroll = new JScrollPane(diagnosticsArea);
+        diagnosticsScroll.setBorder(BorderFactory.createTitledBorder("Diagnostics"));
+        JSplitPane vertical = new JSplitPane(JSplitPane.VERTICAL_SPLIT, horizontal, diagnosticsScroll);
+        vertical.setDividerLocation(520);
+        return vertical;
     }
 
     private JPanel buildBottomPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        JPanel left = new JPanel();
-        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
-        left.add(statusLabel);
-        panel.add(left, BorderLayout.CENTER);
-
+        panel.add(statusLabel, BorderLayout.WEST);
+        JButton closeButton = new JButton("Close");
+        closeButton.addActionListener(e -> dispose());
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
-        JButton close = new JButton("Close");
-        close.addActionListener(e -> dispose());
-        right.add(close);
+        right.add(closeButton);
         panel.add(right, BorderLayout.EAST);
         return panel;
     }
 
-    private JButton buildBrowseButton(JTextField field, boolean directoriesOnly) {
-        JButton button = new JButton("Browse...");
-        button.addActionListener(e -> {
-            JFileChooser chooser = new JFileChooser();
-            chooser.setFileSelectionMode(directoriesOnly
-                    ? JFileChooser.DIRECTORIES_ONLY
-                    : JFileChooser.FILES_ONLY);
-            if (!field.getText().isBlank()) {
-                chooser.setSelectedFile(Paths.get(field.getText()).toFile());
-            }
-            int result = chooser.showOpenDialog(this);
-            if (result == JFileChooser.APPROVE_OPTION) {
-                field.setText(chooser.getSelectedFile().getAbsolutePath());
-            }
-        });
-        return button;
+    private void wireActions() {
+        loadButton.addActionListener(e -> loadPreview());
+        generatePdfButton.addActionListener(e -> generate(false));
+        printButton.addActionListener(e -> generate(true));
     }
 
-    private void wireActions() {
-        previewButton.addActionListener(e -> loadPreview());
-        generateButton.addActionListener(e -> generateArtifacts());
+    private void browseOutputDirectory() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        if (!outputDirField.getText().isBlank()) {
+            chooser.setSelectedFile(Paths.get(outputDirField.getText()).toFile());
+        }
+        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            outputDirField.setText(chooser.getSelectedFile().getAbsolutePath());
+        }
     }
 
     private void loadPreview() {
@@ -190,24 +167,26 @@ public final class RailLabelsDialog extends JDialog {
             return;
         }
 
-        setBusy("Loading WMS rail rows and footprints...");
-        generateButton.setEnabled(false);
-        preparedJob = null;
+        setBusy("Loading WMS rail rows...");
+        clearPreview();
+        setButtonsEnabled(false);
 
         SwingWorker<RailWorkflowService.PreparedRailJob, Void> worker = new SwingWorker<>() {
             @Override
             protected RailWorkflowService.PreparedRailJob doInBackground() throws Exception {
-                Path csvPath = footprintCsvField.getText().trim().isEmpty() ? null : Paths.get(footprintCsvField.getText().trim());
-                return railService.prepareRailJob(trainId, csvPath, csvOverrideCheck.isSelected());
+                return service.prepareRailJob(trainId);
             }
 
             @Override
             protected void done() {
                 try {
                     preparedJob = get();
-                    mergePreviewArea.setText(railService.buildMergePreviewText(preparedJob, 400));
-                    diagnosticsArea.setText(railService.buildDiagnosticsText(preparedJob));
-                    generateButton.setEnabled(true);
+                    renderTable(preparedJob.getCards());
+                    diagnosticsArea.setText(service.buildDiagnosticsText(preparedJob));
+                    if (!preparedJob.getCards().isEmpty()) {
+                        previewTable.setRowSelectionInterval(0, 0);
+                    }
+                    setButtonsEnabled(true);
                     setReady("Preview ready.");
                 } catch (Exception ex) {
                     setReady("Preview failed.");
@@ -218,51 +197,36 @@ public final class RailLabelsDialog extends JDialog {
         worker.execute();
     }
 
-    private void generateArtifacts() {
+    private void generate(boolean forcePrint) {
         if (preparedJob == null) {
             showError("Load Preview first.");
             return;
         }
-        setBusy("Generating rail artifacts...");
-        previewButton.setEnabled(false);
-        generateButton.setEnabled(false);
+
+        boolean shouldPrint = forcePrint || printNowCheck.isSelected();
+        setBusy(shouldPrint ? "Generating PDF and printing..." : "Generating PDF...");
+        loadButton.setEnabled(false);
+        generatePdfButton.setEnabled(false);
+        printButton.setEnabled(false);
 
         SwingWorker<RailWorkflowService.GenerationResult, Void> worker = new SwingWorker<>() {
             @Override
             protected RailWorkflowService.GenerationResult doInBackground() throws Exception {
                 Path outputDir = outputDirField.getText().trim().isEmpty() ? null : Paths.get(outputDirField.getText().trim());
-                Path templateDocx = templateDocxField.getText().trim().isEmpty() ? null : Paths.get(templateDocxField.getText().trim());
-                return railService.generateArtifacts(preparedJob, outputDir, templateDocx);
+                return service.generatePdf(preparedJob, outputDir, shouldPrint);
             }
 
             @Override
             protected void done() {
-                previewButton.setEnabled(true);
-                generateButton.setEnabled(true);
+                loadButton.setEnabled(true);
+                setButtonsEnabled(preparedJob != null);
                 try {
                     RailWorkflowService.GenerationResult result = get();
-                    StringBuilder message = new StringBuilder();
-                    message.append("Artifacts generated in:\n").append(result.getOutputDirectory()).append("\n\n")
-                            .append("CSV: ").append(result.getMergeCsvPath()).append("\n")
-                            .append("Summary: ").append(result.getSummaryPath()).append("\n");
-                    RailArtifactService.WordArtifactResult word = result.getWordArtifacts();
-                    if (word.getMergedDocx() != null) {
-                        message.append("DOCX: ").append(word.getMergedDocx()).append("\n");
-                    }
-                    if (word.getMergedPdf() != null) {
-                        message.append("PDF: ").append(word.getMergedPdf()).append("\n");
-                    }
-                    if (word.getMergedPrn() != null) {
-                        message.append("PRN: ").append(word.getMergedPrn()).append("\n");
-                    }
-                    if (!word.getWarnings().isEmpty()) {
-                        message.append("\nWarnings:\n");
-                        for (String warning : word.getWarnings()) {
-                            message.append(" - ").append(warning).append('\n');
-                        }
-                    }
+                    String message = "PDF generated:\n" + result.getPdfPath() +
+                            "\n\nOutput directory:\n" + result.getOutputDirectory() +
+                            (result.isPrinted() ? "\n\nPrint command sent to default printer." : "");
                     diagnosticsArea.append("\n\nGeneration Result\n-----------------\n" + message + '\n');
-                    setReady("Artifacts generated.");
+                    setReady(result.isPrinted() ? "PDF generated and print command sent." : "PDF generated.");
                 } catch (Exception ex) {
                     setReady("Generation failed.");
                     showError(rootMessage(ex));
@@ -272,14 +236,61 @@ public final class RailLabelsDialog extends JDialog {
         worker.execute();
     }
 
+    private void renderTable(List<RailCarCard> cards) {
+        tableModel.setRowCount(0);
+        for (RailCarCard card : cards) {
+            tableModel.addRow(new Object[]{
+                    card.getSequence(),
+                    card.getVehicleId(),
+                    card.getCanPallets(),
+                    card.getDomPallets(),
+                    card.getLoadNumbers()
+            });
+        }
+    }
+
+    private void updateCardPreviewFromSelection() {
+        if (preparedJob == null) {
+            cardPreviewArea.setText("");
+            return;
+        }
+        int index = previewTable.getSelectedRow();
+        if (index < 0 || index >= preparedJob.getCards().size()) {
+            cardPreviewArea.setText("");
+            return;
+        }
+        cardPreviewArea.setText(service.buildCardPreviewText(preparedJob.getCards().get(index)));
+        cardPreviewArea.setCaretPosition(0);
+    }
+
+    private void clearPreview() {
+        preparedJob = null;
+        tableModel.setRowCount(0);
+        cardPreviewArea.setText("");
+        diagnosticsArea.setText("");
+    }
+
+    private void setButtonsEnabled(boolean enabled) {
+        generatePdfButton.setEnabled(enabled);
+        printButton.setEnabled(enabled);
+    }
+
     private void setBusy(String message) {
         statusLabel.setText(message);
-        previewButton.setEnabled(false);
+        loadButton.setEnabled(false);
     }
 
     private void setReady(String message) {
         statusLabel.setText(message);
-        previewButton.setEnabled(true);
+        loadButton.setEnabled(true);
+    }
+
+    private String rootMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage() == null ? current.toString() : current.getMessage();
     }
 
     private void showError(String message) {
