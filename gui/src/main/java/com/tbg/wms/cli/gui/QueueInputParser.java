@@ -31,34 +31,51 @@ final class QueueInputParser {
             AdvancedPrintWorkflowService.QueueItemType defaultType,
             int maxItems) {
         List<AdvancedPrintWorkflowService.QueueRequestItem> requests = new ArrayList<>();
-        String[] lines = (text == null ? "" : text).split("\\r?\\n");
-        for (String raw : lines) {
-            String line = raw == null ? "" : raw.trim();
-            if (line.isEmpty()) {
-                continue;
-            }
-            AdvancedPrintWorkflowService.QueueItemType type = defaultType;
-            String id = line;
-            if (line.length() > 2 && line.charAt(1) == ':') {
-                char prefix = Character.toUpperCase(line.charAt(0));
-                if (prefix == 'C') {
-                    type = AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE;
-                    id = line.substring(2).trim();
-                } else if (prefix == 'S') {
-                    type = AdvancedPrintWorkflowService.QueueItemType.SHIPMENT;
-                    id = line.substring(2).trim();
+        String payload = text == null ? "" : text;
+        int lineStart = 0;
+        for (int i = 0; i < payload.length(); i++) {
+            char ch = payload.charAt(i);
+            if (ch == '\n' || ch == '\r') {
+                appendLine(payload.substring(lineStart, i), defaultType, maxItems, requests);
+                if (ch == '\r' && i + 1 < payload.length() && payload.charAt(i + 1) == '\n') {
+                    i++;
                 }
-            }
-            if (!id.isBlank()) {
-                if (requests.size() >= maxItems) {
-                    throw new IllegalArgumentException("Queue input exceeds max size of " + maxItems + " items.");
-                }
-                requests.add(new AdvancedPrintWorkflowService.QueueRequestItem(type, id));
+                lineStart = i + 1;
             }
         }
+        appendLine(payload.substring(lineStart), defaultType, maxItems, requests);
+
         if (requests.isEmpty()) {
             throw new IllegalArgumentException("Queue input is empty.");
         }
         return requests;
+    }
+
+    private static void appendLine(String rawLine,
+                                   AdvancedPrintWorkflowService.QueueItemType defaultType,
+                                   int maxItems,
+                                   List<AdvancedPrintWorkflowService.QueueRequestItem> requests) {
+        String line = rawLine == null ? "" : rawLine.trim();
+        if (line.isEmpty()) {
+            return;
+        }
+        AdvancedPrintWorkflowService.QueueItemType type = defaultType;
+        String id = line;
+        if (line.length() > 2 && line.charAt(1) == ':') {
+            char prefix = Character.toUpperCase(line.charAt(0));
+            if (prefix == 'C') {
+                type = AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE;
+                id = line.substring(2).trim();
+            } else if (prefix == 'S') {
+                type = AdvancedPrintWorkflowService.QueueItemType.SHIPMENT;
+                id = line.substring(2).trim();
+            }
+        }
+        if (!id.isBlank()) {
+            if (requests.size() >= maxItems) {
+                throw new IllegalArgumentException("Queue input exceeds max size of " + maxItems + " items.");
+            }
+            requests.add(new AdvancedPrintWorkflowService.QueueRequestItem(type, id));
+        }
     }
 }

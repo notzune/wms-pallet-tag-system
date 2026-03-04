@@ -39,6 +39,22 @@ final class QueueInputParserTest {
         assertEquals("8000999999", items.get(2).getId());
     }
 
+    @Test
+    void parseSupportsCarriageReturnSeparatedInput() {
+        List<AdvancedPrintWorkflowService.QueueRequestItem> items = QueueInputParser.parse(
+                "C:55555\rS:7000000001\r7000000002",
+                AdvancedPrintWorkflowService.QueueItemType.SHIPMENT,
+                10
+        );
+
+        assertEquals(3, items.size());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(0).getType());
+        assertEquals("55555", items.get(0).getId());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(1).getType());
+        assertEquals("7000000001", items.get(1).getId());
+        assertEquals("7000000002", items.get(2).getId());
+    }
+
     /**
      * Rejects blank input payloads.
      */
