@@ -9,6 +9,7 @@ import javax.swing.text.JTextComponent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Map;
+import java.util.Objects;
 import java.util.WeakHashMap;
 
 /**
@@ -125,6 +126,6 @@ final class TextFieldClipboardController {
         }
         envValue = System.getenv(LEGACY_RIGHT_CLICK_COOLDOWN_ENV);
         parsed = tryParsePositiveLong(envValue);
-        return parsed == null ? DEFAULT_RIGHT_CLICK_COOLDOWN_MS : parsed;
+        return Objects.requireNonNullElse(parsed, DEFAULT_RIGHT_CLICK_COOLDOWN_MS);
     }
 }
