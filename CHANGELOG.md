@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced repeated literal usage in GUI preview formatting by extracting separator/summary constants in `LabelPreviewFormatter`.
 - Hardened DB pool candidate probing in `DbConnectionPool` with try-with-resources validation borrows to avoid transient connection-handle leaks.
 - Simplified right-click clipboard cooldown fallback logic in `TextFieldClipboardController` for cleaner null-default resolution.
+- Expanded Javadocs/package docs for helper classes (`DescriptionTextHeuristics`, `PrtmstDescriptionColumnResolver`, `RailFootprintResolver`) to capture creation rationale, ownership boundaries, and necessity.
 
 ### Deprecated
 

@@ -11,6 +11,14 @@
  *   <li>{@link com.tbg.wms.db.DbConnectivityDiagnostics} - connection diagnostics and health checks.</li>
  * </ul>
  *
+ * <p><strong>Internal Helper Types</strong></p>
+ * <ul>
+ *   <li>{@link com.tbg.wms.db.DescriptionTextHeuristics} - centralized text-quality policy so description
+ *       filtering stays consistent across all lookup branches.</li>
+ *   <li>{@link com.tbg.wms.db.PrtmstDescriptionColumnResolver} - cached PRTMST description-column discovery,
+ *       separated from repository SQL orchestration for SRP and predictable lookup performance.</li>
+ * </ul>
+ *
  * @since 1.5.0
  */
 package com.tbg.wms.db;

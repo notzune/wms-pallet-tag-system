@@ -8,6 +8,16 @@ import java.util.*;
 /**
  * Resolves deterministic footprint records from potentially ambiguous WMS candidates.
  *
+ * <p><strong>Why this helper exists:</strong> WMS can return multiple footprint
+ * candidates for a short code. The policy for accepting/rejecting ambiguity is
+ * domain logic and should remain isolated from orchestration in
+ * {@link RailWorkflowService}.</p>
+ *
+ * <p><strong>Why it is necessary:</strong> the rail workflow must avoid silently
+ * mixing conflicting family/cases-per-pallet data, because that would corrupt
+ * CAN/DOM pallet totals. Centralizing this consistency gate makes behavior explicit,
+ * testable, and reusable by both CLI and GUI flows.</p>
+ *
  * <p>A short code is considered resolvable only when all candidates agree on
  * family code and cases-per-pallet.</p>
  */

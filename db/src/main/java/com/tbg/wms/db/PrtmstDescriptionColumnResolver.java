@@ -21,6 +21,15 @@ import java.util.Set;
 
 /**
  * Resolves and caches available human-readable description columns from WMSP.PRTMST.
+ *
+ * <p><strong>Why this helper exists:</strong> schema probing for PRTMST description
+ * columns requires Oracle dictionary inspection plus a restricted-access fallback.
+ * That concern is operationally different from shipment query construction and
+ * should not live inline inside {@link OracleDbQueryRepository}.</p>
+ *
+ * <p><strong>Why it is necessary:</strong> the resolved column set is reused for
+ * every SKU-description lookup in the repository. Caching here avoids repeated
+ * dictionary scans/probes and keeps repository behavior deterministic across calls.</p>
  */
 final class PrtmstDescriptionColumnResolver {
 
@@ -29,6 +38,12 @@ final class PrtmstDescriptionColumnResolver {
 
     private volatile List<String> cache;
 
+    /**
+     * Returns cached PRTMST description columns in preferred order.
+     *
+     * <p>First invocation resolves from database metadata; later calls reuse the
+     * cached immutable list to avoid repeated schema probing overhead.</p>
+     */
     List<String> getColumns(Connection conn) {
         List<String> cached = cache;
         if (cached != null) {
