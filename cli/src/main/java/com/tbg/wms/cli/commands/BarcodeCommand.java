@@ -44,6 +44,7 @@ public final class BarcodeCommand implements Callable<Integer> {
     private static final Logger log = LoggerFactory.getLogger(BarcodeCommand.class);
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
+    private static final int MAX_SLUG_LENGTH = 40;
 
     @Option(
             names = {"-d", "--data"},
@@ -179,7 +180,7 @@ public final class BarcodeCommand implements Callable<Integer> {
         if (slug.isEmpty()) {
             return "data";
         }
-        return slug.length() > 40 ? slug.substring(0, 40) : slug;
+        return slug.length() > MAX_SLUG_LENGTH ? slug.substring(0, MAX_SLUG_LENGTH) : slug;
     }
 
     /**
@@ -195,19 +196,16 @@ public final class BarcodeCommand implements Callable<Integer> {
         BarcodeRequest request = buildBarcodeRequest();
         String zpl = BarcodeZplBuilder.build(request);
 
-        if (printToFile) {
-            dryRun = true;
-            outputDir = resolveJarOutputDir().toString();
-        }
-
-        Path zplFile = writeZplFile(zpl);
+        boolean effectiveDryRun = dryRun || printToFile;
+        String effectiveOutputDir = printToFile ? resolveJarOutputDir().toString() : outputDir;
+        Path zplFile = writeZplFile(zpl, effectiveOutputDir);
         if (zplFile == null) {
             return 2;
         }
 
         log.info("ZPL file written: {}", zplFile.toAbsolutePath());
 
-        if (dryRun) {
+        if (effectiveDryRun) {
             System.out.println("Dry run enabled. ZPL generated at: " + zplFile.toAbsolutePath());
             return 0;
         }
@@ -252,8 +250,8 @@ public final class BarcodeCommand implements Callable<Integer> {
         );
     }
 
-    private Path writeZplFile(String zpl) {
-        Path outputPath = Paths.get(outputDir);
+    private Path writeZplFile(String zpl, String outputDirPath) {
+        Path outputPath = Paths.get(outputDirPath);
         try {
             Files.createDirectories(outputPath);
         } catch (Exception e) {

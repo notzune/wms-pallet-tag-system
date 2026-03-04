@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed PRTMST description-column resolution fallback so direct column probes still run when Oracle dictionary visibility is restricted.
 - Reduced rail family-share percentage allocation overhead by replacing BigDecimal-based rounding with `Math.round` in `RailLabelPlanner`.
 - Refreshed all package-level documentation (`package-info.java`) across CLI/core/db/gui and updated README documentation coverage guidance.
+- Refined barcode CLI/GUI generation paths by removing mutable option-field reassignment in `BarcodeCommand` and extracting slug-length constants for shared consistency.
 
 ### Deprecated
 

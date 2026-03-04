@@ -33,6 +33,7 @@ final class BarcodeDialogFactory {
 
     private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
     private static final DateTimeFormatter OUTPUT_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final int MAX_SLUG_LENGTH = 40;
     private static final int BARCODE_DEFAULT_LABEL_WIDTH_DOTS = 812;
     private static final int BARCODE_DEFAULT_LABEL_HEIGHT_DOTS = 1218;
     private static final int BARCODE_DEFAULT_ORIGIN_X = 60;
@@ -67,7 +68,7 @@ final class BarcodeDialogFactory {
         if (slug.isEmpty()) {
             return "data";
         }
-        return slug.length() > 40 ? slug.substring(0, 40) : slug;
+        return slug.length() > MAX_SLUG_LENGTH ? slug.substring(0, MAX_SLUG_LENGTH) : slug;
     }
 
     /**
