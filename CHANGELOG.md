@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enforced SRP in core configuration loading by extracting dotenv/env-style parsing into `EnvStyleConfigParser`.
 - Enforced SRP in core configuration loading by extracting config file discovery/validation into `ConfigFileLocator`.
 - Enforced SRP in DB description resolution by extracting SKU candidate generation into `SkuCandidateBuilder`.
+- Enforced SRP in DB description resolution by extracting human-readable text heuristics into `DescriptionTextHeuristics`.
 
 ### Deprecated
 

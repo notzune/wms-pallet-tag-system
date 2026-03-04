@@ -920,15 +920,15 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                                           String fallbackDescription,
                                           List<String> descriptionColumns) {
         String prtdscDescription = fetchDescriptionFromPrtdsc(conn, sku, prtClientId, whId);
-        if (isHumanReadableDescription(prtdscDescription)) {
+        if (DescriptionTextHeuristics.isHumanReadable(prtdscDescription)) {
             return prtdscDescription;
         }
 
         String prtmstDescription = fetchDescriptionFromPrtmst(conn, sku, prtClientId, descriptionColumns);
-        if (isHumanReadableDescription(prtmstDescription)) {
+        if (DescriptionTextHeuristics.isHumanReadable(prtmstDescription)) {
             return prtmstDescription;
         }
-        if (isHumanReadableDescription(fallbackDescription)) {
+        if (DescriptionTextHeuristics.isHumanReadable(fallbackDescription)) {
             return fallbackDescription;
         }
         return null;
@@ -968,11 +968,11 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                         try (ResultSet rs = stmt.executeQuery()) {
                             if (rs.next()) {
                                 String shortDsc = NormalizationService.normalizeString(rs.getString("SHORT_DSC"));
-                                if (isHumanReadableDescription(shortDsc)) {
+                                if (DescriptionTextHeuristics.isHumanReadable(shortDsc)) {
                                     return shortDsc;
                                 }
                                 String longDsc = NormalizationService.normalizeString(rs.getString("LNGDSC"));
-                                if (isHumanReadableDescription(longDsc)) {
+                                if (DescriptionTextHeuristics.isHumanReadable(longDsc)) {
                                     return longDsc;
                                 }
                             }
@@ -1012,7 +1012,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                         // Honor preferred column order (SHORT_DSC before longer alternates).
                         for (String column : descriptionColumns) {
                             String value = NormalizationService.normalizeString(rs.getString(column));
-                            if (isHumanReadableDescription(value)) {
+                            if (DescriptionTextHeuristics.isHumanReadable(value)) {
                                 return value;
                             }
                         }
@@ -1023,18 +1023,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
             log.debug("Could not resolve PRTMST description for SKU {}: {}", sku, e.getMessage());
         }
         return null;
-    }
-
-    private boolean isHumanReadableDescription(String value) {
-        if (value == null || value.isBlank()) {
-            return false;
-        }
-        for (int i = 0; i < value.length(); i++) {
-            if (Character.isLetter(value.charAt(i))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private Integer nullableInt(ResultSet rs, String column) throws SQLException {
