@@ -46,7 +46,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     private static final String DEFAULT_LINE_ITEM_UOM = "EA";
 
     private final DataSource dataSource;
-    private volatile List<String> prtmstDescriptionColumnsCache;
+    private final PrtmstDescriptionColumnResolver prtmstColumnResolver;
 
     /**
      * Creates a new OracleDbQueryRepository.
@@ -56,6 +56,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
      */
     public OracleDbQueryRepository(DataSource dataSource) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource cannot be null");
+        this.prtmstColumnResolver = new PrtmstDescriptionColumnResolver();
     }
 
     private static String normalizeRailFamilyCode(String prtfam, Integer parsFlag) {
@@ -294,7 +295,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            List<String> descriptionColumns = getPrtmstDescriptionColumns(conn);
+            List<String> descriptionColumns = prtmstColumnResolver.getColumns(conn);
             stmt.setString(1, normalizedId);
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -853,64 +854,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
             return matcher.group(1);
         }
         return null;
-    }
-
-    private List<String> getPrtmstDescriptionColumns(Connection conn) {
-        List<String> cached = prtmstDescriptionColumnsCache;
-        if (cached != null) {
-            return cached;
-        }
-        List<String> resolved = resolvePrtmstDescriptionColumns(conn);
-        prtmstDescriptionColumnsCache = resolved;
-        return resolved;
-    }
-
-    private List<String> resolvePrtmstDescriptionColumns(Connection conn) {
-        final String sql = "SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE OWNER = 'WMSP' AND TABLE_NAME = 'PRTMST'";
-        Set<String> columns = new LinkedHashSet<>();
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                String column = rs.getString("COLUMN_NAME");
-                if (column != null) {
-                    columns.add(column.toUpperCase());
-                }
-            }
-        } catch (SQLException e) {
-            log.warn("Could not inspect PRTMST columns via ALL_TAB_COLUMNS: {}", e.getMessage());
-            return List.of();
-        }
-
-        List<String> preferredOrder = List.of("SHORT_DSC", "LNGDSC", "PRT_DISP", "PRT_DISPTN");
-        List<String> available = new ArrayList<>();
-        for (String candidate : preferredOrder) {
-            if (columns.contains(candidate)) {
-                available.add(candidate);
-            }
-        }
-        if (!available.isEmpty()) {
-            return available;
-        }
-
-        // Fallback for restricted dictionary visibility: probe each candidate with a direct SELECT.
-        for (String candidate : preferredOrder) {
-            if (canSelectPrtmstColumn(conn, candidate)) {
-                available.add(candidate);
-            }
-        }
-        return available;
-    }
-
-    private boolean canSelectPrtmstColumn(Connection conn, String column) {
-        String sql = "SELECT " + column + " FROM WMSP.PRTMST WHERE ROWNUM = 1";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            // If execution succeeds, the column is accessible even if the table currently has no rows.
-            return rs.next() || !rs.isBeforeFirst();
-        } catch (SQLException e) {
-            return false;
-        }
     }
 
     private String resolveItemDescription(Connection conn,
