@@ -1,8 +1,12 @@
 /**
  * Core domain and infrastructure services shared across CLI and GUI modules.
  *
- * <p>This package includes configuration, domain models, label mapping, template rendering,
- * printing primitives, and typed exception contracts.</p>
+ * <p><strong>Package Responsibility</strong></p>
+ * <ul>
+ *   <li>Provide UI-agnostic business services and data contracts.</li>
+ *   <li>Define canonical configuration and behavior used by CLI and GUI modules.</li>
+ *   <li>Keep business logic independent from command parsing and Swing concerns.</li>
+ * </ul>
  *
  * <p><strong>Key Types</strong></p>
  * <ul>

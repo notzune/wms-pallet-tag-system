@@ -1,7 +1,12 @@
 /**
  * Oracle WMS data-access layer.
  *
- * <p>Provides read-only repository interfaces and implementations for shipment, stop, and footprint queries.</p>
+ * <p><strong>Package Responsibility</strong></p>
+ * <ul>
+ *   <li>Provide read-only Oracle WMS query adapters.</li>
+ *   <li>Encapsulate connection-pool lifecycle and connectivity diagnostics.</li>
+ *   <li>Isolate SQL/schema probing concerns from core planning services and UI layers.</li>
+ * </ul>
  *
  * <p><strong>Key Types</strong></p>
  * <ul>

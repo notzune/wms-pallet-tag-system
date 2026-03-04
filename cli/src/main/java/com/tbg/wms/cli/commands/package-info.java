@@ -1,8 +1,12 @@
 /**
  * Picocli command implementations for CLI operations.
  *
- * <p>Commands in this package perform configuration inspection, database diagnostics,
- * label generation, and GUI startup using consistent exit-code semantics.</p>
+ * <p><strong>Package Responsibility</strong></p>
+ * <ul>
+ *   <li>Translate operator inputs/options into workflow service calls.</li>
+ *   <li>Validate command invariants and emit stable exit codes/messages.</li>
+ *   <li>Keep command parsing/orchestration separate from core business logic.</li>
+ * </ul>
  *
  * <p><strong>Key Types</strong></p>
  * <ul>

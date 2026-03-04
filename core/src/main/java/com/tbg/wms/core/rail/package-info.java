@@ -1,8 +1,12 @@
 /**
  * Rail-office helper models and services for deterministic label math.
  *
- * <p>This package isolates parsing-independent planning logic so CLI and GUI workflows can
- * reuse the same implementation.</p>
+ * <p><strong>Package Responsibility</strong></p>
+ * <ul>
+ *   <li>Implement rail planning logic independent of CLI/GUI transport layers.</li>
+ *   <li>Preserve deterministic CAN/DOM pallet calculations per railcar.</li>
+ *   <li>Centralize rail rendering/export primitives used by multiple workflows.</li>
+ * </ul>
  *
  * <p><strong>Key Types</strong></p>
  * <ul>

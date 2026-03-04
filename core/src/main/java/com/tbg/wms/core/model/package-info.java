@@ -1,7 +1,12 @@
 /**
  * Immutable WMS domain models and supporting planning/normalization utilities.
  *
- * <p>Models represent shipments, pallets, and line items used by both preview and print paths.</p>
+ * <p><strong>Package Responsibility</strong></p>
+ * <ul>
+ *   <li>Represent canonical shipment/pallet/line-item structures.</li>
+ *   <li>Host deterministic planning and normalization helpers used across modules.</li>
+ *   <li>Keep model semantics stable for preview, rendering, and print paths.</li>
+ * </ul>
  *
  * <p><strong>Key Types</strong></p>
  * <ul>

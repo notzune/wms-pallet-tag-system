@@ -1,7 +1,12 @@
 /**
  * Template abstractions and ZPL placeholder rendering engine.
  *
- * <p>Templates are immutable and rendered deterministically for repeatable print output.</p>
+ * <p><strong>Package Responsibility</strong></p>
+ * <ul>
+ *   <li>Define immutable label-template contracts.</li>
+ *   <li>Render placeholder-backed output deterministically.</li>
+ *   <li>Keep template concerns isolated from data retrieval and printer routing.</li>
+ * </ul>
  *
  * <p><strong>Key Types</strong></p>
  * <ul>

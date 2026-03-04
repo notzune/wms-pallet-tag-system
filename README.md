@@ -285,6 +285,27 @@ Output is written to `target/site/apidocs`.
 The `Javadoc Pages` GitHub Actions workflow publishes the aggregated site to GitHub Pages when enabled in repository
 settings.
 
+## Documentation Coverage
+
+Package-level documentation is maintained in every `package-info.java` under:
+
+- `cli/src/main/java/com/tbg/wms/cli/**`
+- `core/src/main/java/com/tbg/wms/core/**`
+- `db/src/main/java/com/tbg/wms/db`
+- `gui/src/main/java/com/tbg/wms/cli/gui/**`
+
+Documentation expectations for helper classes:
+
+- State why the helper was created.
+- State the exact responsibility it owns.
+- State why it should remain separate (SRP, determinism, reuse, or performance).
+
+Recent examples:
+
+- `DescriptionTextHeuristics` (shared description readability policy)
+- `PrtmstDescriptionColumnResolver` (cached PRTMST schema probing boundary)
+- `RailFootprintResolver` (deterministic candidate-consistency gate before pallet math)
+
 ## CI Workflows
 
 ### Javadoc Pages (`.github/workflows/javadoc-pages.yml`)

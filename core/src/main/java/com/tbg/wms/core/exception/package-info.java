@@ -1,7 +1,12 @@
 /**
  * Typed exception hierarchy for configuration, database, validation, and print failures.
  *
- * <p>Exceptions in this package map operational errors to deterministic user-facing exit codes.</p>
+ * <p><strong>Package Responsibility</strong></p>
+ * <ul>
+ *   <li>Provide semantically meaningful failure categories.</li>
+ *   <li>Map operational failures to deterministic user-facing outcomes.</li>
+ *   <li>Preserve cause chains and remediation context for diagnostics.</li>
+ * </ul>
  *
  * <p><strong>Key Types</strong></p>
  * <ul>

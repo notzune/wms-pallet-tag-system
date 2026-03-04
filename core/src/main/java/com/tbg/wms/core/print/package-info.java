@@ -1,7 +1,12 @@
 /**
  * Printer routing and raw network print transport services.
  *
- * <p>This package resolves target printers from routing rules and sends ZPL payloads over TCP.</p>
+ * <p><strong>Package Responsibility</strong></p>
+ * <ul>
+ *   <li>Resolve a print target from workflow context and routing configuration.</li>
+ *   <li>Send print payloads over network transport with retry/error semantics.</li>
+ *   <li>Isolate printer concerns from label-data construction and command parsing.</li>
+ * </ul>
  *
  * <p><strong>Key Types</strong></p>
  * <ul>
