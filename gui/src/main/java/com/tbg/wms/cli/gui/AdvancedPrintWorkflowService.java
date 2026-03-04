@@ -77,20 +77,20 @@ public final class AdvancedPrintWorkflowService {
                 byStop.computeIfAbsent(key, ignored -> new ArrayList<>()).add(ref);
             }
 
-            List<PreparedStopGroup> groups = new ArrayList<>();
+            List<PreparedStopGroup> groups = new ArrayList<>(byStop.size());
             int stopPosition = 1;
             for (Map.Entry<Integer, List<CarrierMoveStopRef>> entry : byStop.entrySet()) {
-                List<CarrierMoveStopRef> stopRefs = new ArrayList<>(entry.getValue());
+                List<CarrierMoveStopRef> stopRefs = entry.getValue();
                 stopRefs.sort(Comparator.comparing(CarrierMoveStopRef::getShipmentId));
 
-                LinkedHashSet<String> uniqueShipments = new LinkedHashSet<>();
+                LinkedHashSet<String> uniqueShipments = new LinkedHashSet<>(stopRefs.size());
                 for (CarrierMoveStopRef ref : stopRefs) {
                     if (ref.getShipmentId() != null && !ref.getShipmentId().isBlank()) {
                         uniqueShipments.add(ref.getShipmentId());
                     }
                 }
 
-                List<LabelWorkflowService.PreparedJob> jobs = new ArrayList<>();
+                List<LabelWorkflowService.PreparedJob> jobs = new ArrayList<>(uniqueShipments.size());
                 for (String shipId : uniqueShipments) {
                     jobs.add(shipmentService.prepareJob(repo, shipId));
                 }
@@ -274,10 +274,15 @@ public final class AdvancedPrintWorkflowService {
     }
 
     private List<PrintTask> buildCarrierMoveTasks(PreparedCarrierMoveJob job) {
-        List<PrintTask> tasks = new ArrayList<>();
+        int totalShipmentJobs = 0;
+        for (PreparedStopGroup stop : job.stopGroups) {
+            totalShipmentJobs += stop.shipmentJobs.size();
+        }
+        // One label-task block per shipment plus one stop info tag per stop and one final info tag.
+        List<PrintTask> tasks = new ArrayList<>(totalShipmentJobs + job.stopGroups.size() + 1);
         int totalStops = job.stopGroups.size();
         for (PreparedStopGroup stop : job.stopGroups) {
-            List<String> shipmentIds = new ArrayList<>();
+            List<String> shipmentIds = new ArrayList<>(stop.shipmentJobs.size());
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.shipmentJobs) {
                 shipmentIds.add(shipmentJob.getShipmentId());
                 tasks.addAll(buildShipmentTasks(shipmentJob, stop.stopSequence, stop.stopPosition, false));
