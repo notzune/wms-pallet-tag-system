@@ -43,6 +43,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     private static final Logger log = LoggerFactory.getLogger(OracleDbQueryRepository.class);
     private static final Pattern DC_NUMBER_PATTERN = Pattern.compile("(?i)\\bDC\\s*#?\\s*(\\d{3,6})\\b");
+    private static final String DEFAULT_LINE_ITEM_UOM = "EA";
 
     private final DataSource dataSource;
 
@@ -780,7 +781,9 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                             NormalizationService.normalizeString(rs.getString("SALES_ORDNUM")),
                             rs.getInt("EFFECTIVE_QTY"),
                             rs.getInt("UNTPAK"),
-                            "EA", // unit of measure - TODO: get from database if available
+                            // WMS shipment-line joins used here do not expose a stable unit-of-measure column;
+                            // preserve legacy behavior with explicit EA fallback.
+                            DEFAULT_LINE_ITEM_UOM,
                             rs.getDouble("NETWGT"),
                             null, // walmartItemNumber - will be looked up via SkuMappingService
                             null, // gtinBarcode - could be fetched from ALT_PRTMST
