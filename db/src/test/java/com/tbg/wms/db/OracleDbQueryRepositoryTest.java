@@ -22,7 +22,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -249,23 +248,15 @@ class OracleDbQueryRepositoryTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void testBuildSkuCandidatesAvoidsDuplicatesWhenPrefixAndZeroTrimConverge() throws Exception {
-        Method method = OracleDbQueryRepository.class.getDeclaredMethod("buildSkuCandidates", String.class);
-        method.setAccessible(true);
-
-        List<String> candidates = (List<String>) method.invoke(repository, "100000123");
+    void testBuildSkuCandidatesAvoidsDuplicatesWhenPrefixAndZeroTrimConverge() {
+        List<String> candidates = SkuCandidateBuilder.buildCandidates("100000123");
 
         assertEquals(List.of("100000123", "000123"), candidates);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void testBuildSkuCandidatesDoesNotDuplicateWhenTransformsConverge() throws Exception {
-        Method method = OracleDbQueryRepository.class.getDeclaredMethod("buildSkuCandidates", String.class);
-        method.setAccessible(true);
-
-        List<String> candidates = (List<String>) method.invoke(repository, "100123");
+    void testBuildSkuCandidatesDoesNotDuplicateWhenTransformsConverge() {
+        List<String> candidates = SkuCandidateBuilder.buildCandidates("100123");
 
         assertEquals(List.of("100123", "123"), candidates);
     }

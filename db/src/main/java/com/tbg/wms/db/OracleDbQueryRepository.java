@@ -959,7 +959,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                 "FETCH FIRST 1 ROWS ONLY";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : buildSkuCandidates(sku)) {
+            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
                 // Probe most specific keys first (real client/warehouse), then wildcard placeholders.
                 for (String clientCandidate : clientCandidates) {
                     for (String whCandidate : whCandidates) {
@@ -1001,7 +1001,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                 : "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? FETCH FIRST 3 ROWS ONLY";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : buildSkuCandidates(sku)) {
+            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
                 stmt.setString(1, skuCandidate);
                 if (hasClientId) {
                     stmt.setString(2, prtClientId);
@@ -1023,47 +1023,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
             log.debug("Could not resolve PRTMST description for SKU {}: {}", sku, e.getMessage());
         }
         return null;
-    }
-
-    private List<String> buildSkuCandidates(String sku) {
-        List<String> candidates = new ArrayList<>(3);
-        if (sku == null || sku.isBlank()) {
-            return candidates;
-        }
-        String trimmed = sku.trim();
-        candidates.add(trimmed);
-
-        if (trimmed.startsWith("100") && trimmed.length() > 3) {
-            addIfUnique(candidates, trimmed.substring(3));
-        }
-
-        addIfUnique(candidates, trimLeadingZeros(trimmed));
-
-        return candidates;
-    }
-
-    private static void addIfUnique(List<String> candidates, String candidate) {
-        if (candidate.isBlank()) {
-            return;
-        }
-        for (String existing : candidates) {
-            if (existing.equals(candidate)) {
-                return;
-            }
-        }
-        candidates.add(candidate);
-    }
-
-    private static String trimLeadingZeros(String value) {
-        if (value == null || value.isEmpty()) {
-            return value;
-        }
-        int index = 0;
-        int maxIndex = value.length() - 1;
-        while (index < maxIndex && value.charAt(index) == '0') {
-            index++;
-        }
-        return index == 0 ? value : value.substring(index);
     }
 
     private boolean isHumanReadableDescription(String value) {
