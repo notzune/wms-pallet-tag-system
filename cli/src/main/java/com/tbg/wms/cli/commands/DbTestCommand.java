@@ -48,6 +48,7 @@ import java.util.concurrent.Callable;
 public final class DbTestCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(DbTestCommand.class);
+    private static final int JOB_ID_LENGTH = 8;
 
     /**
      * Runs connectivity diagnostics for the active DB configuration.
@@ -57,7 +58,7 @@ public final class DbTestCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         // Generate a unique job ID for this command execution
-        String jobId = UUID.randomUUID().toString().substring(0, 8);
+        String jobId = UUID.randomUUID().toString().substring(0, JOB_ID_LENGTH);
         MDC.put("jobId", jobId);
 
         try {

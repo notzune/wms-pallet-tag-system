@@ -92,10 +92,10 @@ final class PrtmstDescriptionColumnResolver {
 
     private boolean canSelectPrtmstColumn(Connection conn, String column) {
         String sql = "SELECT " + column + " FROM WMSP.PRTMST WHERE ROWNUM = 1";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.executeQuery().close();
             // If execution succeeds, the column is accessible even if the table currently has no rows.
-            return rs.next() || !rs.isBeforeFirst();
+            return true;
         } catch (SQLException e) {
             return false;
         }

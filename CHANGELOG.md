@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refreshed all package-level documentation (`package-info.java`) across CLI/core/db/gui and updated README documentation coverage guidance.
 - Refined barcode CLI/GUI generation paths by removing mutable option-field reassignment in `BarcodeCommand` and extracting slug-length constants for shared consistency.
 - Refined `RunCommand` print-to-file execution path to avoid mutating parsed option fields and use explicit effective runtime values.
+- Reduced remaining magic-value usage in CLI/core flows by extracting job-id/default-port constants and simplified PRTMST direct-probe execution to avoid warning-prone unused assignments.
 
 ### Deprecated
 

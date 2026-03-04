@@ -76,7 +76,6 @@ final class PrtmstDescriptionColumnResolverTest {
         when(connection.prepareStatement(argThat(sql -> sql != null && sql.contains("FROM WMSP.PRTMST"))))
                 .thenReturn(fallbackStatement);
         when(fallbackStatement.executeQuery()).thenReturn(fallbackResultSet);
-        when(fallbackResultSet.next()).thenReturn(true);
 
         PrtmstDescriptionColumnResolver resolver = new PrtmstDescriptionColumnResolver();
         List<String> columns = resolver.getColumns(connection);

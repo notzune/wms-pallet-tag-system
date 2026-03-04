@@ -42,6 +42,7 @@ import java.util.concurrent.Callable;
 public final class RunCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(RunCommand.class);
+    private static final int JOB_ID_LENGTH = 8;
     private static final int MAX_LABELS_PER_JOB = 10_000;
 
     @Option(
@@ -105,7 +106,7 @@ public final class RunCommand implements Callable<Integer> {
      */
     @Override
     public Integer call() {
-        String jobId = UUID.randomUUID().toString().substring(0, 8);
+        String jobId = UUID.randomUUID().toString().substring(0, JOB_ID_LENGTH);
         MDC.put("jobId", jobId);
 
         try {

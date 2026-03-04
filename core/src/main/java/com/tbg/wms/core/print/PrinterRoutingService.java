@@ -32,6 +32,7 @@ import java.util.*;
 public final class PrinterRoutingService {
 
     private static final Logger log = LoggerFactory.getLogger(PrinterRoutingService.class);
+    private static final int DEFAULT_PRINTER_PORT = 9100;
 
     private final Map<String, PrinterConfig> printers;
     private final List<RoutingRule> rules;
@@ -102,7 +103,7 @@ public final class PrinterRoutingService {
             String name = requireYamlValue(printerEntry.name, "printers[].name", printersFile);
             String ip = requireYamlValue(printerEntry.ip, "printers[].ip", printersFile);
             // Match historical behavior: YAML omits these often, so keep deterministic defaults.
-            int port = printerEntry.port == null ? 9100 : printerEntry.port;
+            int port = printerEntry.port == null ? DEFAULT_PRINTER_PORT : printerEntry.port;
             List<String> tags = printerEntry.tags == null ? Collections.emptyList() : printerEntry.tags;
             String locationHint = printerEntry.locationHint;
             boolean enabled = printerEntry.enabled == null || printerEntry.enabled;

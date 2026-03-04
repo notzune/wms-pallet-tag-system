@@ -44,6 +44,7 @@ public final class BarcodeCommand implements Callable<Integer> {
     private static final Logger log = LoggerFactory.getLogger(BarcodeCommand.class);
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
+    private static final int JOB_ID_LENGTH = 8;
     private static final int MAX_SLUG_LENGTH = 40;
 
     @Option(
@@ -190,7 +191,7 @@ public final class BarcodeCommand implements Callable<Integer> {
      */
     @Override
     public Integer call() {
-        String jobId = UUID.randomUUID().toString().substring(0, 8);
+        String jobId = UUID.randomUUID().toString().substring(0, JOB_ID_LENGTH);
         log.info("Generating barcode label (jobId={})", jobId);
 
         BarcodeRequest request = buildBarcodeRequest();
