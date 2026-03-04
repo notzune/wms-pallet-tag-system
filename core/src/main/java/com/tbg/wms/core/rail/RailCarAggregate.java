@@ -16,6 +16,7 @@ public final class RailCarAggregate {
     private final String warehouse;
     private final Set<String> loadNumbers;
     private final Map<String, Integer> casesByItem;
+    private final List<RailStopRecord.ItemQuantity> sortedItemsByCasesDesc;
 
     RailCarAggregate(String date,
                      String sequence,
@@ -31,6 +32,7 @@ public final class RailCarAggregate {
         this.warehouse = normalize(warehouse);
         this.loadNumbers = Collections.unmodifiableSet(new LinkedHashSet<>(loadNumbers));
         this.casesByItem = Collections.unmodifiableMap(new LinkedHashMap<>(casesByItem));
+        this.sortedItemsByCasesDesc = Collections.unmodifiableList(sortItemsByCasesDesc(this.casesByItem));
     }
 
     private static String normalize(String value) {
@@ -70,8 +72,12 @@ public final class RailCarAggregate {
     }
 
     public List<RailStopRecord.ItemQuantity> getSortedItemsByCasesDesc() {
+        return sortedItemsByCasesDesc;
+    }
+
+    private List<RailStopRecord.ItemQuantity> sortItemsByCasesDesc(Map<String, Integer> byItem) {
         List<RailStopRecord.ItemQuantity> rows = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : casesByItem.entrySet()) {
+        for (Map.Entry<String, Integer> entry : byItem.entrySet()) {
             rows.add(new RailStopRecord.ItemQuantity(entry.getKey(), entry.getValue()));
         }
         rows.sort(Comparator.<RailStopRecord.ItemQuantity>comparingInt(RailStopRecord.ItemQuantity::getCases)

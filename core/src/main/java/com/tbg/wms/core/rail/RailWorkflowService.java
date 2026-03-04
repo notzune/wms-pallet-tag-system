@@ -85,6 +85,7 @@ public final class RailWorkflowService {
                                   Set<String> missingFromPlanner) {
         RailPalletCalculator.RailPalletResult palletResult = palletCalculator.calculate(aggregate, footprints);
         missingFromPlanner.addAll(palletResult.getMissingItems());
+        List<RailStopRecord.ItemQuantity> sortedItems = aggregate.getSortedItemsByCasesDesc();
 
         RailStopRecord flattened = new RailStopRecord(
                 aggregate.getDate(),
@@ -93,7 +94,7 @@ public final class RailWorkflowService {
                 aggregate.getVehicleId(),
                 aggregate.getWarehouse(),
                 aggregate.getLoadNumberDisplay(),
-                aggregate.getSortedItemsByCasesDesc()
+                sortedItems
         );
         RailLabelPlanner.PlannedRailLabel planned = labelPlanner.plan(List.of(flattened), footprints).get(0);
         List<String> families = planned.getTopFamilies().stream()
@@ -105,7 +106,7 @@ public final class RailWorkflowService {
                 aggregate.getSequence(),
                 aggregate.getVehicleId(),
                 aggregate.getLoadNumberDisplay(),
-                aggregate.getSortedItemsByCasesDesc(),
+                sortedItems,
                 palletResult.getCanPallets(),
                 palletResult.getDomPallets(),
                 families,
