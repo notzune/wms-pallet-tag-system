@@ -65,37 +65,7 @@ public final class AdvancedPrintWorkflowService {
             if (refs.isEmpty()) {
                 throw new IllegalArgumentException("Carrier Move not found or has no shipments: " + cmid);
             }
-
-            Map<Integer, List<CarrierMoveStopRef>> byStop = new TreeMap<>();
-            for (CarrierMoveStopRef ref : refs) {
-                int key = ref.getStopSequence() == null ? Integer.MAX_VALUE : ref.getStopSequence();
-                byStop.computeIfAbsent(key, ignored -> new ArrayList<>()).add(ref);
-            }
-
-            List<PreparedStopGroup> groups = new ArrayList<>(byStop.size());
-            int stopPosition = 1;
-            for (Map.Entry<Integer, List<CarrierMoveStopRef>> entry : byStop.entrySet()) {
-                List<CarrierMoveStopRef> stopRefs = entry.getValue();
-                stopRefs.sort(Comparator.comparing(CarrierMoveStopRef::getShipmentId));
-
-                LinkedHashSet<String> uniqueShipments = new LinkedHashSet<>(stopRefs.size());
-                for (CarrierMoveStopRef ref : stopRefs) {
-                    if (ref.getShipmentId() != null && !ref.getShipmentId().isBlank()) {
-                        uniqueShipments.add(ref.getShipmentId());
-                    }
-                }
-
-                List<LabelWorkflowService.PreparedJob> jobs = new ArrayList<>(uniqueShipments.size());
-                for (String shipId : uniqueShipments) {
-                    jobs.add(shipmentService.prepareJob(repo, shipId));
-                }
-
-                if (!jobs.isEmpty()) {
-                    Integer stopSequence = stopRefs.get(0).getStopSequence();
-                    groups.add(new PreparedStopGroup(stopSequence, stopPosition, jobs));
-                    stopPosition++;
-                }
-            }
+            List<PreparedStopGroup> groups = buildPreparedStopGroups(repo, refs);
 
             if (groups.isEmpty()) {
                 throw new IllegalArgumentException("Carrier Move has no printable shipments: " + cmid);
@@ -103,6 +73,46 @@ public final class AdvancedPrintWorkflowService {
 
             return new PreparedCarrierMoveJob(cmid, groups);
         }
+    }
+
+    private List<PreparedStopGroup> buildPreparedStopGroups(DbQueryRepository repo, List<CarrierMoveStopRef> refs) throws Exception {
+        Map<Integer, List<CarrierMoveStopRef>> byStop = groupCarrierMoveRefsByStop(refs);
+        List<PreparedStopGroup> groups = new ArrayList<>(byStop.size());
+        int stopPosition = 1;
+        for (List<CarrierMoveStopRef> stopRefs : byStop.values()) {
+            List<LabelWorkflowService.PreparedJob> jobs = resolvePreparedJobsForStop(repo, stopRefs);
+            if (!jobs.isEmpty()) {
+                Integer stopSequence = stopRefs.get(0).getStopSequence();
+                groups.add(new PreparedStopGroup(stopSequence, stopPosition, jobs));
+                stopPosition++;
+            }
+        }
+        return groups;
+    }
+
+    private Map<Integer, List<CarrierMoveStopRef>> groupCarrierMoveRefsByStop(List<CarrierMoveStopRef> refs) {
+        Map<Integer, List<CarrierMoveStopRef>> byStop = new TreeMap<>();
+        for (CarrierMoveStopRef ref : refs) {
+            int key = ref.getStopSequence() == null ? Integer.MAX_VALUE : ref.getStopSequence();
+            byStop.computeIfAbsent(key, ignored -> new ArrayList<>()).add(ref);
+        }
+        return byStop;
+    }
+
+    private List<LabelWorkflowService.PreparedJob> resolvePreparedJobsForStop(DbQueryRepository repo, List<CarrierMoveStopRef> stopRefs) throws Exception {
+        stopRefs.sort(Comparator.comparing(CarrierMoveStopRef::getShipmentId));
+        LinkedHashSet<String> uniqueShipments = new LinkedHashSet<>(stopRefs.size());
+        for (CarrierMoveStopRef ref : stopRefs) {
+            if (ref.getShipmentId() != null && !ref.getShipmentId().isBlank()) {
+                uniqueShipments.add(ref.getShipmentId());
+            }
+        }
+
+        List<LabelWorkflowService.PreparedJob> jobs = new ArrayList<>(uniqueShipments.size());
+        for (String shipId : uniqueShipments) {
+            jobs.add(shipmentService.prepareJob(repo, shipId));
+        }
+        return jobs;
     }
 
     public PreparedQueueJob prepareQueue(List<QueueRequestItem> requests) throws Exception {
