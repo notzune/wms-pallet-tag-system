@@ -31,7 +31,10 @@ final class QueueInputParser {
             AdvancedPrintWorkflowService.QueueItemType defaultType,
             int maxItems) {
         List<AdvancedPrintWorkflowService.QueueRequestItem> requests = new ArrayList<>();
-        String payload = text == null ? "" : text;
+        String payload = text;
+        if (payload == null) {
+            payload = "";
+        }
         int lineStart = 0;
         for (int i = 0; i < payload.length(); i++) {
             char ch = payload.charAt(i);
@@ -55,7 +58,7 @@ final class QueueInputParser {
                                    AdvancedPrintWorkflowService.QueueItemType defaultType,
                                    int maxItems,
                                    List<AdvancedPrintWorkflowService.QueueRequestItem> requests) {
-        String line = rawLine == null ? "" : rawLine.trim();
+        String line = rawLine.trim();
         if (line.isEmpty()) {
             return;
         }

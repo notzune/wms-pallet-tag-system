@@ -1043,7 +1043,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     }
 
     private static void addIfUnique(List<String> candidates, String candidate) {
-        if (candidate == null || candidate.isBlank()) {
+        if (candidate.isBlank()) {
             return;
         }
         for (String existing : candidates) {
