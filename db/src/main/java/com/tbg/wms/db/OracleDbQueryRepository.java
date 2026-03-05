@@ -61,6 +61,10 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     private static String normalizeRailFamilyCode(String prtfam, Integer parsFlag) {
         String family = NormalizationService.normalizeToUppercase(prtfam);
+        // UC_PARS_FLG=1 is an explicit WMS override for CAN handling.
+        if (parsFlag != null && parsFlag == 1) {
+            return "CAN";
+        }
         if (family.contains("CAN")) {
             return "CAN";
         }
@@ -69,9 +73,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         }
         if (family.contains("DOM")) {
             return "DOM";
-        }
-        if (parsFlag != null && parsFlag == 1) {
-            return "CAN";
         }
         if (family.isBlank()) {
             return "DOM";

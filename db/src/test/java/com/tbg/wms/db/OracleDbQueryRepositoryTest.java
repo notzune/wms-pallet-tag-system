@@ -207,6 +207,26 @@ class OracleDbQueryRepositoryTest {
     }
 
     @Test
+    void testFindRailFootprintsByShortCodeAppliesParsCanOverride() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, false);
+        when(mockResultSet.wasNull()).thenReturn(false);
+
+        when(mockResultSet.getString("SHORT_CODE")).thenReturn("01830");
+        when(mockResultSet.getString("ITEM_NBR")).thenReturn("ITEMA");
+        when(mockResultSet.getString("PRTFAM")).thenReturn("KEV");
+        when(mockResultSet.getInt("UC_PARS_FLG")).thenReturn(1);
+        when(mockResultSet.getInt("UNITS_PER_PALLET")).thenReturn(56);
+
+        Map<String, List<RailFootprintCandidate>> byShortCode =
+                repository.findRailFootprintsByShortCode(List.of("01830"));
+
+        assertEquals("CAN", byShortCode.get("01830").get(0).getFamilyCode());
+    }
+
+    @Test
     void testFindRailFootprintsByShortCodeDeduplicatesQueryParameters() throws SQLException {
         when(mockDataSource.getConnection()).thenReturn(mockConnection);
         when(mockConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("IN (?)"))))
