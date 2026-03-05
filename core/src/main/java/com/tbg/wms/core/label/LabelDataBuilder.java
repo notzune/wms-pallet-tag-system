@@ -112,6 +112,7 @@ public final class LabelDataBuilder {
         Objects.requireNonNull(shipment, "shipment cannot be null");
         Objects.requireNonNull(lpn, "lpn cannot be null");
         Objects.requireNonNull(labelType, "labelType cannot be null");
+        validatePalletIndex(shipment, palletIndex);
 
         log.debug("Building label data for shipment {} pallet {}/{}",
                 shipment.getShipmentId(), palletIndex + 1, shipment.getLpnCount());
@@ -183,6 +184,18 @@ public final class LabelDataBuilder {
         fields.put("stagingLocation", orDefault(lpn.getStagingLocation(), SPACE_SAFE_DEFAULT));
 
         return Collections.unmodifiableMap(fields);
+    }
+
+    private void validatePalletIndex(Shipment shipment, int palletIndex) {
+        if (palletIndex < 0) {
+            throw new IllegalArgumentException("palletIndex must be >= 0");
+        }
+        int lpnCount = shipment.getLpnCount();
+        if (lpnCount > 0 && palletIndex >= lpnCount) {
+            throw new IllegalArgumentException(
+                    "palletIndex " + palletIndex + " is out of range for shipment pallet count " + lpnCount
+            );
+        }
     }
 
     private void populateProductFields(Map<String, String> fields,

@@ -276,6 +276,18 @@ class LabelDataBuilderTest {
     }
 
     @Test
+    void testBuildRejectsNegativePalletIndex() {
+        assertThrows(IllegalArgumentException.class,
+                () -> builder.build(testShipment, testLpn, -1, LabelType.WALMART_CANADA_GRID));
+    }
+
+    @Test
+    void testBuildRejectsOutOfRangePalletIndex() {
+        assertThrows(IllegalArgumentException.class,
+                () -> builder.build(testShipment, testLpn, 1, LabelType.WALMART_CANADA_GRID));
+    }
+
+    @Test
     void testBuildMapsSoldToLocationNumberToDcCode() {
         LocalDateTime now = LocalDateTime.now();
         Shipment soldToShipment = new Shipment(
