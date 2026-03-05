@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Manages the Oracle database connection pool using HikariCP.
@@ -157,7 +158,7 @@ public final class DbConnectionPool implements AutoCloseable {
         while (current != null) {
             String message = current.getMessage();
             if (message != null) {
-                String lowered = message.toLowerCase();
+                String lowered = message.toLowerCase(Locale.ROOT);
                 if (lowered.contains("ora-01017")
                         || lowered.contains("invalid username/password")
                         || lowered.contains("ora-28000")
@@ -258,7 +259,7 @@ public final class DbConnectionPool implements AutoCloseable {
             return "Service not found: verify ORACLE_SERVICE=" + config.oracleService() + " is correct. " +
                     "Query DB admin for available services.";
         }
-        String lowerMessage = message.toLowerCase();
+        String lowerMessage = message.toLowerCase(Locale.ROOT);
         if (lowerMessage.contains("invalid username/password") || lowerMessage.contains("ora-01017")) {
             return "Authentication failed: verify ORACLE_USERNAME and ORACLE_PASSWORD are correct.";
         }
