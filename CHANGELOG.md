@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced rail aggregation key allocation overhead by replacing string-concatenated grouping keys with a typed `RailcarGroupKey`.
 - Hardened shared rail CSV parsing for null/empty lines so helper callers get safe deterministic output instead of runtime failures.
 - Added strict pallet-index validation in `LabelDataBuilder` to prevent invalid sequence fields from negative or out-of-range inputs.
+- Added shipment-state validation in `LabelDataBuilder` so label builds fail fast when shipment payload has zero pallets.
 
 ### Deprecated
 

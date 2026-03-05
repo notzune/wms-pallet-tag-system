@@ -191,6 +191,9 @@ public final class LabelDataBuilder {
             throw new IllegalArgumentException("palletIndex must be >= 0");
         }
         int lpnCount = shipment.getLpnCount();
+        if (lpnCount <= 0) {
+            throw new IllegalArgumentException("shipment must contain at least one pallet");
+        }
         if (lpnCount > 0 && palletIndex >= lpnCount) {
             throw new IllegalArgumentException(
                     "palletIndex " + palletIndex + " is out of range for shipment pallet count " + lpnCount

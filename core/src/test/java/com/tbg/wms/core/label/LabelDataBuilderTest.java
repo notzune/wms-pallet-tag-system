@@ -288,6 +288,24 @@ class LabelDataBuilderTest {
     }
 
     @Test
+    void testBuildRejectsShipmentWithNoPallets() {
+        LocalDateTime now = LocalDateTime.now();
+        Shipment emptyShipment = new Shipment(
+                "8000141715", "EXT8000141715", "8000141715", "3002",
+                "CJR WHOLESALE GROCERS LTD", "5876 COOPERS AVE", null, null,
+                "MISSISSAUGA", "ON", "L4Z 2B9", "CAN", "555-1234",
+                "MDLE", "TL", "30021144717", "8000141715", "ROSSI",
+                "PO123", "6080", "DEPT1",
+                "STOP1", 1, "MOVE1", "PRO123", "BOL123",
+                "R", now.minusDays(1), now.plusDays(3), now,
+                List.of()
+        );
+
+        assertThrows(IllegalArgumentException.class,
+                () -> builder.build(emptyShipment, testLpn, 0, LabelType.WALMART_CANADA_GRID));
+    }
+
+    @Test
     void testBuildMapsSoldToLocationNumberToDcCode() {
         LocalDateTime now = LocalDateTime.now();
         Shipment soldToShipment = new Shipment(
