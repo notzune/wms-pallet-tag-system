@@ -123,7 +123,7 @@ public final class RailWorkflowService {
     }
 
     private Set<String> collectShortCodes(List<RailStopRecord> rows) {
-        Set<String> codes = new TreeSet<>();
+        Set<String> codes = new LinkedHashSet<>();
         for (RailStopRecord row : rows) {
             for (RailStopRecord.ItemQuantity item : row.getItems()) {
                 if (item != null && item.isValid()) {
