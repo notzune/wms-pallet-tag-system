@@ -98,4 +98,32 @@ final class RailHelperCommandTest {
         assertTrue(summaryText.contains("Rows with missing footprint: 1"));
         assertTrue(summaryText.contains("Missing items: 99999"));
     }
+
+    @Test
+    void commandFiltersTrainIdCaseInsensitively() throws Exception {
+        Path inputCsv = tempDir.resolve("input-case.csv");
+        Path footprintCsv = tempDir.resolve("footprint-case.csv");
+        Path outputDir = tempDir.resolve("out-case");
+
+        Files.write(inputCsv, List.of(
+                "DATE,SEQ,TRAIN_NBR,VEHICLE_ID,DCS_WHSE,LOAD_NBR,ITEM_NBR_1,TOTAL_CS_ITM_1",
+                "03-02-26,142,jc08312025,CAR-100,D-2,LOAD-1,01832,100",
+                "03-02-26,143,JC99999999,CAR-200,D-2,LOAD-2,01832,100"
+        ));
+        Files.write(footprintCsv, List.of(
+                "ITEM_NBR,ITEM_FAMILY,FOOTPRINT",
+                "01832,DOM,100"
+        ));
+
+        int exitCode = new CommandLine(new RailHelperCommand()).execute(
+                "--input-csv", inputCsv.toString(),
+                "--item-footprint-csv", footprintCsv.toString(),
+                "--output-dir", outputDir.toString(),
+                "--train-id", "JC08312025"
+        );
+
+        assertEquals(0, exitCode);
+        List<String> csvLines = Files.readAllLines(outputDir.resolve("_TrainDetail.csv"));
+        assertEquals(2, csvLines.size(), "header + 1 filtered row expected");
+    }
 }

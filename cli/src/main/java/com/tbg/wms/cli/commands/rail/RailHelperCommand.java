@@ -133,9 +133,10 @@ public final class RailHelperCommand implements Callable<Integer> {
     }
 
     private List<RailStopRecord> filterByTrainId(List<RailStopRecord> records, String trainId) {
+        String normalizedFilter = normalize(trainId).toUpperCase(Locale.ROOT);
         List<RailStopRecord> filtered = new ArrayList<>();
         for (RailStopRecord record : records) {
-            if (trainId.equals(record.getTrainNumber())) {
+            if (record.getTrainNumber().toUpperCase(Locale.ROOT).equals(normalizedFilter)) {
                 filtered.add(record);
             }
         }

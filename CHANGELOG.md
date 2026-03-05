@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved DB remediation hint matching to be case-insensitive for common Oracle/JDBC connectivity error phrases.
 - Hardened carrier-move checkpoint filename slugging to fall back safely when source IDs contain only non-alphanumeric characters.
 - Hardened rail model code normalization to use `Locale.ROOT` for uppercase conversion, preventing locale-dependent family-code drift.
+- Updated `rail-helper` train filtering to be case-insensitive so user-provided train IDs match normalized rail data consistently.
 
 ### Deprecated
 
