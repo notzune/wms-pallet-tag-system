@@ -17,9 +17,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -356,9 +358,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                         tmsStopSeq = null;
                     }
 
-                    LocalDateTime created = rs.getTimestamp("ADDDTE") == null
-                            ? null
-                            : rs.getTimestamp("ADDDTE").toLocalDateTime();
+                    LocalDateTime created = nullableLocalDateTime(rs, "ADDDTE");
 
                     rows.add(new CarrierMoveStopRef(
                             NormalizationService.normalizeString(rs.getString("CAR_MOVE_ID")),
@@ -600,12 +600,12 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     // Extract all fields with null-safe handling
-                    LocalDateTime shipDate = rs.getTimestamp("EARLY_SHPDTE") != null ?
-                            rs.getTimestamp("EARLY_SHPDTE").toLocalDateTime() : null;
-                    LocalDateTime deliveryDate = rs.getTimestamp("LATE_DLVDTE") != null ?
-                            rs.getTimestamp("LATE_DLVDTE").toLocalDateTime() : null;
-                    LocalDateTime createdDate = rs.getTimestamp("ADDDTE") != null ?
-                            rs.getTimestamp("ADDDTE").toLocalDateTime() : LocalDateTime.now();
+                    LocalDateTime shipDate = nullableLocalDateTime(rs, "EARLY_SHPDTE");
+                    LocalDateTime deliveryDate = nullableLocalDateTime(rs, "LATE_DLVDTE");
+                    LocalDateTime createdDate = nullableLocalDateTime(rs, "ADDDTE");
+                    if (createdDate == null) {
+                        createdDate = LocalDateTime.now();
+                    }
 
                     Integer stopSeq = rs.getInt("STOP_SEQ");
                     if (rs.wasNull()) {
@@ -691,10 +691,8 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                     String lpnId = rs.getString("LODNUM");
                     List<LineItem> lineItems = fetchLineItemsForLpn(conn, shipmentId, lpnId);
 
-                    LocalDate mfgDate = rs.getDate("MANDTE") != null ?
-                            rs.getDate("MANDTE").toLocalDate() : null;
-                    LocalDate expiryDate = rs.getDate("EXPIRE_DTE") != null ?
-                            rs.getDate("EXPIRE_DTE").toLocalDate() : null;
+                    LocalDate mfgDate = nullableLocalDate(rs, "MANDTE");
+                    LocalDate expiryDate = nullableLocalDate(rs, "EXPIRE_DTE");
 
                     Lpn lpn = new Lpn(
                             NormalizationService.normalizeString(lpnId),
@@ -960,6 +958,16 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     private Double nullableDouble(ResultSet rs, String column) throws SQLException {
         double value = rs.getDouble(column);
         return rs.wasNull() ? null : value;
+    }
+
+    private LocalDateTime nullableLocalDateTime(ResultSet rs, String column) throws SQLException {
+        Timestamp timestamp = rs.getTimestamp(column);
+        return timestamp == null ? null : timestamp.toLocalDateTime();
+    }
+
+    private LocalDate nullableLocalDate(ResultSet rs, String column) throws SQLException {
+        Date date = rs.getDate(column);
+        return date == null ? null : date.toLocalDate();
     }
 
     private static final class MutableRailStop {
