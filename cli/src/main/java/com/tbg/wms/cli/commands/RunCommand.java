@@ -260,10 +260,14 @@ public final class RunCommand implements Callable<Integer> {
     }
 
     private LabelWorkflowService.PreparedJob firstCarrierShipment(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared) {
-        if (prepared.getStopGroups().isEmpty() || prepared.getStopGroups().get(0).getShipmentJobs().isEmpty()) {
-            throw new IllegalArgumentException("Carrier move has no printable shipments.");
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : prepared.getStopGroups()) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                if (shipmentJob != null) {
+                    return shipmentJob;
+                }
+            }
         }
-        return prepared.getStopGroups().get(0).getShipmentJobs().get(0);
+        throw new IllegalArgumentException("Carrier move has no printable shipments.");
     }
 
     private void enforceMaxLabels(int labels) {

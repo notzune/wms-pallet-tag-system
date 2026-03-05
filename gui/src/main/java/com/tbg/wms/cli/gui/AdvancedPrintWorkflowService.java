@@ -169,7 +169,8 @@ public final class AdvancedPrintWorkflowService {
 
     public PrintResult printCarrierMoveJob(PreparedCarrierMoveJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
-        PrinterConfig printer = resolvePrinterForPrint(job.stopGroups.get(0).shipmentJobs.get(0).getRouting(), printerId, printToFile);
+        LabelWorkflowService.PreparedJob firstShipment = firstCarrierShipment(job);
+        PrinterConfig printer = resolvePrinterForPrint(firstShipment.getRouting(), printerId, printToFile);
         Path targetDir = outputDir == null
                 ? Paths.get("out", "gui-cmid-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()))
                 : outputDir;
@@ -267,6 +268,17 @@ public final class AdvancedPrintWorkflowService {
             tasks.add(new PrintTask(TaskKind.STOP_INFO_TAG, infoFile, infoZpl, "INFO-SHIPMENT " + job.getShipmentId()));
         }
         return tasks;
+    }
+
+    private LabelWorkflowService.PreparedJob firstCarrierShipment(PreparedCarrierMoveJob job) {
+        for (PreparedStopGroup stop : job.stopGroups) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.shipmentJobs) {
+                if (shipmentJob != null) {
+                    return shipmentJob;
+                }
+            }
+        }
+        throw new IllegalArgumentException("Carrier move has no printable shipments.");
     }
 
     private List<PrintTask> buildCarrierMoveTasks(PreparedCarrierMoveJob job) {
