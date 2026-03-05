@@ -63,7 +63,7 @@ public final class RailLabelPlanner {
 
     private PlannedRailLabel planRecord(RailStopRecord record, Map<String, RailFamilyFootprint> footprints) {
         Map<String, Double> equivalentByFamily = new HashMap<>();
-        List<String> missingItems = new ArrayList<>();
+        Set<String> missingItems = new TreeSet<>();
         List<RailStopRecord.ItemQuantity> overflowItems = new ArrayList<>();
         double totalEquivalent = 0.0d;
         int slotCount = 0;
@@ -88,7 +88,14 @@ public final class RailLabelPlanner {
 
         List<FamilyShare> shares = buildSortedShares(equivalentByFamily, totalEquivalent);
         List<FamilyShare> topThree = shares.size() <= 3 ? shares : shares.subList(0, 3);
-        return new PlannedRailLabel(record, topThree, missingItems, overflowItems, totalEquivalent, itemSlots);
+        return new PlannedRailLabel(
+                record,
+                topThree,
+                new ArrayList<>(missingItems),
+                overflowItems,
+                totalEquivalent,
+                itemSlots
+        );
     }
 
     private List<FamilyShare> buildSortedShares(Map<String, Double> equivalentByFamily, double totalEquivalent) {
