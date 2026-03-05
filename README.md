@@ -229,8 +229,8 @@ Workflow:
 - Enter train ID and click `Load Preview`.
 - System pulls rail rows from WMS and resolves footprints by short code from WMS.
 - Preview includes:
-- Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `LOAD_NBR`)
-- Railcar card preview panel (item lines + CAN/DOM + pass/fuel/BH fields)
+- Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
+- Railcar card preview panel (item lines + CAN/DOM/KEV + pass/fuel/BH fields)
 - Diagnostics panel (row counts and unresolved footprints)
 - Click `Generate PDF` to produce a letter-size multi-card PDF.
 - Click `Print` to generate PDF and send it to the host default printer.
