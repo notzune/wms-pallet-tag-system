@@ -206,7 +206,7 @@ java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID> [OPTIONS]
 
 Options:
 
-- `--train <ID>` (required): train ID (full WMS train ID or 4-digit rail train number)
+- `--train <ID>` (required): full WMS train ID (example: `JC08312025`)
 - `--output-dir <DIR>` (default `out/rail-print`)
 - `--print` (send generated PDF to default printer after confirmation)
 - `--yes` / `-y` (non-interactive mode; skip confirmation prompts)
@@ -215,10 +215,11 @@ Workflow:
 
 - Query rail rows from WMS by train
 - Aggregate rows by railcar
-- Compute CAN/DOM pallets using per-item `CEILING(cases / casesPerPallet)` math
-- Show preview table (`SEQ`, `VEHICLE`, `CAN`, `DOM`)
+- Compute CAN/DOM/KEV pallets using per-item `CEILING(cases / casesPerPallet)` math
+- Show preview table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`)
 - Confirm
 - Render direct letter-size rail card PDF (no Word mail merge dependency)
+- Include `MISSING: <count>` warning on cards when any short codes are unresolved
 - Optionally print
 
 ## Rail Labels GUI Workflow
