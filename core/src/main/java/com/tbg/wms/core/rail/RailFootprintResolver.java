@@ -18,9 +18,10 @@ import java.util.*;
  * CAN/DOM pallet totals. Centralizing this consistency gate makes behavior explicit,
  * testable, and reusable by both CLI and GUI flows.</p>
  *
- * <p>A short code is considered resolvable when all candidates agree on normalized
- * family bucket ({@code CAN}, {@code DOM}, or {@code KEV}). Cases-per-pallet is
- * resolved deterministically by taking the maximum value across candidates.</p>
+ * <p>A short code is considered resolvable only when all candidates agree on
+ * both normalized family bucket ({@code CAN}, {@code DOM}, or {@code KEV})
+ * and cases-per-pallet. Conflicting cases-per-pallet rows are rejected to avoid
+ * silently skewing pallet totals.</p>
  */
 public final class RailFootprintResolver {
     private final RailFamilyClassifier familyClassifier = new RailFamilyClassifier();
@@ -54,7 +55,7 @@ public final class RailFootprintResolver {
         }
 
         String selectedFamily = null;
-        int selectedCasesPerPallet = 0;
+        Integer selectedCasesPerPallet = null;
 
         for (RailFootprintCandidate current : rows) {
             if (current == null || !current.isValid()) {
@@ -67,12 +68,15 @@ public final class RailFootprintResolver {
                 return null;
             }
 
-            if (current.getCasesPerPallet() > selectedCasesPerPallet) {
-                selectedCasesPerPallet = current.getCasesPerPallet();
+            int currentCasesPerPallet = current.getCasesPerPallet();
+            if (selectedCasesPerPallet == null) {
+                selectedCasesPerPallet = currentCasesPerPallet;
+            } else if (selectedCasesPerPallet != currentCasesPerPallet) {
+                return null;
             }
         }
 
-        if (selectedFamily == null || selectedCasesPerPallet <= 0) {
+        if (selectedFamily == null || selectedCasesPerPallet == null || selectedCasesPerPallet <= 0) {
             return null;
         }
         return new RailFamilyFootprint(shortCode, selectedFamily, selectedCasesPerPallet);

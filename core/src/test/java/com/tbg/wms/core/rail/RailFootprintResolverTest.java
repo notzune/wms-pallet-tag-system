@@ -24,17 +24,18 @@ final class RailFootprintResolverTest {
                 "01832", List.of(
                         new RailFootprintCandidate("01832", "ITEME", "KEV", 48),
                         new RailFootprintCandidate("01832", "ITEMF", "KEV", 52)
+                ),
+                "01833", List.of(
+                        new RailFootprintCandidate("01833", "ITEMG", "DOM", 56),
+                        new RailFootprintCandidate("01833", "ITEMH", "NJ", 56)
                 )
         );
 
         Map<String, RailFamilyFootprint> resolved = new RailFootprintResolver().resolve(candidates);
 
-        assertEquals(2, resolved.size());
-        assertTrue(resolved.containsKey("01830"));
-        assertTrue(resolved.containsKey("01832"));
-        assertEquals("DOM", resolved.get("01830").getFamilyCode());
-        assertEquals(60, resolved.get("01830").getCasesPerPallet());
-        assertEquals("KEV", resolved.get("01832").getFamilyCode());
-        assertEquals(52, resolved.get("01832").getCasesPerPallet());
+        assertEquals(1, resolved.size());
+        assertTrue(resolved.containsKey("01833"));
+        assertEquals("DOM", resolved.get("01833").getFamilyCode());
+        assertEquals(56, resolved.get("01833").getCasesPerPallet());
     }
 }

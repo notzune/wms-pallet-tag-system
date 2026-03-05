@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened rail merge CSV export directory handling by guarding parent-directory creation when the output path has no parent component.
 - Hardened GUI barcode ZPL export directory handling by guarding parent-directory creation when the output path has no parent component.
 - Hardened carrier-move stop grouping in GUI workflow to safely ignore null stop refs and null shipment IDs during deterministic shipment ordering.
+- Hardened rail footprint resolution to reject short codes with conflicting cases-per-pallet candidates instead of selecting a potentially incorrect value.
 
 ### Deprecated
 
