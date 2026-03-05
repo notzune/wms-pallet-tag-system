@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enforced SRP for runtime output-directory resolution by introducing shared `RuntimePathResolver` and reusing it across CLI/GUI print-to-file flows.
 - Simplified `NormalizationService.normalizeToUppercase` by removing a redundant conditional branch.
 - Reduced small but repeated allocation/read overhead in label generation loops by caching per-job LPN counts and reusing a single `LocalDate.now()` value for virtual LPN date stamping.
+- Reduced rail workflow allocation overhead by introducing single-record planning (`RailLabelPlanner.planOne`) and removing per-card singleton list construction in `RailWorkflowService`.
+- Refined rail family-share percentage allocation using deterministic largest-remainder rounding so family percentages remain stable and sum correctly.
 
 ### Deprecated
 
@@ -52,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Resolved Maven parent-version drift that caused `javadoc:aggregate` failures in CI when resolving module parents.
+- Fixed rail family normalization precedence in DB footprint lookup so `UC_PARS_FLG=1` is applied as a CAN override before other family-code checks.
 
 ### Security
 

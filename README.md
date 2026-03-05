@@ -216,6 +216,7 @@ Workflow:
 - Query rail rows from WMS by train
 - Aggregate rows by railcar
 - Compute CAN/DOM/KEV pallets using per-item `CEILING(cases / casesPerPallet)` math
+- Compute deterministic top-family percentages with largest-remainder rounding (stable ordering and 100% total)
 - Show preview table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`)
 - Confirm
 - Render direct letter-size rail card PDF (no Word mail merge dependency)

@@ -14,6 +14,7 @@
  *   <li>{@link com.tbg.wms.db.OracleDbQueryRepository} - Oracle-backed implementation of query operations.</li>
  *   <li>{@link com.tbg.wms.db.DbConnectionPool} - HikariCP lifecycle and read-only datasource setup.</li>
  *   <li>{@link com.tbg.wms.db.DbConnectivityDiagnostics} - connection diagnostics and health checks.</li>
+ *   <li>Rail family normalization honors explicit WMS override flags (for example, UC_PARS_FLG=1 implies CAN).</li>
  * </ul>
  *
  * <p><strong>Internal Helper Types</strong></p>
