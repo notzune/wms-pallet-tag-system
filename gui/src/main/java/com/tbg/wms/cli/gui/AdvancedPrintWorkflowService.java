@@ -430,7 +430,8 @@ public final class AdvancedPrintWorkflowService {
         if (value == null) {
             return "id";
         }
-        return NON_ALNUM_PATTERN.matcher(value.toLowerCase(Locale.ROOT)).replaceAll("-");
+        String slug = NON_ALNUM_PATTERN.matcher(value.toLowerCase(Locale.ROOT)).replaceAll("-");
+        return slug.isBlank() ? "id" : slug;
     }
 
     public enum InputMode {
