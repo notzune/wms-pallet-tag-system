@@ -42,4 +42,15 @@ final class LocationNumberMappingServiceTest {
     void resolveDcLocationReturnsInputWhenNotMapped() {
         assertEquals("ABC123", service.resolveDcLocation("ABC123"));
     }
+
+    @Test
+    void resolveDcLocationHandlesQuotedCommasInSoldToName() throws IOException {
+        Path csv = tempDir.resolve("walm_loc_num_matrix_quoted.csv");
+        String content = "Sold-To Name,Location #,Sold-To #\n"
+                + "\"WAL-MART, CANADA 7087R\",7087R,0100003434\n";
+        Files.writeString(csv, content);
+        LocationNumberMappingService quotedService = new LocationNumberMappingService(csv);
+
+        assertEquals("7087R", quotedService.resolveDcLocation("C100003434"));
+    }
 }

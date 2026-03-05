@@ -8,6 +8,7 @@
 
 package com.tbg.wms.core.location;
 
+import com.tbg.wms.core.rail.RailCsvSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -118,14 +120,14 @@ public final class LocationNumberMappingService {
     }
 
     private void parseLine(String line, int lineNum) {
-        String[] fields = line.split(",", 3);
-        if (fields.length < 3) {
+        List<String> fields = RailCsvSupport.parseCsvLine(line);
+        if (fields.size() < 3) {
             log.warn("Skipping location matrix line {} - insufficient fields: {}", lineNum, line);
             return;
         }
 
-        String locationNumber = fields[1].trim();
-        String soldToNumber = fields[2].trim();
+        String locationNumber = fields.get(1).trim();
+        String soldToNumber = fields.get(2).trim();
         if (locationNumber.isEmpty() || soldToNumber.isEmpty()) {
             log.warn("Skipping location matrix line {} - missing location/sold-to: {}", lineNum, line);
             return;
