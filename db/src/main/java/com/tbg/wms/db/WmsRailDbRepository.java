@@ -23,11 +23,13 @@ public final class WmsRailDbRepository implements RailDbRepository {
 
     @Override
     public List<RailStopRecord> findRailStopsByTrainId(String trainId) {
+        Objects.requireNonNull(trainId, "trainId cannot be null");
         return delegate.findRailStopsByTrainId(trainId);
     }
 
     @Override
     public Map<String, List<RailFootprintCandidate>> findRailFootprintsByShortCode(List<String> shortCodes) {
+        Objects.requireNonNull(shortCodes, "shortCodes cannot be null");
         return delegate.findRailFootprintsByShortCode(shortCodes);
     }
 }
