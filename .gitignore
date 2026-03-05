@@ -65,3 +65,7 @@ Print .docx
 out/docx_inspect/
 out/Print.docx
 /INSTRUCTIONS_RAILCAR.md
+
+### Local temp work dirs ###
+/temp/
+/temp-*/
