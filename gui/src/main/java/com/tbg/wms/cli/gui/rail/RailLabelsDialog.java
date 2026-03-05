@@ -29,7 +29,7 @@ public final class RailLabelsDialog extends JDialog {
     private final JButton printButton = new JButton("Print");
 
     private final DefaultTableModel tableModel = new DefaultTableModel(
-            new Object[]{"SEQ", "VEHICLE", "CAN", "DOM", "LOAD_NBR"}, 0) {
+            new Object[]{"SEQ", "VEHICLE", "CAN", "DOM", "KEV", "LOAD_NBR"}, 0) {
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
@@ -244,6 +244,7 @@ public final class RailLabelsDialog extends JDialog {
                     card.getVehicleId(),
                     card.getCanPallets(),
                     card.getDomPallets(),
+                    card.getKevPallets(),
                     card.getLoadNumbers()
             });
         }

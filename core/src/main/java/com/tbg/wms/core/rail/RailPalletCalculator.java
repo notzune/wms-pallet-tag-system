@@ -7,6 +7,9 @@ import java.util.*;
 
 /**
  * Calculates per-railcar pallet totals using ceiling(cases / casesPerPallet).
+ *
+ * <p>Family totals are tracked independently for {@code CAN}, {@code DOM}, and
+ * {@code KEV} so reporting can present each bucket explicitly.</p>
  */
 public final class RailPalletCalculator {
 
@@ -23,6 +26,7 @@ public final class RailPalletCalculator {
 
         int canPallets = 0;
         int domPallets = 0;
+        int kevPallets = 0;
         List<String> missingFootprints = new ArrayList<>();
 
         for (Map.Entry<String, Integer> entry : aggregate.getCasesByItem().entrySet()) {
@@ -37,13 +41,15 @@ public final class RailPalletCalculator {
             int pallets = divideCeiling(cases, footprint.getCasesPerPallet());
             if (isCanFamily(footprint.getFamilyCode())) {
                 canPallets += pallets;
+            } else if (isKevFamily(footprint.getFamilyCode())) {
+                kevPallets += pallets;
             } else {
                 domPallets += pallets;
             }
         }
 
         Collections.sort(missingFootprints);
-        return new RailPalletResult(canPallets, domPallets, missingFootprints);
+        return new RailPalletResult(canPallets, domPallets, kevPallets, missingFootprints);
     }
 
     private int divideCeiling(int dividend, int divisor) {
@@ -58,17 +64,24 @@ public final class RailPalletCalculator {
         return normalized.contains("CAN");
     }
 
+    private boolean isKevFamily(String familyCode) {
+        String normalized = familyCode == null ? "" : familyCode.trim().toUpperCase(Locale.ROOT);
+        return normalized.contains("KEV");
+    }
+
     /**
      * Result object for per-railcar pallet totals.
      */
     public static final class RailPalletResult {
         private final int canPallets;
         private final int domPallets;
+        private final int kevPallets;
         private final List<String> missingItems;
 
-        private RailPalletResult(int canPallets, int domPallets, List<String> missingItems) {
+        private RailPalletResult(int canPallets, int domPallets, int kevPallets, List<String> missingItems) {
             this.canPallets = canPallets;
             this.domPallets = domPallets;
+            this.kevPallets = kevPallets;
             this.missingItems = Collections.unmodifiableList(new ArrayList<>(missingItems));
         }
 
@@ -78,6 +91,13 @@ public final class RailPalletCalculator {
 
         public int getDomPallets() {
             return domPallets;
+        }
+
+        /**
+         * Returns pallet total for KEV family rows.
+         */
+        public int getKevPallets() {
+            return kevPallets;
         }
 
         public List<String> getMissingItems() {

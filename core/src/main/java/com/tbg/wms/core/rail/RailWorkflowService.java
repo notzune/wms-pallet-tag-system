@@ -109,6 +109,7 @@ public final class RailWorkflowService {
                 sortedItems,
                 palletResult.getCanPallets(),
                 palletResult.getDomPallets(),
+                palletResult.getKevPallets(),
                 families,
                 palletResult.getMissingItems()
         );

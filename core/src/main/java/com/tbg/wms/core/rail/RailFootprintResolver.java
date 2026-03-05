@@ -18,8 +18,9 @@ import java.util.*;
  * CAN/DOM pallet totals. Centralizing this consistency gate makes behavior explicit,
  * testable, and reusable by both CLI and GUI flows.</p>
  *
- * <p>A short code is considered resolvable only when all candidates agree on
- * family code and cases-per-pallet.</p>
+ * <p>A short code is considered resolvable when all candidates agree on normalized
+ * family bucket ({@code CAN}, {@code DOM}, or {@code KEV}). Cases-per-pallet is
+ * resolved deterministically by taking the maximum value across candidates.</p>
  */
 public final class RailFootprintResolver {
 
@@ -37,24 +38,53 @@ public final class RailFootprintResolver {
             if (rows == null || rows.isEmpty()) {
                 continue;
             }
-            RailFootprintCandidate first = rows.get(0);
-            if (!isConsistent(rows, first)) {
+            RailFamilyFootprint footprint = resolveOne(entry.getKey(), rows);
+            if (footprint == null) {
                 continue;
             }
-            resolved.put(entry.getKey(),
-                    new RailFamilyFootprint(entry.getKey(), first.getFamilyCode(), first.getCasesPerPallet()));
+            resolved.put(entry.getKey(), footprint);
         }
         return Collections.unmodifiableMap(resolved);
     }
 
-    private boolean isConsistent(List<RailFootprintCandidate> rows, RailFootprintCandidate seed) {
-        for (int i = 1; i < rows.size(); i++) {
-            RailFootprintCandidate current = rows.get(i);
-            if (!seed.getFamilyCode().equals(current.getFamilyCode())
-                    || seed.getCasesPerPallet() != current.getCasesPerPallet()) {
-                return false;
+    private RailFamilyFootprint resolveOne(String shortCode, List<RailFootprintCandidate> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return null;
+        }
+
+        String selectedFamily = null;
+        int selectedCasesPerPallet = 0;
+
+        for (RailFootprintCandidate current : rows) {
+            if (current == null || !current.isValid()) {
+                continue;
+            }
+            String currentFamily = normalizeFamilyBucket(current.getFamilyCode());
+            if (selectedFamily == null) {
+                selectedFamily = currentFamily;
+            } else if (!selectedFamily.equals(currentFamily)) {
+                return null;
+            }
+
+            if (current.getCasesPerPallet() > selectedCasesPerPallet) {
+                selectedCasesPerPallet = current.getCasesPerPallet();
             }
         }
-        return true;
+
+        if (selectedFamily == null || selectedCasesPerPallet <= 0) {
+            return null;
+        }
+        return new RailFamilyFootprint(shortCode, selectedFamily, selectedCasesPerPallet);
+    }
+
+    private String normalizeFamilyBucket(String familyCode) {
+        String normalized = familyCode == null ? "" : familyCode.trim().toUpperCase(Locale.ROOT);
+        if (normalized.contains("CAN")) {
+            return "CAN";
+        }
+        if (normalized.contains("KEV")) {
+            return "KEV";
+        }
+        return "DOM";
     }
 }

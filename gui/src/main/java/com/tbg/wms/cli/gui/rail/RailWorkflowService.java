@@ -89,6 +89,7 @@ public final class RailWorkflowService {
         sb.append('\n');
         sb.append("CAN: ").append(card.getCanPallets()).append('\n');
         sb.append("DOM: ").append(card.getDomPallets()).append('\n');
+        sb.append("KEV: ").append(card.getKevPallets()).append('\n');
         if (!card.getTopFamilies().isEmpty()) {
             sb.append("TOP: ").append(String.join(" ", card.getTopFamilies())).append('\n');
         }

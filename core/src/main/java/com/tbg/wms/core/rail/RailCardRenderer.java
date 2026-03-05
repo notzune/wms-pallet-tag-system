@@ -20,14 +20,15 @@ import java.util.Objects;
  */
 public final class RailCardRenderer {
     private static final PDRectangle PAGE_SIZE = PDRectangle.LETTER;
-    private static final float PAGE_MARGIN = 24f;
-    private static final float GRID_GAP = 10f;
+    private static final float PAGE_MARGIN = 14f;
+    private static final float GRID_GAP_X = 8f;
+    private static final float GRID_GAP_Y = 7f;
     private static final int GRID_COLS = 2;
-    private static final int GRID_ROWS = 3;
-    private static final float HEADER_FONT_SIZE = 10f;
-    private static final float BODY_FONT_SIZE = 8f;
-    private static final float LINE_HEIGHT = 11f;
-    private static final int ITEMS_PER_CARD = 8;
+    private static final int GRID_ROWS = 5;
+    private static final float HEADER_FONT_SIZE = 8.5f;
+    private static final float BODY_FONT_SIZE = 6.3f;
+    private static final float LINE_HEIGHT = 8.0f;
+    private static final int ITEMS_PER_CARD = 5;
 
     /**
      * Renders cards into a PDF file.
@@ -67,21 +68,21 @@ public final class RailCardRenderer {
     private void drawCard(PDPageContentStream content, RailCarCard card, int slot) throws IOException {
         float usableWidth = PAGE_SIZE.getWidth() - (2 * PAGE_MARGIN);
         float usableHeight = PAGE_SIZE.getHeight() - (2 * PAGE_MARGIN);
-        float cardWidth = (usableWidth - ((GRID_COLS - 1) * GRID_GAP)) / GRID_COLS;
-        float cardHeight = (usableHeight - ((GRID_ROWS - 1) * GRID_GAP)) / GRID_ROWS;
+        float cardWidth = (usableWidth - ((GRID_COLS - 1) * GRID_GAP_X)) / GRID_COLS;
+        float cardHeight = (usableHeight - ((GRID_ROWS - 1) * GRID_GAP_Y)) / GRID_ROWS;
 
         int row = slot / GRID_COLS;
         int col = slot % GRID_COLS;
 
-        float left = PAGE_MARGIN + col * (cardWidth + GRID_GAP);
-        float top = PAGE_SIZE.getHeight() - PAGE_MARGIN - row * (cardHeight + GRID_GAP);
+        float left = PAGE_MARGIN + col * (cardWidth + GRID_GAP_X);
+        float top = PAGE_SIZE.getHeight() - PAGE_MARGIN - row * (cardHeight + GRID_GAP_Y);
         float bottom = top - cardHeight;
 
         content.addRect(left, bottom, cardWidth, cardHeight);
         content.stroke();
 
-        float textX = left + 8f;
-        float y = top - 14f;
+        float textX = left + 7f;
+        float y = top - 11f;
 
         writeText(content, PDType1Font.HELVETICA_BOLD, HEADER_FONT_SIZE,
                 textX, y, safe(card.getSequence()) + "      " + safe(card.getVehicleId()));
@@ -109,10 +110,12 @@ public final class RailCardRenderer {
             y -= LINE_HEIGHT;
         }
 
-        y -= 3f;
+        y -= 2f;
         writeText(content, PDType1Font.HELVETICA_BOLD, BODY_FONT_SIZE, textX, y, "CAN: " + card.getCanPallets());
         y -= LINE_HEIGHT;
         writeText(content, PDType1Font.HELVETICA_BOLD, BODY_FONT_SIZE, textX, y, "DOM: " + card.getDomPallets());
+        y -= LINE_HEIGHT;
+        writeText(content, PDType1Font.HELVETICA_BOLD, BODY_FONT_SIZE, textX, y, "KEV: " + card.getKevPallets());
         y -= LINE_HEIGHT;
 
         if (!card.getTopFamilies().isEmpty()) {
@@ -121,7 +124,13 @@ public final class RailCardRenderer {
             y -= LINE_HEIGHT;
         }
 
-        writeText(content, PDType1Font.HELVETICA, BODY_FONT_SIZE, textX, bottom + 10f,
+        if (!card.getMissingFootprintItems().isEmpty()) {
+            writeText(content, PDType1Font.HELVETICA_OBLIQUE, BODY_FONT_SIZE, textX, y,
+                    "MISSING: " + card.getMissingFootprintItems().size());
+            y -= LINE_HEIGHT;
+        }
+
+        writeText(content, PDType1Font.HELVETICA, BODY_FONT_SIZE, textX, bottom + 8f,
                 "PASS: ______   FUEL: ______   BH: ______");
     }
 

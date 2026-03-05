@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 final class RailPalletCalculatorTest {
 
     @Test
-    void calculateUsesCeilingAndSeparatesCanAndDomPerRailcar() {
+    void calculateUsesCeilingAndSeparatesCanDomAndKevPerRailcar() {
         RailCarAggregate aggregate = new RailCarAggregate(
                 "03-04-26",
                 "143",
@@ -22,20 +22,23 @@ final class RailPalletCalculatorTest {
                 new LinkedHashMap<>(Map.of(
                         "CAN1", 2300,
                         "DOM1", 120,
-                        "DOM2", 56
+                        "DOM2", 56,
+                        "KEV1", 21
                 ))
         );
 
         Map<String, RailFamilyFootprint> footprints = Map.of(
                 "CAN1", new RailFamilyFootprint("CAN1", "CAN", 56),
                 "DOM1", new RailFamilyFootprint("DOM1", "DOM", 50),
-                "DOM2", new RailFamilyFootprint("DOM2", "DOM", 56)
+                "DOM2", new RailFamilyFootprint("DOM2", "DOM", 56),
+                "KEV1", new RailFamilyFootprint("KEV1", "KEV", 20)
         );
 
         RailPalletCalculator.RailPalletResult result = new RailPalletCalculator().calculate(aggregate, footprints);
 
         assertEquals(42, result.getCanPallets());
         assertEquals(4, result.getDomPallets());
+        assertEquals(2, result.getKevPallets());
         assertEquals(0, result.getMissingItems().size());
     }
 }

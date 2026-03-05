@@ -17,10 +17,10 @@ final class RailCardRendererTest {
         List<RailCarCard> cards = List.of(
                 new RailCarCard("0124", "142", "CAR1", "L1",
                         List.of(new RailStopRecord.ItemQuantity("01830", 120)),
-                        2, 1, List.of("DOM:100"), List.of()),
+                        2, 1, 0, List.of("DOM:100"), List.of()),
                 new RailCarCard("0124", "143", "CAR2", "L2",
                         List.of(new RailStopRecord.ItemQuantity("01831", 300)),
-                        0, 6, List.of("CAN:60", "DOM:40"), List.of())
+                        0, 6, 0, List.of("CAN:60", "DOM:40"), List.of())
         );
 
         Path output = Files.createTempFile("rail-cards-test", ".pdf");

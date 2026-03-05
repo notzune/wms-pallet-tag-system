@@ -35,7 +35,7 @@ public final class RailPrintCommand implements Callable<Integer> {
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help message and exit")
     private boolean helpRequested;
 
-    @Option(names = {"--train"}, required = true, description = "Train ID (full or 4-digit rail train number)")
+    @Option(names = {"--train"}, required = true, description = "Full train ID (example: JC08312025)")
     private String trainId;
 
     @Option(names = {"--output-dir"}, defaultValue = "out/rail-print", description = "Output folder")
@@ -92,13 +92,14 @@ public final class RailPrintCommand implements Callable<Integer> {
     private void printPreview(RailWorkflowService.RailWorkflowResult result) {
         List<RailCarCard> cards = result.getCards();
         System.out.println();
-        System.out.println("SEQ   VEHICLE      CAN   DOM");
+        System.out.println("SEQ   VEHICLE      CAN   DOM   KEV");
         for (RailCarCard card : cards) {
-            System.out.printf("%-5s %-12s %4d %4d%n",
+            System.out.printf("%-5s %-12s %4d %4d %4d%n",
                     card.getSequence(),
                     card.getVehicleId(),
                     card.getCanPallets(),
-                    card.getDomPallets());
+                    card.getDomPallets(),
+                    card.getKevPallets());
         }
         System.out.println();
         System.out.println("Railcars: " + cards.size());

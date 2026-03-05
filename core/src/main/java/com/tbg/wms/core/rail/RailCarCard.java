@@ -16,6 +16,7 @@ public final class RailCarCard {
     private final List<RailStopRecord.ItemQuantity> itemLines;
     private final int canPallets;
     private final int domPallets;
+    private final int kevPallets;
     private final List<String> topFamilies;
     private final List<String> missingFootprintItems;
 
@@ -26,6 +27,7 @@ public final class RailCarCard {
                        List<RailStopRecord.ItemQuantity> itemLines,
                        int canPallets,
                        int domPallets,
+                       int kevPallets,
                        List<String> topFamilies,
                        List<String> missingFootprintItems) {
         this.trainId = normalize(trainId);
@@ -35,6 +37,7 @@ public final class RailCarCard {
         this.itemLines = Collections.unmodifiableList(new ArrayList<>(itemLines));
         this.canPallets = canPallets;
         this.domPallets = domPallets;
+        this.kevPallets = kevPallets;
         this.topFamilies = Collections.unmodifiableList(new ArrayList<>(topFamilies));
         this.missingFootprintItems = Collections.unmodifiableList(new ArrayList<>(missingFootprintItems));
     }
@@ -69,6 +72,13 @@ public final class RailCarCard {
 
     public int getDomPallets() {
         return domPallets;
+    }
+
+    /**
+     * Returns KEV-family pallet count for this railcar card.
+     */
+    public int getKevPallets() {
+        return kevPallets;
     }
 
     public List<String> getTopFamilies() {
