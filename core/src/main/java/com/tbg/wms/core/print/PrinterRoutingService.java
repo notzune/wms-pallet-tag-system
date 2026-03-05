@@ -132,7 +132,11 @@ public final class PrinterRoutingService {
             }
 
             // For now, preserve one-condition semantics used by existing routing configs.
-            RuleConditionEntry condition = conditions.get(0);
+            RuleConditionEntry condition = firstDefinedCondition(conditions);
+            if (condition == null) {
+                log.warn("Skipping rule {} with only empty conditions", id);
+                continue;
+            }
             String field = requireYamlValue(condition.field, "rules[].when.all[].field", routingFile);
             String operator = requireYamlValue(condition.op, "rules[].when.all[].op", routingFile);
             String value = requireYamlValue(condition.value, "rules[].when.all[].value", routingFile);
@@ -155,6 +159,15 @@ public final class PrinterRoutingService {
             throw new IllegalArgumentException("Missing required field '" + field + "' in " + sourceFile);
         }
         return value;
+    }
+
+    private static RuleConditionEntry firstDefinedCondition(List<RuleConditionEntry> conditions) {
+        for (RuleConditionEntry condition : conditions) {
+            if (condition != null) {
+                return condition;
+            }
+        }
+        return null;
     }
 
     private static void validateOptionalSiteCode(String expectedSiteCode, String configuredSiteCode, Path sourceFile) {

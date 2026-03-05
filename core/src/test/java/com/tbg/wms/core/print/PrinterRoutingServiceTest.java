@@ -247,5 +247,70 @@ class PrinterRoutingServiceTest {
         // Assert
         assertTrue(result.isEmpty());
     }
+
+    @Test
+    void load_shouldSkipRuleWithOnlyEmptyConditions(@TempDir Path tempDir) throws Exception {
+        Path siteDir = Files.createDirectories(tempDir.resolve("TBG3002"));
+
+        Files.writeString(siteDir.resolve("printers.yaml"), String.join("\n",
+                "siteCode: TBG3002",
+                "printers:",
+                "  - id: OFFICE",
+                "    name: Office_Test",
+                "    ip: 10.19.64.106",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        Files.writeString(siteDir.resolve("printer-routing.yaml"), String.join("\n",
+                "siteCode: TBG3002",
+                "defaultPrinterId: OFFICE",
+                "rules:",
+                "  - id: invalid-empty-condition",
+                "    enabled: true",
+                "    when:",
+                "      all:",
+                "        -",
+                "    then:",
+                "      printerId: OFFICE",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        PrinterRoutingService service = PrinterRoutingService.load("TBG3002", tempDir);
+        assertEquals(0, service.getRules().size());
+    }
+
+    @Test
+    void load_shouldUseFirstDefinedConditionWhenLeadingConditionIsEmpty(@TempDir Path tempDir) throws Exception {
+        Path siteDir = Files.createDirectories(tempDir.resolve("TBG3002"));
+
+        Files.writeString(siteDir.resolve("printers.yaml"), String.join("\n",
+                "siteCode: TBG3002",
+                "printers:",
+                "  - id: OFFICE",
+                "    name: Office_Test",
+                "    ip: 10.19.64.106",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        Files.writeString(siteDir.resolve("printer-routing.yaml"), String.join("\n",
+                "siteCode: TBG3002",
+                "defaultPrinterId: OFFICE",
+                "rules:",
+                "  - id: fallback",
+                "    enabled: true",
+                "    when:",
+                "      all:",
+                "        -",
+                "        - field: stagingLocation",
+                "          op: EQUALS",
+                "          value: ROSSI",
+                "    then:",
+                "      printerId: OFFICE",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        PrinterRoutingService service = PrinterRoutingService.load("TBG3002", tempDir);
+        assertEquals(1, service.getRules().size());
+    }
 }
 
