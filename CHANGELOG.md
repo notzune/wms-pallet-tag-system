@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened `AppConfig` numeric settings parsing with clear key/value validation errors for invalid integer/long config values.
 - Hardened printer-routing YAML parsing to skip empty/null condition entries safely instead of failing on malformed rule condition arrays.
 - Improved dotenv-style parser handling to strip unquoted inline comments while preserving quoted `#` characters in values.
+- Hardened GUI queue input parsing with explicit `defaultType` null checks and positive `maxItems` validation.
 
 ### Deprecated
 

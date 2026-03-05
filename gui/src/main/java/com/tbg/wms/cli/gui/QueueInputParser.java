@@ -9,6 +9,7 @@ package com.tbg.wms.cli.gui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Parses queue dialog input into strongly-typed queue request items.
@@ -30,6 +31,10 @@ final class QueueInputParser {
             String text,
             AdvancedPrintWorkflowService.QueueItemType defaultType,
             int maxItems) {
+        Objects.requireNonNull(defaultType, "defaultType cannot be null");
+        if (maxItems <= 0) {
+            throw new IllegalArgumentException("maxItems must be > 0.");
+        }
         List<AdvancedPrintWorkflowService.QueueRequestItem> requests = new ArrayList<>();
         String payload = text;
         if (payload == null) {

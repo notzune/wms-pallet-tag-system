@@ -78,4 +78,22 @@ final class QueueInputParserTest {
         );
         assertEquals("Queue input exceeds max size of 2 items.", ex.getMessage());
     }
+
+    @Test
+    void parseRejectsNullDefaultType() {
+        NullPointerException ex = assertThrows(
+                NullPointerException.class,
+                () -> QueueInputParser.parse("123", null, 10)
+        );
+        assertEquals("defaultType cannot be null", ex.getMessage());
+    }
+
+    @Test
+    void parseRejectsNonPositiveMaxItems() {
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> QueueInputParser.parse("123", AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, 0)
+        );
+        assertEquals("maxItems must be > 0.", ex.getMessage());
+    }
 }
