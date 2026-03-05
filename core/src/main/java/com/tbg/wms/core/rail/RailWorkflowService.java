@@ -96,7 +96,7 @@ public final class RailWorkflowService {
                 aggregate.getLoadNumberDisplay(),
                 sortedItems
         );
-        RailLabelPlanner.PlannedRailLabel planned = labelPlanner.plan(List.of(flattened), footprints).get(0);
+        RailLabelPlanner.PlannedRailLabel planned = labelPlanner.planOne(flattened, footprints);
         List<String> families = planned.getTopFamilies().stream()
                 .map(family -> family.getFamilyCode() + ":" + family.getPercent())
                 .collect(Collectors.toList());
@@ -157,7 +157,7 @@ public final class RailWorkflowService {
             this.rawRows = Collections.unmodifiableList(new ArrayList<>(rawRows));
             this.aggregates = Collections.unmodifiableList(new ArrayList<>(aggregates));
             this.cards = Collections.unmodifiableList(new ArrayList<>(cards));
-            this.resolvedFootprints = resolvedFootprints;
+            this.resolvedFootprints = Collections.unmodifiableMap(new LinkedHashMap<>(resolvedFootprints));
             this.unresolvedShortCodes = Collections.unmodifiableSet(new TreeSet<>(unresolvedShortCodes));
             this.missingItemsInCards = Collections.unmodifiableSet(new TreeSet<>(missingItemsInCards));
         }

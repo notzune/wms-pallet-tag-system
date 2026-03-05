@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -113,5 +114,69 @@ final class RailLabelPlannerTest {
         assertEquals(1, planned.getOverflowItems().size());
         assertEquals("90014", planned.getOverflowItems().get(0).getItemNumber());
         assertEquals("90013", planned.toMergeFields().get("ITEM_NBR_13"));
+    }
+
+    @Test
+    void planOneProducesSameResultAsBatchPlan() {
+        RailStopRecord record = new RailStopRecord(
+                "03-02-26",
+                "210",
+                "0303",
+                "TPIX3333",
+                "BR",
+                "8000000001",
+                List.of(
+                        new RailStopRecord.ItemQuantity("A1000", 100),
+                        new RailStopRecord.ItemQuantity("A1001", 100),
+                        new RailStopRecord.ItemQuantity("A1002", 100)
+                )
+        );
+        Map<String, RailFamilyFootprint> footprints = Map.of(
+                "A1000", new RailFamilyFootprint("A1000", "DOM", 100),
+                "A1001", new RailFamilyFootprint("A1001", "CAN", 100),
+                "A1002", new RailFamilyFootprint("A1002", "KEV", 100)
+        );
+
+        RailLabelPlanner planner = new RailLabelPlanner();
+        RailLabelPlanner.PlannedRailLabel fromOne = planner.planOne(record, footprints);
+        RailLabelPlanner.PlannedRailLabel fromBatch = planner.plan(List.of(record), footprints).get(0);
+
+        assertEquals(fromBatch.toMergeFields(), fromOne.toMergeFields());
+        assertEquals(fromBatch.getMissingFootprintItems(), fromOne.getMissingFootprintItems());
+    }
+
+    @Test
+    void planPercentagesAreDeterministicAndSumToOneHundred() {
+        RailStopRecord record = new RailStopRecord(
+                "03-02-26",
+                "211",
+                "0303",
+                "TPIX3334",
+                "BR",
+                "8000000002",
+                List.of(
+                        new RailStopRecord.ItemQuantity("B1000", 1),
+                        new RailStopRecord.ItemQuantity("B1001", 1),
+                        new RailStopRecord.ItemQuantity("B1002", 1)
+                )
+        );
+        Map<String, RailFamilyFootprint> footprints = Map.of(
+                "B1000", new RailFamilyFootprint("B1000", "AAA", 1),
+                "B1001", new RailFamilyFootprint("B1001", "BBB", 1),
+                "B1002", new RailFamilyFootprint("B1002", "CCC", 1)
+        );
+
+        RailLabelPlanner.PlannedRailLabel planned = new RailLabelPlanner().planOne(record, footprints);
+        int percentSum = planned.getTopFamilies().stream()
+                .map(RailLabelPlanner.FamilyShare::getPercent)
+                .reduce(0, Integer::sum);
+
+        assertEquals(100, percentSum);
+        assertEquals(
+                List.of("AAA:34", "BBB:33", "CCC:33"),
+                planned.getTopFamilies().stream()
+                        .map(s -> s.getFamilyCode() + ":" + s.getPercent())
+                        .collect(Collectors.toList())
+        );
     }
 }
