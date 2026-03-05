@@ -9,7 +9,7 @@ If TrainID = "" Then
     Exit Sub
 End If
 
-Call Delete
+Call CleanupRailTempSheets
     Sheets.Add After:=Sheets(Sheets.Count)
     ActiveSheet.Name = "Working"
     Sheets.Add After:=Sheets(Sheets.Count)

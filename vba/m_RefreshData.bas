@@ -31,15 +31,14 @@ If Err.Number = 0 Then
 End If
 
 If Err.Number <> 0 Or Cells(Rows.Count, 1).End(xlUp).Row = 1 Then
-    Call Delete
+    Call CleanupRailTempSheets
     Sheets("Inputs").Select
     Application.ScreenUpdating = True
     MsgBox ("Error executing report.  Confirm you are using a valid Train ID.")
-    End
+    Exit Sub
 End If
     
-    
-  
+Application.ScreenUpdating = True
 End Sub
 
 

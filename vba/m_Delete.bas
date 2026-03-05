@@ -1,6 +1,6 @@
 Option Explicit
 
-Sub Delete()
+Sub CleanupRailTempSheets()
 Application.ScreenUpdating = False
 
 On Error Resume Next
