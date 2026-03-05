@@ -25,4 +25,10 @@ class RailCsvSupportTest {
         List<String> values = RailCsvSupport.parseCsvLine("A,\"B,C\",\"He said \"\"Hi\"\"\",D");
         assertEquals(List.of("A", "B,C", "He said \"Hi\"", "D"), values);
     }
+
+    @Test
+    void parseCsvLineHandlesNullAndEmptyInput() {
+        assertEquals(List.of(""), RailCsvSupport.parseCsvLine(null));
+        assertEquals(List.of(""), RailCsvSupport.parseCsvLine(""));
+    }
 }

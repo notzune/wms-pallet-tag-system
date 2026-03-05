@@ -51,6 +51,9 @@ public final class RailCsvSupport {
      * @return ordered field values
      */
     public static List<String> parseCsvLine(String line) {
+        if (line == null || line.isEmpty()) {
+            return List.of("");
+        }
         List<String> values = new ArrayList<>(8);
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
