@@ -6,7 +6,7 @@ Sub RunReports()
 TrainID = Sheets("Inputs").Range("E5")
 If TrainID = "" Then
     MsgBox ("Please enter a Train ID.")
-    End
+    Exit Sub
 End If
 
 Call Delete
@@ -18,7 +18,7 @@ Call Delete
     ActiveSheet.Name = "_Footprints"
 
 Call RefreshData
-Call ApplyFormatting
+Call ApplyTrainDetailFormatting
 Call RefreshFootprints
 Call Count_Product
 Sheets("Working").Delete
