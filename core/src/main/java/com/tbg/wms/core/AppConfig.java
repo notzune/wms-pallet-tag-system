@@ -138,7 +138,7 @@ public final class AppConfig {
      * @return the port from {@code ORACLE_PORT} (default: {@code 1521})
      */
     public int oraclePort() {
-        return Integer.parseInt(get("ORACLE_PORT", "1521"));
+        return parseIntConfig("ORACLE_PORT", "1521");
     }
 
     /**
@@ -306,7 +306,7 @@ public final class AppConfig {
      * @return the max pool size from {@code DB_POOL_MAX_SIZE} (default: {@code 5})
      */
     public int dbPoolMaxSize() {
-        return Integer.parseInt(get("DB_POOL_MAX_SIZE", "5"));
+        return parseIntConfig("DB_POOL_MAX_SIZE", "5");
     }
 
     /**
@@ -315,7 +315,7 @@ public final class AppConfig {
      * @return the timeout from {@code DB_POOL_CONN_TIMEOUT_MS} (default: {@code 3000} ms)
      */
     public long dbPoolConnectionTimeoutMs() {
-        return Long.parseLong(get("DB_POOL_CONN_TIMEOUT_MS", "3000"));
+        return parseLongConfig("DB_POOL_CONN_TIMEOUT_MS", "3000");
     }
 
     /**
@@ -324,7 +324,7 @@ public final class AppConfig {
      * @return the timeout from {@code DB_POOL_VALIDATION_TIMEOUT_MS} (default: {@code 2000} ms)
      */
     public long dbPoolValidationTimeoutMs() {
-        return Long.parseLong(get("DB_POOL_VALIDATION_TIMEOUT_MS", "2000"));
+        return parseLongConfig("DB_POOL_VALIDATION_TIMEOUT_MS", "2000");
     }
 
     /**
@@ -379,6 +379,24 @@ public final class AppConfig {
                     + " (set env var, or define in " + DEFAULT_FILE_NAME + "/.env)");
         }
         return v.trim();
+    }
+
+    private int parseIntConfig(String key, String defaultValue) {
+        String value = get(key, defaultValue);
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid integer config for " + key + ": '" + value + "'", ex);
+        }
+    }
+
+    private long parseLongConfig(String key, String defaultValue) {
+        String value = get(key, defaultValue);
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid long config for " + key + ": '" + value + "'", ex);
+        }
     }
 
     /**
