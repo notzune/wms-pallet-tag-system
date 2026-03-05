@@ -266,7 +266,7 @@ public final class LabelDataBuilder {
     }
 
     /**
-     * Format a LocalDateTime to DD.MM.YYYY string.
+     * Format a LocalDateTime to MM.dd.yyyy string.
      *
      * @param datetime the date/time to format
      * @return formatted string, or null if input is null
@@ -279,7 +279,7 @@ public final class LabelDataBuilder {
     }
 
     /**
-     * Format a LocalDate to DD.MM.YYYY string.
+     * Format a LocalDate to MM.dd.yyyy string.
      *
      * @param date the date to format
      * @return formatted string, or null if input is null
