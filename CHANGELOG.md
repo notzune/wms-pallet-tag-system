@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened rail footprint resolution to reject short codes with conflicting cases-per-pallet candidates instead of selecting a potentially incorrect value.
 - Hardened DB connectivity error classification by using locale-stable lowercase normalization for Oracle message matching.
 - Standardized rail planner missing-footprint diagnostics to be deduplicated and sorted for stable reconciliation output.
+- Improved DB remediation hint matching to be case-insensitive for common Oracle/JDBC connectivity error phrases.
 
 ### Deprecated
 

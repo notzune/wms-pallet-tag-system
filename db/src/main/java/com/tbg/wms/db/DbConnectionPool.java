@@ -242,24 +242,24 @@ public final class DbConnectionPool implements AutoCloseable {
     private String mapSqlErrorToRemediationHint(SQLException e) {
         String sqlState = e.getSQLState();
         String message = e.getMessage() == null ? "" : e.getMessage();
+        String lowerMessage = message.toLowerCase(Locale.ROOT);
 
         if (sqlState == null) {
             return "Check network connectivity, firewall, and VPN settings.";
         }
 
         // Oracle-specific SQL states
-        if ("17002".equals(sqlState) || message.contains("Connection refused")) {
+        if ("17002".equals(sqlState) || lowerMessage.contains("connection refused")) {
             return "Connection refused: check DB_HOST, ORACLE_PORT, and firewall. " +
                     "Verify VPN is connected and database service is running.";
         }
-        if ("17004".equals(sqlState) || message.contains("Cannot create JDBC driver")) {
+        if ("17004".equals(sqlState) || lowerMessage.contains("cannot create jdbc driver")) {
             return "Cannot load Oracle JDBC driver: check ojdbc11 is on classpath and version matches DB.";
         }
-        if ("12514".equals(sqlState) || message.contains("listener does not currently know")) {
+        if ("12514".equals(sqlState) || lowerMessage.contains("listener does not currently know")) {
             return "Service not found: verify ORACLE_SERVICE=" + config.oracleService() + " is correct. " +
                     "Query DB admin for available services.";
         }
-        String lowerMessage = message.toLowerCase(Locale.ROOT);
         if (lowerMessage.contains("invalid username/password") || lowerMessage.contains("ora-01017")) {
             return "Authentication failed: verify ORACLE_USERNAME and ORACLE_PASSWORD are correct.";
         }
