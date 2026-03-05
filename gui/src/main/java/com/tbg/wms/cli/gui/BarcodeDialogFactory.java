@@ -277,7 +277,10 @@ final class BarcodeDialogFactory {
         boolean printToFile = dependencies.isPrintToFileSelected(printer);
         Path outputPath = resolveOutputPath(outputDir.getText(), data, printToFile);
         try {
-            Files.createDirectories(outputPath.getParent());
+            Path parent = outputPath.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
             Files.writeString(outputPath, zpl);
         } catch (Exception ex) {
             dependencies.showError("Failed to write ZPL file: " + ex.getMessage());

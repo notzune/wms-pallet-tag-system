@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed location-matrix CSV parsing to handle quoted commas safely by switching to shared RFC-style CSV tokenization.
 - Hardened rail pallet ceiling math against integer-overflow edge cases by using long intermediates and explicit overflow signaling.
 - Hardened rail merge CSV export directory handling by guarding parent-directory creation when the output path has no parent component.
+- Hardened GUI barcode ZPL export directory handling by guarding parent-directory creation when the output path has no parent component.
 
 ### Deprecated
 
