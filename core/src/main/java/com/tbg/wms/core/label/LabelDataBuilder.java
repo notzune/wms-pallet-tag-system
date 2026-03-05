@@ -29,8 +29,8 @@ import java.util.*;
  * Different label formats need different subsets of fields. The builder handles:
  * - Required fields (throw if missing)
  * - Optional fields (safe defaults like " " if not available)
- * - Type conversions (int→String, LocalDateTime→formatted date, etc.)
- * - SKU lookups (TBG PRTNUM → Walmart item code via SkuMappingService)
+ * - Type conversions (int->String, LocalDateTime->formatted date, etc.)
+ * - SKU lookups (TBG PRTNUM -> Walmart item code via SkuMappingService)
  * - Composite field formatting (address combining, date formatting, etc.)
  * <p>
  * This design allows adding/removing label fields with just one line of code
@@ -94,8 +94,6 @@ public final class LabelDataBuilder {
         }
     }
 
-    // ── Helper methods ──
-
     /**
      * Builds label data for a specific pallet within a shipment.
      * <p>
@@ -120,12 +118,12 @@ public final class LabelDataBuilder {
 
         Map<String, String> fields = new LinkedHashMap<>();
 
-        // ── Ship From (static per site) ──
+        // Ship From (static per site)
         fields.put("shipFromName", require(siteConfig.getShipFromName(), "shipFromName"));
         fields.put("shipFromAddress", require(siteConfig.getShipFromAddress(), "shipFromAddress"));
         fields.put("shipFromCityStateZip", require(siteConfig.getShipFromCityStateZip(), "shipFromCityStateZip"));
 
-        // ── Ship To (required) ──
+        // Ship To (required)
         fields.put("shipToName", require(shipment.getShipToName(), "shipToName"));
         fields.put("shipToAddress1", require(shipment.getShipToAddress1(), "shipToAddress1"));
         fields.put("shipToAddress2", orDefault(shipment.getShipToAddress2(), SPACE_SAFE_DEFAULT));
@@ -136,99 +134,106 @@ public final class LabelDataBuilder {
         fields.put("shipToCountry", orDefault(shipment.getShipToCountry(), SPACE_SAFE_DEFAULT));
         fields.put("shipToPhone", orDefault(shipment.getShipToPhone(), SPACE_SAFE_DEFAULT));
 
-        // ── Carrier and shipping info ──
+        // Carrier and shipping info
         fields.put("carrierCode", require(shipment.getCarrierCode(), "carrierCode"));
         fields.put("carrierMoveId", orDefault(shipment.getCarrierMoveId(), SPACE_SAFE_DEFAULT));
         fields.put("serviceLevel", orDefault(shipment.getServiceLevel(), SPACE_SAFE_DEFAULT));
         fields.put("documentNumber", orDefault(shipment.getDocumentNumber(), SPACE_SAFE_DEFAULT));
         fields.put("trackingNumber", orDefault(shipment.getTrackingNumber(), SPACE_SAFE_DEFAULT));
 
-        // ── Order-level fields ──
+        // Order-level fields
         fields.put("customerPo", orDefault(shipment.getCustomerPo(), SPACE_SAFE_DEFAULT));
         fields.put("locationNumber", orDefault(resolveLocationNumber(shipment), SPACE_SAFE_DEFAULT));
         fields.put("departmentNumber", orDefault(shipment.getDepartmentNumber(), SPACE_SAFE_DEFAULT));
 
-        // ── Carrier move / stop details ──
+        // Carrier move / stop details
         fields.put("proNumber", orDefault(shipment.getProNumber(), SPACE_SAFE_DEFAULT));
         fields.put("bolNumber", orDefault(shipment.getBolNumber(), SPACE_SAFE_DEFAULT));
         fields.put("stopSequence", orDefault(str(shipment.getStopSequence()), SPACE_SAFE_DEFAULT));
 
-        // ── Dates ──
+        // Dates
         fields.put("shipDate", orDefault(fmtDate(shipment.getShipDate()), SPACE_SAFE_DEFAULT));
         fields.put("deliveryDate", orDefault(fmtDate(shipment.getDeliveryDate()), SPACE_SAFE_DEFAULT));
 
-        // ── LPN / barcode data (required) ──
+        // LPN / barcode data (required)
         fields.put("lpnId", require(lpn.getLpnId(), "lpnId"));
         fields.put("ssccBarcode", require(lpn.getSscc(), "ssccBarcode"));
         fields.put("palletSeq", String.valueOf(palletIndex + 1));
         fields.put("palletTotal", String.valueOf(shipment.getLpnCount()));
 
-        // ── Pallet weight and dimensions ──
+        // Pallet weight and dimensions
         fields.put("weight", orDefault(String.valueOf(lpn.getWeight()), SPACE_SAFE_DEFAULT));
 
-        // ── Lot tracking (optional) ──
+        // Lot tracking (optional)
         fields.put("warehouseLot", orDefault(lpn.getWarehouseLot(), SPACE_SAFE_DEFAULT));
         fields.put("customerLot", orDefault(lpn.getCustomerLot(), SPACE_SAFE_DEFAULT));
         fields.put("manufactureDate", orDefault(fmtDate(lpn.getManufactureDate()), SPACE_SAFE_DEFAULT));
         fields.put("bestByDate", orDefault(fmtDate(lpn.getBestByDate()), SPACE_SAFE_DEFAULT));
 
-        // ── Product/line item data (from first line item on this pallet) ──
-        if (!lpn.getLineItems().isEmpty()) {
-            RepresentativeItemSelection selection = selectRepresentativeItem(lpn);
-            LineItem item = selection.item;
-
-            fields.put("tbgSku", require(item.getSku(), "tbgSku"));
-            fields.put("quantity", String.valueOf(item.getQuantity()));
-            fields.put("unitOfMeasure", orDefault(item.getUom(), "EA"));
-
-            // Walmart item code lookup (critical for labels)
-            WalmartSkuMapping mapping = selection.mapping;
-            if (mapping != null) {
-                fields.put("walmartItemNumber", mapping.getWalmartItemNo());
-                fields.put("itemDescription", mapping.getDescription());
-            } else {
-                // Non-Walmart orders or missing mappings should render Walmart field blank.
-                fields.put("walmartItemNumber", SPACE_SAFE_DEFAULT);
-                fields.put("itemDescription", orDefault(item.getDescription(), SPACE_SAFE_DEFAULT));
-                log.info("Walmart item code not found in matrix for SKU {} (shipment {})",
-                        item.getSku(), shipment.getShipmentId());
-            }
-
-            // Alternate barcodes (if available from database)
-            fields.put("gtinBarcode", orDefault(item.getGtinBarcode(), SPACE_SAFE_DEFAULT));
-            fields.put("upcCode", orDefault(item.getUpcCode(), SPACE_SAFE_DEFAULT));
-
-            ShipmentSkuFootprint footprint = footprintBySku.get(item.getSku());
-            fields.put("unitsPerCase", footprint != null && footprint.getUnitsPerCase() != null
-                    ? String.valueOf(footprint.getUnitsPerCase()) : SPACE_SAFE_DEFAULT);
-            fields.put("unitsPerPallet", footprint != null && footprint.getUnitsPerPallet() != null
-                    ? String.valueOf(footprint.getUnitsPerPallet()) : SPACE_SAFE_DEFAULT);
-            fields.put("palletLength", footprint != null && footprint.getPalletLength() != null
-                    ? String.valueOf(footprint.getPalletLength()) : SPACE_SAFE_DEFAULT);
-            fields.put("palletWidth", footprint != null && footprint.getPalletWidth() != null
-                    ? String.valueOf(footprint.getPalletWidth()) : SPACE_SAFE_DEFAULT);
-            fields.put("palletHeight", footprint != null && footprint.getPalletHeight() != null
-                    ? String.valueOf(footprint.getPalletHeight()) : SPACE_SAFE_DEFAULT);
+        // Product/line item data (representative item on this pallet)
+        RepresentativeItemSelection selection = selectRepresentativeItem(lpn);
+        if (selection != null) {
+            populateProductFields(fields, shipment, selection);
         } else {
-            // No line items on this pallet - use safe defaults
-            fields.put("tbgSku", SPACE_SAFE_DEFAULT);
-            fields.put("quantity", "0");
-            fields.put("unitOfMeasure", "EA");
-            fields.put("walmartItemNumber", SPACE_SAFE_DEFAULT);
-            fields.put("itemDescription", SPACE_SAFE_DEFAULT);
-            fields.put("gtinBarcode", SPACE_SAFE_DEFAULT);
-            fields.put("upcCode", SPACE_SAFE_DEFAULT);
-            fields.put("unitsPerCase", SPACE_SAFE_DEFAULT);
-            fields.put("unitsPerPallet", SPACE_SAFE_DEFAULT);
-            fields.put("palletLength", SPACE_SAFE_DEFAULT);
-            fields.put("palletWidth", SPACE_SAFE_DEFAULT);
-            fields.put("palletHeight", SPACE_SAFE_DEFAULT);
+            // No usable line item on this pallet - use safe defaults
+            applyDefaultProductFields(fields);
         }
 
-        // ── Staging location (for diagnostics / printer routing) ──
+        // Staging location (for diagnostics / printer routing)
         fields.put("stagingLocation", orDefault(lpn.getStagingLocation(), SPACE_SAFE_DEFAULT));
 
         return Collections.unmodifiableMap(fields);
+    }
+
+    private void populateProductFields(Map<String, String> fields,
+                                       Shipment shipment,
+                                       RepresentativeItemSelection selection) {
+        LineItem item = selection.item;
+        String sku = orDefault(item.getSku(), SPACE_SAFE_DEFAULT);
+        fields.put("tbgSku", sku);
+        fields.put("quantity", String.valueOf(item.getQuantity()));
+        fields.put("unitOfMeasure", orDefault(item.getUom(), "EA"));
+
+        WalmartSkuMapping mapping = selection.mapping;
+        if (mapping != null) {
+            fields.put("walmartItemNumber", mapping.getWalmartItemNo());
+            fields.put("itemDescription", mapping.getDescription());
+        } else {
+            fields.put("walmartItemNumber", SPACE_SAFE_DEFAULT);
+            fields.put("itemDescription", orDefault(item.getDescription(), SPACE_SAFE_DEFAULT));
+            log.info("Walmart item code not found in matrix for SKU {} (shipment {})",
+                    sku, shipment.getShipmentId());
+        }
+
+        fields.put("gtinBarcode", orDefault(item.getGtinBarcode(), SPACE_SAFE_DEFAULT));
+        fields.put("upcCode", orDefault(item.getUpcCode(), SPACE_SAFE_DEFAULT));
+
+        ShipmentSkuFootprint footprint = footprintBySku.get(item.getSku());
+        fields.put("unitsPerCase", footprint != null && footprint.getUnitsPerCase() != null
+                ? String.valueOf(footprint.getUnitsPerCase()) : SPACE_SAFE_DEFAULT);
+        fields.put("unitsPerPallet", footprint != null && footprint.getUnitsPerPallet() != null
+                ? String.valueOf(footprint.getUnitsPerPallet()) : SPACE_SAFE_DEFAULT);
+        fields.put("palletLength", footprint != null && footprint.getPalletLength() != null
+                ? String.valueOf(footprint.getPalletLength()) : SPACE_SAFE_DEFAULT);
+        fields.put("palletWidth", footprint != null && footprint.getPalletWidth() != null
+                ? String.valueOf(footprint.getPalletWidth()) : SPACE_SAFE_DEFAULT);
+        fields.put("palletHeight", footprint != null && footprint.getPalletHeight() != null
+                ? String.valueOf(footprint.getPalletHeight()) : SPACE_SAFE_DEFAULT);
+    }
+
+    private void applyDefaultProductFields(Map<String, String> fields) {
+        fields.put("tbgSku", SPACE_SAFE_DEFAULT);
+        fields.put("quantity", "0");
+        fields.put("unitOfMeasure", "EA");
+        fields.put("walmartItemNumber", SPACE_SAFE_DEFAULT);
+        fields.put("itemDescription", SPACE_SAFE_DEFAULT);
+        fields.put("gtinBarcode", SPACE_SAFE_DEFAULT);
+        fields.put("upcCode", SPACE_SAFE_DEFAULT);
+        fields.put("unitsPerCase", SPACE_SAFE_DEFAULT);
+        fields.put("unitsPerPallet", SPACE_SAFE_DEFAULT);
+        fields.put("palletLength", SPACE_SAFE_DEFAULT);
+        fields.put("palletWidth", SPACE_SAFE_DEFAULT);
+        fields.put("palletHeight", SPACE_SAFE_DEFAULT);
     }
 
     /**
@@ -299,16 +304,16 @@ public final class LabelDataBuilder {
     /**
      * Selects a line item for label identity fields.
      *
-     * <p>Prefer a SKU that exists in Walmart mapping, otherwise fallback to first item.</p>
+     * <p>Prefer a SKU that exists in Walmart mapping, otherwise fallback to first usable item.</p>
      */
     private RepresentativeItemSelection selectRepresentativeItem(Lpn lpn) {
         LineItem fallback = null;
         for (LineItem item : lpn.getLineItems()) {
-            if (fallback == null && item != null) {
-                fallback = item;
-            }
-            if (item == null || item.getSku() == null) {
+            if (item == null || item.getSku() == null || item.getSku().trim().isEmpty()) {
                 continue;
+            }
+            if (fallback == null) {
+                fallback = item;
             }
             WalmartSkuMapping mapping = skuMapping.findByPrtnum(item.getSku());
             if (mapping != null) {
@@ -316,10 +321,9 @@ public final class LabelDataBuilder {
             }
         }
         if (fallback == null) {
-            fallback = lpn.getLineItems().get(0);
+            return null;
         }
-        String fallbackSku = fallback == null ? null : fallback.getSku();
-        return new RepresentativeItemSelection(fallback, skuMapping.findByPrtnum(fallbackSku));
+        return new RepresentativeItemSelection(fallback, skuMapping.findByPrtnum(fallback.getSku()));
     }
 
     private String resolveLocationNumber(Shipment shipment) {
@@ -340,4 +344,3 @@ public final class LabelDataBuilder {
         }
     }
 }
-

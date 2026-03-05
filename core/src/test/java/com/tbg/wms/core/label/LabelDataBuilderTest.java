@@ -233,6 +233,18 @@ class LabelDataBuilderTest {
     }
 
     @Test
+    void testBuildHandlesNonEmptyButUnusableLineItems() {
+        Lpn nullItemLpn = new Lpn("LPN_NULL", "8000141715", "123456789012345690", 0, 0, 0.0, "ROSSI",
+                "LOT003", "SLOT003", LocalDate.now(), LocalDate.now(), java.util.Arrays.asList((LineItem) null));
+
+        Map<String, String> fields = builder.build(testShipment, nullItemLpn, 0, LabelType.WALMART_CANADA_GRID);
+
+        assertEquals(" ", fields.get("tbgSku"));
+        assertEquals(" ", fields.get("walmartItemNumber"));
+        assertEquals("0", fields.get("quantity"));
+    }
+
+    @Test
     void testBuildReturnsUnmodifiableMap() {
         Map<String, String> fields = builder.build(testShipment, testLpn, 0, LabelType.WALMART_CANADA_GRID);
 

@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced small but repeated allocation/read overhead in label generation loops by caching per-job LPN counts and reusing a single `LocalDate.now()` value for virtual LPN date stamping.
 - Reduced rail workflow allocation overhead by introducing single-record planning (`RailLabelPlanner.planOne`) and removing per-card singleton list construction in `RailWorkflowService`.
 - Refined rail family-share percentage allocation using deterministic largest-remainder rounding so family percentages remain stable and sum correctly.
+- Improved `LabelDataBuilder` SRP by extracting product-field population/defaulting helpers and removing repeated field-mapping blocks.
 
 ### Deprecated
 
@@ -55,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Resolved Maven parent-version drift that caused `javadoc:aggregate` failures in CI when resolving module parents.
 - Fixed rail family normalization precedence in DB footprint lookup so `UC_PARS_FLG=1` is applied as a CAN override before other family-code checks.
+- Fixed `LabelDataBuilder` null-safety for non-empty but unusable pallet line-item lists (for example null/missing-SKU entries) to avoid runtime failures and emit safe defaults.
 
 ### Security
 
