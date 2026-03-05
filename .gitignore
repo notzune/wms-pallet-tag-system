@@ -61,6 +61,7 @@ db/logs/wms-tags.log
 
 ### Rail macro/template artifacts ###
 m_*.bas
+!vba/*.bas
 Print .docx
 out/docx_inspect/
 out/Print.docx

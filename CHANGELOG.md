@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored `OracleDbQueryRepository` input precondition normalization into shared helpers and replaced concatenated rail-stop grouping keys with a typed key object.
 - Expanded DB repository tests to cover carrier-move input preconditions and train-ID normalization in rail stop lookups.
 - Renamed the VBA formatting macro entrypoint to `ApplyTrainDetailFormatting` and replaced hard `End` termination with `Exit Sub` in `RunReports` to reduce ambiguous-name collisions and abrupt macro termination.
+- Reduced redundant Oracle `ResultSet` date/timestamp column reads by centralizing nullable temporal extraction helpers in `OracleDbQueryRepository`.
+- Moved VBA macro helper modules to `vba/` and documented their purpose/ownership in README.
 
 ### Deprecated
 

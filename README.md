@@ -235,6 +235,18 @@ Workflow:
 - Click `Generate PDF` to produce a letter-size multi-card PDF.
 - Click `Print` to generate PDF and send it to the host default printer.
 
+## Excel VBA Macro Helpers
+
+- VBA helper modules for the legacy Excel rail macro flow are versioned under `vba/`.
+- These modules support worksheet setup, WMS query refreshes, footprint refreshes, rollup math, and report orchestration.
+- Current helper modules:
+- `vba/m_RunReports.bas`
+- `vba/m_RefreshData.bas`
+- `vba/m_RefreshFootprints.bas`
+- `vba/m_Count_Product.bas`
+- `vba/m_Formatting.bas`
+- `vba/m_Delete.bas`
+
 ## GUI Workflow
 
 - Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
@@ -422,6 +434,13 @@ wms-pallet-tag-system/
 |   |-- build-portable-bundle.ps1 # portable package builder
 |   |-- run.bat                   # bundle launcher
 |   `-- wms-tags-gui.bat          # bundle GUI launcher
+|-- vba/                          # Excel macro helper modules (.bas)
+|   |-- m_RunReports.bas          # rail macro entrypoint/orchestration
+|   |-- m_RefreshData.bas         # train data query refresh helper
+|   |-- m_RefreshFootprints.bas   # footprint refresh helper
+|   |-- m_Count_Product.bas       # rail pallet/family rollup helper
+|   |-- m_Formatting.bas          # train detail formatting helper
+|   `-- m_Delete.bas              # temp worksheet cleanup helper
 |-- analysis/                     # Internal analysis notes and DB dumps
 |   |-- docs/
 |   `-- python-tools/
