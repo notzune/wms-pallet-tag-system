@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced rail workflow allocation overhead by introducing single-record planning (`RailLabelPlanner.planOne`) and removing per-card singleton list construction in `RailWorkflowService`.
 - Refined rail family-share percentage allocation using deterministic largest-remainder rounding so family percentages remain stable and sum correctly.
 - Improved `LabelDataBuilder` SRP by extracting product-field population/defaulting helpers and removing repeated field-mapping blocks.
+- Reduced duplicated rail family-bucket logic by introducing shared `RailFamilyClassifier` and reusing it in resolver/calculator paths.
 
 ### Deprecated
 

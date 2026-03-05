@@ -12,6 +12,7 @@ import java.util.*;
  * {@code KEV} so reporting can present each bucket explicitly.</p>
  */
 public final class RailPalletCalculator {
+    private final RailFamilyClassifier familyClassifier = new RailFamilyClassifier();
 
     /**
      * Computes CAN and DOM pallets for one railcar aggregate.
@@ -39,9 +40,10 @@ public final class RailPalletCalculator {
             }
 
             int pallets = divideCeiling(cases, footprint.getCasesPerPallet());
-            if (isCanFamily(footprint.getFamilyCode())) {
+            RailFamilyClassifier.FamilyBucket bucket = familyClassifier.classify(footprint.getFamilyCode());
+            if (bucket == RailFamilyClassifier.FamilyBucket.CAN) {
                 canPallets += pallets;
-            } else if (isKevFamily(footprint.getFamilyCode())) {
+            } else if (bucket == RailFamilyClassifier.FamilyBucket.KEV) {
                 kevPallets += pallets;
             } else {
                 domPallets += pallets;
@@ -57,16 +59,6 @@ public final class RailPalletCalculator {
             return 0;
         }
         return (dividend + divisor - 1) / divisor;
-    }
-
-    private boolean isCanFamily(String familyCode) {
-        String normalized = familyCode == null ? "" : familyCode.trim().toUpperCase(Locale.ROOT);
-        return normalized.contains("CAN");
-    }
-
-    private boolean isKevFamily(String familyCode) {
-        String normalized = familyCode == null ? "" : familyCode.trim().toUpperCase(Locale.ROOT);
-        return normalized.contains("KEV");
     }
 
     /**

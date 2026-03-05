@@ -23,6 +23,7 @@ import java.util.*;
  * resolved deterministically by taking the maximum value across candidates.</p>
  */
 public final class RailFootprintResolver {
+    private final RailFamilyClassifier familyClassifier = new RailFamilyClassifier();
 
     /**
      * Resolves one footprint row per short code when candidates are internally consistent.
@@ -59,7 +60,7 @@ public final class RailFootprintResolver {
             if (current == null || !current.isValid()) {
                 continue;
             }
-            String currentFamily = normalizeFamilyBucket(current.getFamilyCode());
+            String currentFamily = familyClassifier.classify(current.getFamilyCode()).name();
             if (selectedFamily == null) {
                 selectedFamily = currentFamily;
             } else if (!selectedFamily.equals(currentFamily)) {
@@ -77,14 +78,4 @@ public final class RailFootprintResolver {
         return new RailFamilyFootprint(shortCode, selectedFamily, selectedCasesPerPallet);
     }
 
-    private String normalizeFamilyBucket(String familyCode) {
-        String normalized = familyCode == null ? "" : familyCode.trim().toUpperCase(Locale.ROOT);
-        if (normalized.contains("CAN")) {
-            return "CAN";
-        }
-        if (normalized.contains("KEV")) {
-            return "KEV";
-        }
-        return "DOM";
-    }
 }
