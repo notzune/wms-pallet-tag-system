@@ -44,4 +44,21 @@ final class EnvStyleConfigParserTest {
         assertEquals("value", values.get("VALID_KEY"));
         assertNull(values.get("KEY_ONLY"));
     }
+
+    @Test
+    void parseLinesStripsUnquotedInlineComments() {
+        Map<String, String> values = EnvStyleConfigParser.parseLines(List.of(
+                "A=1 # comment",
+                "B=plain#comment",
+                "C= 2    # trailing",
+                "D=\"x#y\" # comment",
+                "E='left#right' # comment"
+        ));
+
+        assertEquals("1", values.get("A"));
+        assertEquals("plain", values.get("B"));
+        assertEquals("2", values.get("C"));
+        assertEquals("x#y", values.get("D"));
+        assertEquals("left#right", values.get("E"));
+    }
 }

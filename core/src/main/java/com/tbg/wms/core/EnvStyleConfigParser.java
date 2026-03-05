@@ -58,7 +58,7 @@ final class EnvStyleConfigParser {
         }
 
         String key = line.substring(0, sep).trim();
-        String value = line.substring(sep + 1).trim();
+        String value = stripInlineComment(line.substring(sep + 1)).trim();
         if (key.isEmpty()) {
             return;
         }
@@ -74,6 +74,29 @@ final class EnvStyleConfigParser {
         char last = value.charAt(value.length() - 1);
         if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
             return value.substring(1, value.length() - 1);
+        }
+        return value;
+    }
+
+    private static String stripInlineComment(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+                continue;
+            }
+            if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+                continue;
+            }
+            if (c == '#' && !inSingleQuote && !inDoubleQuote) {
+                return value.substring(0, i);
+            }
         }
         return value;
     }
