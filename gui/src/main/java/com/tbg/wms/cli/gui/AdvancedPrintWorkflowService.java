@@ -80,9 +80,18 @@ public final class AdvancedPrintWorkflowService {
         List<PreparedStopGroup> groups = new ArrayList<>(byStop.size());
         int stopPosition = 1;
         for (List<CarrierMoveStopRef> stopRefs : byStop.values()) {
+            if (stopRefs == null || stopRefs.isEmpty()) {
+                continue;
+            }
             List<LabelWorkflowService.PreparedJob> jobs = resolvePreparedJobsForStop(repo, stopRefs);
             if (!jobs.isEmpty()) {
-                Integer stopSequence = stopRefs.get(0).getStopSequence();
+                Integer stopSequence = null;
+                for (CarrierMoveStopRef stopRef : stopRefs) {
+                    if (stopRef != null) {
+                        stopSequence = stopRef.getStopSequence();
+                        break;
+                    }
+                }
                 groups.add(new PreparedStopGroup(stopSequence, stopPosition, jobs));
                 stopPosition++;
             }
@@ -100,9 +109,19 @@ public final class AdvancedPrintWorkflowService {
     }
 
     private List<LabelWorkflowService.PreparedJob> resolvePreparedJobsForStop(DbQueryRepository repo, List<CarrierMoveStopRef> stopRefs) throws Exception {
-        stopRefs.sort(Comparator.comparing(CarrierMoveStopRef::getShipmentId));
-        LinkedHashSet<String> uniqueShipments = new LinkedHashSet<>(stopRefs.size());
-        for (CarrierMoveStopRef ref : stopRefs) {
+        List<CarrierMoveStopRef> orderedRefs = new ArrayList<>(stopRefs.size());
+        for (CarrierMoveStopRef stopRef : stopRefs) {
+            if (stopRef != null) {
+                orderedRefs.add(stopRef);
+            }
+        }
+        orderedRefs.sort(Comparator.comparing(
+                CarrierMoveStopRef::getShipmentId,
+                Comparator.nullsLast(String::compareTo)
+        ));
+
+        LinkedHashSet<String> uniqueShipments = new LinkedHashSet<>(orderedRefs.size());
+        for (CarrierMoveStopRef ref : orderedRefs) {
             if (ref.getShipmentId() != null && !ref.getShipmentId().isBlank()) {
                 uniqueShipments.add(ref.getShipmentId());
             }

@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened rail pallet ceiling math against integer-overflow edge cases by using long intermediates and explicit overflow signaling.
 - Hardened rail merge CSV export directory handling by guarding parent-directory creation when the output path has no parent component.
 - Hardened GUI barcode ZPL export directory handling by guarding parent-directory creation when the output path has no parent component.
+- Hardened carrier-move stop grouping in GUI workflow to safely ignore null stop refs and null shipment IDs during deterministic shipment ordering.
 
 ### Deprecated
 
