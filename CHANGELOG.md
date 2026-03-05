@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced duplicated rail family-bucket logic by introducing shared `RailFamilyClassifier` and reusing it in resolver/calculator paths.
 - Refreshed rail documentation snippets in README/instructions to reflect explicit `CAN`/`DOM`/`KEV` bucket reporting.
 - Reduced rail short-code collection overhead in `RailWorkflowService` by using insertion-order deduplication and deferring sorting to result/report layers.
+- Reduced rail aggregation key allocation overhead by replacing string-concatenated grouping keys with a typed `RailcarGroupKey`.
 
 ### Deprecated
 

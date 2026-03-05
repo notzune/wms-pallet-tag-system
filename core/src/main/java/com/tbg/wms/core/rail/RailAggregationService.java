@@ -18,20 +18,14 @@ public final class RailAggregationService {
      */
     public List<RailCarAggregate> aggregateByRailcar(List<RailStopRecord> rows) {
         Objects.requireNonNull(rows, "rows cannot be null");
-        Map<String, MutableAggregate> grouped = new LinkedHashMap<>();
+        Map<RailcarGroupKey, MutableAggregate> grouped = new LinkedHashMap<>();
 
         for (RailStopRecord row : rows) {
             if (row == null) {
                 continue;
             }
-            String key = row.getTrainNumber() + "|" + row.getSequence() + "|" + row.getVehicleId();
-            MutableAggregate aggregate = grouped.computeIfAbsent(key, ignored -> new MutableAggregate(
-                    row.getDate(),
-                    row.getSequence(),
-                    row.getTrainNumber(),
-                    row.getVehicleId(),
-                    row.getWarehouse()
-            ));
+            RailcarGroupKey key = RailcarGroupKey.of(row);
+            MutableAggregate aggregate = grouped.computeIfAbsent(key, ignored -> MutableAggregate.fromRow(row));
             if (!row.getLoadNumber().isBlank()) {
                 aggregate.loadNumbers.add(row.getLoadNumber());
             }
@@ -58,6 +52,41 @@ public final class RailAggregationService {
         return Collections.unmodifiableList(result);
     }
 
+    private static final class RailcarGroupKey {
+        private final String trainNumber;
+        private final String sequence;
+        private final String vehicleId;
+
+        private RailcarGroupKey(String trainNumber, String sequence, String vehicleId) {
+            this.trainNumber = trainNumber;
+            this.sequence = sequence;
+            this.vehicleId = vehicleId;
+        }
+
+        private static RailcarGroupKey of(RailStopRecord row) {
+            return new RailcarGroupKey(row.getTrainNumber(), row.getSequence(), row.getVehicleId());
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof RailcarGroupKey)) {
+                return false;
+            }
+            RailcarGroupKey other = (RailcarGroupKey) obj;
+            return Objects.equals(trainNumber, other.trainNumber)
+                    && Objects.equals(sequence, other.sequence)
+                    && Objects.equals(vehicleId, other.vehicleId);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(trainNumber, sequence, vehicleId);
+        }
+    }
+
     private static final class MutableAggregate {
         private final String date;
         private final String sequence;
@@ -77,6 +106,16 @@ public final class RailAggregationService {
             this.trainNumber = trainNumber == null ? "" : trainNumber.trim();
             this.vehicleId = vehicleId == null ? "" : vehicleId.trim();
             this.warehouse = warehouse == null ? "" : warehouse.trim();
+        }
+
+        private static MutableAggregate fromRow(RailStopRecord row) {
+            return new MutableAggregate(
+                    row.getDate(),
+                    row.getSequence(),
+                    row.getTrainNumber(),
+                    row.getVehicleId(),
+                    row.getWarehouse()
+            );
         }
     }
 }
