@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standardized rail planner missing-footprint diagnostics to be deduplicated and sorted for stable reconciliation output.
 - Improved DB remediation hint matching to be case-insensitive for common Oracle/JDBC connectivity error phrases.
 - Hardened carrier-move checkpoint filename slugging to fall back safely when source IDs contain only non-alphanumeric characters.
+- Hardened rail model code normalization to use `Locale.ROOT` for uppercase conversion, preventing locale-dependent family-code drift.
 
 ### Deprecated
 

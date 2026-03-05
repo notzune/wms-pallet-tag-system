@@ -7,6 +7,7 @@
  */
 package com.tbg.wms.core.rail;
 
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -33,7 +34,7 @@ public final class RailFootprintCandidate {
     }
 
     private static String normalizeUpper(String value) {
-        return normalize(value).toUpperCase();
+        return normalize(value).toUpperCase(Locale.ROOT);
     }
 
     public String getShortCode() {
