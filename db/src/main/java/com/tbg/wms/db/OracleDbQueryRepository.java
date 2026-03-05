@@ -105,14 +105,25 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         return Integer.toString(value);
     }
 
+    private static String requireNormalizedId(String value, String fieldName) {
+        Objects.requireNonNull(value, fieldName + " cannot be null");
+        if (value.trim().isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
+        }
+        return NormalizationService.normalizeString(value);
+    }
+
+    private static String requireNormalizedUppercaseId(String value, String fieldName) {
+        Objects.requireNonNull(value, fieldName + " cannot be null");
+        if (value.trim().isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
+        }
+        return NormalizationService.normalizeToUppercase(value);
+    }
+
     @Override
     public Shipment findShipmentWithLpnsAndLineItems(String shipmentId) {
-        Objects.requireNonNull(shipmentId, "shipmentId cannot be null");
-        if (shipmentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("shipmentId cannot be empty");
-        }
-
-        String normalizedId = NormalizationService.normalizeString(shipmentId);
+        String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
         log.info("Retrieving shipment with LPNs and line items: {}", normalizedId);
 
         try {
@@ -173,12 +184,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     @Override
     public boolean shipmentExists(String shipmentId) {
-        Objects.requireNonNull(shipmentId, "shipmentId cannot be null");
-        if (shipmentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("shipmentId cannot be empty");
-        }
-
-        String normalizedId = NormalizationService.normalizeString(shipmentId);
+        String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
         String sql = "SELECT 1 FROM WMSP.SHIPMENT WHERE SHIP_ID = ? AND ROWNUM = 1";
 
         try (Connection conn = dataSource.getConnection();
@@ -202,12 +208,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     @Override
     public String getStagingLocation(String shipmentId) {
-        Objects.requireNonNull(shipmentId, "shipmentId cannot be null");
-        if (shipmentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("shipmentId cannot be empty");
-        }
-
-        String normalizedId = NormalizationService.normalizeString(shipmentId);
+        String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
         String sql = "SELECT DISTINCT s.DSTLOC " +
                 "FROM WMSP.SHIPMENT s " +
                 "WHERE s.SHIP_ID = ? AND ROWNUM <= 1";
@@ -238,12 +239,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     @Override
     public List<ShipmentSkuFootprint> findShipmentSkuFootprints(String shipmentId) {
-        Objects.requireNonNull(shipmentId, "shipmentId cannot be null");
-        if (shipmentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("shipmentId cannot be empty");
-        }
-
-        String normalizedId = NormalizationService.normalizeString(shipmentId);
+        String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
         List<ShipmentSkuFootprint> rows = new ArrayList<>();
 
         String sql = "WITH sku_units AS (" +
@@ -335,12 +331,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     @Override
     public List<CarrierMoveStopRef> findCarrierMoveStops(String carrierMoveId) {
-        Objects.requireNonNull(carrierMoveId, "carrierMoveId cannot be null");
-        if (carrierMoveId.trim().isEmpty()) {
-            throw new IllegalArgumentException("carrierMoveId cannot be empty");
-        }
-
-        String normalizedCarrierMoveId = NormalizationService.normalizeString(carrierMoveId);
+        String normalizedCarrierMoveId = requireNormalizedId(carrierMoveId, "carrierMoveId");
         List<CarrierMoveStopRef> rows = new ArrayList<>();
         String sql = "SELECT " +
                 "  st.CAR_MOVE_ID, st.STOP_ID, st.STOP_SEQ, st.TMS_STOP_SEQ, " +
@@ -393,11 +384,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     @Override
     public List<RailStopRecord> findRailStopsByTrainId(String trainId) {
-        Objects.requireNonNull(trainId, "trainId cannot be null");
-        if (trainId.trim().isEmpty()) {
-            throw new IllegalArgumentException("trainId cannot be empty");
-        }
-        String normalizedTrainId = NormalizationService.normalizeToUppercase(trainId);
+        String normalizedTrainId = requireNormalizedUppercaseId(trainId, "trainId");
 
         String sql = "SELECT " +
                 "  TO_CHAR(SYSDATE, 'MM-DD-YY') AS RUN_DATE, " +
@@ -427,7 +414,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, normalizedTrainId);
             try (ResultSet rs = stmt.executeQuery()) {
-                Map<String, MutableRailStop> grouped = new LinkedHashMap<>();
+                Map<RailStopGroupKey, MutableRailStop> grouped = new LinkedHashMap<>();
                 while (rs.next()) {
                     String date = NormalizationService.normalizeString(rs.getString("RUN_DATE"));
                     String sequence = integerToString(rs, "SEQ");
@@ -442,7 +429,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                         continue;
                     }
 
-                    String key = sequence + "|" + loadNumber + "|" + vehicleId + "|" + warehouse + "|" + trainNumber;
+                    RailStopGroupKey key = new RailStopGroupKey(sequence, loadNumber, vehicleId, warehouse, trainNumber);
                     MutableRailStop stop = grouped.computeIfAbsent(key,
                             ignored -> new MutableRailStop(date, sequence, trainNumber, vehicleId, warehouse, loadNumber));
                     stop.items.add(new RailStopRecord.ItemQuantity(shortCode, cases));
@@ -996,6 +983,47 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
             this.vehicleId = vehicleId == null ? "" : vehicleId.trim();
             this.warehouse = warehouse == null ? "" : warehouse.trim();
             this.loadNumber = loadNumber == null ? "" : loadNumber.trim();
+        }
+    }
+
+    private static final class RailStopGroupKey {
+        private final String sequence;
+        private final String loadNumber;
+        private final String vehicleId;
+        private final String warehouse;
+        private final String trainNumber;
+
+        private RailStopGroupKey(String sequence,
+                                 String loadNumber,
+                                 String vehicleId,
+                                 String warehouse,
+                                 String trainNumber) {
+            this.sequence = sequence;
+            this.loadNumber = loadNumber;
+            this.vehicleId = vehicleId;
+            this.warehouse = warehouse;
+            this.trainNumber = trainNumber;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof RailStopGroupKey)) {
+                return false;
+            }
+            RailStopGroupKey that = (RailStopGroupKey) o;
+            return Objects.equals(sequence, that.sequence)
+                    && Objects.equals(loadNumber, that.loadNumber)
+                    && Objects.equals(vehicleId, that.vehicleId)
+                    && Objects.equals(warehouse, that.warehouse)
+                    && Objects.equals(trainNumber, that.trainNumber);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(sequence, loadNumber, vehicleId, warehouse, trainNumber);
         }
     }
 }

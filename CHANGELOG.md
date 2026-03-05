@@ -51,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added strict pallet-index validation in `LabelDataBuilder` to prevent invalid sequence fields from negative or out-of-range inputs.
 - Added shipment-state validation in `LabelDataBuilder` so label builds fail fast when shipment payload has zero pallets.
 - Hardened `WmsRailDbRepository` adapter preconditions (null-guarded train/short-code inputs) and added explicit delegation tests.
+- Refactored `OracleDbQueryRepository` input precondition normalization into shared helpers and replaced concatenated rail-stop grouping keys with a typed key object.
+- Expanded DB repository tests to cover carrier-move input preconditions and train-ID normalization in rail stop lookups.
 
 ### Deprecated
 

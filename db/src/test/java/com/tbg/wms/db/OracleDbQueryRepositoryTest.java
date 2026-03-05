@@ -99,6 +99,12 @@ class OracleDbQueryRepositoryTest {
     }
 
     @Test
+    void testFindCarrierMoveStopsRequiresCarrierMoveId() {
+        assertThrows(NullPointerException.class, () -> repository.findCarrierMoveStops(null));
+        assertThrows(IllegalArgumentException.class, () -> repository.findCarrierMoveStops(" "));
+    }
+
+    @Test
     void testFindRailFootprintsByShortCodeRequiresNonNullList() {
         assertThrows(NullPointerException.class, () -> repository.findRailFootprintsByShortCode(null));
         assertEquals(Map.of(), repository.findRailFootprintsByShortCode(List.of("", "  ")));
@@ -180,6 +186,18 @@ class OracleDbQueryRepositoryTest {
         assertEquals(2, row.getItems().size());
         assertEquals("01830", row.getItems().get(0).getItemNumber());
         assertEquals("01831", row.getItems().get(1).getItemNumber());
+    }
+
+    @Test
+    void testFindRailStopsByTrainIdNormalizesInputToUppercase() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        repository.findRailStopsByTrainId(" jc03032026 ");
+
+        verify(mockStatement).setString(1, "JC03032026");
     }
 
     @Test
