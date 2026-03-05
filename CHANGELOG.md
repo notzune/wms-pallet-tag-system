@@ -63,6 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened GUI queue input parsing with explicit `defaultType` null checks and positive `maxItems` validation.
 - Hardened carrier-move print routing selection in CLI/GUI by resolving the first available shipment across all stop groups instead of assuming index-zero stop/job entries exist.
 - Fixed location-matrix CSV parsing to handle quoted commas safely by switching to shared RFC-style CSV tokenization.
+- Hardened rail pallet ceiling math against integer-overflow edge cases by using long intermediates and explicit overflow signaling.
+- Hardened rail merge CSV export directory handling by guarding parent-directory creation when the output path has no parent component.
 
 ### Deprecated
 

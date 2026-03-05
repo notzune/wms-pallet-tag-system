@@ -87,7 +87,10 @@ public final class RailTrainDetailExporter {
     public void exportTrainDetailCsv(List<RailLabelPlanner.PlannedRailLabel> plannedRows, Path outputCsv) throws IOException {
         Objects.requireNonNull(plannedRows, "plannedRows cannot be null");
         Objects.requireNonNull(outputCsv, "outputCsv cannot be null");
-        Files.createDirectories(outputCsv.toAbsolutePath().getParent());
+        Path parent = outputCsv.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
 
         try (BufferedWriter writer = Files.newBufferedWriter(outputCsv, StandardCharsets.UTF_8)) {
             writer.write(String.join(",", MERGE_HEADERS));

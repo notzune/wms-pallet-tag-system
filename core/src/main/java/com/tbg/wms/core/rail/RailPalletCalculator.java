@@ -25,9 +25,9 @@ public final class RailPalletCalculator {
         Objects.requireNonNull(aggregate, "aggregate cannot be null");
         Objects.requireNonNull(footprints, "footprints cannot be null");
 
-        int canPallets = 0;
-        int domPallets = 0;
-        int kevPallets = 0;
+        long canPallets = 0L;
+        long domPallets = 0L;
+        long kevPallets = 0L;
         List<String> missingFootprints = new ArrayList<>();
 
         for (Map.Entry<String, Integer> entry : aggregate.getCasesByItem().entrySet()) {
@@ -51,14 +51,27 @@ public final class RailPalletCalculator {
         }
 
         Collections.sort(missingFootprints);
-        return new RailPalletResult(canPallets, domPallets, kevPallets, missingFootprints);
+        return new RailPalletResult(
+                safeToInt(canPallets, "CAN"),
+                safeToInt(domPallets, "DOM"),
+                safeToInt(kevPallets, "KEV"),
+                missingFootprints
+        );
     }
 
     private int divideCeiling(int dividend, int divisor) {
         if (dividend <= 0 || divisor <= 0) {
             return 0;
         }
-        return (dividend + divisor - 1) / divisor;
+        long numerator = (long) dividend + (long) divisor - 1L;
+        return (int) (numerator / (long) divisor);
+    }
+
+    private int safeToInt(long value, String bucket) {
+        if (value > Integer.MAX_VALUE) {
+            throw new ArithmeticException("Pallet total overflow for bucket " + bucket + ": " + value);
+        }
+        return (int) value;
     }
 
     /**
