@@ -20,3 +20,39 @@ Version 19.3.0.0.0
 2026-03-02 16:16:23.302 [INFO ] [e5dbc5fc] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
 2026-03-02 16:16:23.311 [INFO ] [e5dbc5fc] [TBG3002:PROD] com.tbg.wms.cli.commands.DbTestCommand   - Database connectivity test succeeded: durationMs=0, dbVersion=Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
 Version 19.3.0.0.0
+2026-03-05 18:49:48.904 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-03-05 18:49:49.170 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-03-05 18:49:49.980 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
+2026-03-05 18:49:50.229 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-03-05 18:49:50.230 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-03-05 18:49:50.240 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-03-05 18:50:34.489 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-03-05 18:50:34.682 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-03-05 18:50:35.276 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
+2026-03-05 18:50:35.451 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-03-05 18:50:35.452 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-03-05 18:50:35.470 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-03-05 18:58:39.685 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-03-05 18:58:39.915 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-03-05 18:58:40.610 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
+2026-03-05 18:58:40.763 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-03-05 18:58:40.764 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-03-05 18:58:40.774 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-03-05 18:59:35.288 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-03-05 18:59:35.470 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-03-05 18:59:36.078 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
+2026-03-05 18:59:36.153 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-03-05 18:59:36.153 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-03-05 18:59:36.163 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-03-05 18:59:47.258 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-03-05 18:59:47.444 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-03-05 18:59:48.063 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
+2026-03-05 18:59:48.172 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-03-05 18:59:48.172 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-03-05 18:59:48.180 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-03-05 19:00:19.702 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-03-05 19:00:19.896 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-03-05 19:00:20.504 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
+2026-03-05 19:00:21.308 [INFO ] [] [:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-03-05 19:00:21.308 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-03-05 19:00:21.315 [INFO ] [] [:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
