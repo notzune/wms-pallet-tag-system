@@ -58,6 +58,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JPanel shipmentPreviewPanel = new JPanel();
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
+    private final JLabel versionLabel = new JLabel();
     private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
 
@@ -87,6 +88,7 @@ public final class LabelGuiFrame extends JFrame {
         wireActions();
         wireShortcuts();
         installTerminalLikeMouseClipboardBehavior(shipmentField);
+        versionLabel.setText("Version " + resolveVersionTag());
         updateInputModeUi();
         autoResumeIfFound();
         applyTopRowSizing();
@@ -95,14 +97,19 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private static String buildWindowTitle() {
+        String version = resolveVersionTag();
+        return version.isBlank()
+                ? "WMS Pallet Tag System"
+                : "WMS Pallet Tag System - " + version;
+    }
+
+    private static String resolveVersionTag() {
         Package pkg = LabelGuiFrame.class.getPackage();
         String version = pkg == null ? null : pkg.getImplementationVersion();
         if (version == null || version.isBlank()) {
             version = System.getProperty("wms.tags.version", "");
         }
-        return version == null || version.isBlank()
-                ? "WMS Pallet Tag System"
-                : "WMS Pallet Tag System - " + version;
+        return version == null ? "" : version.trim();
     }
 
     private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
@@ -222,7 +229,9 @@ public final class LabelGuiFrame extends JFrame {
     private JComponent buildBottomPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 6, 8));
+        versionLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 6, 12));
         panel.add(statusLabel, BorderLayout.CENTER);
+        panel.add(versionLabel, BorderLayout.EAST);
         return panel;
     }
 

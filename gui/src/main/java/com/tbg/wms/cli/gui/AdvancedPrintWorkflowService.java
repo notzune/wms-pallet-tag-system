@@ -14,6 +14,7 @@ import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.model.CarrierMoveStopRef;
 import com.tbg.wms.core.model.Lpn;
+import com.tbg.wms.core.model.Shipment;
 import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.template.ZplTemplateEngine;
@@ -260,17 +261,18 @@ public final class AdvancedPrintWorkflowService {
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
         List<PrintTask> tasks = new ArrayList<>();
         List<Lpn> lpnsForLabels = job.getLpnsForLabels();
+        Shipment shipmentForLabels = buildShipmentForLabeling(job.getShipment(), lpnsForLabels);
         int labelCount = lpnsForLabels.size();
         if (labelCount > MAX_LABELS_PER_JOB) {
             throw new IllegalArgumentException("Label count exceeds max limit: " + MAX_LABELS_PER_JOB);
         }
         for (int i = 0; i < labelCount; i++) {
             Lpn lpn = lpnsForLabels.get(i);
-            Map<String, String> data = new LinkedHashMap<>(builder.build(job.getShipment(), lpn, i, LabelType.WALMART_CANADA_GRID));
+            Map<String, String> data = new LinkedHashMap<>(builder.build(shipmentForLabels, lpn, i, LabelType.WALMART_CANADA_GRID));
             if (stopSequence != null) {
                 data.put("stopSequence", String.valueOf(stopSequence));
             }
-            if (job.getShipment().getLpnCount() == 0) {
+            if (job.isUsingVirtualLabels()) {
                 data.put("palletSeq", String.valueOf(i + 1));
                 data.put("palletTotal", String.valueOf(labelCount));
             }
@@ -287,6 +289,51 @@ public final class AdvancedPrintWorkflowService {
             tasks.add(new PrintTask(TaskKind.STOP_INFO_TAG, infoFile, infoZpl, "INFO-SHIPMENT " + job.getShipmentId()));
         }
         return tasks;
+    }
+
+    private Shipment buildShipmentForLabeling(Shipment shipment, List<Lpn> lpnsForLabels) {
+        if (shipment == null) {
+            throw new IllegalArgumentException("shipment cannot be null");
+        }
+        if (lpnsForLabels == null) {
+            throw new IllegalArgumentException("lpnsForLabels cannot be null");
+        }
+        if (shipment.getLpnCount() == lpnsForLabels.size()) {
+            return shipment;
+        }
+        return new Shipment(
+                shipment.getShipmentId(),
+                shipment.getExternalId(),
+                shipment.getOrderId(),
+                shipment.getWarehouseId(),
+                shipment.getShipToName(),
+                shipment.getShipToAddress1(),
+                shipment.getShipToAddress2(),
+                shipment.getShipToAddress3(),
+                shipment.getShipToCity(),
+                shipment.getShipToState(),
+                shipment.getShipToZip(),
+                shipment.getShipToCountry(),
+                shipment.getShipToPhone(),
+                shipment.getCarrierCode(),
+                shipment.getServiceLevel(),
+                shipment.getDocumentNumber(),
+                shipment.getTrackingNumber(),
+                shipment.getDestinationLocation(),
+                shipment.getCustomerPo(),
+                shipment.getLocationNumber(),
+                shipment.getDepartmentNumber(),
+                shipment.getStopId(),
+                shipment.getStopSequence(),
+                shipment.getCarrierMoveId(),
+                shipment.getProNumber(),
+                shipment.getBolNumber(),
+                shipment.getStatus(),
+                shipment.getShipDate(),
+                shipment.getDeliveryDate(),
+                shipment.getCreatedDate(),
+                lpnsForLabels
+        );
     }
 
     private LabelWorkflowService.PreparedJob firstCarrierShipment(PreparedCarrierMoveJob job) {
