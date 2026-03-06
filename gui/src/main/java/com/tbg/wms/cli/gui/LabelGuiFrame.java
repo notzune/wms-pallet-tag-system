@@ -18,6 +18,7 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.io.InputStream;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.prefs.Preferences;
 
 /**
@@ -46,6 +48,11 @@ public final class LabelGuiFrame extends JFrame {
     private static final int MAX_PREVIEW_STOPS = 250;
     private static final int MAX_PREVIEW_SHIPMENTS_PER_STOP = 250;
     private static final int MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT = 1000;
+    private static final String[] VERSION_RESOURCE_PATHS = {
+            "/META-INF/maven/com.tbg.wms/gui/pom.properties",
+            "/META-INF/maven/com.tbg.wms/cli/pom.properties",
+            "/META-INF/maven/com.tbg.wms/wms-pallet-tag-system/pom.properties"
+    };
     private final JLabel inputLabel = new JLabel("Carrier Move ID:");
     private final JTextField shipmentField = new JTextField(24);
     private final JRadioButton carrierMoveModeButton = new JRadioButton("Carrier Move ID", true);
@@ -109,7 +116,29 @@ public final class LabelGuiFrame extends JFrame {
         if (version == null || version.isBlank()) {
             version = System.getProperty("wms.tags.version", "");
         }
+        if (version == null || version.isBlank()) {
+            version = resolveVersionFromPomProperties();
+        }
         return version == null ? "" : version.trim();
+    }
+
+    private static String resolveVersionFromPomProperties() {
+        for (String path : VERSION_RESOURCE_PATHS) {
+            try (InputStream in = LabelGuiFrame.class.getResourceAsStream(path)) {
+                if (in == null) {
+                    continue;
+                }
+                Properties properties = new Properties();
+                properties.load(in);
+                String version = properties.getProperty("version", "").trim();
+                if (!version.isEmpty()) {
+                    return version;
+                }
+            } catch (Exception ignored) {
+                // Fall through to next candidate resource.
+            }
+        }
+        return "";
     }
 
     private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {

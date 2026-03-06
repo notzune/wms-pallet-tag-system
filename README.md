@@ -123,6 +123,7 @@ Key settings:
 - `SITE_<CODE>_SHIP_FROM_NAME`, `SITE_<CODE>_SHIP_FROM_ADDRESS`, `SITE_<CODE>_SHIP_FROM_CITY_STATE_ZIP`
 - `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
 - `RIGHT_CLICK_COOLDOWN_MS=250` (GUI right-click copy/paste debounce)
+  - Applies terminal-like right-click behavior to GUI text-entry fields, including Rail Labels `Train ID` and output path.
 
 Connection fallback order:
 
@@ -250,6 +251,7 @@ Workflow:
 ## GUI Workflow
 
 - Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
+- Main window footer shows `Version <x.y.z>` and resolves from package metadata with Maven `pom.properties` fallback.
 - Enter ID, select printer, and click `Preview`.
 - Shipment preview shows shipment summary, label plan, and SKU-level pallet math (full vs partial).
 - Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU

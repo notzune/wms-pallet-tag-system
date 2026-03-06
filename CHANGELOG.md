@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened carrier-move checkpoint filename slugging to fall back safely when source IDs contain only non-alphanumeric characters.
 - Hardened rail model code normalization to use `Locale.ROOT` for uppercase conversion, preventing locale-dependent family-code drift.
 - Updated `rail-helper` train filtering to be case-insensitive so user-provided train IDs match normalized rail data consistently.
+- Expanded terminal-style right-click clipboard behavior wiring to Rail Labels GUI text-entry fields (`Train ID`, output directory), keeping input UX consistent across shipment, queue, barcode, settings, and rail dialogs.
 
 ### Deprecated
 
@@ -88,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved Maven parent-version drift that caused `javadoc:aggregate` failures in CI when resolving module parents.
 - Fixed rail family normalization precedence in DB footprint lookup so `UC_PARS_FLG=1` is applied as a CAN override before other family-code checks.
 - Fixed `LabelDataBuilder` null-safety for non-empty but unusable pallet line-item lists (for example null/missing-SKU entries) to avoid runtime failures and emit safe defaults.
+- Fixed GUI version-tag resolution so the footer/title can still display the Maven project version when package `Implementation-Version` metadata is unavailable at runtime.
 
 ### Security
 

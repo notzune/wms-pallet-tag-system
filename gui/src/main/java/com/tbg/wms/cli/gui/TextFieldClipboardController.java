@@ -22,7 +22,7 @@ import java.util.WeakHashMap;
  *   <li>Second right-click within cooldown window: ignored</li>
  * </ul>
  */
-final class TextFieldClipboardController {
+public final class TextFieldClipboardController {
 
     private static final String RIGHT_CLICK_COOLDOWN_PROPERTY = "wms.tags.rightClickCooldownMs";
     private static final String RIGHT_CLICK_COOLDOWN_ENV = "RIGHT_CLICK_COOLDOWN_MS";
@@ -32,7 +32,7 @@ final class TextFieldClipboardController {
     private final long rightClickCooldownMs;
     private final Map<JTextComponent, Long> lastRightClickClipboardActionMs;
 
-    TextFieldClipboardController() {
+    public TextFieldClipboardController() {
         this.rightClickCooldownMs = resolveRightClickCooldownMs();
         this.lastRightClickClipboardActionMs = new WeakHashMap<>();
     }
@@ -54,7 +54,7 @@ final class TextFieldClipboardController {
      *
      * @param fields text components to bind
      */
-    void install(JTextComponent... fields) {
+    public void install(JTextComponent... fields) {
         for (JTextComponent field : fields) {
             if (field == null) {
                 continue;

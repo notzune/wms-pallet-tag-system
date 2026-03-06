@@ -3,6 +3,7 @@
  */
 package com.tbg.wms.cli.gui.rail;
 
+import com.tbg.wms.cli.gui.TextFieldClipboardController;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.rail.RailCarCard;
 
@@ -40,6 +41,7 @@ public final class RailLabelsDialog extends JDialog {
     private final JTextArea diagnosticsArea = new JTextArea();
 
     private final transient RailWorkflowService service;
+    private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
     private transient RailWorkflowService.PreparedRailJob preparedJob;
 
     public RailLabelsDialog(JFrame owner, AppConfig config) {
@@ -60,6 +62,7 @@ public final class RailLabelsDialog extends JDialog {
         add(buildTopPanel(), BorderLayout.NORTH);
         add(buildCenterPanel(), BorderLayout.CENTER);
         add(buildBottomPanel(), BorderLayout.SOUTH);
+        clipboardController.install(trainIdField, outputDirField);
         wireActions();
         setButtonsEnabled(false);
     }
