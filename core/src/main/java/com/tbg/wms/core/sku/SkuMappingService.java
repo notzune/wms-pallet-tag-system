@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -16,21 +16,19 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Service for loading and accessing Walmart SKU mappings from CSV.
- *
+ * <p>
  * This service loads a CSV file mapping TBG internal SKU numbers to Walmart
  * item numbers. It provides O(1) lookup by either TBG SKU or Walmart item number.
- *
+ * <p>
  * CSV Format (4 columns):
- *   TBG SKU#,WALMART ITEM#,Item Description,check based on TBG SKU
- *   205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN
- *   ...
+ * TBG SKU#,WALMART ITEM#,Item Description,check based on TBG SKU
+ * 205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN
+ * ...
  */
 public final class SkuMappingService {
 
@@ -42,12 +40,13 @@ public final class SkuMappingService {
 
     // Map: Walmart Item# → WalmartSkuMapping (reverse lookup)
     private final Map<String, WalmartSkuMapping> mappingByWalmartItem;
+    private final Map<String, Optional<WalmartSkuMapping>> prtnumLookupCache;
 
     /**
      * Creates a new SkuMappingService and loads mappings from CSV file.
      *
      * @param csvFile path to the CSV file
-     * @throws IOException if file cannot be read
+     * @throws IOException              if file cannot be read
      * @throws IllegalArgumentException if CSV format is invalid
      */
     public SkuMappingService(Path csvFile) throws IOException {
@@ -55,9 +54,29 @@ public final class SkuMappingService {
 
         this.mappingByTbgSku = new HashMap<>();
         this.mappingByWalmartItem = new HashMap<>();
+        this.prtnumLookupCache = new ConcurrentHashMap<>();
 
         loadMappingsFromCsv(csvFile);
         log.info("Loaded {} SKU mappings from {}", mappingByTbgSku.size(), csvFile);
+    }
+
+    private static String normalizeLookupKey(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static String extractDigits(String value) {
+        StringBuilder digits = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+        return digits.toString();
     }
 
     /**
@@ -90,10 +109,10 @@ public final class SkuMappingService {
 
     /**
      * Attempts to find mapping by extracting TBG SKU from a database PRTNUM.
-     *
+     * <p>
      * PRTNUM format from database is 17 digits (e.g., "10048500019792000").
      * CSV uses short TBG SKU (5-6 digits, e.g., "205641").
-     *
+     * <p>
      * This method tries multiple extraction strategies:
      * 1. Last 6 digits of PRTNUM
      * 2. Middle portion (digits 5-11)
@@ -107,11 +126,18 @@ public final class SkuMappingService {
         if (normalizedPrtnum == null) {
             return null;
         }
+        Optional<WalmartSkuMapping> cached = prtnumLookupCache.computeIfAbsent(
+                normalizedPrtnum,
+                this::findByPrtnumUncached
+        );
+        return cached.orElse(null);
+    }
 
+    private Optional<WalmartSkuMapping> findByPrtnumUncached(String normalizedPrtnum) {
         // Strategy 1: Try direct match (in case it's already short format)
         WalmartSkuMapping mapping = findByTbgSku(normalizedPrtnum);
         if (mapping != null) {
-            return mapping;
+            return Optional.of(mapping);
         }
 
         // Strategy 2: Sliding windows (5-N digits) with optional leading-zero trim.
@@ -128,16 +154,16 @@ public final class SkuMappingService {
 
                     mapping = findByTbgSku(candidate);
                     if (mapping != null) {
-                        log.debug("Found mapping via embedded PRTNUM segment: {} -> {}", prtnum, mapping.getWalmartItemNo());
-                        return mapping;
+                        log.debug("Found mapping via embedded PRTNUM segment: {} -> {}", normalizedPrtnum, mapping.getWalmartItemNo());
+                        return Optional.of(mapping);
                     }
 
-                    String noLeadingZeros = candidate.replaceFirst("^0+(?!$)", "");
+                    String noLeadingZeros = trimLeadingZeros(candidate);
                     if (!noLeadingZeros.equals(candidate)) {
                         mapping = findByTbgSku(noLeadingZeros);
                         if (mapping != null) {
-                            log.debug("Found mapping via zero-trimmed PRTNUM segment: {} -> {}", prtnum, mapping.getWalmartItemNo());
-                            return mapping;
+                            log.debug("Found mapping via zero-trimmed PRTNUM segment: {} -> {}", normalizedPrtnum, mapping.getWalmartItemNo());
+                            return Optional.of(mapping);
                         }
                     }
                 }
@@ -145,7 +171,16 @@ public final class SkuMappingService {
         }
 
         log.debug("No SKU mapping found for PRTNUM: {}", normalizedPrtnum);
-        return null;
+        return Optional.empty();
+    }
+
+    private String trimLeadingZeros(String value) {
+        int i = 0;
+        int max = value.length() - 1;
+        while (i < max && value.charAt(i) == '0') {
+            i++;
+        }
+        return i == 0 ? value : value.substring(i);
     }
 
     /**
@@ -168,13 +203,13 @@ public final class SkuMappingService {
 
     /**
      * Loads all mappings from CSV file.
-     *
+     * <p>
      * CSV Format:
-     *   Line 1 (header): TBG SKU#,WALMART ITEM#,Item Description,check based on TBG SKU
-     *   Lines 2+: 205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN
+     * Line 1 (header): TBG SKU#,WALMART ITEM#,Item Description,check based on TBG SKU
+     * Lines 2+: 205641,30081705,1.36L PL 1/6 NJ STRW BAN,1.36L PL 1/6 NJ STRW BAN
      *
      * @param csvFile path to CSV file
-     * @throws IOException if file cannot be read
+     * @throws IOException              if file cannot be read
      * @throws IllegalArgumentException if CSV format is invalid
      */
     private void loadMappingsFromCsv(Path csvFile) throws IOException {
@@ -202,7 +237,7 @@ public final class SkuMappingService {
     /**
      * Parses a single CSV line and adds mapping.
      *
-     * @param line CSV line with 4 comma-separated fields
+     * @param line    CSV line with 4 comma-separated fields
      * @param lineNum line number (for error reporting)
      */
     private void parseCsvLine(String line, int lineNum) {
@@ -237,25 +272,6 @@ public final class SkuMappingService {
         return "SkuMappingService{" +
                 "mappingCount=" + mappingByTbgSku.size() +
                 '}';
-    }
-
-    private static String normalizeLookupKey(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private static String extractDigits(String value) {
-        StringBuilder digits = new StringBuilder(value.length());
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (Character.isDigit(c)) {
-                digits.append(c);
-            }
-        }
-        return digits.toString();
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Represents a line item within a shipment.
- *
+ * <p>
  * Line items describe individual SKUs and quantities within a shipment,
  * including details needed for label generation such as product descriptions,
  * order references, and Walmart item code mappings.
@@ -48,21 +48,21 @@ public final class LineItem {
     /**
      * Creates a new LineItem with comprehensive WMS database fields.
      *
-     * @param lineNumber line number within shipment
-     * @param lineSubNumber sub-line number
-     * @param sku full 17-digit internal SKU (PRTNUM)
-     * @param description product description
+     * @param lineNumber         line number within shipment
+     * @param lineSubNumber      sub-line number
+     * @param sku                full 17-digit internal SKU (PRTNUM)
+     * @param description        product description
      * @param customerPartNumber customer's part number (optional)
-     * @param orderNumber order number
+     * @param orderNumber        order number
      * @param consolidationBatch consolidation batch reference
-     * @param salesOrderNumber SAP/ERP order reference
-     * @param quantity shipped quantity
-     * @param unitsPerCase units per case
-     * @param uom unit of measure
-     * @param weight total weight for this line
-     * @param walmartItemNumber Walmart item number (from CSV mapping)
-     * @param gtinBarcode GTIN barcode (from ALT_PRTMST)
-     * @param upcCode UPC code (from ALT_PRTMST)
+     * @param salesOrderNumber   SAP/ERP order reference
+     * @param quantity           shipped quantity
+     * @param unitsPerCase       units per case
+     * @param uom                unit of measure
+     * @param weight             total weight for this line
+     * @param walmartItemNumber  Walmart item number (from CSV mapping)
+     * @param gtinBarcode        GTIN barcode (from ALT_PRTMST)
+     * @param upcCode            UPC code (from ALT_PRTMST)
      */
     @JsonCreator
     public LineItem(@JsonProperty("lineNumber") String lineNumber,

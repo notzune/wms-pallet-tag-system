@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -10,7 +10,7 @@ package com.tbg.wms.core.model;
 
 /**
  * Represents a mapping from TBG internal SKU to Walmart item number.
- *
+ * <p>
  * This is a value object loaded from the SKU matrix CSV file. It provides
  * the Walmart item number and product description for a given TBG SKU.
  */
@@ -23,9 +23,9 @@ public final class WalmartSkuMapping {
     /**
      * Creates a new WalmartSkuMapping.
      *
-     * @param tbgSku TBG internal SKU number
+     * @param tbgSku        TBG internal SKU number
      * @param walmartItemNo Walmart item number
-     * @param description product description
+     * @param description   product description
      */
     public WalmartSkuMapping(String tbgSku, String walmartItemNo, String description) {
         this.tbgSku = tbgSku;

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -21,10 +21,10 @@ import java.util.*;
 
 /**
  * Service for printer routing based on YAML configuration.
- *
+ * <p>
  * Loads printer definitions and routing rules from site-specific YAML files,
  * then evaluates rules against runtime context to select the appropriate printer.
- *
+ * <p>
  * Thread-safe once initialized (immutable configuration).
  *
  * @since 1.0.0
@@ -32,6 +32,7 @@ import java.util.*;
 public final class PrinterRoutingService {
 
     private static final Logger log = LoggerFactory.getLogger(PrinterRoutingService.class);
+    private static final int DEFAULT_PRINTER_PORT = 9100;
 
     private final Map<String, PrinterConfig> printers;
     private final List<RoutingRule> rules;
@@ -41,15 +42,15 @@ public final class PrinterRoutingService {
     /**
      * Creates a new printer routing service.
      *
-     * @param printers available printers by ID
-     * @param rules routing rules (evaluated in order)
+     * @param printers         available printers by ID
+     * @param rules            routing rules (evaluated in order)
      * @param defaultPrinterId fallback printer ID if no rules match
-     * @param siteCode site code for this configuration
+     * @param siteCode         site code for this configuration
      */
     public PrinterRoutingService(Map<String, PrinterConfig> printers,
-                                List<RoutingRule> rules,
-                                String defaultPrinterId,
-                                String siteCode) {
+                                 List<RoutingRule> rules,
+                                 String defaultPrinterId,
+                                 String siteCode) {
         this.printers = Map.copyOf(Objects.requireNonNull(printers, "printers cannot be null"));
         this.rules = List.copyOf(Objects.requireNonNull(rules, "rules cannot be null"));
         this.defaultPrinterId = Objects.requireNonNull(defaultPrinterId, "defaultPrinterId cannot be null");
@@ -65,15 +66,15 @@ public final class PrinterRoutingService {
 
     /**
      * Loads printer routing configuration from YAML files.
-     *
+     * <p>
      * Expects two files in config/{siteCode}/:
      * - printers.yaml (printer definitions)
      * - printer-routing.yaml (routing rules)
      *
-     * @param siteCode site code (e.g., "TBG3002")
+     * @param siteCode      site code (e.g., "TBG3002")
      * @param configBaseDir base config directory (typically "./config")
      * @return configured PrinterRoutingService
-     * @throws IOException if files cannot be read or parsed
+     * @throws IOException              if files cannot be read or parsed
      * @throws IllegalArgumentException if configuration is invalid
      */
     public static PrinterRoutingService load(String siteCode, Path configBaseDir) throws IOException {
@@ -102,7 +103,7 @@ public final class PrinterRoutingService {
             String name = requireYamlValue(printerEntry.name, "printers[].name", printersFile);
             String ip = requireYamlValue(printerEntry.ip, "printers[].ip", printersFile);
             // Match historical behavior: YAML omits these often, so keep deterministic defaults.
-            int port = printerEntry.port == null ? 9100 : printerEntry.port;
+            int port = printerEntry.port == null ? DEFAULT_PRINTER_PORT : printerEntry.port;
             List<String> tags = printerEntry.tags == null ? Collections.emptyList() : printerEntry.tags;
             String locationHint = printerEntry.locationHint;
             boolean enabled = printerEntry.enabled == null || printerEntry.enabled;
@@ -131,7 +132,11 @@ public final class PrinterRoutingService {
             }
 
             // For now, preserve one-condition semantics used by existing routing configs.
-            RuleConditionEntry condition = conditions.get(0);
+            RuleConditionEntry condition = firstDefinedCondition(conditions);
+            if (condition == null) {
+                log.warn("Skipping rule {} with only empty conditions", id);
+                continue;
+            }
             String field = requireYamlValue(condition.field, "rules[].when.all[].field", routingFile);
             String operator = requireYamlValue(condition.op, "rules[].when.all[].op", routingFile);
             String value = requireYamlValue(condition.value, "rules[].when.all[].value", routingFile);
@@ -149,9 +154,38 @@ public final class PrinterRoutingService {
         return new PrinterRoutingService(printers, rules, defaultPrinterId, siteCode);
     }
 
+    private static String requireYamlValue(String value, String field, Path sourceFile) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing required field '" + field + "' in " + sourceFile);
+        }
+        return value;
+    }
+
+    private static RuleConditionEntry firstDefinedCondition(List<RuleConditionEntry> conditions) {
+        for (RuleConditionEntry condition : conditions) {
+            if (condition != null) {
+                return condition;
+            }
+        }
+        return null;
+    }
+
+    private static void validateOptionalSiteCode(String expectedSiteCode, String configuredSiteCode, Path sourceFile) {
+        if (configuredSiteCode == null || configuredSiteCode.isBlank()) {
+            return;
+        }
+
+        if (!expectedSiteCode.equalsIgnoreCase(configuredSiteCode)) {
+            throw new IllegalArgumentException(
+                    "Site code mismatch in " + sourceFile
+                            + ": expected '" + expectedSiteCode + "' but found '" + configuredSiteCode + "'"
+            );
+        }
+    }
+
     /**
      * Selects a printer based on routing context.
-     *
+     * <p>
      * Evaluates rules in order. First matching rule wins.
      * If no rules match, returns default printer.
      *
@@ -223,26 +257,6 @@ public final class PrinterRoutingService {
 
     public String getSiteCode() {
         return siteCode;
-    }
-
-    private static String requireYamlValue(String value, String field, Path sourceFile) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Missing required field '" + field + "' in " + sourceFile);
-        }
-        return value;
-    }
-
-    private static void validateOptionalSiteCode(String expectedSiteCode, String configuredSiteCode, Path sourceFile) {
-        if (configuredSiteCode == null || configuredSiteCode.isBlank()) {
-            return;
-        }
-
-        if (!expectedSiteCode.equalsIgnoreCase(configuredSiteCode)) {
-            throw new IllegalArgumentException(
-                    "Site code mismatch in " + sourceFile
-                            + ": expected '" + expectedSiteCode + "' but found '" + configuredSiteCode + "'"
-            );
-        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

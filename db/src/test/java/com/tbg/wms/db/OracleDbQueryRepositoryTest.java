@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -9,7 +9,8 @@
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
-import com.tbg.wms.core.model.Shipment;
+import com.tbg.wms.core.rail.RailFootprintCandidate;
+import com.tbg.wms.core.rail.RailStopRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,10 +22,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for OracleDbQueryRepository using mocked database connections.
@@ -88,30 +95,46 @@ class OracleDbQueryRepositoryTest {
     }
 
     @Test
-    void testShipmentExistsWhenNoLpns() throws SQLException {
+    void testFindRailStopsByTrainIdRequiresTrainId() {
+        assertThrows(NullPointerException.class, () -> repository.findRailStopsByTrainId(null));
+        assertThrows(IllegalArgumentException.class, () -> repository.findRailStopsByTrainId(" "));
+    }
+
+    @Test
+    void testFindCarrierMoveStopsRequiresCarrierMoveId() {
+        assertThrows(NullPointerException.class, () -> repository.findCarrierMoveStops(null));
+        assertThrows(IllegalArgumentException.class, () -> repository.findCarrierMoveStops(" "));
+    }
+
+    @Test
+    void testFindRailFootprintsByShortCodeRequiresNonNullList() {
+        assertThrows(NullPointerException.class, () -> repository.findRailFootprintsByShortCode(null));
+        assertEquals(Map.of(), repository.findRailFootprintsByShortCode(List.of("", "  ")));
+    }
+
+    @Test
+    void testShipmentExistsWhenNoMatch() throws SQLException {
         when(mockDataSource.getConnection()).thenReturn(mockConnection);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
         when(mockStatement.executeQuery()).thenReturn(mockResultSet);
-        when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("shipment_count")).thenReturn(0);
+        when(mockResultSet.next()).thenReturn(false);
 
         boolean exists = repository.shipmentExists("SHIP123");
 
-        assertFalse(exists, "Shipment with no LPNs should return false");
+        assertFalse(exists, "Missing shipment should return false");
         verify(mockConnection).close();
     }
 
     @Test
-    void testShipmentExistsWhenLpnsPresent() throws SQLException {
+    void testShipmentExistsWhenMatchPresent() throws SQLException {
         when(mockDataSource.getConnection()).thenReturn(mockConnection);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
         when(mockStatement.executeQuery()).thenReturn(mockResultSet);
         when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("shipment_count")).thenReturn(3);
 
         boolean exists = repository.shipmentExists("SHIP123");
 
-        assertTrue(exists, "Shipment with LPNs should return true");
+        assertTrue(exists, "Existing shipment should return true");
     }
 
     @Test
@@ -140,6 +163,111 @@ class OracleDbQueryRepositoryTest {
     }
 
     @Test
+    void testFindRailStopsByTrainIdMapsAndGroupsRows() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, true, false);
+        when(mockResultSet.wasNull()).thenReturn(false);
+
+        when(mockResultSet.getString("RUN_DATE")).thenReturn("03-02-26", "03-02-26");
+        when(mockResultSet.getInt("SEQ")).thenReturn(1, 1);
+        when(mockResultSet.getString("TRAIN_NBR")).thenReturn("0303", "0303");
+        when(mockResultSet.getString("DCS_WHSE")).thenReturn("3002", "3002");
+        when(mockResultSet.getString("LOAD_NBR")).thenReturn("LD100", "LD100");
+        when(mockResultSet.getString("VEHICLE_ID")).thenReturn("V100", "V100");
+        when(mockResultSet.getString("SHORT_CODE")).thenReturn("01831", "01830");
+        when(mockResultSet.getInt("TOTAL_CASES")).thenReturn(12, 30);
+
+        List<RailStopRecord> rows = repository.findRailStopsByTrainId("JC03032026");
+
+        assertEquals(1, rows.size());
+        RailStopRecord row = rows.get(0);
+        assertEquals("0303", row.getTrainNumber());
+        assertEquals("LD100", row.getLoadNumber());
+        assertEquals(2, row.getItems().size());
+        assertEquals("01830", row.getItems().get(0).getItemNumber());
+        assertEquals("01831", row.getItems().get(1).getItemNumber());
+    }
+
+    @Test
+    void testFindRailStopsByTrainIdNormalizesInputToUppercase() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        repository.findRailStopsByTrainId(" jc03032026 ");
+
+        verify(mockStatement).setString(1, "JC03032026");
+    }
+
+    @Test
+    void testFindRailFootprintsByShortCodeMapsCandidates() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, true, false);
+        when(mockResultSet.wasNull()).thenReturn(false);
+
+        when(mockResultSet.getString("SHORT_CODE")).thenReturn("01830", "01830");
+        when(mockResultSet.getString("ITEM_NBR")).thenReturn("ITEMB", "ITEMA");
+        when(mockResultSet.getString("PRTFAM")).thenReturn("Domestic", "Domestic");
+        when(mockResultSet.getInt("UC_PARS_FLG")).thenReturn(0, 0);
+        when(mockResultSet.getInt("UNITS_PER_PALLET")).thenReturn(70, 56);
+
+        Map<String, List<RailFootprintCandidate>> byShortCode =
+                repository.findRailFootprintsByShortCode(List.of("01830"));
+
+        assertEquals(1, byShortCode.size());
+        List<RailFootprintCandidate> candidates = byShortCode.get("01830");
+        assertEquals(2, candidates.size());
+        assertEquals("ITEMA", candidates.get(0).getItemNumber());
+        assertEquals("ITEMB", candidates.get(1).getItemNumber());
+    }
+
+    @Test
+    void testFindRailFootprintsByShortCodeAppliesParsCanOverride() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, false);
+        when(mockResultSet.wasNull()).thenReturn(false);
+
+        when(mockResultSet.getString("SHORT_CODE")).thenReturn("01830");
+        when(mockResultSet.getString("ITEM_NBR")).thenReturn("ITEMA");
+        when(mockResultSet.getString("PRTFAM")).thenReturn("KEV");
+        when(mockResultSet.getInt("UC_PARS_FLG")).thenReturn(1);
+        when(mockResultSet.getInt("UNITS_PER_PALLET")).thenReturn(56);
+
+        Map<String, List<RailFootprintCandidate>> byShortCode =
+                repository.findRailFootprintsByShortCode(List.of("01830"));
+
+        assertEquals("CAN", byShortCode.get("01830").get(0).getFamilyCode());
+    }
+
+    @Test
+    void testFindRailFootprintsByShortCodeDeduplicatesQueryParameters() throws SQLException {
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("IN (?)"))))
+                .thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, false);
+        when(mockResultSet.wasNull()).thenReturn(false);
+        when(mockResultSet.getString("SHORT_CODE")).thenReturn("01830");
+        when(mockResultSet.getString("ITEM_NBR")).thenReturn("ITEMA");
+        when(mockResultSet.getString("PRTFAM")).thenReturn("Domestic");
+        when(mockResultSet.getInt("UC_PARS_FLG")).thenReturn(0);
+        when(mockResultSet.getInt("UNITS_PER_PALLET")).thenReturn(56);
+
+        Map<String, List<RailFootprintCandidate>> byShortCode =
+                repository.findRailFootprintsByShortCode(List.of("01830", "01830"));
+
+        assertEquals(1, byShortCode.size());
+        assertEquals(1, byShortCode.get("01830").size());
+    }
+
+    @Test
     void testFindShipmentHandlesDatabaseException() throws SQLException {
         when(mockDataSource.getConnection()).thenThrow(new SQLException("17002", "Connection refused"));
 
@@ -149,6 +277,69 @@ class OracleDbQueryRepositoryTest {
         assertEquals(3, thrown.getExitCode());
         assertTrue(thrown.getMessage().contains("Failed to retrieve shipment"));
         assertNotNull(thrown.getRemediationHint());
+    }
+
+    @Test
+    void testFindShipmentLoadsLineItemsWithSingleShipmentScopedQuery() throws SQLException {
+        DataSource dataSource = mock(DataSource.class);
+        Connection headerConnection = mock(Connection.class);
+        Connection lpnsConnection = mock(Connection.class);
+        PreparedStatement headerStatement = mock(PreparedStatement.class);
+        PreparedStatement orderStatement = mock(PreparedStatement.class);
+        PreparedStatement lpnsStatement = mock(PreparedStatement.class);
+        PreparedStatement lineItemsStatement = mock(PreparedStatement.class);
+        ResultSet headerResultSet = mock(ResultSet.class);
+        ResultSet orderResultSet = mock(ResultSet.class);
+        ResultSet lpnsResultSet = mock(ResultSet.class);
+        ResultSet lineItemsResultSet = mock(ResultSet.class);
+
+        when(dataSource.getConnection()).thenReturn(headerConnection, lpnsConnection);
+        when(headerConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("FROM WMSP.SHIPMENT s"))))
+                .thenReturn(headerStatement);
+        when(headerConnection.prepareStatement(argThat(sql -> sql != null
+                && sql.contains("FROM WMSP.SHIPMENT_LINE sl WHERE sl.SHIP_ID = ? AND ROWNUM <= 1"))))
+                .thenReturn(orderStatement);
+        when(lpnsConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("SELECT DISTINCT "))))
+                .thenReturn(lpnsStatement);
+        when(lpnsConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM"))))
+                .thenReturn(lineItemsStatement);
+
+        when(headerStatement.executeQuery()).thenReturn(headerResultSet);
+        when(headerResultSet.next()).thenReturn(true, false);
+        when(headerResultSet.getString("SHIP_ID")).thenReturn("SHIP123");
+        when(headerResultSet.getString("ADRNAM")).thenReturn("Ship To");
+        when(headerResultSet.getString("ADRLN1")).thenReturn("Address 1");
+        when(headerResultSet.getString("ADRCTY")).thenReturn("City");
+        when(headerResultSet.getString("ADRSTC")).thenReturn("ST");
+        when(headerResultSet.getString("ADRPSZ")).thenReturn("12345");
+        when(headerResultSet.wasNull()).thenReturn(true);
+
+        when(orderStatement.executeQuery()).thenReturn(orderResultSet);
+        when(orderResultSet.next()).thenReturn(true, false);
+        when(orderResultSet.getString("ORDNUM")).thenReturn("ORD1");
+
+        when(lpnsStatement.executeQuery()).thenReturn(lpnsResultSet);
+        when(lpnsResultSet.next()).thenReturn(true, true, false);
+        when(lpnsResultSet.getString("LODNUM")).thenReturn("LPN1", "LPN2");
+
+        when(lineItemsStatement.executeQuery()).thenReturn(lineItemsResultSet);
+        when(lineItemsResultSet.next()).thenReturn(true, true, false);
+        when(lineItemsResultSet.getString("LODNUM")).thenReturn("LPN1", "LPN2");
+        when(lineItemsResultSet.getString("ORDLIN")).thenReturn("1", "2");
+        when(lineItemsResultSet.getString("ORDSLN")).thenReturn("0", "0");
+        when(lineItemsResultSet.getString("PRTNUM")).thenReturn("SKU1", "SKU2");
+        when(lineItemsResultSet.getString("SRTDSC")).thenReturn("Desc1", "Desc2");
+        when(lineItemsResultSet.getString("CSTPRT")).thenReturn("CP1", "CP2");
+        when(lineItemsResultSet.getString("ORDNUM")).thenReturn("ORD1", "ORD1");
+        when(lineItemsResultSet.getString("CONS_BATCH")).thenReturn("B1", "B1");
+        when(lineItemsResultSet.getString("SALES_ORDNUM")).thenReturn("SO1", "SO1");
+        when(lineItemsResultSet.getInt("EFFECTIVE_QTY")).thenReturn(10, 20);
+        when(lineItemsResultSet.getInt("UNTPAK")).thenReturn(1, 1);
+
+        OracleDbQueryRepository repo = new OracleDbQueryRepository(dataSource);
+        assertEquals(2, repo.findShipmentWithLpnsAndLineItems("SHIP123").getLpnCount());
+        verify(lpnsConnection, times(1))
+                .prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM")));
     }
 
     @Test
@@ -177,6 +368,20 @@ class OracleDbQueryRepositoryTest {
     void testCloseIsNoOp() {
         // Should not throw any exception
         assertDoesNotThrow(() -> repository.close());
+    }
+
+    @Test
+    void testBuildSkuCandidatesAvoidsDuplicatesWhenPrefixAndZeroTrimConverge() {
+        List<String> candidates = SkuCandidateBuilder.buildCandidates("100000123");
+
+        assertEquals(List.of("100000123", "000123"), candidates);
+    }
+
+    @Test
+    void testBuildSkuCandidatesDoesNotDuplicateWhenTransformsConverge() {
+        List<String> candidates = SkuCandidateBuilder.buildCandidates("100123");
+
+        assertEquals(List.of("100123", "123"), candidates);
     }
 }
 

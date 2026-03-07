@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -22,10 +22,12 @@ package com.tbg.wms.core.exception;
  */
 public final class WmsDbConnectivityException extends WmsException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Creates a new connectivity exception.
      *
-     * @param message the error message
+     * @param message         the error message
      * @param remediationHint actionable hint (e.g., "Check DB_HOST and VPN connectivity")
      */
     public WmsDbConnectivityException(String message, String remediationHint) {
@@ -35,8 +37,8 @@ public final class WmsDbConnectivityException extends WmsException {
     /**
      * Creates a new connectivity exception with cause.
      *
-     * @param message the error message
-     * @param cause the underlying exception
+     * @param message         the error message
+     * @param cause           the underlying exception
      * @param remediationHint actionable hint
      */
     public WmsDbConnectivityException(String message, Throwable cause, String remediationHint) {

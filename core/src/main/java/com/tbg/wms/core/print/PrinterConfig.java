@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -14,7 +14,7 @@ import java.util.Objects;
 
 /**
  * Configuration for a physical printer.
- *
+ * <p>
  * Represents a Zebra network printer with TCP/IP connectivity.
  * Each printer has a stable ID used in routing rules and a network
  * endpoint for RAW socket printing on port 9100.
@@ -34,16 +34,16 @@ public final class PrinterConfig {
     /**
      * Creates a new printer configuration.
      *
-     * @param id stable printer identifier (e.g., "DISPATCH", "OFFICE")
-     * @param name human-readable printer name
-     * @param ip printer IP address
-     * @param port printer port (typically 9100 for Zebra RAW protocol)
-     * @param tags classification tags (PROD, TEST, DISPATCH, etc.)
+     * @param id           stable printer identifier (e.g., "DISPATCH", "OFFICE")
+     * @param name         human-readable printer name
+     * @param ip           printer IP address
+     * @param port         printer port (typically 9100 for Zebra RAW protocol)
+     * @param tags         classification tags (PROD, TEST, DISPATCH, etc.)
      * @param locationHint human-readable physical location
-     * @param enabled whether printer is currently active
+     * @param enabled      whether printer is currently active
      */
     public PrinterConfig(String id, String name, String ip, int port,
-                        List<String> tags, String locationHint, boolean enabled) {
+                         List<String> tags, String locationHint, boolean enabled) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
         this.name = Objects.requireNonNull(name, "name cannot be null");
         this.ip = Objects.requireNonNull(ip, "ip cannot be null");

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -8,24 +8,28 @@
 
 package com.tbg.wms.db;
 
-import com.tbg.wms.core.model.ShipmentSkuFootprint;
+import com.tbg.wms.core.model.CarrierMoveStopRef;
 import com.tbg.wms.core.model.Shipment;
+import com.tbg.wms.core.model.ShipmentSkuFootprint;
+import com.tbg.wms.core.rail.RailFootprintCandidate;
+import com.tbg.wms.core.rail.RailStopRecord;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Repository interface for querying WMS data from Oracle database.
- *
+ * <p>
  * This interface provides clean boundaries for database access and allows
  * for different implementations (real Oracle queries, test mocks, etc.).
- *
- * All queries throw WmsDbException subtypes for proper error handling.
+ * <p>
+ * All query failures are surfaced as typed runtime exceptions for consistent CLI/GUI handling.
  */
 public interface DbQueryRepository {
 
     /**
      * Retrieves a complete shipment with all LPNs and line items.
-     *
+     * <p>
      * This is a read-only operation that gathers:
      * - Shipment header information (destination, carrier, dates)
      * - All LPNs (pallets) tied to this shipment
@@ -34,37 +38,34 @@ public interface DbQueryRepository {
      *
      * @param shipmentId the shipment identifier
      * @return the complete shipment with all associated data
-     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if database connection fails
-     * @throws com.tbg.wms.core.exception.WmsDbException if query execution fails
-     * @throws IllegalArgumentException if shipmentId is null or empty
+     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
+     * @throws IllegalArgumentException                              if shipmentId is null or empty
      */
     Shipment findShipmentWithLpnsAndLineItems(String shipmentId);
 
     /**
      * Validates that a shipment exists and has at least one LPN.
-     *
+     * <p>
      * Lightweight check to verify shipment is printable without
      * fetching all associated data.
      *
      * @param shipmentId the shipment identifier
      * @return true if shipment exists and has at least one LPN, false otherwise
-     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if database connection fails
-     * @throws com.tbg.wms.core.exception.WmsDbException if query execution fails
-     * @throws IllegalArgumentException if shipmentId is null or empty
+     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
+     * @throws IllegalArgumentException                              if shipmentId is null or empty
      */
     boolean shipmentExists(String shipmentId);
 
     /**
      * Returns the staging location for a shipment.
-     *
+     * <p>
      * Used for printer routing decisions. All LPNs in a shipment
      * should be in the same staging location.
      *
      * @param shipmentId the shipment identifier
      * @return the staging location (e.g., "ROSSI", "OFFICE"), or null if not found
-     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if database connection fails
-     * @throws com.tbg.wms.core.exception.WmsDbException if query execution fails
-     * @throws IllegalArgumentException if shipmentId is null or empty
+     * @throws com.tbg.wms.core.exception.WmsDbConnectivityException if connection or query execution fails
+     * @throws IllegalArgumentException                              if shipmentId is null or empty
      */
     String getStagingLocation(String shipmentId);
 
@@ -80,8 +81,37 @@ public interface DbQueryRepository {
     List<ShipmentSkuFootprint> findShipmentSkuFootprints(String shipmentId);
 
     /**
-     * Closes the repository and releases any resources.
+     * Resolves shipment rows for a carrier move using stop assignments.
      *
+     * <p>Rows are expected to be sorted by stop sequence and then shipment ID.</p>
+     *
+     * @param carrierMoveId carrier move identifier
+     * @return stop-mapped shipment rows for the carrier move
+     */
+    List<CarrierMoveStopRef> findCarrierMoveStops(String carrierMoveId);
+
+    /**
+     * Resolves train/load rows for rail label generation from live WMS rail receive tables.
+     *
+     * @param trainId full train ID (example: JC03032026)
+     * @return flattened rail stop rows with short-code items
+     */
+    List<RailStopRecord> findRailStopsByTrainId(String trainId);
+
+    /**
+     * Resolves WMS footprint candidates keyed by short code.
+     *
+     * <p>Some short codes may map to multiple item numbers; callers are expected to
+     * apply deterministic conflict handling and diagnostics.</p>
+     *
+     * @param shortCodes short code values from rail rows
+     * @return map of short code to candidate rows
+     */
+    Map<String, List<RailFootprintCandidate>> findRailFootprintsByShortCode(List<String> shortCodes);
+
+    /**
+     * Closes the repository and releases any resources.
+     * <p>
      * Implementors must ensure underlying connections are closed properly.
      */
     void close();

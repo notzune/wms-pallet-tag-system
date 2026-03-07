@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -28,13 +28,13 @@ public final class ShipmentSkuFootprint {
     /**
      * Creates a footprint row without a description fallback.
      *
-     * @param sku internal SKU (PRTNUM)
-     * @param totalUnits total units across the shipment
-     * @param unitsPerCase footprint units-per-case value
+     * @param sku            internal SKU (PRTNUM)
+     * @param totalUnits     total units across the shipment
+     * @param unitsPerCase   footprint units-per-case value
      * @param unitsPerPallet footprint units-per-pallet value
-     * @param palletLength footprint pallet length
-     * @param palletWidth footprint pallet width
-     * @param palletHeight footprint pallet height
+     * @param palletLength   footprint pallet length
+     * @param palletWidth    footprint pallet width
+     * @param palletHeight   footprint pallet height
      */
     public ShipmentSkuFootprint(String sku,
                                 int totalUnits,
@@ -49,14 +49,14 @@ public final class ShipmentSkuFootprint {
     /**
      * Creates a footprint row with an item description fallback.
      *
-     * @param sku internal SKU (PRTNUM)
+     * @param sku             internal SKU (PRTNUM)
      * @param itemDescription optional human-readable description
-     * @param totalUnits total units across the shipment
-     * @param unitsPerCase footprint units-per-case value
-     * @param unitsPerPallet footprint units-per-pallet value
-     * @param palletLength footprint pallet length
-     * @param palletWidth footprint pallet width
-     * @param palletHeight footprint pallet height
+     * @param totalUnits      total units across the shipment
+     * @param unitsPerCase    footprint units-per-case value
+     * @param unitsPerPallet  footprint units-per-pallet value
+     * @param palletLength    footprint pallet length
+     * @param palletWidth     footprint pallet width
+     * @param palletHeight    footprint pallet height
      */
     public ShipmentSkuFootprint(String sku,
                                 String itemDescription,

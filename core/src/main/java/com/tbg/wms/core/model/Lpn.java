@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * Represents a license plate number (LPN) or pallet in a shipment.
- *
+ * <p>
  * Each LPN contains shipment details, line items, and metadata needed for
  * label generation including barcode information, staging location, and lot tracking.
  */
@@ -43,18 +43,18 @@ public final class Lpn {
     /**
      * Creates a new Lpn with comprehensive WMS database fields.
      *
-     * @param lpnId the license plate number identifier (LODNUM)
-     * @param shipmentId the parent shipment identifier
-     * @param sscc the SSCC (Serial Shipping Container Code) barcode value (LODUCC)
-     * @param caseCount number of cases in this pallet
-     * @param unitCount total number of units
-     * @param weight total weight of the pallet (LODWGT)
+     * @param lpnId           the license plate number identifier (LODNUM)
+     * @param shipmentId      the parent shipment identifier
+     * @param sscc            the SSCC (Serial Shipping Container Code) barcode value (LODUCC)
+     * @param caseCount       number of cases in this pallet
+     * @param unitCount       total number of units
+     * @param weight          total weight of the pallet (LODWGT)
      * @param stagingLocation the staging location (STOLOC, e.g., "ROSSI" for Canada)
-     * @param warehouseLot internal warehouse lot number (INVDTL.LOTNUM)
-     * @param customerLot supplier/customer lot number (INVDTL.SUP_LOTNUM)
+     * @param warehouseLot    internal warehouse lot number (INVDTL.LOTNUM)
+     * @param customerLot     supplier/customer lot number (INVDTL.SUP_LOTNUM)
      * @param manufactureDate production/manufacturing date (INVDTL.MANDTE)
-     * @param bestByDate best-by/expiration date (INVDTL.EXPIRE_DTE)
-     * @param lineItems list of line items contained in this pallet
+     * @param bestByDate      best-by/expiration date (INVDTL.EXPIRE_DTE)
+     * @param lineItems       list of line items contained in this pallet
      */
     @JsonCreator
     public Lpn(@JsonProperty("lpnId") String lpnId,

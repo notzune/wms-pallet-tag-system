@@ -76,10 +76,10 @@ def find_and_load_env() -> Optional[Path]:
         print(f"  [{i}] {p}")
 
     guesses = [
-        here.parent / ".env",          # analysis/python-tools/.env
-        here.parent.parent / ".env",   # analysis/.env
-        here.parents[2] / ".env",      # repo root (most likely for you)
-        here.parents[3] / ".env",      # one higher, just in case
+        here.parent / ".env",  # analysis/python-tools/.env
+        here.parent.parent / ".env",  # analysis/.env
+        here.parents[2] / ".env",  # repo root (most likely for you)
+        here.parents[3] / ".env",  # one higher, just in case
     ]
 
     for g in guesses:
@@ -114,7 +114,8 @@ def main() -> int:
         print("Fix: create a .env with these keys (recommended in repo root):")
         print("  ORACLE_USERNAME=RPTADM")
         print("  ORACLE_PASSWORD=...")
-        print("  ORACLE_DSN=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.19.96.121)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=jcnwmsdbd01)))")
+        print(
+            "  ORACLE_DSN=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.19.96.121)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=jcnwmsdbd01)))")
         return 2
 
     print("\nAttempting connection...")
@@ -123,10 +124,9 @@ def main() -> int:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT
-              USER AS LOGGED_IN_USER,
-              SYS_CONTEXT('USERENV','DB_NAME') AS DB_NAME,
-              SYS_CONTEXT('USERENV','SERVICE_NAME') AS SERVICE_NAME
+            SELECT USER                                   AS LOGGED_IN_USER,
+                   SYS_CONTEXT('USERENV', 'DB_NAME')      AS DB_NAME,
+                   SYS_CONTEXT('USERENV', 'SERVICE_NAME') AS SERVICE_NAME
             FROM dual
             """
         )

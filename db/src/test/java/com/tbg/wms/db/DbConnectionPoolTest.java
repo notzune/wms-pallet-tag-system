@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -21,7 +21,7 @@ import java.sql.DatabaseMetaData;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link DbConnectionPool}.
@@ -45,7 +45,6 @@ class DbConnectionPoolTest {
     void testDbConnectionPoolCreation() {
         // Setup
         when(mockConfig.activeSiteCode()).thenReturn("TBG3002");
-        when(mockConfig.oracleJdbcUrl()).thenReturn("jdbc:oracle:thin:@//localhost:1521/WMSP");
         when(mockConfig.oracleJdbcUrlCandidates()).thenReturn(List.of("jdbc:oracle:thin:@//localhost:1521/WMSP"));
         when(mockConfig.oracleUsername()).thenReturn("RPTADM");
         when(mockConfig.oraclePassword()).thenReturn("password");
@@ -65,12 +64,12 @@ class DbConnectionPoolTest {
     void testConnectivityDiagnosticsRecord() {
         // Test the diagnostic class
         DbConnectivityDiagnostics diag = new DbConnectivityDiagnostics(
-            true,
-            150,
-            2,
-            3,
-            "Oracle Database 19c",
-            null
+                true,
+                150,
+                2,
+                3,
+                "Oracle Database 19c",
+                null
         );
 
         assertTrue(diag.isConnected());

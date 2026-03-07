@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -11,12 +11,12 @@ package com.tbg.wms.cli.commands;
 import com.tbg.wms.cli.gui.LabelGuiFrame;
 import picocli.CommandLine.Command;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import java.util.concurrent.Callable;
 
 /**
  * Launches the Swing desktop workflow.
- *
+ * <p>
  * This command returns immediately after scheduling the GUI startup on the
  * EDT (Event Dispatch Thread).
  */
@@ -27,6 +27,11 @@ import java.util.concurrent.Callable;
 )
 public final class GuiCommand implements Callable<Integer> {
 
+    /**
+     * Schedules GUI launch on the Swing event thread.
+     *
+     * @return always {@code 0}
+     */
     @Override
     public Integer call() {
         SwingUtilities.invokeLater(() -> {

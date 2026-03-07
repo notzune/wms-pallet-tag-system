@@ -1,7 +1,7 @@
 version: 1
 siteCode: TBG3002
 
-defaultPrinterId: OFFICE
+defaultPrinterId: RAIL_OFFICE
 
 rules:
   - id: staging-rossi-dispatch

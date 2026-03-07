@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -48,11 +48,17 @@ import java.util.concurrent.Callable;
 public final class DbTestCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(DbTestCommand.class);
+    private static final int JOB_ID_LENGTH = 8;
 
+    /**
+     * Runs connectivity diagnostics for the active DB configuration.
+     *
+     * @return exit code (0 success, 2/3/10 failure categories)
+     */
     @Override
     public Integer call() {
         // Generate a unique job ID for this command execution
-        String jobId = UUID.randomUUID().toString().substring(0, 8);
+        String jobId = UUID.randomUUID().toString().substring(0, JOB_ID_LENGTH);
         MDC.put("jobId", jobId);
 
         try {
@@ -72,14 +78,14 @@ public final class DbTestCommand implements Callable<Integer> {
 
             // Create connection pool (may fail with configuration errors)
             System.out.println("Attempting to create connection pool...");
-            DbConnectionPool pool = new DbConnectionPool(config);
-
-            // Test connectivity
-            System.out.println("Testing connectivity...");
-            DbConnectivityDiagnostics diag = pool.testConnectivity();
-            String activeJdbcUrl = pool.activeJdbcUrl();
-
-            pool.close();
+            DbConnectivityDiagnostics diag;
+            String activeJdbcUrl;
+            try (DbConnectionPool pool = new DbConnectionPool(config)) {
+                // Test connectivity
+                System.out.println("Testing connectivity...");
+                diag = pool.testConnectivity();
+                activeJdbcUrl = pool.activeJdbcUrl();
+            }
 
             // Success
             printSuccess(diag, activeJdbcUrl);
@@ -154,13 +160,13 @@ public final class DbTestCommand implements Callable<Integer> {
         System.out.println("  Database Version: " + diag.databaseVersion());
         System.out.println("  Connected URL:   " + activeJdbcUrl);
         System.out.println("  Pool Statistics: " + diag.activeConnections() + " active, " +
-                          diag.idleConnections() + " idle");
+                diag.idleConnections() + " idle");
         System.out.println();
         System.out.println("The database is reachable and responding. You may proceed with label operations.");
         System.out.println();
 
         log.info("Database connectivity test succeeded: durationMs={}, dbVersion={}",
-            diag.durationMs(), diag.databaseVersion());
+                diag.durationMs(), diag.databaseVersion());
     }
 
     private void printConfigError(WmsConfigException e) {

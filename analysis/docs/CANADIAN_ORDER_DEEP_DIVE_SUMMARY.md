@@ -9,6 +9,7 @@
 ## ✅ Mission Accomplished
 
 Successfully extracted **complete order data** for:
+
 - ✅ **Completed Canadian Order**: 8000141715 (CJR WHOLESALE GROCERS, Mississauga ON) - 17 line items
 - ✅ **Unshipped Order**: SID0001727 (SHOPPERS DRUG MART, Mississauga ON) - Status 'R' (Ready)
 
@@ -16,24 +17,25 @@ Successfully extracted **complete order data** for:
 
 ## 📊 Data Extraction Success Rates
 
-| Data Category | Status | Records Found | Notes |
-|--------------|--------|---------------|-------|
-| **Shipment Header** | ✅ Complete | 1 | Carrier, tracking, dates, doc number |
-| **Ship-To Address** | ✅ Complete | 1 | Full address with postal, phone |
-| **Shipment Lines** | ✅ Complete | 17 | Quantities, consolidation batches |
-| **Order Line Details** | ✅ Complete | 17 | SKUs, sales order references |
-| **Product Master** | ⚠️ Partial | 17 | Part numbers OK, descriptions show N/A |
-| **Alternate Parts** | ✅ Complete | 136 | 8 types per product (UPC, GTIN, etc.) |
-| **Stop Information** | ✅ Complete | 1 | Stop ID retrieved |
-| **LPN/Pallet Data** | ❌ Not Found | 0 | Linkage strategy needs investigation |
-| **Trailer/Load** | ❌ No Access | 0 | RPTADM user lacks table permissions |
-| **Carrier Master** | ❌ No Access | 0 | RPTADM user lacks table permissions |
+| Data Category          | Status      | Records Found | Notes                                  |
+|------------------------|-------------|---------------|----------------------------------------|
+| **Shipment Header**    | ✅ Complete  | 1             | Carrier, tracking, dates, doc number   |
+| **Ship-To Address**    | ✅ Complete  | 1             | Full address with postal, phone        |
+| **Shipment Lines**     | ✅ Complete  | 17            | Quantities, consolidation batches      |
+| **Order Line Details** | ✅ Complete  | 17            | SKUs, sales order references           |
+| **Product Master**     | ⚠️ Partial  | 17            | Part numbers OK, descriptions show N/A |
+| **Alternate Parts**    | ✅ Complete  | 136           | 8 types per product (UPC, GTIN, etc.)  |
+| **Stop Information**   | ✅ Complete  | 1             | Stop ID retrieved                      |
+| **LPN/Pallet Data**    | ❌ Not Found | 0             | Linkage strategy needs investigation   |
+| **Trailer/Load**       | ❌ No Access | 0             | RPTADM user lacks table permissions    |
+| **Carrier Master**     | ❌ No Access | 0             | RPTADM user lacks table permissions    |
 
 ---
 
 ## 🔑 Key Findings
 
 ### 1. Complete Table Relationship Map
+
 ```
 SHIPMENT (8000141715)
   ├─ RT_ADR_ID → ADRMST (ship-to address) ✅
@@ -47,23 +49,27 @@ SHIPMENT (8000141715)
 ```
 
 ### 2. Consolidation Batch Pattern
+
 - Each shipment line has a **CONS_BATCH** field (e.g., CNS3244402)
 - 17 line items = 23 consolidation batches (some lines share batches)
 - **This is likely the key to LPN linkage**: `INVLOD.CONS_BATCH = SHIPMENT_LINE.CONS_BATCH`
 
 ### 3. Sample Data Values
-| Field | Example Value | Source Table |
-|-------|---------------|--------------|
-| SKU | 10048500019792000 | ORD_LINE.PRTNUM |
-| UPC | 01979 | ALT_PRTMST (Type=UPC) |
-| GTIN | 10048500019792 | ALT_PRTMST (Type=GTIN) |
-| Carrier | MDLE | SHIPMENT.CARCOD |
-| Service | TL (Truckload) | SHIPMENT.SRVLVL |
-| Tracking | 8000141715 | SHIPMENT.TRACK_NUM |
-| Doc Number | 30021144717 | SHIPMENT.DOC_NUM |
+
+| Field      | Example Value     | Source Table           |
+|------------|-------------------|------------------------|
+| SKU        | 10048500019792000 | ORD_LINE.PRTNUM        |
+| UPC        | 01979             | ALT_PRTMST (Type=UPC)  |
+| GTIN       | 10048500019792    | ALT_PRTMST (Type=GTIN) |
+| Carrier    | MDLE              | SHIPMENT.CARCOD        |
+| Service    | TL (Truckload)    | SHIPMENT.SRVLVL        |
+| Tracking   | 8000141715        | SHIPMENT.TRACK_NUM     |
+| Doc Number | 30021144717       | SHIPMENT.DOC_NUM       |
 
 ### 4. Alternate Part Number Types Found
+
 8 types per product:
+
 1. **GTIN** - Global Trade Item Number (14-digit)
 2. **GTINCS** - GTIN Case
 3. **GTINEA** - GTIN Each
@@ -82,19 +88,19 @@ SHIPMENT (8000141715)
 All files saved to: `db-dumps/canadian-analysis/`
 
 1. **complete_order_8000141715.txt** (699 lines)
-   - Human-readable complete order dump with all relationships
+    - Human-readable complete order dump with all relationships
 
 2. **complete_order_8000141715.json**
-   - Machine-readable JSON for Java testing
+    - Machine-readable JSON for Java testing
 
 3. **unshipped_order_SID0001727.txt**
-   - Confirms same data available for non-completed orders
+    - Confirms same data available for non-completed orders
 
 4. **unshipped_order_SID0001727.json**
-   - JSON format for testing
+    - JSON format for testing
 
 5. **query_pathway_analysis.txt**
-   - Detailed SQL query recommendations for Java implementation
+    - Detailed SQL query recommendations for Java implementation
 
 ---
 
@@ -105,6 +111,7 @@ All files saved to: `db-dumps/canadian-analysis/`
 Implement in `OracleDbQueryRepository.java`:
 
 **Method 1**: `findShipmentHeader(String shipmentId)`
+
 ```java
 // Query: SHIPMENT + ADRMST join
 // Returns: ShipmentHeader with address
@@ -112,6 +119,7 @@ Implement in `OracleDbQueryRepository.java`:
 ```
 
 **Method 2**: `findShipmentLinesWithProducts(String shipmentId)`
+
 ```java
 // Query: SHIPMENT_LINE + ORD_LINE + PRTMST join
 // Returns: List<ShipmentLine> with product details
@@ -119,6 +127,7 @@ Implement in `OracleDbQueryRepository.java`:
 ```
 
 **Method 3**: `findAlternateParts(List<String> partNumbers)`
+
 ```java
 // Query: ALT_PRTMST with IN clause
 // Returns: Map<String, List<AlternatePart>>
@@ -130,6 +139,7 @@ Implement in `OracleDbQueryRepository.java`:
 **Investigate linkage**: How does `INVLOD.LODNUM` connect to shipment lines?
 
 **Test queries**:
+
 ```sql
 -- Test 1: Consolidation batch link
 SELECT COUNT(*) FROM WMSP.INVLOD 
@@ -148,6 +158,7 @@ WHERE WRKREF LIKE '%8000141715%';
 Once confirmed, add:
 
 **Method 4**: `findLpnsForShipment(String shipmentId)`
+
 ```java
 // Query: INVLOD with proper join key
 // Returns: List<Lpn> with pallet sequence
@@ -156,17 +167,17 @@ Once confirmed, add:
 ### Phase 3: Data Gap Resolution (Priority: Medium)
 
 1. **Product Descriptions**
-   - Try alternative columns: `LNGDSC`, `SRTDSC`, `ABRVSC`
-   - Check for extended product tables: `PRTMST_EXT`, `PRODUCT_DETAIL`
+    - Try alternative columns: `LNGDSC`, `SRTDSC`, `ABRVSC`
+    - Check for extended product tables: `PRTMST_EXT`, `PRODUCT_DETAIL`
 
 2. **Walmart Item Codes**
-   - Check `ORD_LINE.CSTPRT` field (currently NULL in test data)
-   - Search for additional ALT_PRT_TYP values
-   - May need customer-specific cross-reference table
+    - Check `ORD_LINE.CSTPRT` field (currently NULL in test data)
+    - Search for additional ALT_PRT_TYP values
+    - May need customer-specific cross-reference table
 
 3. **Pallet Sequence** ("1 of N" on labels)
-   - Count distinct LPNs per shipment
-   - Use SQL `ROW_NUMBER() OVER (PARTITION BY SHPNUM ORDER BY LODNUM)`
+    - Count distinct LPNs per shipment
+    - Use SQL `ROW_NUMBER() OVER (PARTITION BY SHPNUM ORDER BY LODNUM)`
 
 ### Phase 4: Optional Enhancements (Priority: Low)
 
@@ -179,6 +190,7 @@ Once confirmed, add:
 ## 🚀 Immediate Next Steps
 
 ### Step 1: LPN Linkage Investigation (CRITICAL)
+
 ```powershell
 # Run test queries to confirm INVLOD connection
 python -c "
@@ -188,6 +200,7 @@ import oracledb
 ```
 
 ### Step 2: Update Java Repository
+
 ```java
 // In core/src/main/java/.../db/OracleDbQueryRepository.java
 
@@ -208,6 +221,7 @@ public Shipment findShipmentForLabels(String shipmentId) {
 ```
 
 ### Step 3: Create Integration Test
+
 ```java
 // In db/src/test/java/.../db/OracleDbQueryRepositoryTest.java
 
@@ -225,6 +239,7 @@ public void testRealCanadianOrder() {
 ```
 
 ### Step 4: Test with Unshipped Order
+
 ```java
 @Test
 public void testUnshippedOrder() {
@@ -242,27 +257,30 @@ public void testUnshippedOrder() {
 ## 📋 Open Questions & Blockers
 
 ### Blocking Issues
+
 1. ❓ **LPN Linkage**: How to join INVLOD to SHIPMENT_LINE?
-   - **Action**: Test consolidation batch join query
-   - **Owner**: Database analysis
-   - **Timeline**: Next session
+    - **Action**: Test consolidation batch join query
+    - **Owner**: Database analysis
+    - **Timeline**: Next session
 
 ### Non-Blocking Issues
+
 2. ❓ **Product Descriptions**: PRTMST descriptions showing N/A
-   - **Action**: Query alternative columns
-   - **Impact**: Labels may show product codes instead of names
-   - **Workaround**: Use SKU if description unavailable
+    - **Action**: Query alternative columns
+    - **Impact**: Labels may show product codes instead of names
+    - **Workaround**: Use SKU if description unavailable
 
 3. ❓ **Walmart Codes**: No customer-specific SKUs found
-   - **Action**: Check CSTPRT field, investigate customer tables
-   - **Impact**: May show internal SKU instead of Walmart item number
-   - **Workaround**: Use UPC or GTIN codes
+    - **Action**: Check CSTPRT field, investigate customer tables
+    - **Impact**: May show internal SKU instead of Walmart item number
+    - **Workaround**: Use UPC or GTIN codes
 
 ### Access Issues
+
 4. 🔒 **TRLR_LOAD / CARMST Access**: RPTADM user lacks permissions
-   - **Action**: Request DBA to grant SELECT privileges
-   - **Impact**: Trailer number unavailable on labels
-   - **Workaround**: Use SHIPMENT.TRLR_NUM field (may be NULL)
+    - **Action**: Request DBA to grant SELECT privileges
+    - **Impact**: Trailer number unavailable on labels
+    - **Workaround**: Use SHIPMENT.TRLR_NUM field (may be NULL)
 
 ---
 
@@ -282,16 +300,16 @@ public void testUnshippedOrder() {
 ## 📖 Documentation Files
 
 1. **CANADIAN_ORDER_ANALYSIS_FINDINGS.md** (this file)
-   - Comprehensive findings and implementation guide
+    - Comprehensive findings and implementation guide
 
 2. **WMS_DATABASE_FINDINGS.md** (previous analysis)
-   - Schema overview, table catalog, initial discovery
+    - Schema overview, table catalog, initial discovery
 
 3. **db-dumps/canadian-analysis/query_pathway_analysis.txt**
-   - Detailed SQL query recommendations with performance estimates
+    - Detailed SQL query recommendations with performance estimates
 
 4. **PYTHON_ANALYSIS_PROMPT.md**
-   - Python analysis tool documentation
+    - Python analysis tool documentation
 
 ---
 

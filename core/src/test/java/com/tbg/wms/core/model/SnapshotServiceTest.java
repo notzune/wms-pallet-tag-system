@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for SnapshotService snapshot capture and loading.
- *
+ * <p>
  * Tests verify JSON serialization, file creation, metadata inclusion,
  * and deserialization for replay scenarios.
  */

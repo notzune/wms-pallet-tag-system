@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -8,10 +8,10 @@
 
 package com.tbg.wms.core.model;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +28,10 @@ import java.util.Objects;
 
 /**
  * Service for capturing snapshots of normalized WMS data to JSON files.
- *
+ * <p>
  * Snapshots preserve the exact state of normalized data at a point in time,
  * enabling replay operations and debugging without database access.
- *
+ * <p>
  * Each snapshot includes metadata (jobId, timestamp, input key, schema version)
  * and the complete normalized shipment data.
  */
@@ -42,6 +42,10 @@ public final class SnapshotService {
     private static final String SCHEMA_VERSION = "1.0";
     private static final DateTimeFormatter FILENAME_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
     private static final ObjectMapper objectMapper = createObjectMapper();
+
+    private SnapshotService() {
+        // Utility class - prevent instantiation
+    }
 
     /**
      * Creates and configures an ObjectMapper for JSON serialization.
@@ -59,18 +63,18 @@ public final class SnapshotService {
 
     /**
      * Captures a snapshot of a shipment to a JSON file.
-     *
+     * <p>
      * The snapshot includes metadata and the complete normalized shipment data.
      * Files are created with deterministic names based on timestamp and shipment ID
      * for easy identification and replay.
      *
-     * @param shipment the normalized shipment to capture
-     * @param jobId unique job identifier for traceability
-     * @param inputKey the input key (shipment/order/load ID)
+     * @param shipment        the normalized shipment to capture
+     * @param jobId           unique job identifier for traceability
+     * @param inputKey        the input key (shipment/order/load ID)
      * @param outputDirectory directory where snapshot file should be created
      * @return Path to the created snapshot file
      * @throws IllegalArgumentException if parameters are invalid or directory doesn't exist
-     * @throws IOException if snapshot file cannot be written
+     * @throws IOException              if snapshot file cannot be written
      */
     public static Path captureSnapshot(Shipment shipment, String jobId, String inputKey, String outputDirectory) throws IOException {
         Objects.requireNonNull(shipment, "shipment cannot be null");
@@ -108,9 +112,9 @@ public final class SnapshotService {
     /**
      * Builds the snapshot structure with metadata and shipment data.
      *
-     * @param shipment the shipment to include
-     * @param jobId the job identifier
-     * @param inputKey the input key
+     * @param shipment  the shipment to include
+     * @param jobId     the job identifier
+     * @param inputKey  the input key
      * @param timestamp the capture timestamp
      * @return snapshot map structure
      */
@@ -132,13 +136,13 @@ public final class SnapshotService {
 
     /**
      * Reads and deserializes a snapshot from a JSON file.
-     *
+     * <p>
      * Used for replay operations to reconstruct the exact state without
      * database access.
      *
      * @param snapshotFile path to the snapshot JSON file
      * @return the deserialized Shipment
-     * @throws IOException if snapshot file cannot be read or parsed
+     * @throws IOException              if snapshot file cannot be read or parsed
      * @throws IllegalArgumentException if snapshot file doesn't exist
      */
     public static Shipment readSnapshot(Path snapshotFile) throws IOException {
@@ -170,10 +174,6 @@ public final class SnapshotService {
             log.error("Failed to read snapshot from {}: {}", snapshotFile, e.getMessage());
             throw new IOException("Failed to read snapshot: " + e.getMessage(), e);
         }
-    }
-
-    private SnapshotService() {
-        // Utility class - prevent instantiation
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -13,11 +13,7 @@ import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.label.SiteConfig;
 import com.tbg.wms.core.labeling.LabelingSupport;
-import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.model.PalletPlanningService;
-import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.ShipmentSkuFootprint;
-import com.tbg.wms.core.model.WalmartSkuMapping;
+import com.tbg.wms.core.model.*;
 import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
@@ -33,12 +29,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * GUI workflow service that loads shipment data, builds preview math,
@@ -50,9 +43,14 @@ public final class LabelWorkflowService {
 
     private final AppConfig config;
     // Cache routing configs by site code to avoid repeated disk reads.
-    private final Map<String, PrinterRoutingService> routingCache = new HashMap<>();
-    // Cache resolved printers by ID to avoid repeated lookups.
-    private final Map<String, PrinterConfig> printerCache = new HashMap<>();
+    private final ConcurrentMap<String, PrinterRoutingService> routingBySite = new ConcurrentHashMap<>();
+    // Cache resolved printers by site and printer ID to avoid repeated lookups.
+    private final ConcurrentMap<String, ConcurrentMap<String, PrinterConfig>> printersBySite = new ConcurrentHashMap<>();
+    // Cache site-level label identity metadata by site code.
+    private final ConcurrentMap<String, SiteConfig> siteConfigBySite = new ConcurrentHashMap<>();
+    // Cache reusable assets to avoid repeated disk reads/parsing across preview calls.
+    private volatile SkuMappingService cachedSkuMapping;
+    private volatile LabelTemplate cachedTemplate;
 
     public LabelWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
@@ -65,7 +63,8 @@ public final class LabelWorkflowService {
      * @throws Exception when routing config cannot be loaded
      */
     public List<PrinterOption> loadPrinters() throws Exception {
-        PrinterRoutingService routing = loadRouting(config.activeSiteCode());
+        String siteCode = config.activeSiteCode();
+        PrinterRoutingService routing = loadRouting(siteCode);
         List<PrinterOption> options = new ArrayList<>();
         for (PrinterConfig printer : routing.getPrinters().values()) {
             if (printer.isEnabled()) {
@@ -83,15 +82,19 @@ public final class LabelWorkflowService {
         if (printerId == null || printerId.isBlank()) {
             return null;
         }
-        PrinterConfig cached = printerCache.get(printerId);
+        String normalizedPrinterId = printerId.trim();
+        String siteCode = config.activeSiteCode();
+        ConcurrentMap<String, PrinterConfig> sitePrinters = printersBySite
+                .computeIfAbsent(siteCode, ignored -> new ConcurrentHashMap<>());
+        PrinterConfig cached = sitePrinters.get(normalizedPrinterId);
         if (cached != null) {
             return cached;
         }
-        PrinterRoutingService routing = loadRouting(config.activeSiteCode());
-        PrinterConfig printer = routing.findPrinter(printerId)
+        PrinterRoutingService routing = loadRouting(siteCode);
+        PrinterConfig printer = routing.findPrinter(normalizedPrinterId)
                 .orElse(null);
         if (printer != null) {
-            printerCache.put(printerId, printer);
+            sitePrinters.putIfAbsent(normalizedPrinterId, printer);
         }
         return printer;
     }
@@ -109,65 +112,63 @@ public final class LabelWorkflowService {
         }
 
         String normalizedShipmentId = shipmentId.trim();
-        Path csvPath = LabelingSupport.resolveSkuMatrixCsv();
-        if (csvPath == null) {
-            throw new IllegalStateException("SKU mapping CSV not found.");
-        }
-        SkuMappingService skuMapping = new SkuMappingService(csvPath);
-
-        Path templatePath = Paths.get("config/templates/walmart-canada-label.zpl");
-        if (!Files.exists(templatePath)) {
-            throw new IllegalStateException("ZPL template not found: " + templatePath);
-        }
-        LabelTemplate template = new LabelTemplate("WALMART_CANADA", Files.readString(templatePath));
-
-        String siteCode = config.activeSiteCode();
-        SiteConfig siteConfig = createSiteConfig(siteCode);
-        PrinterRoutingService routing = loadRouting(siteCode);
 
         try (DbConnectionPool pool = new DbConnectionPool(config)) {
             DbQueryRepository queryRepo = new OracleDbQueryRepository(pool.getDataSource());
-            if (!queryRepo.shipmentExists(normalizedShipmentId)) {
-                throw new IllegalArgumentException("Shipment not found: " + normalizedShipmentId);
-            }
-
-            Shipment shipment = queryRepo.findShipmentWithLpnsAndLineItems(normalizedShipmentId);
-            if (shipment == null) {
-                throw new IllegalStateException("Could not retrieve shipment data.");
-            }
-
-            List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(normalizedShipmentId);
-            Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
-            PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
-            // Fallback to virtual rows only when WMS returns no physical LPNs.
-            List<Lpn> lpnsForLabels = resolveLpnsForLabeling(shipment, footprintRows);
-            boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
-            String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
-            List<SkuMathRow> mathRows = buildSkuMathRows(footprintRows, skuMapping);
-
-            return new PreparedJob(
-                    normalizedShipmentId,
-                    shipment,
-                    routing,
-                    siteConfig,
-                    skuMapping,
-                    template,
-                    footprintBySku,
-                    planResult,
-                    lpnsForLabels,
-                    mathRows,
-                    usingVirtualLabels,
-                    stagingLocation
-            );
+            return prepareJob(queryRepo, normalizedShipmentId);
         }
+    }
+
+    PreparedJob prepareJob(DbQueryRepository queryRepo, String shipmentId) throws Exception {
+        Objects.requireNonNull(queryRepo, "queryRepo cannot be null");
+        String normalizedShipmentId = shipmentId == null ? "" : shipmentId.trim();
+        if (normalizedShipmentId.isEmpty()) {
+            throw new IllegalArgumentException("Shipment ID is required.");
+        }
+
+        if (!queryRepo.shipmentExists(normalizedShipmentId)) {
+            throw new IllegalArgumentException("Shipment not found: " + normalizedShipmentId);
+        }
+
+        Shipment shipment = queryRepo.findShipmentWithLpnsAndLineItems(normalizedShipmentId);
+        if (shipment == null) {
+            throw new IllegalStateException("Could not retrieve shipment data.");
+        }
+
+        List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(normalizedShipmentId);
+        Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
+        PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
+        // Fallback to virtual rows only when WMS returns no physical LPNs.
+        List<Lpn> lpnsForLabels = resolveLpnsForLabeling(shipment, footprintRows);
+        boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
+        String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
+        SkuMappingService skuMapping = loadSkuMapping();
+        List<SkuMathRow> mathRows = buildSkuMathRows(footprintRows, skuMapping);
+
+        String siteCode = config.activeSiteCode();
+        PrinterRoutingService routing = loadRouting(siteCode);
+        return new PreparedJob(
+                normalizedShipmentId,
+                shipment,
+                routing,
+                loadSiteConfig(siteCode),
+                skuMapping,
+                loadTemplate(),
+                footprintBySku,
+                planResult,
+                lpnsForLabels,
+                mathRows,
+                usingVirtualLabels,
+                stagingLocation
+        );
     }
 
     /**
      * Generates ZPL output and prints labels for the prepared job.
      *
-     * @param job prepared job from preview
-     * @param printerId printer identifier to use
-     * @param outputDir output directory for ZPL artifacts
+     * @param job         prepared job from preview
+     * @param printerId   printer identifier to use
+     * @param outputDir   output directory for ZPL artifacts
      * @param printToFile when true, skip network printing
      * @return summary of labels printed and output path
      * @throws Exception when printing fails
@@ -193,12 +194,13 @@ public final class LabelWorkflowService {
 
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
         NetworkPrintService printService = new NetworkPrintService();
+        Shipment shipmentForLabels = buildShipmentForLabeling(job.getShipment(), job.getLpnsForLabels());
 
         int printedCount = 0;
         for (int i = 0; i < job.getLpnsForLabels().size(); i++) {
             Lpn lpn = job.getLpnsForLabels().get(i);
-            Map<String, String> labelData = builder.build(job.getShipment(), lpn, i, LabelType.WALMART_CANADA_GRID);
-            if (job.getShipment().getLpnCount() == 0) {
+            Map<String, String> labelData = builder.build(shipmentForLabels, lpn, i, LabelType.WALMART_CANADA_GRID);
+            if (job.isUsingVirtualLabels()) {
                 // Virtual labels must override sequence totals to match generated rows, not physical LPN count.
                 labelData = new HashMap<>(labelData);
                 labelData.put("palletSeq", String.valueOf(i + 1));
@@ -222,6 +224,51 @@ public final class LabelWorkflowService {
         return new PrintResult(printedCount, targetDir.toAbsolutePath(), printer.getId(), printer.getEndpoint());
     }
 
+    private Shipment buildShipmentForLabeling(Shipment shipment, List<Lpn> lpnsForLabels) {
+        if (shipment == null) {
+            throw new IllegalArgumentException("shipment cannot be null");
+        }
+        if (lpnsForLabels == null) {
+            throw new IllegalArgumentException("lpnsForLabels cannot be null");
+        }
+        if (shipment.getLpnCount() == lpnsForLabels.size()) {
+            return shipment;
+        }
+        return new Shipment(
+                shipment.getShipmentId(),
+                shipment.getExternalId(),
+                shipment.getOrderId(),
+                shipment.getWarehouseId(),
+                shipment.getShipToName(),
+                shipment.getShipToAddress1(),
+                shipment.getShipToAddress2(),
+                shipment.getShipToAddress3(),
+                shipment.getShipToCity(),
+                shipment.getShipToState(),
+                shipment.getShipToZip(),
+                shipment.getShipToCountry(),
+                shipment.getShipToPhone(),
+                shipment.getCarrierCode(),
+                shipment.getServiceLevel(),
+                shipment.getDocumentNumber(),
+                shipment.getTrackingNumber(),
+                shipment.getDestinationLocation(),
+                shipment.getCustomerPo(),
+                shipment.getLocationNumber(),
+                shipment.getDepartmentNumber(),
+                shipment.getStopId(),
+                shipment.getStopSequence(),
+                shipment.getCarrierMoveId(),
+                shipment.getProNumber(),
+                shipment.getBolNumber(),
+                shipment.getStatus(),
+                shipment.getShipDate(),
+                shipment.getDeliveryDate(),
+                shipment.getCreatedDate(),
+                lpnsForLabels
+        );
+    }
+
     private List<SkuMathRow> buildSkuMathRows(List<ShipmentSkuFootprint> rows, SkuMappingService skuMapping) {
         List<SkuMathRow> mathRows = new ArrayList<>();
         for (ShipmentSkuFootprint row : rows) {
@@ -237,13 +284,11 @@ public final class LabelWorkflowService {
             int units = Math.max(0, row.getTotalUnits());
             Integer upp = row.getUnitsPerPallet();
             int fullPallets = 0;
-            int partialUnits = 0;
             int partialPallets = 0;
             int estimatedPallets = 0;
             if (upp != null && upp > 0) {
                 fullPallets = units / upp;
-                partialUnits = units % upp;
-                partialPallets = partialUnits > 0 ? 1 : 0;
+                partialPallets = units % upp > 0 ? 1 : 0;
                 estimatedPallets = fullPallets + partialPallets;
             }
 
@@ -282,13 +327,13 @@ public final class LabelWorkflowService {
     }
 
     private PrinterRoutingService loadRouting(String siteCode) throws Exception {
-        PrinterRoutingService cached = routingCache.get(siteCode);
+        PrinterRoutingService cached = routingBySite.get(siteCode);
         if (cached != null) {
             return cached;
         }
         PrinterRoutingService routing = PrinterRoutingService.load(siteCode, Paths.get("config"));
-        routingCache.put(siteCode, routing);
-        return routing;
+        PrinterRoutingService prior = routingBySite.putIfAbsent(siteCode, routing);
+        return prior == null ? routing : prior;
     }
 
     private SiteConfig createSiteConfig(String siteCode) {
@@ -297,6 +342,44 @@ public final class LabelWorkflowService {
                 config.siteShipFromAddress(siteCode),
                 config.siteShipFromCityStateZip(siteCode)
         );
+    }
+
+    private SiteConfig loadSiteConfig(String siteCode) {
+        return siteConfigBySite.computeIfAbsent(siteCode, this::createSiteConfig);
+    }
+
+    private SkuMappingService loadSkuMapping() throws Exception {
+        SkuMappingService cached = cachedSkuMapping;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (cachedSkuMapping == null) {
+                Path csvPath = LabelingSupport.resolveSkuMatrixCsv();
+                if (csvPath == null) {
+                    throw new IllegalStateException("SKU mapping CSV not found.");
+                }
+                cachedSkuMapping = new SkuMappingService(csvPath);
+            }
+            return cachedSkuMapping;
+        }
+    }
+
+    private LabelTemplate loadTemplate() throws Exception {
+        LabelTemplate cached = cachedTemplate;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (cachedTemplate == null) {
+                Path templatePath = Paths.get("config/templates/walmart-canada-label.zpl");
+                if (!Files.exists(templatePath)) {
+                    throw new IllegalStateException("ZPL template not found: " + templatePath);
+                }
+                cachedTemplate = new LabelTemplate("WALMART_CANADA", Files.readString(templatePath));
+            }
+            return cachedTemplate;
+        }
     }
 
     public static final class PrinterOption {
@@ -480,6 +563,10 @@ public final class LabelWorkflowService {
             this.printToFile = true;
         }
 
+        public static PrintResult printToFile(int labelsPrinted, Path outputDirectory) {
+            return new PrintResult(labelsPrinted, outputDirectory);
+        }
+
         public int getLabelsPrinted() {
             return labelsPrinted;
         }
@@ -498,10 +585,6 @@ public final class LabelWorkflowService {
 
         public boolean isPrintToFile() {
             return printToFile;
-        }
-
-        public static PrintResult printToFile(int labelsPrinted, Path outputDirectory) {
-            return new PrintResult(labelsPrinted, outputDirectory);
         }
     }
 }

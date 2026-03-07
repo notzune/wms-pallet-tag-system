@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -9,38 +9,34 @@
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
-import com.tbg.wms.core.model.LineItem;
-import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.model.NormalizationService;
-import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.ShipmentSkuFootprint;
+import com.tbg.wms.core.model.*;
+import com.tbg.wms.core.rail.RailFootprintCandidate;
+import com.tbg.wms.core.rail.RailStopRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Oracle implementation of DbQueryRepository.
- *
+ * <p>
  * This class executes Oracle WMS queries against the WMSP schema to retrieve
  * shipment data with all related information (orders, lines, pallets, lots, etc.).
- *
+ * <p>
  * Uses prepared statements to prevent SQL injection and proper resource
  * management with try-with-resources.
- *
+ * <p>
  * Database: Oracle WMS at site-specific location (e.g., TBG3002 at 10.19.68.61:1521/WMSP)
  * Schema: WMSP (schema name is prepended to all table references)
  * User: RPTADM (read-only reporting user)
@@ -49,8 +45,29 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     private static final Logger log = LoggerFactory.getLogger(OracleDbQueryRepository.class);
     private static final Pattern DC_NUMBER_PATTERN = Pattern.compile("(?i)\\bDC\\s*#?\\s*(\\d{3,6})\\b");
+    private static final String DEFAULT_LINE_ITEM_UOM = "EA";
+    private static final String SHIPMENT_LINE_ITEMS_SQL = "SELECT " +
+            "pwd.SHIP_CTNNUM AS LODNUM, " +
+            "sl.SHIP_LINE_ID, sl.ORDNUM, sl.ORDLIN, sl.ORDSLN, sl.CONS_BATCH, " +
+            "COALESCE(" +
+            "NULLIF(sl.SHPQTY, 0), " +
+            "NULLIF(sl.STGQTY, 0), " +
+            "NULLIF(sl.PCKQTY, 0), " +
+            "NULLIF(sl.INPQTY, 0), " +
+            "NULLIF(sl.TOT_PLN_QTY, 0), " +
+            "NULLIF(ol.ORDQTY, 0), " +
+            "0) AS EFFECTIVE_QTY, " +
+            "ol.PRTNUM, ol.CSTPRT, ol.ORDQTY, ol.SALES_ORDNUM, ol.UNTPAK, " +
+            "CAST(NULL AS VARCHAR2(1)) AS LNGDSC, ol.CSTPRT AS SRTDSC, 0 AS NETWGT " +
+            "FROM WMSP.PCKWRK_DTL pwd " +
+            "INNER JOIN WMSP.SHIPMENT_LINE sl ON pwd.SHIP_LINE_ID = sl.SHIP_LINE_ID " +
+            "INNER JOIN WMSP.ORD_LINE ol ON sl.ORDNUM = ol.ORDNUM " +
+            "  AND sl.ORDLIN = ol.ORDLIN AND sl.ORDSLN = ol.ORDSLN AND sl.CLIENT_ID = ol.CLIENT_ID " +
+            "WHERE pwd.SHIP_ID = ? " +
+            "ORDER BY pwd.SHIP_CTNNUM, sl.ORDLIN, sl.ORDSLN";
 
     private final DataSource dataSource;
+    private final PrtmstDescriptionColumnResolver prtmstColumnResolver;
 
     /**
      * Creates a new OracleDbQueryRepository.
@@ -60,16 +77,74 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
      */
     public OracleDbQueryRepository(DataSource dataSource) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource cannot be null");
+        this.prtmstColumnResolver = new PrtmstDescriptionColumnResolver();
+    }
+
+    private static String normalizeRailFamilyCode(String prtfam, Integer parsFlag) {
+        String family = NormalizationService.normalizeToUppercase(prtfam);
+        // UC_PARS_FLG=1 is an explicit WMS override for CAN handling.
+        if (parsFlag != null && parsFlag == 1) {
+            return "CAN";
+        }
+        if (family.contains("CAN")) {
+            return "CAN";
+        }
+        if (family.contains("KEV")) {
+            return "KEV";
+        }
+        if (family.contains("DOM")) {
+            return "DOM";
+        }
+        if (family.isBlank()) {
+            return "DOM";
+        }
+        if (family.length() > 3) {
+            return family.substring(0, 3);
+        }
+        return family;
+    }
+
+    private static String sqlPlaceholders(int count) {
+        if (count <= 0) {
+            throw new IllegalArgumentException("count must be > 0");
+        }
+        StringBuilder sb = new StringBuilder(count * 2);
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append('?');
+        }
+        return sb.toString();
+    }
+
+    private static String integerToString(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
+        if (rs.wasNull()) {
+            return "";
+        }
+        return Integer.toString(value);
+    }
+
+    private static String requireNormalizedId(String value, String fieldName) {
+        Objects.requireNonNull(value, fieldName + " cannot be null");
+        if (value.trim().isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
+        }
+        return NormalizationService.normalizeString(value);
+    }
+
+    private static String requireNormalizedUppercaseId(String value, String fieldName) {
+        Objects.requireNonNull(value, fieldName + " cannot be null");
+        if (value.trim().isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
+        }
+        return NormalizationService.normalizeToUppercase(value);
     }
 
     @Override
     public Shipment findShipmentWithLpnsAndLineItems(String shipmentId) {
-        Objects.requireNonNull(shipmentId, "shipmentId cannot be null");
-        if (shipmentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("shipmentId cannot be empty");
-        }
-
-        String normalizedId = NormalizationService.normalizeString(shipmentId);
+        String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
         log.info("Retrieving shipment with LPNs and line items: {}", normalizedId);
 
         try {
@@ -130,27 +205,18 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     @Override
     public boolean shipmentExists(String shipmentId) {
-        Objects.requireNonNull(shipmentId, "shipmentId cannot be null");
-        if (shipmentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("shipmentId cannot be empty");
-        }
-
-        String normalizedId = NormalizationService.normalizeString(shipmentId);
-        String sql = "SELECT COUNT(*) as shipment_count FROM WMSP.SHIPMENT WHERE SHIP_ID = ?";
+        String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
+        String sql = "SELECT 1 FROM WMSP.SHIPMENT WHERE SHIP_ID = ? AND ROWNUM = 1";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, normalizedId);
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    int count = rs.getInt("shipment_count");
-                    boolean exists = count > 0;
-                    log.debug("Shipment {} exists: {}", normalizedId, exists);
-                    return exists;
-                }
+                boolean exists = rs.next();
+                log.debug("Shipment {} exists: {}", normalizedId, exists);
+                return exists;
             }
-            return false;
         } catch (SQLException e) {
             log.error("Database error checking shipment existence for {}: {}", normalizedId, e.getSQLState());
             throw new WmsDbConnectivityException(
@@ -163,12 +229,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     @Override
     public String getStagingLocation(String shipmentId) {
-        Objects.requireNonNull(shipmentId, "shipmentId cannot be null");
-        if (shipmentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("shipmentId cannot be empty");
-        }
-
-        String normalizedId = NormalizationService.normalizeString(shipmentId);
+        String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
         String sql = "SELECT DISTINCT s.DSTLOC " +
                 "FROM WMSP.SHIPMENT s " +
                 "WHERE s.SHIP_ID = ? AND ROWNUM <= 1";
@@ -199,12 +260,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     @Override
     public List<ShipmentSkuFootprint> findShipmentSkuFootprints(String shipmentId) {
-        Objects.requireNonNull(shipmentId, "shipmentId cannot be null");
-        if (shipmentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("shipmentId cannot be empty");
-        }
-
-        String normalizedId = NormalizationService.normalizeString(shipmentId);
+        String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
         List<ShipmentSkuFootprint> rows = new ArrayList<>();
 
         String sql = "WITH sku_units AS (" +
@@ -253,7 +309,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            List<String> descriptionColumns = resolvePrtmstDescriptionColumns(conn);
+            List<String> descriptionColumns = prtmstColumnResolver.getColumns(conn);
             stmt.setString(1, normalizedId);
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -295,6 +351,220 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     }
 
     @Override
+    public List<CarrierMoveStopRef> findCarrierMoveStops(String carrierMoveId) {
+        String normalizedCarrierMoveId = requireNormalizedId(carrierMoveId, "carrierMoveId");
+        List<CarrierMoveStopRef> rows = new ArrayList<>();
+        String sql = "SELECT " +
+                "  st.CAR_MOVE_ID, st.STOP_ID, st.STOP_SEQ, st.TMS_STOP_SEQ, " +
+                "  s.SHIP_ID, s.SHPSTS, s.ADDDTE " +
+                "FROM WMSP.STOP st " +
+                "INNER JOIN WMSP.SHIPMENT s ON s.STOP_ID = st.STOP_ID " +
+                "WHERE st.CAR_MOVE_ID = ? " +
+                "ORDER BY st.STOP_SEQ ASC, s.SHIP_ID ASC";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, normalizedCarrierMoveId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Integer stopSeq = rs.getInt("STOP_SEQ");
+                    if (rs.wasNull()) {
+                        stopSeq = null;
+                    }
+
+                    Integer tmsStopSeq = rs.getInt("TMS_STOP_SEQ");
+                    if (rs.wasNull()) {
+                        tmsStopSeq = null;
+                    }
+
+                    LocalDateTime created = nullableLocalDateTime(rs, "ADDDTE");
+
+                    rows.add(new CarrierMoveStopRef(
+                            NormalizationService.normalizeString(rs.getString("CAR_MOVE_ID")),
+                            NormalizationService.normalizeString(rs.getString("STOP_ID")),
+                            stopSeq,
+                            tmsStopSeq,
+                            NormalizationService.normalizeString(rs.getString("SHIP_ID")),
+                            NormalizationService.normalizeToUppercase(rs.getString("SHPSTS")),
+                            created
+                    ));
+                }
+            }
+            return rows;
+        } catch (SQLException e) {
+            log.error("Database error resolving carrier move {}: {}", normalizedCarrierMoveId, e.getSQLState());
+            throw new WmsDbConnectivityException(
+                    "Failed to resolve carrier move shipments: " + e.getMessage(),
+                    e,
+                    "Verify SELECT access to WMSP.STOP and WMSP.SHIPMENT for RPTADM user"
+            );
+        }
+    }
+
+    @Override
+    public List<RailStopRecord> findRailStopsByTrainId(String trainId) {
+        String normalizedTrainId = requireNormalizedUppercaseId(trainId, "trainId");
+
+        String sql = "SELECT " +
+                "  TO_CHAR(SYSDATE, 'MM-DD-YY') AS RUN_DATE, " +
+                "  SUBSTR(t.VC_TRAIN_NUM, 3, 4) AS TRAIN_NBR, " +
+                "  DECODE(ri.SUPNUM, '1011', 'FP', '1000', 'BR', '3230', 'MW', '3322', 'DF') AS DCS_WHSE, " +
+                "  ri.INVNUM AS LOAD_NBR, " +
+                "  t.TRLR_NUM AS VEHICLE_ID, " +
+                "  t.VC_CAR_SEQ AS SEQ, " +
+                "  ap.ALT_PRTNUM AS SHORT_CODE, " +
+                "  SUM(NVL(rl.EXPQTY, 0)) AS TOTAL_CASES " +
+                "FROM WMSP.TRLR t " +
+                "LEFT JOIN WMSP.RCVTRK rt ON rt.TRLR_ID = t.TRLR_ID " +
+                "LEFT JOIN WMSP.RCVINV ri ON ri.TRKNUM = rt.TRKNUM " +
+                "LEFT JOIN WMSP.RCVLIN rl ON rl.TRKNUM = rt.TRKNUM " +
+                "LEFT JOIN WMSP.ALT_PRTMST ap ON ap.PRTNUM = rl.PRTNUM " +
+                "  AND ap.ALT_PRT_TYP = 'UPC' " +
+                "WHERE t.VC_TRAIN_NUM = ? " +
+                "  AND ri.INVNUM IS NOT NULL " +
+                "  AND ap.ALT_PRTNUM IS NOT NULL " +
+                "  AND NVL(rl.EXPQTY, 0) > 0 " +
+                "GROUP BY SUBSTR(t.VC_TRAIN_NUM, 3, 4), " +
+                "  DECODE(ri.SUPNUM, '1011', 'FP', '1000', 'BR', '3230', 'MW', '3322', 'DF'), " +
+                "  ri.INVNUM, t.TRLR_NUM, t.VC_CAR_SEQ, ap.ALT_PRTNUM " +
+                "ORDER BY t.VC_CAR_SEQ ASC, ri.INVNUM ASC, ap.ALT_PRTNUM ASC";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, normalizedTrainId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                Map<RailStopGroupKey, MutableRailStop> grouped = new LinkedHashMap<>();
+                while (rs.next()) {
+                    String date = NormalizationService.normalizeString(rs.getString("RUN_DATE"));
+                    String sequence = integerToString(rs, "SEQ");
+                    String trainNumber = NormalizationService.normalizeString(rs.getString("TRAIN_NBR"));
+                    String warehouse = NormalizationService.normalizeString(rs.getString("DCS_WHSE"));
+                    String loadNumber = NormalizationService.normalizeString(rs.getString("LOAD_NBR"));
+                    String vehicleId = NormalizationService.normalizeString(rs.getString("VEHICLE_ID"));
+                    String shortCode = NormalizationService.normalizeString(rs.getString("SHORT_CODE"));
+                    int cases = rs.getInt("TOTAL_CASES");
+
+                    if (loadNumber.isBlank() || shortCode.isBlank() || cases <= 0) {
+                        continue;
+                    }
+
+                    RailStopGroupKey key = new RailStopGroupKey(sequence, loadNumber, vehicleId, warehouse, trainNumber);
+                    MutableRailStop stop = grouped.computeIfAbsent(key,
+                            ignored -> new MutableRailStop(date, sequence, trainNumber, vehicleId, warehouse, loadNumber));
+                    stop.items.add(new RailStopRecord.ItemQuantity(shortCode, cases));
+                }
+
+                List<RailStopRecord> records = new ArrayList<>(grouped.size());
+                for (MutableRailStop stop : grouped.values()) {
+                    stop.items.sort(Comparator.comparing(RailStopRecord.ItemQuantity::getItemNumber));
+                    records.add(new RailStopRecord(
+                            stop.date,
+                            stop.sequence,
+                            stop.trainNumber,
+                            stop.vehicleId,
+                            stop.warehouse,
+                            stop.loadNumber,
+                            stop.items
+                    ));
+                }
+                return records;
+            }
+        } catch (SQLException e) {
+            throw new WmsDbConnectivityException(
+                    "Failed to retrieve rail rows for train " + normalizedTrainId + ": " + e.getMessage(),
+                    e,
+                    "Verify SELECT access to WMSP.TRLR, WMSP.RCVTRK, WMSP.RCVINV, WMSP.RCVLIN, and WMSP.ALT_PRTMST"
+            );
+        }
+    }
+
+    @Override
+    public Map<String, List<RailFootprintCandidate>> findRailFootprintsByShortCode(List<String> shortCodes) {
+        Objects.requireNonNull(shortCodes, "shortCodes cannot be null");
+
+        Set<String> normalizedSet = new LinkedHashSet<>();
+        for (String code : shortCodes) {
+            String value = NormalizationService.normalizeString(code);
+            if (!value.isBlank()) {
+                normalizedSet.add(value);
+            }
+        }
+        List<String> normalized = new ArrayList<>(normalizedSet);
+        if (normalized.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, List<RailFootprintCandidate>> byShortCode = new LinkedHashMap<>();
+        final int batchSize = 900;
+        String baseSql =
+                "SELECT " +
+                        "  ap.ALT_PRTNUM AS SHORT_CODE, " +
+                        "  ap.PRTNUM AS ITEM_NBR, " +
+                        "  p.PRTFAM AS PRTFAM, " +
+                        "  p.UC_PARS_FLG AS UC_PARS_FLG, " +
+                        "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.UNTQTY END) AS UNITS_PER_PALLET " +
+                        "FROM WMSP.ALT_PRTMST ap " +
+                        "LEFT JOIN WMSP.PRTMST p ON p.PRTNUM = ap.PRTNUM " +
+                        "  AND p.PRT_CLIENT_ID = ap.PRT_CLIENT_ID " +
+                        "LEFT JOIN WMSP.PRTFTP pf ON pf.PRTNUM = ap.PRTNUM " +
+                        "  AND pf.PRT_CLIENT_ID = ap.PRT_CLIENT_ID " +
+                        "  AND pf.DEFFTP_FLG = 1 " +
+                        "LEFT JOIN WMSP.PRTFTP_DTL d ON d.PRTNUM = pf.PRTNUM " +
+                        "  AND d.PRT_CLIENT_ID = pf.PRT_CLIENT_ID " +
+                        "  AND d.WH_ID = pf.WH_ID " +
+                        "  AND d.FTPCOD = pf.FTPCOD " +
+                        "WHERE ap.ALT_PRT_TYP = 'UPC' " +
+                        "  AND ap.ALT_PRTNUM IN (%s) " +
+                        "GROUP BY ap.ALT_PRTNUM, ap.PRTNUM, p.PRTFAM, p.UC_PARS_FLG";
+
+        try (Connection conn = dataSource.getConnection()) {
+            for (int start = 0; start < normalized.size(); start += batchSize) {
+                int end = Math.min(start + batchSize, normalized.size());
+                List<String> batch = normalized.subList(start, end);
+                String placeholders = sqlPlaceholders(batch.size());
+                try (PreparedStatement stmt = conn.prepareStatement(String.format(baseSql, placeholders))) {
+                    for (int i = 0; i < batch.size(); i++) {
+                        stmt.setString(i + 1, batch.get(i));
+                    }
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String shortCode = NormalizationService.normalizeString(rs.getString("SHORT_CODE"));
+                            String itemNumber = NormalizationService.normalizeSku(rs.getString("ITEM_NBR"));
+                            String familyCode = normalizeRailFamilyCode(
+                                    rs.getString("PRTFAM"),
+                                    nullableInt(rs, "UC_PARS_FLG")
+                            );
+                            Integer upp = nullableInt(rs, "UNITS_PER_PALLET");
+                            int casesPerPallet = upp == null ? 0 : upp;
+                            RailFootprintCandidate candidate = new RailFootprintCandidate(
+                                    shortCode,
+                                    itemNumber,
+                                    familyCode,
+                                    casesPerPallet
+                            );
+                            if (!candidate.isValid()) {
+                                continue;
+                            }
+                            byShortCode.computeIfAbsent(shortCode, ignored -> new ArrayList<>()).add(candidate);
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new WmsDbConnectivityException(
+                    "Failed to retrieve rail footprint candidates: " + e.getMessage(),
+                    e,
+                    "Verify SELECT access to WMSP.ALT_PRTMST, WMSP.PRTMST, WMSP.PRTFTP, and WMSP.PRTFTP_DTL"
+            );
+        }
+
+        for (List<RailFootprintCandidate> list : byShortCode.values()) {
+            list.sort(Comparator.comparing(RailFootprintCandidate::getItemNumber));
+        }
+        return byShortCode;
+    }
+
+    @Override
     public void close() {
         // DataSource is managed by the connection pool
         // No explicit close needed here; connection pool handles lifecycle
@@ -303,7 +573,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     /**
      * Fetches the shipment header information with all related address, order, and carrier details.
-     *
+     * <p>
      * This is the master query that retrieves ALL fields from:
      * - WMSP.SHIPMENT (header)
      * - WMSP.ADRMST (ship-to address)
@@ -349,12 +619,12 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     // Extract all fields with null-safe handling
-                    LocalDateTime shipDate = rs.getTimestamp("EARLY_SHPDTE") != null ?
-                            rs.getTimestamp("EARLY_SHPDTE").toLocalDateTime() : null;
-                    LocalDateTime deliveryDate = rs.getTimestamp("LATE_DLVDTE") != null ?
-                            rs.getTimestamp("LATE_DLVDTE").toLocalDateTime() : null;
-                    LocalDateTime createdDate = rs.getTimestamp("ADDDTE") != null ?
-                            rs.getTimestamp("ADDDTE").toLocalDateTime() : LocalDateTime.now();
+                    LocalDateTime shipDate = nullableLocalDateTime(rs, "EARLY_SHPDTE");
+                    LocalDateTime deliveryDate = nullableLocalDateTime(rs, "LATE_DLVDTE");
+                    LocalDateTime createdDate = nullableLocalDateTime(rs, "ADDDTE");
+                    if (createdDate == null) {
+                        createdDate = LocalDateTime.now();
+                    }
 
                     Integer stopSeq = rs.getInt("STOP_SEQ");
                     if (rs.wasNull()) {
@@ -410,7 +680,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
     /**
      * Fetches all LPNs for a shipment with their line items.
-     *
+     * <p>
      * Uses the PCKWRK_DTL → INVDTL → INVSUB → INVLOD chain to get complete pallet data
      * including lot tracking and dates.
      *
@@ -433,20 +703,19 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(lpnSql)) {
+            Map<String, List<LineItem>> lineItemsByLpn = fetchLineItemsByLpn(conn, shipmentId);
 
             stmt.setString(1, shipmentId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String lpnId = rs.getString("LODNUM");
-                    List<LineItem> lineItems = fetchLineItemsForLpn(conn, shipmentId, lpnId);
+                    String normalizedLpnId = NormalizationService.normalizeString(rs.getString("LODNUM"));
+                    List<LineItem> lineItems = lineItemsByLpn.getOrDefault(normalizedLpnId, List.of());
 
-                    LocalDate mfgDate = rs.getDate("MANDTE") != null ?
-                            rs.getDate("MANDTE").toLocalDate() : null;
-                    LocalDate expiryDate = rs.getDate("EXPIRE_DTE") != null ?
-                            rs.getDate("EXPIRE_DTE").toLocalDate() : null;
+                    LocalDate mfgDate = nullableLocalDate(rs, "MANDTE");
+                    LocalDate expiryDate = nullableLocalDate(rs, "EXPIRE_DTE");
 
                     Lpn lpn = new Lpn(
-                            NormalizationService.normalizeString(lpnId),
+                            normalizedLpnId,
                             NormalizationService.normalizeString(shipmentId),
                             NormalizationService.normalizeBarcode(rs.getString("LODUCC")),
                             0, // case count - will be calculated from line items
@@ -468,43 +737,23 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     }
 
     /**
-     * Fetches all line items for a specific pallet (LPN) in a shipment.
+     * Fetches all line items for a shipment in one query, grouped by pallet (LPN).
      *
-     * Retrieves detailed product, order, and SKU information for each line.
+     * <p>This avoids one-query-per-LPN access patterns on large multi-pallet shipments.</p>
      *
-     * @param conn active database connection
-     * @param shipmentId the shipment ID
-     * @param lpnId the LPN ID
-     * @return list of line items for the LPN
+     * @param conn       active database connection
+     * @param shipmentId shipment identifier
+     * @return map keyed by normalized LPN ID
      * @throws SQLException if database operation fails
      */
-    private List<LineItem> fetchLineItemsForLpn(Connection conn, String shipmentId, String lpnId) throws SQLException {
-        List<LineItem> lineItems = new ArrayList<>();
+    private Map<String, List<LineItem>> fetchLineItemsByLpn(Connection conn, String shipmentId) throws SQLException {
+        Map<String, List<LineItem>> lineItemsByLpn = new HashMap<>();
 
-        String itemSql = "SELECT " +
-                "sl.SHIP_LINE_ID, sl.ORDNUM, sl.ORDLIN, sl.ORDSLN, sl.CONS_BATCH, " +
-                "COALESCE(" +
-                "NULLIF(sl.SHPQTY, 0), " +
-                "NULLIF(sl.STGQTY, 0), " +
-                "NULLIF(sl.PCKQTY, 0), " +
-                "NULLIF(sl.INPQTY, 0), " +
-                "NULLIF(sl.TOT_PLN_QTY, 0), " +
-                "NULLIF(ol.ORDQTY, 0), " +
-                "0) AS EFFECTIVE_QTY, " +
-                "ol.PRTNUM, ol.CSTPRT, ol.ORDQTY, ol.SALES_ORDNUM, ol.UNTPAK, " +
-                "CAST(NULL AS VARCHAR2(1)) AS LNGDSC, ol.CSTPRT AS SRTDSC, 0 AS NETWGT " +
-                "FROM WMSP.PCKWRK_DTL pwd " +
-                "INNER JOIN WMSP.SHIPMENT_LINE sl ON pwd.SHIP_LINE_ID = sl.SHIP_LINE_ID " +
-                "INNER JOIN WMSP.ORD_LINE ol ON sl.ORDNUM = ol.ORDNUM " +
-                "  AND sl.ORDLIN = ol.ORDLIN AND sl.ORDSLN = ol.ORDSLN AND sl.CLIENT_ID = ol.CLIENT_ID " +
-                "WHERE pwd.SHIP_ID = ? AND pwd.SHIP_CTNNUM = ? " +
-                "ORDER BY sl.ORDLIN, sl.ORDSLN";
-
-        try (PreparedStatement stmt = conn.prepareStatement(itemSql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(SHIPMENT_LINE_ITEMS_SQL)) {
             stmt.setString(1, shipmentId);
-            stmt.setString(2, lpnId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
+                    String lpnId = NormalizationService.normalizeString(rs.getString("LODNUM"));
                     LineItem item = new LineItem(
                             NormalizationService.normalizeString(rs.getString("ORDLIN")),
                             NormalizationService.normalizeString(rs.getString("ORDSLN")),
@@ -516,25 +765,27 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                             NormalizationService.normalizeString(rs.getString("SALES_ORDNUM")),
                             rs.getInt("EFFECTIVE_QTY"),
                             rs.getInt("UNTPAK"),
-                            "EA", // unit of measure - TODO: get from database if available
+                            // WMS shipment-line joins used here do not expose a stable unit-of-measure column;
+                            // preserve legacy behavior with explicit EA fallback.
+                            DEFAULT_LINE_ITEM_UOM,
                             rs.getDouble("NETWGT"),
                             null, // walmartItemNumber - will be looked up via SkuMappingService
                             null, // gtinBarcode - could be fetched from ALT_PRTMST
                             null  // upcCode - could be fetched from ALT_PRTMST
                     );
-                    lineItems.add(item);
+                    lineItemsByLpn.computeIfAbsent(lpnId, ignored -> new ArrayList<>()).add(item);
                 }
             }
         }
 
-        return lineItems;
+        return lineItemsByLpn;
     }
 
     /**
      * Helper: Extract the first order number from a shipment's lines.
      * This is used to populate the orderId field.
      *
-     * @param conn active database connection
+     * @param conn       active database connection
      * @param shipmentId the shipment ID
      * @return first order number, or null
      * @throws SQLException if database operation fails
@@ -587,54 +838,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         return null;
     }
 
-    private List<String> resolvePrtmstDescriptionColumns(Connection conn) {
-        final String sql = "SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE OWNER = 'WMSP' AND TABLE_NAME = 'PRTMST'";
-        Set<String> columns = new LinkedHashSet<>();
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                String column = rs.getString("COLUMN_NAME");
-                if (column != null) {
-                    columns.add(column.toUpperCase());
-                }
-            }
-        } catch (SQLException e) {
-            log.warn("Could not inspect PRTMST columns via ALL_TAB_COLUMNS: {}", e.getMessage());
-            return List.of();
-        }
-
-        List<String> preferredOrder = List.of("SHORT_DSC", "LNGDSC", "PRT_DISP", "PRT_DISPTN");
-        List<String> available = new ArrayList<>();
-        for (String candidate : preferredOrder) {
-            if (columns.contains(candidate)) {
-                available.add(candidate);
-            }
-        }
-        if (!available.isEmpty()) {
-            return available;
-        }
-
-        // Fallback for restricted dictionary visibility: probe each candidate with a direct SELECT.
-        for (String candidate : preferredOrder) {
-            if (canSelectPrtmstColumn(conn, candidate)) {
-                available.add(candidate);
-            }
-        }
-        return available;
-    }
-
-    private boolean canSelectPrtmstColumn(Connection conn, String column) {
-        String sql = "SELECT " + column + " FROM WMSP.PRTMST WHERE ROWNUM = 1";
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            // If execution succeeds, the column is accessible even if the table currently has no rows.
-            return rs.next() || !rs.isBeforeFirst();
-        } catch (SQLException e) {
-            return false;
-        }
-    }
-
     private String resolveItemDescription(Connection conn,
                                           String sku,
                                           String prtClientId,
@@ -642,15 +845,15 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                                           String fallbackDescription,
                                           List<String> descriptionColumns) {
         String prtdscDescription = fetchDescriptionFromPrtdsc(conn, sku, prtClientId, whId);
-        if (isHumanReadableDescription(prtdscDescription)) {
+        if (DescriptionTextHeuristics.isHumanReadable(prtdscDescription)) {
             return prtdscDescription;
         }
 
         String prtmstDescription = fetchDescriptionFromPrtmst(conn, sku, prtClientId, descriptionColumns);
-        if (isHumanReadableDescription(prtmstDescription)) {
+        if (DescriptionTextHeuristics.isHumanReadable(prtmstDescription)) {
             return prtmstDescription;
         }
-        if (isHumanReadableDescription(fallbackDescription)) {
+        if (DescriptionTextHeuristics.isHumanReadable(fallbackDescription)) {
             return fallbackDescription;
         }
         return null;
@@ -681,7 +884,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                 "FETCH FIRST 1 ROWS ONLY";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : buildSkuCandidates(sku)) {
+            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
                 // Probe most specific keys first (real client/warehouse), then wildcard placeholders.
                 for (String clientCandidate : clientCandidates) {
                     for (String whCandidate : whCandidates) {
@@ -690,11 +893,11 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                         try (ResultSet rs = stmt.executeQuery()) {
                             if (rs.next()) {
                                 String shortDsc = NormalizationService.normalizeString(rs.getString("SHORT_DSC"));
-                                if (isHumanReadableDescription(shortDsc)) {
+                                if (DescriptionTextHeuristics.isHumanReadable(shortDsc)) {
                                     return shortDsc;
                                 }
                                 String longDsc = NormalizationService.normalizeString(rs.getString("LNGDSC"));
-                                if (isHumanReadableDescription(longDsc)) {
+                                if (DescriptionTextHeuristics.isHumanReadable(longDsc)) {
                                     return longDsc;
                                 }
                             }
@@ -723,7 +926,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                 : "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? FETCH FIRST 3 ROWS ONLY";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : buildSkuCandidates(sku)) {
+            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
                 stmt.setString(1, skuCandidate);
                 if (hasClientId) {
                     stmt.setString(2, prtClientId);
@@ -734,7 +937,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                         // Honor preferred column order (SHORT_DSC before longer alternates).
                         for (String column : descriptionColumns) {
                             String value = NormalizationService.normalizeString(rs.getString(column));
-                            if (isHumanReadableDescription(value)) {
+                            if (DescriptionTextHeuristics.isHumanReadable(value)) {
                                 return value;
                             }
                         }
@@ -747,37 +950,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         return null;
     }
 
-    private List<String> buildSkuCandidates(String sku) {
-        List<String> candidates = new ArrayList<>();
-        if (sku == null || sku.isBlank()) {
-            return candidates;
-        }
-        candidates.add(sku);
-
-        if (sku.startsWith("100") && sku.length() > 3) {
-            candidates.add(sku.substring(3));
-        }
-
-        String noLeadingZeros = sku.replaceFirst("^0+(?!$)", "");
-        if (!noLeadingZeros.equals(sku)) {
-            candidates.add(noLeadingZeros);
-        }
-
-        return candidates;
-    }
-
-    private boolean isHumanReadableDescription(String value) {
-        if (value == null || value.isBlank()) {
-            return false;
-        }
-        for (int i = 0; i < value.length(); i++) {
-            if (Character.isLetter(value.charAt(i))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private Integer nullableInt(ResultSet rs, String column) throws SQLException {
         int value = rs.getInt(column);
         return rs.wasNull() ? null : value;
@@ -786,5 +958,80 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     private Double nullableDouble(ResultSet rs, String column) throws SQLException {
         double value = rs.getDouble(column);
         return rs.wasNull() ? null : value;
+    }
+
+    private LocalDateTime nullableLocalDateTime(ResultSet rs, String column) throws SQLException {
+        Timestamp timestamp = rs.getTimestamp(column);
+        return timestamp == null ? null : timestamp.toLocalDateTime();
+    }
+
+    private LocalDate nullableLocalDate(ResultSet rs, String column) throws SQLException {
+        Date date = rs.getDate(column);
+        return date == null ? null : date.toLocalDate();
+    }
+
+    private static final class MutableRailStop {
+        private final String date;
+        private final String sequence;
+        private final String trainNumber;
+        private final String vehicleId;
+        private final String warehouse;
+        private final String loadNumber;
+        private final List<RailStopRecord.ItemQuantity> items = new ArrayList<>();
+
+        private MutableRailStop(String date,
+                                String sequence,
+                                String trainNumber,
+                                String vehicleId,
+                                String warehouse,
+                                String loadNumber) {
+            this.date = date == null ? "" : date.trim();
+            this.sequence = sequence == null ? "" : sequence.trim();
+            this.trainNumber = trainNumber == null ? "" : trainNumber.trim();
+            this.vehicleId = vehicleId == null ? "" : vehicleId.trim();
+            this.warehouse = warehouse == null ? "" : warehouse.trim();
+            this.loadNumber = loadNumber == null ? "" : loadNumber.trim();
+        }
+    }
+
+    private static final class RailStopGroupKey {
+        private final String sequence;
+        private final String loadNumber;
+        private final String vehicleId;
+        private final String warehouse;
+        private final String trainNumber;
+
+        private RailStopGroupKey(String sequence,
+                                 String loadNumber,
+                                 String vehicleId,
+                                 String warehouse,
+                                 String trainNumber) {
+            this.sequence = sequence;
+            this.loadNumber = loadNumber;
+            this.vehicleId = vehicleId;
+            this.warehouse = warehouse;
+            this.trainNumber = trainNumber;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof RailStopGroupKey)) {
+                return false;
+            }
+            RailStopGroupKey that = (RailStopGroupKey) o;
+            return Objects.equals(sequence, that.sequence)
+                    && Objects.equals(loadNumber, that.loadNumber)
+                    && Objects.equals(vehicleId, that.vehicleId)
+                    && Objects.equals(warehouse, that.warehouse)
+                    && Objects.equals(trainNumber, that.trainNumber);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(sequence, loadNumber, vehicleId, warehouse, trainNumber);
+        }
     }
 }

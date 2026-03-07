@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -122,6 +122,39 @@ class AppConfigTest {
         try {
             AppConfig cfg = new AppConfig(Map.of(), tempConfig);
             assertNull(cfg.oracleOdbcDsnOrNull());
+        } finally {
+            Files.deleteIfExists(tempConfig);
+        }
+    }
+
+    @Test
+    void testOraclePortRejectsInvalidNumericValue() throws Exception {
+        Path tempConfig = Files.createTempFile("wms-tags-test", ".env");
+        Files.writeString(tempConfig, String.join("\n",
+                "ACTIVE_SITE=TBG3002",
+                "ORACLE_PORT=abc"
+        ), StandardCharsets.UTF_8);
+
+        try {
+            AppConfig cfg = new AppConfig(Map.of(), tempConfig);
+            IllegalStateException ex = assertThrows(IllegalStateException.class, cfg::oraclePort);
+            assertTrue(ex.getMessage().contains("ORACLE_PORT"));
+            assertTrue(ex.getMessage().contains("abc"));
+        } finally {
+            Files.deleteIfExists(tempConfig);
+        }
+    }
+
+    @Test
+    void testDbPoolTimeoutRejectsInvalidNumericValue() throws Exception {
+        Path tempConfig = Files.createTempFile("wms-tags-test", ".env");
+        Files.writeString(tempConfig, "DB_POOL_CONN_TIMEOUT_MS=not-a-number\n", StandardCharsets.UTF_8);
+
+        try {
+            AppConfig cfg = new AppConfig(Map.of(), tempConfig);
+            IllegalStateException ex = assertThrows(IllegalStateException.class, cfg::dbPoolConnectionTimeoutMs);
+            assertTrue(ex.getMessage().contains("DB_POOL_CONN_TIMEOUT_MS"));
+            assertTrue(ex.getMessage().contains("not-a-number"));
         } finally {
             Files.deleteIfExists(tempConfig);
         }

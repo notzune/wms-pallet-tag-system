@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Manages the Oracle database connection pool using HikariCP.
@@ -76,11 +77,13 @@ public final class DbConnectionPool implements AutoCloseable {
             HikariDataSource candidate = null;
             try {
                 candidate = createDataSource(config, jdbcUrlCandidate);
-                try (Connection ignored = candidate.getConnection()) {
-                    selectedDataSource = candidate;
-                    selectedJdbcUrl = jdbcUrlCandidate;
-                    break;
+                try (Connection validationConnection = candidate.getConnection()) {
+                    // Touch metadata to keep javac -Werror happy and validate an active borrow.
+                    validationConnection.getMetaData();
                 }
+                selectedDataSource = candidate;
+                selectedJdbcUrl = jdbcUrlCandidate;
+                break;
             } catch (Exception e) {
                 errors.add(summarizeAttemptFailure(jdbcUrlCandidate, e));
                 log.warn("Database connection attempt failed for JDBC URL candidate: {}", jdbcUrlCandidate);
@@ -155,7 +158,7 @@ public final class DbConnectionPool implements AutoCloseable {
         while (current != null) {
             String message = current.getMessage();
             if (message != null) {
-                String lowered = message.toLowerCase();
+                String lowered = message.toLowerCase(Locale.ROOT);
                 if (lowered.contains("ora-01017")
                         || lowered.contains("invalid username/password")
                         || lowered.contains("ora-28000")
@@ -194,23 +197,23 @@ public final class DbConnectionPool implements AutoCloseable {
      */
     public DbConnectivityDiagnostics testConnectivity() {
         log.info("Testing database connectivity: site={}, env={}, host={}",
-            config.activeSiteCode(), config.wmsEnvironment(), config.siteHost(config.activeSiteCode()));
+                config.activeSiteCode(), config.wmsEnvironment(), config.siteHost(config.activeSiteCode()));
 
         long startMs = System.currentTimeMillis();
         try (Connection c = dataSource.getConnection()) {
             long durationMs = System.currentTimeMillis() - startMs;
 
             DbConnectivityDiagnostics diag = new DbConnectivityDiagnostics(
-                true,
-                durationMs,
-                dataSource.getHikariPoolMXBean().getActiveConnections(),
-                dataSource.getHikariPoolMXBean().getIdleConnections(),
-                c.getMetaData().getDatabaseProductVersion(),
-                null
+                    true,
+                    durationMs,
+                    dataSource.getHikariPoolMXBean().getActiveConnections(),
+                    dataSource.getHikariPoolMXBean().getIdleConnections(),
+                    c.getMetaData().getDatabaseProductVersion(),
+                    null
             );
 
             log.info("Database connectivity verified: durationMs={}, poolActive={}, poolIdle={}",
-                durationMs, diag.activeConnections(), diag.idleConnections());
+                    durationMs, diag.activeConnections(), diag.idleConnections());
 
             return diag;
         } catch (SQLException e) {
@@ -220,12 +223,12 @@ public final class DbConnectionPool implements AutoCloseable {
             String remediation = mapSqlErrorToRemediationHint(e);
 
             log.error("Database connectivity test failed: durationMs={}, sqlState={}, message={}",
-                durationMs, e.getSQLState(), e.getMessage());
+                    durationMs, e.getSQLState(), e.getMessage());
 
             throw new WmsDbConnectivityException(
-                "Database connectivity test failed: " + error,
-                e,
-                remediation
+                    "Database connectivity test failed: " + error,
+                    e,
+                    remediation
             );
         }
     }
@@ -239,24 +242,24 @@ public final class DbConnectionPool implements AutoCloseable {
     private String mapSqlErrorToRemediationHint(SQLException e) {
         String sqlState = e.getSQLState();
         String message = e.getMessage() == null ? "" : e.getMessage();
+        String lowerMessage = message.toLowerCase(Locale.ROOT);
 
         if (sqlState == null) {
             return "Check network connectivity, firewall, and VPN settings.";
         }
 
         // Oracle-specific SQL states
-        if ("17002".equals(sqlState) || message.contains("Connection refused")) {
+        if ("17002".equals(sqlState) || lowerMessage.contains("connection refused")) {
             return "Connection refused: check DB_HOST, ORACLE_PORT, and firewall. " +
-                   "Verify VPN is connected and database service is running.";
+                    "Verify VPN is connected and database service is running.";
         }
-        if ("17004".equals(sqlState) || message.contains("Cannot create JDBC driver")) {
+        if ("17004".equals(sqlState) || lowerMessage.contains("cannot create jdbc driver")) {
             return "Cannot load Oracle JDBC driver: check ojdbc11 is on classpath and version matches DB.";
         }
-        if ("12514".equals(sqlState) || message.contains("listener does not currently know")) {
+        if ("12514".equals(sqlState) || lowerMessage.contains("listener does not currently know")) {
             return "Service not found: verify ORACLE_SERVICE=" + config.oracleService() + " is correct. " +
-                   "Query DB admin for available services.";
+                    "Query DB admin for available services.";
         }
-        String lowerMessage = message.toLowerCase();
         if (lowerMessage.contains("invalid username/password") || lowerMessage.contains("ora-01017")) {
             return "Authentication failed: verify ORACLE_USERNAME and ORACLE_PASSWORD are correct.";
         }
@@ -268,7 +271,7 @@ public final class DbConnectionPool implements AutoCloseable {
                 && e.getCause().getMessage() != null
                 && e.getCause().getMessage().contains("connection timed out")) {
             return "Connection timed out: check DB_HOST is reachable (ping), port " + config.oraclePort() +
-                   " is open, and firewall allows traffic. Increase DB_POOL_CONN_TIMEOUT_MS if needed.";
+                    " is open, and firewall allows traffic. Increase DB_POOL_CONN_TIMEOUT_MS if needed.";
         }
 
         return "Check database host, port, service name, and credentials. See INSTRUCTIONS.md for troubleshooting.";

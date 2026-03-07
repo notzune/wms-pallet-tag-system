@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -8,24 +8,14 @@
 
 package com.tbg.wms.core;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.BufferedReader;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.CodeSource;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Loads and manages runtime configuration from environment variables and `.env` file.
@@ -74,15 +64,17 @@ public final class AppConfig {
      * <p>Primarily intended for deterministic tests where host process environment and working-directory
      * `.env` files must be ignored.</p>
      *
-     * @param envVars environment key/value pairs to use for resolution precedence
+     * @param envVars            environment key/value pairs to use for resolution precedence
      * @param explicitConfigFile explicit env-style config file, or {@code null} to use normal discovery
      */
     AppConfig(Map<String, String> envVars, Path explicitConfigFile) {
         this.envVars = Map.copyOf(Objects.requireNonNull(envVars, "envVars cannot be null"));
         this.classpathDefaults = loadClasspathDefaults();
 
-        Path explicitPath = explicitConfigFile != null ? validateConfigFile(explicitConfigFile) : resolveExplicitConfigPath();
-        Path selectedFile = explicitPath != null ? explicitPath : discoverConfigFile();
+        Path explicitPath = explicitConfigFile != null
+                ? ConfigFileLocator.validateConfigFile(explicitConfigFile)
+                : ConfigFileLocator.resolveExplicitConfigPath(CONFIG_FILE_PROP, CONFIG_FILE_ENV);
+        Path selectedFile = explicitPath != null ? explicitPath : ConfigFileLocator.discoverConfigFile(DEFAULT_FILE_NAME, AppConfig.class);
         this.fileValues = selectedFile == null ? Map.of() : loadEnvStyleFile(selectedFile);
         this.loadedConfigFile = selectedFile == null ? null : selectedFile.toAbsolutePath().toString();
     }
@@ -146,7 +138,7 @@ public final class AppConfig {
      * @return the port from {@code ORACLE_PORT} (default: {@code 1521})
      */
     public int oraclePort() {
-        return Integer.parseInt(get("ORACLE_PORT", "1521"));
+        return parseIntConfig("ORACLE_PORT", "1521");
     }
 
     /**
@@ -314,7 +306,7 @@ public final class AppConfig {
      * @return the max pool size from {@code DB_POOL_MAX_SIZE} (default: {@code 5})
      */
     public int dbPoolMaxSize() {
-        return Integer.parseInt(get("DB_POOL_MAX_SIZE", "5"));
+        return parseIntConfig("DB_POOL_MAX_SIZE", "5");
     }
 
     /**
@@ -323,7 +315,7 @@ public final class AppConfig {
      * @return the timeout from {@code DB_POOL_CONN_TIMEOUT_MS} (default: {@code 3000} ms)
      */
     public long dbPoolConnectionTimeoutMs() {
-        return Long.parseLong(get("DB_POOL_CONN_TIMEOUT_MS", "3000"));
+        return parseLongConfig("DB_POOL_CONN_TIMEOUT_MS", "3000");
     }
 
     /**
@@ -332,7 +324,7 @@ public final class AppConfig {
      * @return the timeout from {@code DB_POOL_VALIDATION_TIMEOUT_MS} (default: {@code 2000} ms)
      */
     public long dbPoolValidationTimeoutMs() {
-        return Long.parseLong(get("DB_POOL_VALIDATION_TIMEOUT_MS", "2000"));
+        return parseLongConfig("DB_POOL_VALIDATION_TIMEOUT_MS", "2000");
     }
 
     /**
@@ -351,6 +343,46 @@ public final class AppConfig {
      */
     public String defaultPrinterId() {
         return get("PRINTER_DEFAULT_ID", "DISPATCH");
+    }
+
+    /**
+     * Returns the default rail printer ID override, or {@code null} if not set.
+     * <p>When set, rail PDF printing uses this printer target first.</p>
+     *
+     * @return the rail default printer ID from {@code RAIL_DEFAULT_PRINTER_ID}, or {@code null}
+     */
+    public String railDefaultPrinterIdOrNull() {
+        String v = raw("RAIL_DEFAULT_PRINTER_ID");
+        return (v == null || v.isBlank()) ? null : v.trim();
+    }
+
+    /**
+     * Horizontal center-gap between the two rail label columns, in inches.
+     *
+     * @return center gap from {@code RAIL_LABEL_CENTER_GAP_IN} (default: {@code 0.125})
+     */
+    public double railLabelCenterGapInches() {
+        return parseDoubleConfig("RAIL_LABEL_CENTER_GAP_IN", "0.125");
+    }
+
+    /**
+     * Rail label horizontal calibration offset in inches.
+     * Positive values move the entire 2x5 grid to the right.
+     *
+     * @return offset from {@code RAIL_LABEL_OFFSET_X_IN} (default: {@code 0.02})
+     */
+    public double railLabelOffsetXInches() {
+        return parseDoubleConfig("RAIL_LABEL_OFFSET_X_IN", "0.02");
+    }
+
+    /**
+     * Rail label vertical calibration offset in inches.
+     * Positive values move the entire 2x5 grid downward.
+     *
+     * @return offset from {@code RAIL_LABEL_OFFSET_Y_IN} (default: {@code 0.02})
+     */
+    public double railLabelOffsetYInches() {
+        return parseDoubleConfig("RAIL_LABEL_OFFSET_Y_IN", "0.02");
     }
 
     /**
@@ -387,6 +419,33 @@ public final class AppConfig {
                     + " (set env var, or define in " + DEFAULT_FILE_NAME + "/.env)");
         }
         return v.trim();
+    }
+
+    private int parseIntConfig(String key, String defaultValue) {
+        String value = get(key, defaultValue);
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid integer config for " + key + ": '" + value + "'", ex);
+        }
+    }
+
+    private long parseLongConfig(String key, String defaultValue) {
+        String value = get(key, defaultValue);
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid long config for " + key + ": '" + value + "'", ex);
+        }
+    }
+
+    private double parseDoubleConfig(String key, String defaultValue) {
+        String value = get(key, defaultValue);
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid decimal config for " + key + ": '" + value + "'", ex);
+        }
     }
 
     /**
@@ -429,65 +488,6 @@ public final class AppConfig {
         return null;
     }
 
-    private Path resolveExplicitConfigPath() {
-        String explicit = System.getProperty(CONFIG_FILE_PROP);
-        if (explicit == null || explicit.isBlank()) {
-            explicit = System.getenv(CONFIG_FILE_ENV);
-        }
-        if (explicit == null || explicit.isBlank()) {
-            return null;
-        }
-
-        return validateConfigFile(Paths.get(explicit.trim()));
-    }
-
-    private Path validateConfigFile(Path path) {
-        if (Files.exists(path) && Files.isRegularFile(path)) {
-            return path;
-        }
-        throw new IllegalStateException("Configured file not found: " + path);
-    }
-
-    private Path discoverConfigFile() {
-        List<Path> candidates = new ArrayList<>();
-        candidates.add(Paths.get(DEFAULT_FILE_NAME));
-        candidates.add(Paths.get(".env"));
-        candidates.add(Paths.get("config", DEFAULT_FILE_NAME));
-
-        Path executableDir = resolveExecutableDirectory();
-        if (executableDir != null) {
-            candidates.add(executableDir.resolve(DEFAULT_FILE_NAME));
-            candidates.add(executableDir.resolve(".env"));
-            candidates.add(executableDir.resolve("config").resolve(DEFAULT_FILE_NAME));
-        }
-
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate) && Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    private Path resolveExecutableDirectory() {
-        try {
-            CodeSource codeSource = AppConfig.class.getProtectionDomain().getCodeSource();
-            if (codeSource == null) {
-                return null;
-            }
-
-            URI locationUri = codeSource.getLocation().toURI();
-            Path location = Paths.get(locationUri);
-            if (Files.isDirectory(location)) {
-                return location;
-            }
-            Path parent = location.getParent();
-            return parent == null ? null : parent;
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
     private Map<String, String> loadClasspathDefaults() {
         InputStream stream = AppConfig.class.getClassLoader().getResourceAsStream("wms-defaults.properties");
         if (stream == null) {
@@ -495,7 +495,7 @@ public final class AppConfig {
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-            return loadEnvStyleReader(reader);
+            return EnvStyleConfigParser.parseReader(reader);
         } catch (Exception ignored) {
             return Map.of();
         }
@@ -504,68 +504,9 @@ public final class AppConfig {
     private Map<String, String> loadEnvStyleFile(Path path) {
         try {
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            return loadEnvStyleLines(lines);
+            return EnvStyleConfigParser.parseLines(lines);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read config file: " + path, e);
         }
-    }
-
-    private Map<String, String> loadEnvStyleReader(BufferedReader reader) throws IOException {
-        Map<String, String> values = new HashMap<>();
-        String rawLine;
-        while ((rawLine = reader.readLine()) != null) {
-            parseEnvStyleLine(values, rawLine);
-        }
-        return values;
-    }
-
-    private Map<String, String> loadEnvStyleLines(List<String> lines) {
-        Map<String, String> values = new HashMap<>();
-        for (String rawLine : lines) {
-            parseEnvStyleLine(values, rawLine);
-        }
-
-        return values;
-    }
-
-    private void parseEnvStyleLine(Map<String, String> values, String rawLine) {
-        if (rawLine == null) {
-            return;
-        }
-
-        String line = rawLine.trim();
-        if (line.isEmpty() || line.startsWith("#")) {
-            return;
-        }
-
-        if (line.startsWith("export ")) {
-            // Accept shell-style .env files that prefix entries with `export`.
-            line = line.substring("export ".length()).trim();
-        }
-
-        int sep = line.indexOf('=');
-        if (sep <= 0) {
-            return;
-        }
-
-        String key = line.substring(0, sep).trim();
-        String value = line.substring(sep + 1).trim();
-        if (key.isEmpty()) {
-            return;
-        }
-
-        values.put(key, stripQuotes(value));
-    }
-
-    private String stripQuotes(String value) {
-        if (value == null || value.length() < 2) {
-            return value;
-        }
-        char first = value.charAt(0);
-        char last = value.charAt(value.length() - 1);
-        if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
-            return value.substring(1, value.length() - 1);
-        }
-        return value;
     }
 }

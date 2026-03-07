@@ -14,23 +14,25 @@ Usage:
     python wms_analysis.py --phase 1-4 --output db-dumps/
 """
 
-import os
-import sys
 import json
 import logging
-from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+import os
+import re
+import sys
 from dataclasses import dataclass, asdict
 from datetime import datetime
-import re
+from pathlib import Path
+from typing import List, Dict, Tuple, Optional
 
 # Try to import oracle database libraries
 try:
     import oracledb  # Oracle's official Python driver
+
     ORACLE_AVAILABLE = True
 except ImportError:
     try:
         import cx_Oracle
+
         ORACLE_AVAILABLE = True
     except ImportError:
         ORACLE_AVAILABLE = False
@@ -177,12 +179,14 @@ class WMSAnalyzer:
             f.write("DISCOVERING SCHEMAS...\n")
             f.write("-" * 80 + "\n")
             schema_sql = """
-                SELECT DISTINCT owner, COUNT(*) as table_count
-                FROM all_tables
-                WHERE owner NOT IN ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
-                GROUP BY owner
-                ORDER BY table_count DESC
-            """
+                         SELECT DISTINCT owner, COUNT(*) as table_count
+                         FROM all_tables
+                         WHERE owner NOT IN
+                               ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS',
+                                'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
+                         GROUP BY owner
+                         ORDER BY table_count DESC \
+                         """
             schemas = self.execute_query(schema_sql)
             f.write(f"Found {len(schemas)} schemas:\n\n")
             for owner, count in schemas:
@@ -191,11 +195,13 @@ class WMSAnalyzer:
 
             # Query all accessible tables from all schemas
             sql = """
-                SELECT owner, table_name 
-                FROM all_tables
-                WHERE owner NOT IN ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
-                ORDER BY owner, table_name
-            """
+                  SELECT owner, table_name
+                  FROM all_tables
+                  WHERE owner NOT IN
+                        ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS',
+                         'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
+                  ORDER BY owner, table_name \
+                  """
 
             tables = self.execute_query(sql)
             f.write(f"Total Tables Found: {len(tables)}\n\n")
@@ -243,11 +249,13 @@ class WMSAnalyzer:
             f.write(f"Timestamp: {datetime.now().isoformat()}\n\n")
 
             sql = """
-                SELECT owner, table_name 
-                FROM all_tables
-                WHERE owner NOT IN ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
-                ORDER BY owner, table_name
-            """
+                  SELECT owner, table_name
+                  FROM all_tables
+                  WHERE owner NOT IN
+                        ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS',
+                         'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
+                  ORDER BY owner, table_name \
+                  """
             tables = self.execute_query(sql)
 
             for (owner, table_name) in tables:
@@ -290,11 +298,13 @@ class WMSAnalyzer:
             f.write("Searching for key tables...\n\n")
 
             sql = """
-                SELECT owner || '.' || table_name as full_name
-                FROM all_tables
-                WHERE owner NOT IN ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
-                ORDER BY owner, table_name
-            """
+                  SELECT owner || '.' || table_name as full_name
+                  FROM all_tables
+                  WHERE owner NOT IN
+                        ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS',
+                         'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
+                  ORDER BY owner, table_name \
+                  """
             all_tables = [t[0] for t in self.execute_query(sql)]
 
             # Identify shipment-related tables
@@ -317,9 +327,9 @@ class WMSAnalyzer:
 
             # For each key table, show more detailed data
             for table in shipment_tables + lpn_tables + item_tables:
-                f.write(f"\n{'='*80}\n")
+                f.write(f"\n{'=' * 80}\n")
                 f.write(f"DETAILED VIEW: {table}\n")
-                f.write(f"{'='*80}\n")
+                f.write(f"{'=' * 80}\n")
 
                 try:
                     # Table already includes owner (e.g., OWNER.TABLE_NAME)
@@ -362,40 +372,46 @@ class WMSAnalyzer:
                     'name': 'ROSSI Staging Location',
                     'description': 'Look for staging location = ROSSI (Canadian hub)',
                     'sql': """
-                        SELECT owner || '.' || table_name as full_name
-                        FROM all_tables
-                        WHERE (table_name LIKE '%STAGE%' OR table_name LIKE '%LOCATION%')
-                        AND owner NOT IN ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
-                        AND ROWNUM <= 5
-                    """
+                           SELECT owner || '.' || table_name as full_name
+                           FROM all_tables
+                           WHERE (table_name LIKE '%STAGE%' OR table_name LIKE '%LOCATION%')
+                             AND owner NOT IN
+                                 ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS',
+                                  'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
+                             AND ROWNUM <= 5
+                           """
                 },
                 {
                     'name': 'Ship-To Country = CA',
                     'description': 'Look for SHIP_TO_COUNTRY = CA',
                     'sql': """
-                        SELECT owner || '.' || table_name as full_name
-                        FROM all_tables
-                        WHERE (table_name LIKE '%SHIP%' OR table_name LIKE '%CUSTOMER%')
-                        AND owner NOT IN ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
-                        AND ROWNUM <= 5
-                    """
+                           SELECT owner || '.' || table_name as full_name
+                           FROM all_tables
+                           WHERE (table_name LIKE '%SHIP%' OR table_name LIKE '%CUSTOMER%')
+                             AND owner NOT IN
+                                 ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS',
+                                  'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
+                             AND ROWNUM <= 5
+                           """
                 },
                 {
                     'name': 'Walmart Vendor Code',
                     'description': 'Look for Walmart vendor/customer identifiers',
                     'sql': """
-                        SELECT owner || '.' || table_name as full_name
-                        FROM all_tables
-                        WHERE (table_name LIKE '%CUSTOMER%' OR table_name LIKE '%VENDOR%')
-                        AND owner NOT IN ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS', 'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
-                        AND ROWNUM <= 5
-                    """
+                           SELECT owner || '.' || table_name as full_name
+                           FROM all_tables
+                           WHERE (table_name LIKE '%CUSTOMER%' OR table_name LIKE '%VENDOR%')
+                             AND owner NOT IN
+                                 ('SYS', 'SYSTEM', 'DBSNMP', 'OUTLN', 'MDSYS', 'ORDSYS', 'EXFSYS', 'DMSYS', 'WMSYS',
+                                  'CTXSYS', 'XDB', 'ANONYMOUS', 'ORDDATA', 'SI_INFORMTN_SCHEMA', 'OLAPSYS')
+                             AND ROWNUM <= 5
+                           """
                 }
             ]
 
             for strategy in search_strategies:
                 f.write(f"\n{strategy['name']}\n")
-                f.write(f"-{'-'*70}\n")
+                f.write(f"-{'-' * 70}\n")
                 f.write(f"Description: {strategy['description']}\n\n")
 
                 try:
@@ -421,9 +437,9 @@ class WMSAnalyzer:
             files.append(self.phase_3_targeted_analysis())
             files.append(self.phase_4_canadian_analysis())
 
-            log.info("\n" + "="*80)
+            log.info("\n" + "=" * 80)
             log.info("ANALYSIS COMPLETE")
-            log.info("="*80)
+            log.info("=" * 80)
             log.info(f"Output files saved to: {self.output_dir}")
             for f in files:
                 log.info(f"  - {f.name}")
@@ -601,4 +617,3 @@ if __name__ == '__main__':
     else:
         log.error("Failed to connect to database. Check credentials and network.")
         sys.exit(1)
-

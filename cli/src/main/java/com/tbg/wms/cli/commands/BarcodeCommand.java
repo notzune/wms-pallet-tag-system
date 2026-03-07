@@ -9,6 +9,7 @@
 package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.BarcodeRequest;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.Orientation;
@@ -27,7 +28,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
@@ -44,6 +44,8 @@ public final class BarcodeCommand implements Callable<Integer> {
     private static final Logger log = LoggerFactory.getLogger(BarcodeCommand.class);
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
+    private static final int JOB_ID_LENGTH = 8;
+    private static final int MAX_SLUG_LENGTH = 40;
 
     @Option(
             names = {"-d", "--data"},
@@ -82,22 +84,22 @@ public final class BarcodeCommand implements Callable<Integer> {
 
     @Option(
             names = {"--origin-x"},
-            defaultValue = "40",
-            description = "X origin in dots."
+            defaultValue = "60",
+            description = "X origin in dots (recommended: 60 for scanner quiet-zone margin)."
     )
     private int originX;
 
     @Option(
             names = {"--origin-y"},
-            defaultValue = "40",
-            description = "Y origin in dots."
+            defaultValue = "60",
+            description = "Y origin in dots (recommended: 60 for scanner quiet-zone margin)."
     )
     private int originY;
 
     @Option(
             names = {"--module-width"},
-            defaultValue = "2",
-            description = "Barcode module width."
+            defaultValue = "3",
+            description = "Barcode module width (recommended: 3 for long-range scanner reliability)."
     )
     private int moduleWidth;
 
@@ -110,8 +112,8 @@ public final class BarcodeCommand implements Callable<Integer> {
 
     @Option(
             names = {"--barcode-height"},
-            defaultValue = "120",
-            description = "Barcode height in dots."
+            defaultValue = "220",
+            description = "Barcode height in dots (recommended: 220 for long-range scanner reliability)."
     )
     private int barcodeHeight;
 
@@ -157,55 +159,42 @@ public final class BarcodeCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
+    private static String safeSlug(String value) {
+        if (value == null) {
+            return "data";
+        }
+        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
+        if (slug.isEmpty()) {
+            return "data";
+        }
+        return slug.length() > MAX_SLUG_LENGTH ? slug.substring(0, MAX_SLUG_LENGTH) : slug;
+    }
+
+    /**
+     * Executes barcode generation and optional print/file output flow.
+     *
+     * @return exit code (0 success, non-zero failure)
+     */
     @Override
     public Integer call() {
-        String jobId = UUID.randomUUID().toString().substring(0, 8);
+        String jobId = UUID.randomUUID().toString().substring(0, JOB_ID_LENGTH);
         log.info("Generating barcode label (jobId={})", jobId);
 
-        BarcodeRequest request = new BarcodeRequest(
-                data,
-                symbology,
-                orientation,
-                labelWidthDots,
-                labelHeightDots,
-                originX,
-                originY,
-                moduleWidth,
-                moduleRatio,
-                barcodeHeight,
-                humanReadable,
-                copies
-        );
-
+        BarcodeRequest request = buildBarcodeRequest();
         String zpl = BarcodeZplBuilder.build(request);
 
-        if (printToFile) {
-            dryRun = true;
-            outputDir = resolveJarOutputDir().toString();
-        }
-
-        Path outputPath = Paths.get(outputDir);
-        try {
-            Files.createDirectories(outputPath);
-        } catch (Exception e) {
-            log.error("Failed to create output directory: {}", outputPath, e);
-            System.err.println("Error: Unable to create output directory: " + outputPath);
-            return 2;
-        }
-
-        String fileName = String.format("barcode-%s-%s.zpl", TS.format(LocalDateTime.now()), safeSlug(data));
-        Path zplFile = outputPath.resolve(fileName);
-        try {
-            Files.writeString(zplFile, zpl);
-        } catch (Exception e) {
-            log.error("Failed to write ZPL file: {}", zplFile, e);
-            System.err.println("Error: Unable to write ZPL file: " + zplFile);
+        boolean effectiveDryRun = dryRun || printToFile;
+        String effectiveOutputDir = printToFile
+                ? RuntimePathResolver.resolveJarSiblingDir(BarcodeCommand.class, "out").toString()
+                : outputDir;
+        Path zplFile = writeZplFile(zpl, effectiveOutputDir);
+        if (zplFile == null) {
             return 2;
         }
 
         log.info("ZPL file written: {}", zplFile.toAbsolutePath());
 
-        if (dryRun) {
+        if (effectiveDryRun) {
             System.out.println("Dry run enabled. ZPL generated at: " + zplFile.toAbsolutePath());
             return 0;
         }
@@ -215,22 +204,8 @@ public final class BarcodeCommand implements Callable<Integer> {
             return 2;
         }
 
-        AppConfig config = RootCommand.config();
-        String site = config.activeSiteCode();
-
-        PrinterRoutingService routing;
-        try {
-            routing = PrinterRoutingService.load(site, Paths.get("config"));
-        } catch (Exception e) {
-            log.error("Failed to load printer routing configuration", e);
-            System.err.println("Error: Unable to load printer routing configuration.");
-            return 2;
-        }
-
-        PrinterConfig printer = routing.findPrinter(printerId.trim())
-                .orElse(null);
-        if (printer == null || !printer.isEnabled()) {
-            System.err.println("Error: Printer not found or disabled: " + printerId);
+        PrinterConfig printer = resolvePrinter();
+        if (printer == null) {
             return 2;
         }
 
@@ -247,28 +222,63 @@ public final class BarcodeCommand implements Callable<Integer> {
         return 0;
     }
 
-    private static Path resolveJarOutputDir() {
+    private BarcodeRequest buildBarcodeRequest() {
+        return new BarcodeRequest(
+                data,
+                symbology,
+                orientation,
+                labelWidthDots,
+                labelHeightDots,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        );
+    }
+
+    private Path writeZplFile(String zpl, String outputDirPath) {
+        Path outputPath = Paths.get(outputDirPath);
         try {
-            Path codeSource = Paths.get(Objects.requireNonNull(BarcodeCommand.class
-                    .getProtectionDomain()
-                    .getCodeSource())
-                    .getLocation()
-                    .toURI());
-            Path baseDir = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
-            return baseDir.resolve("out");
+            Files.createDirectories(outputPath);
         } catch (Exception e) {
-            return Paths.get("out");
+            log.error("Failed to create output directory: {}", outputPath, e);
+            System.err.println("Error: Unable to create output directory: " + outputPath);
+            return null;
+        }
+
+        String fileName = String.format("barcode-%s-%s.zpl", TS.format(LocalDateTime.now()), safeSlug(data));
+        Path zplFile = outputPath.resolve(fileName);
+        try {
+            Files.writeString(zplFile, zpl);
+            return zplFile;
+        } catch (Exception e) {
+            log.error("Failed to write ZPL file: {}", zplFile, e);
+            System.err.println("Error: Unable to write ZPL file: " + zplFile);
+            return null;
         }
     }
 
-    private static String safeSlug(String value) {
-        if (value == null) {
-            return "data";
+    private PrinterConfig resolvePrinter() {
+        AppConfig config = RootCommand.config();
+        String site = config.activeSiteCode();
+
+        PrinterRoutingService routing;
+        try {
+            routing = PrinterRoutingService.load(site, Paths.get("config"));
+        } catch (Exception e) {
+            log.error("Failed to load printer routing configuration", e);
+            System.err.println("Error: Unable to load printer routing configuration.");
+            return null;
         }
-        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
-        if (slug.isEmpty()) {
-            return "data";
+
+        PrinterConfig printer = routing.findPrinter(printerId.trim()).orElse(null);
+        if (printer == null || !printer.isEnabled()) {
+            System.err.println("Error: Printer not found or disabled: " + printerId);
+            return null;
         }
-        return slug.length() > 40 ? slug.substring(0, 40) : slug;
+        return printer;
     }
 }

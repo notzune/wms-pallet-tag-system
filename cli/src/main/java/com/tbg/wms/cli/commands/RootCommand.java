@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -8,6 +8,8 @@
 
 package com.tbg.wms.cli.commands;
 
+import com.tbg.wms.cli.commands.rail.RailHelperCommand;
+import com.tbg.wms.cli.commands.rail.RailPrintCommand;
 import com.tbg.wms.core.AppConfig;
 import picocli.CommandLine.Command;
 
@@ -22,24 +24,26 @@ import java.util.concurrent.Callable;
  *
  * <p>Exit codes:</p>
  * <ul>
- *   <li>0 – Success</li>
- *   <li>2 – User input/configuration error</li>
- *   <li>3 – Database connectivity error</li>
- *   <li>4 – Database query/data error</li>
- *   <li>5 – Validation error</li>
- *   <li>6 – Print/network error</li>
- *   <li>10 – Unexpected internal error</li>
+ *   <li>0 - Success</li>
+ *   <li>2 - User input/configuration error</li>
+ *   <li>3 - Database connectivity error</li>
+ *   <li>4 - Database query/data error</li>
+ *   <li>5 - Validation error</li>
+ *   <li>6 - Print/network error</li>
+ *   <li>10 - Unexpected internal error</li>
  * </ul>
  */
 @Command(
         name = "wms-tags",
         mixinStandardHelpOptions = true,
-        version = "1.2.2",
-        description = "WMS Pallet Tag System – Generate and print shipping labels from WMS data",
+        versionProvider = BuildVersionProvider.class,
+        description = "WMS Pallet Tag System - Generate and print shipping labels from WMS data",
         subcommands = {
                 ShowConfigCommand.class,
                 DbTestCommand.class,
                 RunCommand.class,
+                RailHelperCommand.class,
+                RailPrintCommand.class,
                 GuiCommand.class,
                 BarcodeCommand.class,
                 VersionCommand.class
@@ -48,16 +52,18 @@ import java.util.concurrent.Callable;
 public final class RootCommand implements Callable<Integer> {
 
     @picocli.CommandLine.Option(
+            names = {"-h", "--help"},
+            usageHelp = true,
+            description = "Show this help message and exit"
+    )
+    boolean helpRequested;
+
+    @picocli.CommandLine.Option(
             names = {"-v", "--version"},
             versionHelp = true,
             description = "Print version information and exit"
     )
     boolean versionRequested;
-
-    @Override
-    public Integer call() {
-        return 0;
-    }
 
     /**
      * Factory method for creating the application configuration.
@@ -74,5 +80,15 @@ public final class RootCommand implements Callable<Integer> {
      */
     static AppConfig config() {
         return new AppConfig();
+    }
+
+    /**
+     * Default root command handler.
+     *
+     * @return always {@code 0}
+     */
+    @Override
+    public Integer call() {
+        return 0;
     }
 }

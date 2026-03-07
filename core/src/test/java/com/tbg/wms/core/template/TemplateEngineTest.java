@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for LabelTemplate and ZplTemplateEngine.
- *
+ * <p>
  * Tests template creation, placeholder extraction, validation,
  * and ZPL generation with field substitution and escaping.
  */

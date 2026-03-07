@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -10,7 +10,7 @@ package com.tbg.wms.core.label;
 
 /**
  * Enumeration of supported label formats.
- *
+ * <p>
  * Different label templates are used for different purposes:
  * - WALMART_CANADA_GRID: Grid-based label for Walmart Canada (primary)
  * - WALMART_DETAILED: Extended format with lot tracking and dates (secondary)

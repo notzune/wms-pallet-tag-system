@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -8,6 +8,7 @@
 
 package com.tbg.wms.core.location;
 
+import com.tbg.wms.core.rail.RailCsvSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -44,6 +46,38 @@ public final class LocationNumberMappingService {
         Objects.requireNonNull(csvFile, "csvFile cannot be null");
         load(csvFile);
         log.info("Loaded {} sold-to location mappings from {}", dcBySoldToKey.size(), csvFile);
+    }
+
+    private static String canonicalSoldToKey(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        int start = 0;
+        if (!trimmed.isEmpty()) {
+            char first = trimmed.charAt(0);
+            if (first == 'C' || first == 'c') {
+                start = 1;
+            }
+        }
+
+        StringBuilder digits = new StringBuilder(trimmed.length() - start);
+        for (int i = start; i < trimmed.length(); i++) {
+            char c = trimmed.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+        if (digits.length() == 0) {
+            return null;
+        }
+
+        int nonZero = 0;
+        while (nonZero < digits.length() && digits.charAt(nonZero) == '0') {
+            nonZero++;
+        }
+        return nonZero == digits.length() ? "0" : digits.substring(nonZero);
     }
 
     /**
@@ -86,14 +120,14 @@ public final class LocationNumberMappingService {
     }
 
     private void parseLine(String line, int lineNum) {
-        String[] fields = line.split(",", 3);
-        if (fields.length < 3) {
+        List<String> fields = RailCsvSupport.parseCsvLine(line);
+        if (fields.size() < 3) {
             log.warn("Skipping location matrix line {} - insufficient fields: {}", lineNum, line);
             return;
         }
 
-        String locationNumber = fields[1].trim();
-        String soldToNumber = fields[2].trim();
+        String locationNumber = fields.get(1).trim();
+        String soldToNumber = fields.get(2).trim();
         if (locationNumber.isEmpty() || soldToNumber.isEmpty()) {
             log.warn("Skipping location matrix line {} - missing location/sold-to: {}", lineNum, line);
             return;
@@ -106,33 +140,5 @@ public final class LocationNumberMappingService {
         }
 
         dcBySoldToKey.put(key, locationNumber);
-    }
-
-    private static String canonicalSoldToKey(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        String trimmed = value.trim().toUpperCase();
-        if (trimmed.startsWith("C")) {
-            trimmed = trimmed.substring(1);
-        }
-
-        StringBuilder digits = new StringBuilder(trimmed.length());
-        for (int i = 0; i < trimmed.length(); i++) {
-            char c = trimmed.charAt(i);
-            if (Character.isDigit(c)) {
-                digits.append(c);
-            }
-        }
-        if (digits.length() == 0) {
-            return null;
-        }
-
-        int nonZero = 0;
-        while (nonZero < digits.length() && digits.charAt(nonZero) == '0') {
-            nonZero++;
-        }
-        return nonZero == digits.length() ? "0" : digits.substring(nonZero);
     }
 }

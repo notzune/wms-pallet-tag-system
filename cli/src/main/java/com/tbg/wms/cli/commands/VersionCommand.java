@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -21,9 +21,14 @@ import java.util.concurrent.Callable;
 )
 public final class VersionCommand implements Callable<Integer> {
 
+    /**
+     * Prints the current CLI version string.
+     *
+     * @return always {@code 0}
+     */
     @Override
-    public Integer call() {
-        String version = RootCommand.class.getAnnotation(Command.class).version()[0];
+    public Integer call() throws Exception {
+        String version = new BuildVersionProvider().getVersion()[0];
         System.out.println(version);
         return 0;
     }

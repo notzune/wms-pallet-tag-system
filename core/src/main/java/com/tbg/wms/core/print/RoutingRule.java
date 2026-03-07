@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -14,10 +14,10 @@ import java.util.Objects;
 
 /**
  * A printer routing rule that evaluates context to select a printer.
- *
+ * <p>
  * Rules are evaluated in order. The first rule that matches determines
  * which printer to use. If no rules match, the default printer is used.
- *
+ * <p>
  * Currently supports simple field equality checks. Future extensions may
  * add regex matching, prefix matching, or composite conditions.
  *
@@ -35,15 +35,15 @@ public final class RoutingRule {
     /**
      * Creates a new routing rule.
      *
-     * @param id unique rule identifier
-     * @param enabled whether this rule is active
-     * @param field context field to evaluate (e.g., "stagingLocation")
-     * @param operator comparison operator (e.g., "EQUALS")
-     * @param value expected value for the field
+     * @param id        unique rule identifier
+     * @param enabled   whether this rule is active
+     * @param field     context field to evaluate (e.g., "stagingLocation")
+     * @param operator  comparison operator (e.g., "EQUALS")
+     * @param value     expected value for the field
      * @param printerId printer ID to route to if rule matches
      */
     public RoutingRule(String id, boolean enabled, String field,
-                      String operator, String value, String printerId) {
+                       String operator, String value, String printerId) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
         this.enabled = enabled;
         this.field = Objects.requireNonNull(field, "field cannot be null");

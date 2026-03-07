@@ -55,3 +55,18 @@ core/logs/wms-tags.log
 db/logs/wms-tags.log
 .ai/
 **/wms-tags.log
+**/wms-tags-*.log
+**/wms-tags-*.log.gz
+**/wms-tags-*.tmp
+
+### Rail macro/template artifacts ###
+m_*.bas
+!vba/*.bas
+Print .docx
+out/docx_inspect/
+out/Print.docx
+/INSTRUCTIONS_RAILCAR.md
+
+### Local temp work dirs ###
+/temp/
+/temp-*/

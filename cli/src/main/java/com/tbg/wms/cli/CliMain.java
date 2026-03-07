@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Tropicana Brands Group
+ * Copyright (c) 2026 Tropicana Brands Group
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -14,7 +14,7 @@ import com.tbg.wms.cli.commands.RootCommand;
 import com.tbg.wms.cli.gui.LabelGuiFrame;
 import picocli.CommandLine;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 /**
  * CLI entry point for the WMS Pallet Tag System.

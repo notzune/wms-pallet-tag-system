@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.5.0
+ */
 package com.tbg.wms.core.model;
 
 import org.junit.jupiter.api.Test;
@@ -7,8 +14,14 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Tests pallet planning calculations for full/partial footprint scenarios.
+ */
 class PalletPlanningServiceTest {
 
+    /**
+     * Ensures mixed SKU footprint input yields deterministic full/partial totals.
+     */
     @Test
     void testPlanComputesFullAndPartialPallets() {
         List<ShipmentSkuFootprint> rows = List.of(
@@ -25,6 +38,9 @@ class PalletPlanningServiceTest {
         assertTrue(result.getSkusMissingFootprint().isEmpty());
     }
 
+    /**
+     * Ensures SKUs with units and no footprint are tracked as missing.
+     */
     @Test
     void testPlanReportsMissingFootprintForSkuWithUnits() {
         List<ShipmentSkuFootprint> rows = List.of(

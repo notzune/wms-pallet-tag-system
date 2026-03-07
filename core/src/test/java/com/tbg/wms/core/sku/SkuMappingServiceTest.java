@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -121,6 +121,14 @@ class SkuMappingServiceTest {
     }
 
     @Test
+    void testFindByPrtnumWithLeadingZerosInSegment() {
+        WalmartSkuMapping mapping = service.findByPrtnum("1004850000205641000");
+
+        assertNotNull(mapping);
+        assertEquals("205641", mapping.getTbgSku());
+    }
+
+    @Test
     void testFindByNullInputReturnsNull() {
         assertNull(service.findByTbgSku(null));
         assertNull(service.findByWalmartItem(null));
@@ -194,6 +202,8 @@ class SkuMappingServiceTest {
         for (int i = 0; i < 1000; i++) {
             assertNotNull(service.findByTbgSku("205641"));
             assertNotNull(service.findByWalmartItem("30081705"));
+            assertNotNull(service.findByPrtnum("10048500205641000"));
+            assertNull(service.findByPrtnum("99999999999999999"));
         }
     }
 

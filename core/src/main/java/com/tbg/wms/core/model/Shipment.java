@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * Represents a shipment containing multiple pallets (LPNs).
- *
+ * <p>
  * A shipment is the top-level container for shipping operations, including
  * destination information, carrier details, and a list of pallets to be shipped.
  */
@@ -72,37 +72,37 @@ public final class Shipment {
     /**
      * Creates a new Shipment with comprehensive WMS database fields.
      *
-     * @param shipmentId unique shipment identifier (SHIP_ID)
-     * @param externalId external ERP reference (HOST_EXT_ID)
-     * @param orderId order identifier (may differ from shipmentId)
-     * @param warehouseId warehouse code (e.g., "3002")
-     * @param shipToName ship-to customer name
-     * @param shipToAddress1 primary address line
-     * @param shipToAddress2 secondary address line (optional)
-     * @param shipToAddress3 tertiary address line (optional)
-     * @param shipToCity destination city
-     * @param shipToState state or province (e.g., "ON" for Ontario)
-     * @param shipToZip postal code
-     * @param shipToCountry country name (e.g., "CAN")
-     * @param shipToPhone phone number
-     * @param carrierCode carrier SCAC code (e.g., "MDLE")
-     * @param serviceLevel service level (e.g., "TL", "IM")
-     * @param documentNumber BOL or shipping document number
-     * @param trackingNumber tracking number
+     * @param shipmentId          unique shipment identifier (SHIP_ID)
+     * @param externalId          external ERP reference (HOST_EXT_ID)
+     * @param orderId             order identifier (may differ from shipmentId)
+     * @param warehouseId         warehouse code (e.g., "3002")
+     * @param shipToName          ship-to customer name
+     * @param shipToAddress1      primary address line
+     * @param shipToAddress2      secondary address line (optional)
+     * @param shipToAddress3      tertiary address line (optional)
+     * @param shipToCity          destination city
+     * @param shipToState         state or province (e.g., "ON" for Ontario)
+     * @param shipToZip           postal code
+     * @param shipToCountry       country name (e.g., "CAN")
+     * @param shipToPhone         phone number
+     * @param carrierCode         carrier SCAC code (e.g., "MDLE")
+     * @param serviceLevel        service level (e.g., "TL", "IM")
+     * @param documentNumber      BOL or shipping document number
+     * @param trackingNumber      tracking number
      * @param destinationLocation staging location (e.g., "ROSSI")
-     * @param customerPo customer PO number (from ORD table)
-     * @param locationNumber Walmart DC/store location code
-     * @param departmentNumber Walmart department number
-     * @param stopId stop identifier
-     * @param stopSequence stop sequence number in route
-     * @param carrierMoveId carrier move ID (TMS reference)
-     * @param proNumber carrier PRO number
-     * @param bolNumber BOL at move level
-     * @param status shipment status (C=Complete, R=Ready, etc.)
-     * @param shipDate expected ship date
-     * @param deliveryDate expected delivery date
-     * @param createdDate shipment creation date
-     * @param lpns list of pallets/LPNs in this shipment
+     * @param customerPo          customer PO number (from ORD table)
+     * @param locationNumber      Walmart DC/store location code
+     * @param departmentNumber    Walmart department number
+     * @param stopId              stop identifier
+     * @param stopSequence        stop sequence number in route
+     * @param carrierMoveId       carrier move ID (TMS reference)
+     * @param proNumber           carrier PRO number
+     * @param bolNumber           BOL at move level
+     * @param status              shipment status (C=Complete, R=Ready, etc.)
+     * @param shipDate            expected ship date
+     * @param deliveryDate        expected delivery date
+     * @param createdDate         shipment creation date
+     * @param lpns                list of pallets/LPNs in this shipment
      */
     @JsonCreator
     public Shipment(

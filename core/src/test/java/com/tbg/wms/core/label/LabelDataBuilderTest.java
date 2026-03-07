@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Zeyad Rashed
+ * Copyright (c) 2026 Zeyad Rashed
  *
  * @author Zeyad Rashed
  * @email zeyad.rashed@tropicana.com
@@ -12,7 +12,6 @@ import com.tbg.wms.core.location.LocationNumberMappingService;
 import com.tbg.wms.core.model.LineItem;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.model.WalmartSkuMapping;
 import com.tbg.wms.core.sku.SkuMappingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -234,6 +233,18 @@ class LabelDataBuilderTest {
     }
 
     @Test
+    void testBuildHandlesNonEmptyButUnusableLineItems() {
+        Lpn nullItemLpn = new Lpn("LPN_NULL", "8000141715", "123456789012345690", 0, 0, 0.0, "ROSSI",
+                "LOT003", "SLOT003", LocalDate.now(), LocalDate.now(), java.util.Arrays.asList((LineItem) null));
+
+        Map<String, String> fields = builder.build(testShipment, nullItemLpn, 0, LabelType.WALMART_CANADA_GRID);
+
+        assertEquals(" ", fields.get("tbgSku"));
+        assertEquals(" ", fields.get("walmartItemNumber"));
+        assertEquals("0", fields.get("quantity"));
+    }
+
+    @Test
     void testBuildReturnsUnmodifiableMap() {
         Map<String, String> fields = builder.build(testShipment, testLpn, 0, LabelType.WALMART_CANADA_GRID);
 
@@ -262,6 +273,36 @@ class LabelDataBuilderTest {
         Map<String, String> fields2 = builder.build(testShipment, testLpn, 0, LabelType.WALMART_CANADA_GRID);
 
         assertEquals(fields1, fields2, "Same input should produce same output");
+    }
+
+    @Test
+    void testBuildRejectsNegativePalletIndex() {
+        assertThrows(IllegalArgumentException.class,
+                () -> builder.build(testShipment, testLpn, -1, LabelType.WALMART_CANADA_GRID));
+    }
+
+    @Test
+    void testBuildRejectsOutOfRangePalletIndex() {
+        assertThrows(IllegalArgumentException.class,
+                () -> builder.build(testShipment, testLpn, 1, LabelType.WALMART_CANADA_GRID));
+    }
+
+    @Test
+    void testBuildRejectsShipmentWithNoPallets() {
+        LocalDateTime now = LocalDateTime.now();
+        Shipment emptyShipment = new Shipment(
+                "8000141715", "EXT8000141715", "8000141715", "3002",
+                "CJR WHOLESALE GROCERS LTD", "5876 COOPERS AVE", null, null,
+                "MISSISSAUGA", "ON", "L4Z 2B9", "CAN", "555-1234",
+                "MDLE", "TL", "30021144717", "8000141715", "ROSSI",
+                "PO123", "6080", "DEPT1",
+                "STOP1", 1, "MOVE1", "PRO123", "BOL123",
+                "R", now.minusDays(1), now.plusDays(3), now,
+                List.of()
+        );
+
+        assertThrows(IllegalArgumentException.class,
+                () -> builder.build(emptyShipment, testLpn, 0, LabelType.WALMART_CANADA_GRID));
     }
 
     @Test
