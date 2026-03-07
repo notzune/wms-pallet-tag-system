@@ -61,9 +61,13 @@ public final class RailWorkflowService {
                 : outputDir;
         Files.createDirectories(targetDir);
         Path pdfPath = targetDir.resolve("rail-cards-" + job.result.getTrainId() + ".pdf");
-        new RailCardRenderer().renderPdf(job.result.getCards(), pdfPath);
+        new RailCardRenderer(
+                (float) config.railLabelCenterGapInches(),
+                (float) config.railLabelOffsetXInches(),
+                (float) config.railLabelOffsetYInches()
+        ).renderPdf(job.result.getCards(), pdfPath);
         if (printNow) {
-            new RailPrintService().print(pdfPath);
+            new RailPrintService().print(pdfPath, config);
         }
         return new GenerationResult(targetDir, pdfPath, printNow);
     }

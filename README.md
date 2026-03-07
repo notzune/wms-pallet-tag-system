@@ -72,6 +72,7 @@ java -jar cli/target/cli-*.jar run --shipment-id <SHIP_ID> --dry-run --output-di
 java -jar cli/target/cli-*.jar run --carrier-move-id <CMID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
 java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID> --output-dir out/rail-print
+java -jar cli/target/cli-*.jar rail-print --template --output-dir out/rail-print
 java -jar cli/target/cli-*.jar gui
 ```
 
@@ -122,6 +123,10 @@ Key settings:
 - `SITE_<CODE>_<ENV>_HOST` (example `SITE_TBG3002_PROD_HOST`)
 - `SITE_<CODE>_SHIP_FROM_NAME`, `SITE_<CODE>_SHIP_FROM_ADDRESS`, `SITE_<CODE>_SHIP_FROM_CITY_STATE_ZIP`
 - `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
+- `RAIL_DEFAULT_PRINTER_ID` (optional: rail PDF print target; printer ID from `printers.yaml`)
+- `RAIL_LABEL_CENTER_GAP_IN=0.125` (rail 2-column center gap, inches)
+- `RAIL_LABEL_OFFSET_X_IN=0.02` (rail label grid X nudge, inches; + is right)
+- `RAIL_LABEL_OFFSET_Y_IN=0.02` (rail label grid Y nudge, inches; + is down)
 - `RIGHT_CLICK_COOLDOWN_MS=250` (GUI right-click copy/paste debounce)
   - Applies terminal-like right-click behavior to GUI text-entry fields, including Rail Labels `Train ID` and output path.
 
@@ -210,6 +215,7 @@ Options:
 - `--train <ID>` (required): full WMS train ID (example: `JC08312025`)
 - `--output-dir <DIR>` (default `out/rail-print`)
 - `--print` (send generated PDF to default printer after confirmation)
+- `--template` (generate 10-position 4x2 alignment template PDF and exit)
 - `--yes` / `-y` (non-interactive mode; skip confirmation prompts)
 
 Workflow:
@@ -222,7 +228,7 @@ Workflow:
 - Confirm
 - Render direct letter-size rail card PDF (no Word mail merge dependency)
 - Include `MISSING: <count>` warning on cards when any short codes are unresolved
-- Optionally print
+- Optionally print: tries configured rail printer first (`RAIL_DEFAULT_PRINTER_ID`), then opens system print dialog as fallback
 
 ## Rail Labels GUI Workflow
 

@@ -6,12 +6,19 @@ siteCode: TBG3002
 # "tags" help group printers by function (DISPATCH, QA, DOCK, etc.).
 # "locationHint" is optional human context (physical placement).
 printers:
-  - id: OFFICE
-    name: Office_Test
-    ip: 10.19.64.106
+  - id: RAIL_OFFICE
+    name: RAIL OFFICE
+    ip: 10.19.64.16
     port: 9100
-    tags: [ TEST, QA ]
-    locationHint: "Admin office (backup/test)"
+    tags: [ PROD, RAIL, DEFAULT ]
+    locationHint: "Rail office (default rail printer)"
+
+  - id: ORDER_PICK
+    name: ORDER PICK
+    ip: 10.19.64.52
+    port: 9100
+    tags: [ TEST, RAIL ]
+    locationHint: "Order pick (secondary rail test printer)"
 
   - id: DISPATCH
     name: Dispatch_Prod

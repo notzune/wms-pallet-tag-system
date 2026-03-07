@@ -35,7 +35,7 @@ public final class RailPrintCommand implements Callable<Integer> {
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help message and exit")
     private boolean helpRequested;
 
-    @Option(names = {"--train"}, required = true, description = "Full train ID (example: JC08312025)")
+    @Option(names = {"--train"}, description = "Full train ID (example: JC08312025)")
     private String trainId;
 
     @Option(names = {"--output-dir"}, defaultValue = "out/rail-print", description = "Output folder")
@@ -43,6 +43,10 @@ public final class RailPrintCommand implements Callable<Integer> {
 
     @Option(names = {"--print"}, defaultValue = "false", description = "Send rendered PDF to the default printer")
     private boolean print;
+
+    @Option(names = {"--template"}, defaultValue = "false",
+            description = "Generate a 10-position rail label alignment template PDF and exit")
+    private boolean template;
 
     @Option(names = {"--yes", "-y"}, defaultValue = "false", description = "Skip interactive confirmation")
     private boolean yes;
@@ -55,6 +59,19 @@ public final class RailPrintCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         AppConfig config = new AppConfig();
+
+        if (template) {
+            Files.createDirectories(outputDir);
+            Path templatePdf = outputDir.resolve("rail-label-alignment-template-" + TS.format(LocalDateTime.now()) + ".pdf");
+            railRenderer(config).renderAlignmentTemplate(templatePdf);
+            System.out.println("Alignment template generated: " + templatePdf.toAbsolutePath());
+            return 0;
+        }
+        if (trainId == null || trainId.isBlank()) {
+            System.err.println("Error: --train is required unless --template is used.");
+            return 2;
+        }
+
         RailWorkflowService.RailWorkflowResult result;
 
         try (DbConnectionPool pool = new DbConnectionPool(config)) {
@@ -74,7 +91,7 @@ public final class RailPrintCommand implements Callable<Integer> {
         String fileName = "rail-cards-" + result.getTrainId() + "-" + TS.format(LocalDateTime.now()) + ".pdf";
         Path pdfPath = outputDir.resolve(fileName);
 
-        RailCardRenderer renderer = new RailCardRenderer();
+        RailCardRenderer renderer = railRenderer(config);
         renderer.renderPdf(result.getCards(), pdfPath);
         System.out.println("PDF generated: " + pdfPath.toAbsolutePath());
 
@@ -83,7 +100,7 @@ public final class RailPrintCommand implements Callable<Integer> {
                 System.out.println("Print skipped.");
                 return 0;
             }
-            new RailPrintService().print(pdfPath);
+            new RailPrintService().print(pdfPath, config);
             System.out.println("Print command sent.");
         }
         return 0;
@@ -124,5 +141,13 @@ public final class RailPrintCommand implements Callable<Integer> {
         } catch (Exception ex) {
             return false;
         }
+    }
+
+    private RailCardRenderer railRenderer(AppConfig config) {
+        return new RailCardRenderer(
+                (float) config.railLabelCenterGapInches(),
+                (float) config.railLabelOffsetXInches(),
+                (float) config.railLabelOffsetYInches()
+        );
     }
 }

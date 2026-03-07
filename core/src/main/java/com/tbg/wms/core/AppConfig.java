@@ -346,6 +346,46 @@ public final class AppConfig {
     }
 
     /**
+     * Returns the default rail printer ID override, or {@code null} if not set.
+     * <p>When set, rail PDF printing uses this printer target first.</p>
+     *
+     * @return the rail default printer ID from {@code RAIL_DEFAULT_PRINTER_ID}, or {@code null}
+     */
+    public String railDefaultPrinterIdOrNull() {
+        String v = raw("RAIL_DEFAULT_PRINTER_ID");
+        return (v == null || v.isBlank()) ? null : v.trim();
+    }
+
+    /**
+     * Horizontal center-gap between the two rail label columns, in inches.
+     *
+     * @return center gap from {@code RAIL_LABEL_CENTER_GAP_IN} (default: {@code 0.125})
+     */
+    public double railLabelCenterGapInches() {
+        return parseDoubleConfig("RAIL_LABEL_CENTER_GAP_IN", "0.125");
+    }
+
+    /**
+     * Rail label horizontal calibration offset in inches.
+     * Positive values move the entire 2x5 grid to the right.
+     *
+     * @return offset from {@code RAIL_LABEL_OFFSET_X_IN} (default: {@code 0.02})
+     */
+    public double railLabelOffsetXInches() {
+        return parseDoubleConfig("RAIL_LABEL_OFFSET_X_IN", "0.02");
+    }
+
+    /**
+     * Rail label vertical calibration offset in inches.
+     * Positive values move the entire 2x5 grid downward.
+     *
+     * @return offset from {@code RAIL_LABEL_OFFSET_Y_IN} (default: {@code 0.02})
+     */
+    public double railLabelOffsetYInches() {
+        return parseDoubleConfig("RAIL_LABEL_OFFSET_Y_IN", "0.02");
+    }
+
+    /**
      * Returns the forced printer ID (used for testing), or {@code null} if not set.
      * <p>When set, this printer ID overrides all routing rules.</p>
      *
@@ -396,6 +436,15 @@ public final class AppConfig {
             return Long.parseLong(value);
         } catch (NumberFormatException ex) {
             throw new IllegalStateException("Invalid long config for " + key + ": '" + value + "'", ex);
+        }
+    }
+
+    private double parseDoubleConfig(String key, String defaultValue) {
+        String value = get(key, defaultValue);
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid decimal config for " + key + ": '" + value + "'", ex);
         }
     }
 

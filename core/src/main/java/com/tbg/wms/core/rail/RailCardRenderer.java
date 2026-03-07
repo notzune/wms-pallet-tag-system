@@ -25,12 +25,35 @@ public final class RailCardRenderer {
     private static final float POINTS_PER_INCH = 72f;
     private static final float LABEL_WIDTH = 4.0f * POINTS_PER_INCH;
     private static final float LABEL_HEIGHT = 2.0f * POINTS_PER_INCH;
-    private static final float PAGE_MARGIN_X = (PAGE_SIZE.getWidth() - (GRID_COLS * LABEL_WIDTH)) / 2.0f;
-    private static final float PAGE_MARGIN_Y = (PAGE_SIZE.getHeight() - (GRID_ROWS * LABEL_HEIGHT)) / 2.0f;
+    private static final float GRID_GAP_Y = 0f;
     private static final float HEADER_FONT_SIZE = 8.5f;
     private static final float BODY_FONT_SIZE = 6.3f;
     private static final float LINE_HEIGHT = 8.0f;
     private static final int ITEMS_PER_CARD = 5;
+    private final float gridGapX;
+    private final float pageMarginX;
+    private final float pageMarginY;
+
+    public RailCardRenderer() {
+        this(0.125f, 0f, 0f);
+    }
+
+    /**
+     * Creates a rail card renderer with calibration controls.
+     *
+     * @param centerGapInches gap between left/right columns in inches
+     * @param offsetXInches   positive moves grid right
+     * @param offsetYInches   positive moves grid down
+     */
+    public RailCardRenderer(float centerGapInches, float offsetXInches, float offsetYInches) {
+        this.gridGapX = centerGapInches * POINTS_PER_INCH;
+        this.pageMarginX =
+                ((PAGE_SIZE.getWidth() - ((GRID_COLS * LABEL_WIDTH) + ((GRID_COLS - 1) * gridGapX))) / 2.0f)
+                        + (offsetXInches * POINTS_PER_INCH);
+        this.pageMarginY =
+                ((PAGE_SIZE.getHeight() - ((GRID_ROWS * LABEL_HEIGHT) + ((GRID_ROWS - 1) * GRID_GAP_Y))) / 2.0f)
+                        + (offsetYInches * POINTS_PER_INCH);
+    }
 
     /**
      * Renders cards into a PDF file.
@@ -67,13 +90,66 @@ public final class RailCardRenderer {
         }
     }
 
-    private void drawCard(PDPageContentStream content, RailCarCard card, int slot) throws IOException {
-        int row = slot / GRID_COLS;
-        int col = slot % GRID_COLS;
+    /**
+     * Renders a 10-position alignment template for physical label-stock calibration.
+     *
+     * @param outputPdf output PDF path
+     * @return saved PDF path
+     */
+    public Path renderAlignmentTemplate(Path outputPdf) throws IOException {
+        Objects.requireNonNull(outputPdf, "outputPdf cannot be null");
+        Path parent = outputPdf.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
 
-        float left = PAGE_MARGIN_X + (col * LABEL_WIDTH);
-        float top = PAGE_SIZE.getHeight() - PAGE_MARGIN_Y - (row * LABEL_HEIGHT);
-        float bottom = top - LABEL_HEIGHT;
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PAGE_SIZE);
+            document.addPage(page);
+            try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+                for (int slot = 0; slot < GRID_COLS * GRID_ROWS; slot++) {
+                    drawAlignmentSlot(content, slot);
+                }
+            }
+            document.save(outputPdf.toFile());
+            return outputPdf;
+        }
+    }
+
+    private void drawAlignmentSlot(PDPageContentStream content, int slot) throws IOException {
+        Rect rect = slotRect(slot);
+        float left = rect.left;
+        float top = rect.top;
+        float bottom = rect.bottom;
+
+        content.addRect(left, bottom, LABEL_WIDTH, LABEL_HEIGHT);
+        content.stroke();
+
+        float inset = 10f;
+        content.addRect(left + inset, bottom + inset, LABEL_WIDTH - (2 * inset), LABEL_HEIGHT - (2 * inset));
+        content.stroke();
+
+        float cx = left + (LABEL_WIDTH / 2f);
+        float cy = bottom + (LABEL_HEIGHT / 2f);
+        content.moveTo(cx - 9f, cy);
+        content.lineTo(cx + 9f, cy);
+        content.moveTo(cx, cy - 9f);
+        content.lineTo(cx, cy + 9f);
+        content.stroke();
+
+        int row = (slot / GRID_COLS) + 1;
+        int col = (slot % GRID_COLS) + 1;
+        String label = "POS " + row + "-" + col + " (slot " + (slot + 1) + ")";
+        writeText(content, PDType1Font.HELVETICA_BOLD, 9f, left + 8f, top - 14f, label);
+        writeText(content, PDType1Font.HELVETICA, 7f, left + 8f, top - 26f,
+                "4.00in x 2.00in | center gap=" + (gridGapX / POINTS_PER_INCH) + "in");
+    }
+
+    private void drawCard(PDPageContentStream content, RailCarCard card, int slot) throws IOException {
+        Rect rect = slotRect(slot);
+        float left = rect.left;
+        float top = rect.top;
+        float bottom = rect.bottom;
 
         content.addRect(left, bottom, LABEL_WIDTH, LABEL_HEIGHT);
         content.stroke();
@@ -131,6 +207,15 @@ public final class RailCardRenderer {
                 "PASS: ______   FUEL: ______   BH: ______");
     }
 
+    private Rect slotRect(int slot) {
+        int row = slot / GRID_COLS;
+        int col = slot % GRID_COLS;
+        float left = pageMarginX + (col * (LABEL_WIDTH + gridGapX));
+        float top = PAGE_SIZE.getHeight() - pageMarginY - (row * (LABEL_HEIGHT + GRID_GAP_Y));
+        float bottom = top - LABEL_HEIGHT;
+        return new Rect(left, top, bottom);
+    }
+
     private String safe(String value) {
         return value == null ? "" : value;
     }
@@ -146,5 +231,17 @@ public final class RailCardRenderer {
         content.newLineAtOffset(x, y);
         content.showText(text == null ? "" : text);
         content.endText();
+    }
+
+    private static final class Rect {
+        private final float left;
+        private final float top;
+        private final float bottom;
+
+        private Rect(float left, float top, float bottom) {
+            this.left = left;
+            this.top = top;
+            this.bottom = bottom;
+        }
     }
 }
