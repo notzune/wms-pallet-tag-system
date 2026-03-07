@@ -82,18 +82,19 @@ public final class LabelWorkflowService {
         if (printerId == null || printerId.isBlank()) {
             return null;
         }
+        String normalizedPrinterId = printerId.trim();
         String siteCode = config.activeSiteCode();
         ConcurrentMap<String, PrinterConfig> sitePrinters = printersBySite
                 .computeIfAbsent(siteCode, ignored -> new ConcurrentHashMap<>());
-        PrinterConfig cached = sitePrinters.get(printerId);
+        PrinterConfig cached = sitePrinters.get(normalizedPrinterId);
         if (cached != null) {
             return cached;
         }
         PrinterRoutingService routing = loadRouting(siteCode);
-        PrinterConfig printer = routing.findPrinter(printerId)
+        PrinterConfig printer = routing.findPrinter(normalizedPrinterId)
                 .orElse(null);
         if (printer != null) {
-            sitePrinters.putIfAbsent(printerId, printer);
+            sitePrinters.putIfAbsent(normalizedPrinterId, printer);
         }
         return printer;
     }

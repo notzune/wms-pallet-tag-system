@@ -50,7 +50,7 @@ final class PrtmstDescriptionColumnResolver {
         if (cached != null) {
             return cached;
         }
-        List<String> resolved = resolveColumns(conn);
+        List<String> resolved = List.copyOf(resolveColumns(conn));
         cache = resolved;
         return resolved;
     }
