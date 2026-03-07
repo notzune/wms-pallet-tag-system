@@ -55,7 +55,7 @@ public final class RailFootprintResolver {
         }
 
         String selectedFamily = null;
-        Integer selectedCasesPerPallet = null;
+        int selectedCasesPerPallet = 0;
 
         for (RailFootprintCandidate current : rows) {
             if (current == null || !current.isValid()) {
@@ -69,14 +69,14 @@ public final class RailFootprintResolver {
             }
 
             int currentCasesPerPallet = current.getCasesPerPallet();
-            if (selectedCasesPerPallet == null) {
+            if (selectedCasesPerPallet == 0) {
                 selectedCasesPerPallet = currentCasesPerPallet;
             } else if (selectedCasesPerPallet != currentCasesPerPallet) {
                 return null;
             }
         }
 
-        if (selectedFamily == null || selectedCasesPerPallet == null || selectedCasesPerPallet <= 0) {
+        if (selectedFamily == null || selectedCasesPerPallet <= 0) {
             return null;
         }
         return new RailFamilyFootprint(shortCode, selectedFamily, selectedCasesPerPallet);

@@ -115,7 +115,7 @@ final class BarcodeDialogFactory {
         addFormRow(form, gbc, row++, "Type", typeCombo);
         addFormRow(form, gbc, row++, "Copies", copies);
         addFormRow(form, gbc, row++, "Scanner Profile", scannerProfile);
-        addFormRow(form, gbc, row++, "Printer", printerSelect);
+        addFormRow(form, gbc, row, "Printer", printerSelect);
 
         Runnable syncOutputState = () -> {
             LabelWorkflowService.PrinterOption selected =

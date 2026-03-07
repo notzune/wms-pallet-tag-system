@@ -284,13 +284,11 @@ public final class LabelWorkflowService {
             int units = Math.max(0, row.getTotalUnits());
             Integer upp = row.getUnitsPerPallet();
             int fullPallets = 0;
-            int partialUnits = 0;
             int partialPallets = 0;
             int estimatedPallets = 0;
             if (upp != null && upp > 0) {
                 fullPallets = units / upp;
-                partialUnits = units % upp;
-                partialPallets = partialUnits > 0 ? 1 : 0;
+                partialPallets = units % upp > 0 ? 1 : 0;
                 estimatedPallets = fullPallets + partialPallets;
             }
 

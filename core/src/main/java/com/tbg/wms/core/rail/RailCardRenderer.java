@@ -200,7 +200,6 @@ public final class RailCardRenderer {
         if (!card.getMissingFootprintItems().isEmpty()) {
             writeText(content, PDType1Font.HELVETICA_OBLIQUE, BODY_FONT_SIZE, textX, y,
                     "MISSING: " + card.getMissingFootprintItems().size());
-            y -= LINE_HEIGHT;
         }
 
         writeText(content, PDType1Font.HELVETICA, BODY_FONT_SIZE, textX, bottom + 8f,

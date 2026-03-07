@@ -243,7 +243,7 @@ public final class RunCommand implements Callable<Integer> {
                 "stagingLocation",
                 stagingLocation == null || stagingLocation.isBlank() ? "UNKNOWN" : stagingLocation
         ));
-        if (routed == null || !routed.isEnabled()) {
+        if (!routed.isEnabled()) {
             throw new IllegalArgumentException("Could not resolve an enabled printer from routing.");
         }
         return routed.getId();

@@ -119,7 +119,7 @@ public final class LabelGuiFrame extends JFrame {
         if (version == null || version.isBlank()) {
             version = resolveVersionFromPomProperties();
         }
-        return version == null ? "" : version.trim();
+        return version.trim();
     }
 
     private static String resolveVersionFromPomProperties() {
@@ -484,7 +484,7 @@ public final class LabelGuiFrame extends JFrame {
         SwingWorker<AdvancedPrintWorkflowService.PrintResult, Void> worker = new SwingWorker<>() {
             @Override
             protected AdvancedPrintWorkflowService.PrintResult doInBackground() throws Exception {
-                String printerId = printToFile ? null : (selected == null ? null : selected.getId());
+                String printerId = printToFile ? null : selected.getId();
                 if (carrierMoveMode) {
                     Path outDir = defaultPrintToFileOutputDir().resolve("gui-cmid-" + preparedCarrierJob.getCarrierMoveId() + "-" +
                             OUTPUT_TS.format(LocalDateTime.now()));

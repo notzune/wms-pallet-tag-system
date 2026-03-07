@@ -74,7 +74,7 @@ final class ConfigFileLocator {
                 return location;
             }
             Path parent = location.getParent();
-            return parent == null ? null : parent;
+            return parent;
         } catch (Exception ignored) {
             return null;
         }

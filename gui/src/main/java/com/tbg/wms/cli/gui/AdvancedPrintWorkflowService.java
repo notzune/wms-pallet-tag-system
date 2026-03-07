@@ -144,7 +144,7 @@ public final class AdvancedPrintWorkflowService {
         }
         List<PreparedQueueItem> resolved = new ArrayList<>();
         for (QueueRequestItem req : requests) {
-            if (req == null || req.id == null || req.id.isBlank()) {
+            if (req == null || req.id.isBlank()) {
                 continue;
             }
             if (req.type == QueueItemType.CARRIER_MOVE) {
@@ -749,7 +749,7 @@ public final class AdvancedPrintWorkflowService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class PrintTask {
+    static final class PrintTask {
         public TaskKind kind;
         public String fileName;
         public String zpl;
