@@ -70,3 +70,5 @@ out/Print.docx
 ### Local temp work dirs ###
 /temp/
 /temp-*/
+/.qodana-cache
+/.qodana
