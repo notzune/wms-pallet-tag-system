@@ -58,7 +58,7 @@ public final class RailCardRenderer {
     /**
      * Renders cards into a PDF file.
      *
-     * @param cards card rows to render
+     * @param cards     card rows to render
      * @param outputPdf output PDF path
      * @return saved PDF path
      */

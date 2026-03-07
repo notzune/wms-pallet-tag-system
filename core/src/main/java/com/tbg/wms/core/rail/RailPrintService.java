@@ -51,7 +51,7 @@ public final class RailPrintService {
      * Sends a rendered rail PDF to the configured rail printer first, then falls back to system print dialog.
      *
      * @param documentPath rendered PDF path
-     * @param config application config
+     * @param config       application config
      */
     public void print(Path documentPath, AppConfig config) throws IOException {
         Objects.requireNonNull(config, "config cannot be null");

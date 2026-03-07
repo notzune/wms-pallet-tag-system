@@ -11,15 +11,6 @@ import java.util.Locale;
 public final class RailFamilyClassifier {
 
     /**
-     * Family buckets used by rail calculations and rendering.
-     */
-    public enum FamilyBucket {
-        CAN,
-        DOM,
-        KEV
-    }
-
-    /**
      * Maps any family code variant to one of the supported rail buckets.
      *
      * @param familyCode WMS family code
@@ -34,6 +25,15 @@ public final class RailFamilyClassifier {
             return FamilyBucket.KEV;
         }
         return FamilyBucket.DOM;
+    }
+
+    /**
+     * Family buckets used by rail calculations and rendering.
+     */
+    public enum FamilyBucket {
+        CAN,
+        DOM,
+        KEV
     }
 }
 

@@ -49,9 +49,9 @@ public final class RailWorkflowService {
     /**
      * Renders cards to PDF and optionally sends the result to printer.
      *
-     * @param job prepared job produced by {@link #prepareRailJob(String)}
+     * @param job       prepared job produced by {@link #prepareRailJob(String)}
      * @param outputDir optional output directory (null for timestamped default)
-     * @param printNow true to invoke print after render
+     * @param printNow  true to invoke print after render
      * @return generation result details
      */
     public GenerationResult generatePdf(PreparedRailJob job, Path outputDir, boolean printNow) throws Exception {

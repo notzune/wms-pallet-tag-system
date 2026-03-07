@@ -31,7 +31,7 @@ public final class RuntimePathResolver {
      * <p>If runtime location cannot be resolved, this falls back to a relative path
      * with the provided child directory name.</p>
      *
-     * @param anchorType class used to locate the runtime code source
+     * @param anchorType   class used to locate the runtime code source
      * @param childDirName target child directory name (for example {@code "out"})
      * @return resolved runtime-adjacent directory path
      */

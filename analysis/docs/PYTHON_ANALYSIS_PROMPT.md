@@ -205,6 +205,7 @@ DOCUMENTING YOUR FINDINGS
 As you review the output, document:
 
 Table Mapping:
+
 - Shipment/Order table: [actual table name]
 - Pallet/LPN table: [actual table name]
 - Line Item table: [actual table name]
@@ -212,6 +213,7 @@ Table Mapping:
 - Location/Staging table: [actual table name]
 
 Column Mapping:
+
 - Order Identifier: [table].[column]
 - Ship-To Company: [table].[column]
 - Ship-To Address: [table].[column]
@@ -221,11 +223,13 @@ Column Mapping:
 - Staging Location: [table].[column]
 
 Relationships:
+
 - Order to LPN: [how they join]
 - LPN to Line Items: [how they join]
 - Example: ORDER.ORDER_ID = LPN.ORDER_ID (join like this)
 
 Canadian Orders:
+
 - How to identify: [ROSSI location / CA country / other]
 - Example order found: [sample data]
 

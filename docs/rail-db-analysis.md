@@ -1,9 +1,11 @@
 # Rail DB Analysis
 
 ## Scope
+
 Rail label workflow for train-based WMS data extraction and per-railcar pallet math.
 
 ## Source Tables
+
 - `WMSP.TRLR` (`VC_TRAIN_NUM`, `TRLR_NUM`, `VC_CAR_SEQ`, `TRLR_ID`)
 - `WMSP.RCVTRK` (`TRLR_ID`, `TRKNUM`)
 - `WMSP.RCVINV` (`TRKNUM`, `INVNUM`, `SUPNUM`)
@@ -14,6 +16,7 @@ Rail label workflow for train-based WMS data extraction and per-railcar pallet m
 - `WMSP.PRTFTP_DTL` (`PRTNUM`, `PRT_CLIENT_ID`, `WH_ID`, `FTPCOD`, `PAL_FLG`, `UNTQTY`)
 
 ## Required Field Mapping
+
 - `TRAIN_NBR`: `SUBSTR(TRLR.VC_TRAIN_NUM, 3, 4)`
 - `LOAD_NBR`: `RCVINV.INVNUM`
 - `VEHICLE_ID`: `TRLR.TRLR_NUM`
@@ -22,22 +25,26 @@ Rail label workflow for train-based WMS data extraction and per-railcar pallet m
 - `CASES_QTY`: `SUM(NVL(RCVLIN.EXPQTY, 0))`
 
 ## Item Metadata Mapping
+
 - `cases_per_pallet`: `MAX(CASE WHEN PRTFTP_DTL.PAL_FLG = 1 THEN PRTFTP_DTL.UNTQTY END)`
 - `family_code`: `PRTMST.PRTFAM` (normalized to rail family codes)
 - `market_type` (`CAN`/`DOM`): derived from normalized family (`CAN` when family contains `CAN`, otherwise `DOM`)
 
 ## Join Relationships
+
 - Rail shipment rows:
-  - `TRLR.TRLR_ID = RCVTRK.TRLR_ID`
-  - `RCVTRK.TRKNUM = RCVINV.TRKNUM`
-  - `RCVTRK.TRKNUM = RCVLIN.TRKNUM`
-  - `RCVLIN.PRTNUM = ALT_PRTMST.PRTNUM` and `ALT_PRTMST.ALT_PRT_TYP = 'UPC'`
+    - `TRLR.TRLR_ID = RCVTRK.TRLR_ID`
+    - `RCVTRK.TRKNUM = RCVINV.TRKNUM`
+    - `RCVTRK.TRKNUM = RCVLIN.TRKNUM`
+    - `RCVLIN.PRTNUM = ALT_PRTMST.PRTNUM` and `ALT_PRTMST.ALT_PRT_TYP = 'UPC'`
 - Footprints:
-  - `ALT_PRTMST.PRTNUM = PRTMST.PRTNUM` and `ALT_PRTMST.PRT_CLIENT_ID = PRTMST.PRT_CLIENT_ID`
-  - `ALT_PRTMST.PRTNUM = PRTFTP.PRTNUM` and `ALT_PRTMST.PRT_CLIENT_ID = PRTFTP.PRT_CLIENT_ID` and `PRTFTP.DEFFTP_FLG = 1`
-  - `PRTFTP` to `PRTFTP_DTL` on `PRTNUM`, `PRT_CLIENT_ID`, `WH_ID`, `FTPCOD`
+    - `ALT_PRTMST.PRTNUM = PRTMST.PRTNUM` and `ALT_PRTMST.PRT_CLIENT_ID = PRTMST.PRT_CLIENT_ID`
+    - `ALT_PRTMST.PRTNUM = PRTFTP.PRTNUM` and `ALT_PRTMST.PRT_CLIENT_ID = PRTFTP.PRT_CLIENT_ID` and
+      `PRTFTP.DEFFTP_FLG = 1`
+    - `PRTFTP` to `PRTFTP_DTL` on `PRTNUM`, `PRT_CLIENT_ID`, `WH_ID`, `FTPCOD`
 
 ## Sample Query: Rail Rows by Train
+
 ```sql
 SELECT
   TO_CHAR(SYSDATE, 'MM-DD-YY') AS RUN_DATE,
@@ -61,6 +68,7 @@ ORDER BY t.VC_CAR_SEQ, ri.INVNUM, ap.ALT_PRTNUM;
 ```
 
 ## Sample Query: Footprint Candidates by Short Code
+
 ```sql
 SELECT
   ap.ALT_PRTNUM AS SHORT_CODE,

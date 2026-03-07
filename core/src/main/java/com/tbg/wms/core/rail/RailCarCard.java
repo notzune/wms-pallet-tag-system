@@ -3,7 +3,9 @@
  */
 package com.tbg.wms.core.rail;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Print-ready railcar card model.

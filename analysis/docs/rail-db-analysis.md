@@ -11,17 +11,17 @@ Produce identical pallet breakdowns per railcar card from WMS source-of-truth da
 ## Source Of Truth
 
 - Rail row extraction:
-  - `WMSP.TRLR` (train, vehicle, sequence)
-  - `WMSP.RCVTRK`
-  - `WMSP.RCVINV` (load number)
-  - `WMSP.RCVLIN` (cases)
-  - `WMSP.ALT_PRTMST` (`ALT_PRT_TYP='UPC'` short code)
+    - `WMSP.TRLR` (train, vehicle, sequence)
+    - `WMSP.RCVTRK`
+    - `WMSP.RCVINV` (load number)
+    - `WMSP.RCVLIN` (cases)
+    - `WMSP.ALT_PRTMST` (`ALT_PRT_TYP='UPC'` short code)
 - Family classification:
-  - `WMSP.PRTMST.PRTFAM`
-  - `WMSP.PRTMST.UC_PARS_FLG` (`1` treated as CAN)
+    - `WMSP.PRTMST.PRTFAM`
+    - `WMSP.PRTMST.UC_PARS_FLG` (`1` treated as CAN)
 - Cases-per-pallet:
-  - `WMSP.PRTFTP` with `DEFFTP_FLG=1`
-  - `WMSP.PRTFTP_DTL` where `PAL_FLG=1`
+    - `WMSP.PRTFTP` with `DEFFTP_FLG=1`
+    - `WMSP.PRTFTP_DTL` where `PAL_FLG=1`
 
 ## Math Rule
 
@@ -45,16 +45,18 @@ Operationally one card per traincar:
 ## Deep Findings
 
 1. Java undercount root cause (fixed):
-   - Ambiguous short-code footprints were dropped entirely, causing missing pallet contributions.
-   - Resolver updated to retain candidates when normalized family bucket is consistent (`CAN`/`DOM`/`KEV`) and choose deterministic UPP.
+    - Ambiguous short-code footprints were dropped entirely, causing missing pallet contributions.
+    - Resolver updated to retain candidates when normalized family bucket is consistent (`CAN`/`DOM`/`KEV`) and choose
+      deterministic UPP.
 
 2. Excel undercount root cause (fixed):
-   - Static `Item_Family` sheet lacked many active short codes (`20571`, `20554`, etc.).
-   - VBA now refreshes a train-specific DB footprint map and uses that in formulas with fallback only if needed.
+    - Static `Item_Family` sheet lacked many active short codes (`20571`, `20554`, etc.).
+    - VBA now refreshes a train-specific DB footprint map and uses that in formulas with fallback only if needed.
 
 3. Train ID matching:
-   - Java rail query now expects full train ID in DB filter (`VC_TRAIN_NUM = ?`), preventing accidental overlap behavior from short numeric matching.
-   - VBA footprint refresh query was aligned to full train ID filter as well.
+    - Java rail query now expects full train ID in DB filter (`VC_TRAIN_NUM = ?`), preventing accidental overlap
+      behavior from short numeric matching.
+    - VBA footprint refresh query was aligned to full train ID filter as well.
 
 ## Validation Samples
 
@@ -97,8 +99,8 @@ Independent SQL recomputation matched Java output line-for-line:
 1. Keep rail family and footprint lookups DB-driven in both Java and VBA.
 2. Keep `DEFFTP_FLG=1` footprint policy unless business provides explicit override rules.
 3. Preserve per-run diagnostics:
-   - unresolved short codes
-   - missing items used in card math
+    - unresolved short codes
+    - missing items used in card math
 4. Keep reconciliation checks available for regression:
-   - DB baseline vs Java preview
-   - DB baseline vs VBA `_TrainDetail` outputs
+    - DB baseline vs Java preview
+    - DB baseline vs VBA `_TrainDetail` outputs

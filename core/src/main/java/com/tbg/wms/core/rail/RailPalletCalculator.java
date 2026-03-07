@@ -17,7 +17,7 @@ public final class RailPalletCalculator {
     /**
      * Computes CAN and DOM pallets for one railcar aggregate.
      *
-     * @param aggregate railcar aggregate
+     * @param aggregate  railcar aggregate
      * @param footprints lookup by item number / short code
      * @return pallet result and diagnostics
      */
