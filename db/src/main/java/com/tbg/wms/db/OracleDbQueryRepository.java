@@ -46,6 +46,25 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     private static final Logger log = LoggerFactory.getLogger(OracleDbQueryRepository.class);
     private static final Pattern DC_NUMBER_PATTERN = Pattern.compile("(?i)\\bDC\\s*#?\\s*(\\d{3,6})\\b");
     private static final String DEFAULT_LINE_ITEM_UOM = "EA";
+    private static final String SHIPMENT_LINE_ITEMS_SQL = "SELECT " +
+            "pwd.SHIP_CTNNUM AS LODNUM, " +
+            "sl.SHIP_LINE_ID, sl.ORDNUM, sl.ORDLIN, sl.ORDSLN, sl.CONS_BATCH, " +
+            "COALESCE(" +
+            "NULLIF(sl.SHPQTY, 0), " +
+            "NULLIF(sl.STGQTY, 0), " +
+            "NULLIF(sl.PCKQTY, 0), " +
+            "NULLIF(sl.INPQTY, 0), " +
+            "NULLIF(sl.TOT_PLN_QTY, 0), " +
+            "NULLIF(ol.ORDQTY, 0), " +
+            "0) AS EFFECTIVE_QTY, " +
+            "ol.PRTNUM, ol.CSTPRT, ol.ORDQTY, ol.SALES_ORDNUM, ol.UNTPAK, " +
+            "CAST(NULL AS VARCHAR2(1)) AS LNGDSC, ol.CSTPRT AS SRTDSC, 0 AS NETWGT " +
+            "FROM WMSP.PCKWRK_DTL pwd " +
+            "INNER JOIN WMSP.SHIPMENT_LINE sl ON pwd.SHIP_LINE_ID = sl.SHIP_LINE_ID " +
+            "INNER JOIN WMSP.ORD_LINE ol ON sl.ORDNUM = ol.ORDNUM " +
+            "  AND sl.ORDLIN = ol.ORDLIN AND sl.ORDSLN = ol.ORDSLN AND sl.CLIENT_ID = ol.CLIENT_ID " +
+            "WHERE pwd.SHIP_ID = ? " +
+            "ORDER BY pwd.SHIP_CTNNUM, sl.ORDLIN, sl.ORDSLN";
 
     private final DataSource dataSource;
     private final PrtmstDescriptionColumnResolver prtmstColumnResolver;
@@ -684,18 +703,19 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(lpnSql)) {
+            Map<String, List<LineItem>> lineItemsByLpn = fetchLineItemsByLpn(conn, shipmentId);
 
             stmt.setString(1, shipmentId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String lpnId = rs.getString("LODNUM");
-                    List<LineItem> lineItems = fetchLineItemsForLpn(conn, shipmentId, lpnId);
+                    String normalizedLpnId = NormalizationService.normalizeString(rs.getString("LODNUM"));
+                    List<LineItem> lineItems = lineItemsByLpn.getOrDefault(normalizedLpnId, List.of());
 
                     LocalDate mfgDate = nullableLocalDate(rs, "MANDTE");
                     LocalDate expiryDate = nullableLocalDate(rs, "EXPIRE_DTE");
 
                     Lpn lpn = new Lpn(
-                            NormalizationService.normalizeString(lpnId),
+                            normalizedLpnId,
                             NormalizationService.normalizeString(shipmentId),
                             NormalizationService.normalizeBarcode(rs.getString("LODUCC")),
                             0, // case count - will be calculated from line items
@@ -717,43 +737,23 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     }
 
     /**
-     * Fetches all line items for a specific pallet (LPN) in a shipment.
-     * <p>
-     * Retrieves detailed product, order, and SKU information for each line.
+     * Fetches all line items for a shipment in one query, grouped by pallet (LPN).
+     *
+     * <p>This avoids one-query-per-LPN access patterns on large multi-pallet shipments.</p>
      *
      * @param conn       active database connection
-     * @param shipmentId the shipment ID
-     * @param lpnId      the LPN ID
-     * @return list of line items for the LPN
+     * @param shipmentId shipment identifier
+     * @return map keyed by normalized LPN ID
      * @throws SQLException if database operation fails
      */
-    private List<LineItem> fetchLineItemsForLpn(Connection conn, String shipmentId, String lpnId) throws SQLException {
-        List<LineItem> lineItems = new ArrayList<>();
+    private Map<String, List<LineItem>> fetchLineItemsByLpn(Connection conn, String shipmentId) throws SQLException {
+        Map<String, List<LineItem>> lineItemsByLpn = new HashMap<>();
 
-        String itemSql = "SELECT " +
-                "sl.SHIP_LINE_ID, sl.ORDNUM, sl.ORDLIN, sl.ORDSLN, sl.CONS_BATCH, " +
-                "COALESCE(" +
-                "NULLIF(sl.SHPQTY, 0), " +
-                "NULLIF(sl.STGQTY, 0), " +
-                "NULLIF(sl.PCKQTY, 0), " +
-                "NULLIF(sl.INPQTY, 0), " +
-                "NULLIF(sl.TOT_PLN_QTY, 0), " +
-                "NULLIF(ol.ORDQTY, 0), " +
-                "0) AS EFFECTIVE_QTY, " +
-                "ol.PRTNUM, ol.CSTPRT, ol.ORDQTY, ol.SALES_ORDNUM, ol.UNTPAK, " +
-                "CAST(NULL AS VARCHAR2(1)) AS LNGDSC, ol.CSTPRT AS SRTDSC, 0 AS NETWGT " +
-                "FROM WMSP.PCKWRK_DTL pwd " +
-                "INNER JOIN WMSP.SHIPMENT_LINE sl ON pwd.SHIP_LINE_ID = sl.SHIP_LINE_ID " +
-                "INNER JOIN WMSP.ORD_LINE ol ON sl.ORDNUM = ol.ORDNUM " +
-                "  AND sl.ORDLIN = ol.ORDLIN AND sl.ORDSLN = ol.ORDSLN AND sl.CLIENT_ID = ol.CLIENT_ID " +
-                "WHERE pwd.SHIP_ID = ? AND pwd.SHIP_CTNNUM = ? " +
-                "ORDER BY sl.ORDLIN, sl.ORDSLN";
-
-        try (PreparedStatement stmt = conn.prepareStatement(itemSql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(SHIPMENT_LINE_ITEMS_SQL)) {
             stmt.setString(1, shipmentId);
-            stmt.setString(2, lpnId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
+                    String lpnId = NormalizationService.normalizeString(rs.getString("LODNUM"));
                     LineItem item = new LineItem(
                             NormalizationService.normalizeString(rs.getString("ORDLIN")),
                             NormalizationService.normalizeString(rs.getString("ORDSLN")),
@@ -773,12 +773,12 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
                             null, // gtinBarcode - could be fetched from ALT_PRTMST
                             null  // upcCode - could be fetched from ALT_PRTMST
                     );
-                    lineItems.add(item);
+                    lineItemsByLpn.computeIfAbsent(lpnId, ignored -> new ArrayList<>()).add(item);
                 }
             }
         }
 
-        return lineItems;
+        return lineItemsByLpn;
     }
 
     /**

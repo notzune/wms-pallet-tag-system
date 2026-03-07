@@ -35,6 +35,12 @@ Not implemented yet:
 
 - `template`, `print-template`, `manual`, `replay` commands
 
+## Engineering Quality Notes
+
+- DB shipment hydration avoids per-LPN line-item queries by loading all shipment line-items in one query and grouping in memory.
+- GUI workflow caches are site-scoped and thread-safe to prevent stale cross-site printer/site metadata reuse.
+- Query and command execution paths remain hardened with prepared statements and argumentized process invocation patterns.
+
 ## Prerequisites
 
 - JDK 11+ for development builds (`javac` must be available; JRE-only installs will fail Maven compile)

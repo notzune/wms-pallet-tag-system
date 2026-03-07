@@ -15,6 +15,7 @@
  *   <li>{@link com.tbg.wms.cli.gui.AdvancedPrintWorkflowService} - carrier-move, queue, and resume workflows.</li>
  *   <li>{@link com.tbg.wms.cli.gui.BarcodeDialogFactory} - barcode dialog UI factory and action wiring.</li>
  *   <li>{@link com.tbg.wms.cli.gui.TextFieldClipboardController} - terminal-like right-click clipboard behavior.</li>
+ *   <li>Workflow caches are scoped per site and use concurrent maps for safe GUI/background-thread access.</li>
  * </ul>
  *
  * @since 1.5.0

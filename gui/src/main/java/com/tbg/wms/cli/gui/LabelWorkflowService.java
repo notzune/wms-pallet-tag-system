@@ -30,6 +30,8 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * GUI workflow service that loads shipment data, builds preview math,
@@ -41,13 +43,14 @@ public final class LabelWorkflowService {
 
     private final AppConfig config;
     // Cache routing configs by site code to avoid repeated disk reads.
-    private final Map<String, PrinterRoutingService> routingCache = new HashMap<>();
-    // Cache resolved printers by ID to avoid repeated lookups.
-    private final Map<String, PrinterConfig> printerCache = new HashMap<>();
+    private final ConcurrentMap<String, PrinterRoutingService> routingBySite = new ConcurrentHashMap<>();
+    // Cache resolved printers by site and printer ID to avoid repeated lookups.
+    private final ConcurrentMap<String, ConcurrentMap<String, PrinterConfig>> printersBySite = new ConcurrentHashMap<>();
+    // Cache site-level label identity metadata by site code.
+    private final ConcurrentMap<String, SiteConfig> siteConfigBySite = new ConcurrentHashMap<>();
     // Cache reusable assets to avoid repeated disk reads/parsing across preview calls.
     private volatile SkuMappingService cachedSkuMapping;
     private volatile LabelTemplate cachedTemplate;
-    private volatile SiteConfig cachedSiteConfig;
 
     public LabelWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
@@ -60,7 +63,8 @@ public final class LabelWorkflowService {
      * @throws Exception when routing config cannot be loaded
      */
     public List<PrinterOption> loadPrinters() throws Exception {
-        PrinterRoutingService routing = loadRouting(config.activeSiteCode());
+        String siteCode = config.activeSiteCode();
+        PrinterRoutingService routing = loadRouting(siteCode);
         List<PrinterOption> options = new ArrayList<>();
         for (PrinterConfig printer : routing.getPrinters().values()) {
             if (printer.isEnabled()) {
@@ -78,15 +82,18 @@ public final class LabelWorkflowService {
         if (printerId == null || printerId.isBlank()) {
             return null;
         }
-        PrinterConfig cached = printerCache.get(printerId);
+        String siteCode = config.activeSiteCode();
+        ConcurrentMap<String, PrinterConfig> sitePrinters = printersBySite
+                .computeIfAbsent(siteCode, ignored -> new ConcurrentHashMap<>());
+        PrinterConfig cached = sitePrinters.get(printerId);
         if (cached != null) {
             return cached;
         }
-        PrinterRoutingService routing = loadRouting(config.activeSiteCode());
+        PrinterRoutingService routing = loadRouting(siteCode);
         PrinterConfig printer = routing.findPrinter(printerId)
                 .orElse(null);
         if (printer != null) {
-            printerCache.put(printerId, printer);
+            sitePrinters.putIfAbsent(printerId, printer);
         }
         return printer;
     }
@@ -321,13 +328,13 @@ public final class LabelWorkflowService {
     }
 
     private PrinterRoutingService loadRouting(String siteCode) throws Exception {
-        PrinterRoutingService cached = routingCache.get(siteCode);
+        PrinterRoutingService cached = routingBySite.get(siteCode);
         if (cached != null) {
             return cached;
         }
         PrinterRoutingService routing = PrinterRoutingService.load(siteCode, Paths.get("config"));
-        routingCache.put(siteCode, routing);
-        return routing;
+        PrinterRoutingService prior = routingBySite.putIfAbsent(siteCode, routing);
+        return prior == null ? routing : prior;
     }
 
     private SiteConfig createSiteConfig(String siteCode) {
@@ -339,16 +346,7 @@ public final class LabelWorkflowService {
     }
 
     private SiteConfig loadSiteConfig(String siteCode) {
-        SiteConfig cached = cachedSiteConfig;
-        if (cached != null) {
-            return cached;
-        }
-        synchronized (this) {
-            if (cachedSiteConfig == null) {
-                cachedSiteConfig = createSiteConfig(siteCode);
-            }
-            return cachedSiteConfig;
-        }
+        return siteConfigBySite.computeIfAbsent(siteCode, this::createSiteConfig);
     }
 
     private SkuMappingService loadSkuMapping() throws Exception {

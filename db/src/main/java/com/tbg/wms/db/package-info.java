@@ -23,6 +23,7 @@
  *       filtering stays consistent across all lookup branches.</li>
  *   <li>{@link com.tbg.wms.db.PrtmstDescriptionColumnResolver} - cached PRTMST description-column discovery,
  *       separated from repository SQL orchestration for SRP and predictable lookup performance.</li>
+ *   <li>Shipment line-items are loaded in one shipment-scoped query and grouped by LPN to avoid N+1 database probes.</li>
  * </ul>
  *
  * @since 1.5.0
