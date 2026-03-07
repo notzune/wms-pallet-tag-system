@@ -20,11 +20,13 @@ import java.util.Objects;
  */
 public final class RailCardRenderer {
     private static final PDRectangle PAGE_SIZE = PDRectangle.LETTER;
-    private static final float PAGE_MARGIN = 14f;
-    private static final float GRID_GAP_X = 8f;
-    private static final float GRID_GAP_Y = 7f;
     private static final int GRID_COLS = 2;
     private static final int GRID_ROWS = 5;
+    private static final float POINTS_PER_INCH = 72f;
+    private static final float LABEL_WIDTH = 4.0f * POINTS_PER_INCH;
+    private static final float LABEL_HEIGHT = 2.0f * POINTS_PER_INCH;
+    private static final float PAGE_MARGIN_X = (PAGE_SIZE.getWidth() - (GRID_COLS * LABEL_WIDTH)) / 2.0f;
+    private static final float PAGE_MARGIN_Y = (PAGE_SIZE.getHeight() - (GRID_ROWS * LABEL_HEIGHT)) / 2.0f;
     private static final float HEADER_FONT_SIZE = 8.5f;
     private static final float BODY_FONT_SIZE = 6.3f;
     private static final float LINE_HEIGHT = 8.0f;
@@ -66,19 +68,14 @@ public final class RailCardRenderer {
     }
 
     private void drawCard(PDPageContentStream content, RailCarCard card, int slot) throws IOException {
-        float usableWidth = PAGE_SIZE.getWidth() - (2 * PAGE_MARGIN);
-        float usableHeight = PAGE_SIZE.getHeight() - (2 * PAGE_MARGIN);
-        float cardWidth = (usableWidth - ((GRID_COLS - 1) * GRID_GAP_X)) / GRID_COLS;
-        float cardHeight = (usableHeight - ((GRID_ROWS - 1) * GRID_GAP_Y)) / GRID_ROWS;
-
         int row = slot / GRID_COLS;
         int col = slot % GRID_COLS;
 
-        float left = PAGE_MARGIN + col * (cardWidth + GRID_GAP_X);
-        float top = PAGE_SIZE.getHeight() - PAGE_MARGIN - row * (cardHeight + GRID_GAP_Y);
-        float bottom = top - cardHeight;
+        float left = PAGE_MARGIN_X + (col * LABEL_WIDTH);
+        float top = PAGE_SIZE.getHeight() - PAGE_MARGIN_Y - (row * LABEL_HEIGHT);
+        float bottom = top - LABEL_HEIGHT;
 
-        content.addRect(left, bottom, cardWidth, cardHeight);
+        content.addRect(left, bottom, LABEL_WIDTH, LABEL_HEIGHT);
         content.stroke();
 
         float textX = left + 7f;
