@@ -22,6 +22,10 @@ public final class RailArtifactService {
     public WordArtifactResult generateWordArtifacts(Path templateDocx, Path mergeCsv, Path outputDir) throws Exception {
         Objects.requireNonNull(mergeCsv, "mergeCsv cannot be null");
         Objects.requireNonNull(outputDir, "outputDir cannot be null");
+        if (!Files.exists(mergeCsv) || !Files.isReadable(mergeCsv)) {
+            throw new IllegalArgumentException("Merge CSV was not provided or is unreadable: " + mergeCsv);
+        }
+        Files.createDirectories(outputDir);
 
         if (templateDocx == null || !Files.exists(templateDocx) || !Files.isReadable(templateDocx)) {
             return WordArtifactResult.skipped("Template DOCX was not provided or is unreadable.");

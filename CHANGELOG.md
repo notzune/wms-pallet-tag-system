@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance tuning pass across rail/sku/gui services to reduce repeated allocations and repeated scans.
 - Removed an Oracle shipment-load N+1 pattern by batching all shipment line-items in one query and grouping by LPN in-memory.
 - Hardened GUI workflow caches to be site-scoped and thread-safe (concurrent routing/printer/site-config caches).
+- Hardened rail artifact generation preconditions by validating merge CSV readability up front and creating output directories before script emission.
+- Hardened PRTMST column discovery normalization with `Locale.ROOT` uppercasing to prevent locale-dependent metadata matching drift.
 - Reduced rail planner and CSV helper overhead by removing redundant record scans and regex-based header normalization.
 - Reduced DB SKU candidate and description lookup overhead with deduplicated candidate generation and cached PRTMST column discovery.
 - Reduced GUI queue parser allocation churn via single-pass newline parsing.

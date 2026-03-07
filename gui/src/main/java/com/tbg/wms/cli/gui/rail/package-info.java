@@ -13,6 +13,7 @@
  *   <li>{@link com.tbg.wms.cli.gui.rail.RailLabelsDialog} - rail labels workflow dialog and operator controls.</li>
  *   <li>{@link com.tbg.wms.cli.gui.rail.RailWorkflowService} - WMS-first rail planning and diagnostics orchestration.</li>
  *   <li>{@link com.tbg.wms.cli.gui.rail.RailArtifactService} - DOCX/PDF/PRN artifact automation support.</li>
+ *   <li>Artifact generation validates merge CSV readability and ensures output directories exist before automation.</li>
  * </ul>
  *
  * @since 1.5.2

@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -63,7 +64,7 @@ final class PrtmstDescriptionColumnResolver {
             while (rs.next()) {
                 String column = rs.getString("COLUMN_NAME");
                 if (column != null) {
-                    columns.add(column.toUpperCase());
+                    columns.add(column.toUpperCase(Locale.ROOT));
                 }
             }
         } catch (SQLException e) {
