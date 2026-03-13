@@ -18,6 +18,7 @@ Implemented and supported:
 
 - `config` command (resolved runtime config with redaction)
 - `db-test` command (database connectivity diagnostics)
+- `ems-recon` command (legacy EMS reconciliation XLS analysis and fix-plan output)
 - `run` command (shipment or carrier-move label generation and printing)
 - `gui` command (desktop workflow with shipment/carrier-move preview and confirm-print)
 - `barcode` command (standalone barcode ZPL generation and optional printing)
@@ -74,6 +75,7 @@ If you get `No compiler is provided in this environment`, install a JDK and ensu
 ```bash
 java -jar cli/target/cli-*.jar config
 java -jar cli/target/cli-*.jar db-test
+java -jar cli/target/cli-*.jar ems-recon --report <REPORT.xls> --output-dir out/ems-recon
 java -jar cli/target/cli-*.jar run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar run --carrier-move-id <CMID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
@@ -97,6 +99,7 @@ For CLI usage:
 ```bash
 run.bat config
 run.bat db-test
+run.bat ems-recon --report <REPORT.xls> --output-dir out/ems-recon
 run.bat run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 run.bat run --carrier-move-id <CMID> --dry-run --output-dir out/
 run.bat rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
