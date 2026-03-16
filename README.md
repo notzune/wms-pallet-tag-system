@@ -12,6 +12,12 @@ Licensed under the terms in `LICENSE`.
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
 Current release: `1.6.0` (2026-03-04).
 
+## Tracked Enhancements
+
+- [Issue #6: Add per-label printing from GUI preview](https://github.com/notzune/wms-pallet-tag-system/issues/6)
+- [Issue #5: Clean up GUI menu and tool options](https://github.com/notzune/wms-pallet-tag-system/issues/5)
+- [Issue #7: Add cleanup for stale files in out directory](https://github.com/notzune/wms-pallet-tag-system/issues/7)
+
 ## Current Scope
 
 Implemented and supported:
