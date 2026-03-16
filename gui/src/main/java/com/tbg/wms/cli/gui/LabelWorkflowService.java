@@ -42,6 +42,7 @@ public final class LabelWorkflowService {
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     private final AppConfig config;
+    private final Path configBaseDir;
     // Cache routing configs by site code to avoid repeated disk reads.
     private final ConcurrentMap<String, PrinterRoutingService> routingBySite = new ConcurrentHashMap<>();
     // Cache resolved printers by site and printer ID to avoid repeated lookups.
@@ -53,7 +54,12 @@ public final class LabelWorkflowService {
     private volatile LabelTemplate cachedTemplate;
 
     public LabelWorkflowService(AppConfig config) {
+        this(config, Paths.get("config"));
+    }
+
+    LabelWorkflowService(AppConfig config, Path configBaseDir) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
+        this.configBaseDir = Objects.requireNonNull(configBaseDir, "configBaseDir cannot be null");
     }
 
     /**
@@ -331,7 +337,7 @@ public final class LabelWorkflowService {
         if (cached != null) {
             return cached;
         }
-        PrinterRoutingService routing = PrinterRoutingService.load(siteCode, Paths.get("config"));
+        PrinterRoutingService routing = PrinterRoutingService.load(siteCode, configBaseDir);
         PrinterRoutingService prior = routingBySite.putIfAbsent(siteCode, routing);
         return prior == null ? routing : prior;
     }
