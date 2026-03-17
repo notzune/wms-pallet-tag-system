@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- None.
+
+## [1.7.0] - 2026-03-17
+
+### Added
+
+- Shipment-mode CLI label subset selection via `--labels` using `all` or 1-based indexes/ranges so CLI and GUI smoke tests can exercise the same selected-label shipment print path.
+- Shipment preview label selection in the GUI with `Select All` / `Deselect All` and per-label checkbox control before printing.
+- Workflow-scoped GUI printer menus so the main label screen only shows `OFFICE`, `DISPATCH`, and `Print to file`, while the rail labels tool only shows `ORDER_PICK`, `RAIL_OFFICE`, and `Print to file`.
+
+### Changed
+
+- Rail Labels GUI now uses an explicit print target picker instead of relying on the host default printer, while preserving PDF-only output when `Print to file` is selected.
+- Project metadata/version updated to `1.7.0` across Maven modules and release documentation.
+- Documented the follow-up direction to replace hard-coded GUI printer allowlists with config-driven printer capability flags (for example a future `zpl` marker) so menus can stay dynamic.
+
 - Performance tuning pass across rail/sku/gui services to reduce repeated allocations and repeated scans.
 - Removed an Oracle shipment-load N+1 pattern by batching all shipment line-items in one query and grouping by LPN in-memory.
 - Hardened GUI workflow caches to be site-scoped and thread-safe (concurrent routing/printer/site-config caches).

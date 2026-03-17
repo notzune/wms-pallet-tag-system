@@ -69,6 +69,26 @@ public final class RailPrintService {
         }
     }
 
+    /**
+     * Sends a rendered rail PDF to the specified printer first, then falls back to system print dialog.
+     *
+     * @param documentPath rendered PDF path
+     * @param printer      explicit target printer
+     */
+    public void print(Path documentPath, PrinterConfig printer) throws IOException {
+        Objects.requireNonNull(printer, "printer cannot be null");
+        Objects.requireNonNull(documentPath, "documentPath cannot be null");
+        if (!Files.exists(documentPath)) {
+            throw new IllegalArgumentException("Document file does not exist: " + documentPath);
+        }
+        try {
+            sendFileRaw(printer, documentPath);
+            return;
+        } catch (IOException directPrintError) {
+            printWithSystemDialog(documentPath, directPrintError);
+        }
+    }
+
     private PrinterConfig resolveRailPrinter(AppConfig config) throws IOException {
         String site = config.activeSiteCode();
         PrinterRoutingService routing = PrinterRoutingService.load(site, Path.of("config"));

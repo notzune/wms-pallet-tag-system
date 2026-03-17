@@ -175,12 +175,17 @@ public final class AdvancedPrintWorkflowService {
     }
 
     public PrintResult printShipmentJob(LabelWorkflowService.PreparedJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
+        return printShipmentJob(job, job.getLpnsForLabels(), printerId, outputDir, printToFile);
+    }
+
+    public PrintResult printShipmentJob(LabelWorkflowService.PreparedJob job, List<Lpn> selectedLpns, String printerId, Path outputDir, boolean printToFile) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         PrinterConfig printer = resolvePrinterForPrint(job.getRouting(), printerId, printToFile);
         Path targetDir = outputDir == null
                 ? Paths.get("out", "gui-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()))
                 : outputDir;
-        List<PrintTask> tasks = buildShipmentTasks(job, null, null, true);
+        List<Lpn> lpnsToPrint = filterLpnsForPrint(job.getLpnsForLabels(), selectedLpns);
+        List<PrintTask> tasks = buildShipmentTasks(job, lpnsToPrint, null, null, true);
         JobCheckpoint checkpoint = createCheckpoint("shipment-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()),
                 InputMode.SHIPMENT, job.getShipmentId(), targetDir, printToFile, printer, tasks);
         executeTasks(checkpoint, printer, 0);
@@ -251,23 +256,54 @@ public final class AdvancedPrintWorkflowService {
                 .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + id));
     }
 
+    static List<Lpn> filterLpnsForPrint(List<Lpn> availableLpns, List<Lpn> selectedLpns) {
+        Objects.requireNonNull(availableLpns, "availableLpns cannot be null");
+        Objects.requireNonNull(selectedLpns, "selectedLpns cannot be null");
+
+        if (selectedLpns.isEmpty()) {
+            throw new IllegalArgumentException("Select at least one label to print.");
+        }
+
+        Set<String> selectedIds = new LinkedHashSet<>();
+        for (Lpn lpn : selectedLpns) {
+            if (lpn != null && lpn.getLpnId() != null) {
+                selectedIds.add(lpn.getLpnId());
+            }
+        }
+        if (selectedIds.isEmpty()) {
+            throw new IllegalArgumentException("Select at least one label to print.");
+        }
+
+        List<Lpn> filtered = new ArrayList<>(selectedIds.size());
+        for (Lpn lpn : availableLpns) {
+            if (lpn != null && selectedIds.contains(lpn.getLpnId())) {
+                filtered.add(lpn);
+            }
+        }
+        if (filtered.isEmpty()) {
+            throw new IllegalArgumentException("Selected labels are no longer available for printing.");
+        }
+        return filtered;
+    }
+
     private List<PrintTask> buildShipmentTasks(
             LabelWorkflowService.PreparedJob job,
+            List<Lpn> lpnsToPrint,
             Integer stopSequence,
             Integer stopPosition,
             boolean includeShipmentInfoTag
     ) {
         Objects.requireNonNull(job, "job cannot be null");
+        Objects.requireNonNull(lpnsToPrint, "lpnsToPrint cannot be null");
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
         List<PrintTask> tasks = new ArrayList<>();
-        List<Lpn> lpnsForLabels = job.getLpnsForLabels();
-        Shipment shipmentForLabels = buildShipmentForLabeling(job.getShipment(), lpnsForLabels);
-        int labelCount = lpnsForLabels.size();
+        Shipment shipmentForLabels = buildShipmentForLabeling(job.getShipment(), lpnsToPrint);
+        int labelCount = lpnsToPrint.size();
         if (labelCount > MAX_LABELS_PER_JOB) {
             throw new IllegalArgumentException("Label count exceeds max limit: " + MAX_LABELS_PER_JOB);
         }
         for (int i = 0; i < labelCount; i++) {
-            Lpn lpn = lpnsForLabels.get(i);
+            Lpn lpn = lpnsToPrint.get(i);
             Map<String, String> data = new LinkedHashMap<>(builder.build(shipmentForLabels, lpn, i, LabelType.WALMART_CANADA_GRID));
             if (stopSequence != null) {
                 data.put("stopSequence", String.valueOf(stopSequence));
@@ -359,7 +395,7 @@ public final class AdvancedPrintWorkflowService {
             List<String> shipmentIds = new ArrayList<>(stop.shipmentJobs.size());
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.shipmentJobs) {
                 shipmentIds.add(shipmentJob.getShipmentId());
-                tasks.addAll(buildShipmentTasks(shipmentJob, stop.stopSequence, stop.stopPosition, false));
+                tasks.addAll(buildShipmentTasks(shipmentJob, shipmentJob.getLpnsForLabels(), stop.stopSequence, stop.stopPosition, false));
             }
 
             String stopInfoFile = String.format("info-stop-%02d-of-%02d.zpl", stop.stopPosition, totalStops);

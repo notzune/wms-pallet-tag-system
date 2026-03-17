@@ -3,18 +3,19 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.6.0-blue)
+![Version](https://img.shields.io/badge/version-1.7.0-blue)
 ![Java](https://img.shields.io/badge/java-11%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.6.0` (2026-03-04).
+Current release: `1.7.0` (2026-03-17).
 
 ## Tracked Enhancements
 
 - [Issue #6: Add per-label printing from GUI preview](https://github.com/notzune/wms-pallet-tag-system/issues/6)
+- [Issue #8: Scope GUI printer menus by workflow](https://github.com/notzune/wms-pallet-tag-system/issues/8)
 - [Issue #5: Clean up GUI menu and tool options](https://github.com/notzune/wms-pallet-tag-system/issues/5)
 - [Issue #7: Add cleanup for stale files in out directory](https://github.com/notzune/wms-pallet-tag-system/issues/7)
 
@@ -161,6 +162,7 @@ Options:
 
 - `--shipment-id` (mutually exclusive with `--carrier-move-id`)
 - `--carrier-move-id` (mutually exclusive with `--shipment-id`)
+- `--labels <EXPR>` shipment-only subset selection using `all` or 1-based indexes/ranges like `1,3,5-7`
 - `--dry-run`
 - `--output-dir <DIR>` (default `./labels`)
 - `--printer <ID>`
@@ -254,8 +256,9 @@ Workflow:
 - Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
 - Railcar card preview panel (item lines + CAN/DOM/KEV + pass/fuel/BH fields)
 - Diagnostics panel (row counts and unresolved footprints)
+- Rail print target dropdown only shows `ORDER_PICK`, `RAIL_OFFICE`, and `Print to file`.
 - Click `Generate PDF` to produce a letter-size multi-card PDF.
-- Click `Print` to generate PDF and send it to the host default printer.
+- Click `Print` to generate PDF and send it to the selected rail printer, or keep `Print to file` selected to save only.
 
 ## Excel VBA Macro Helpers
 
@@ -274,6 +277,7 @@ Workflow:
 - Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
 - Main window footer shows `Version <x.y.z>` and resolves from package metadata with Maven `pom.properties` fallback.
 - Enter ID, select printer, and click `Preview`.
+- Label-generation printer dropdown only shows `OFFICE`, `DISPATCH`, and `Print to file`.
 - Shipment preview shows shipment summary, label plan, and SKU-level pallet math (full vs partial).
 - Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU
   breakdown.
@@ -285,6 +289,7 @@ Workflow:
 - Select `Print to file` from the printer dropdown to save ZPL under `out/` without printer I/O.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
 - Use `Tools -> Rail Labels...` for end-to-end rail merge generation from live WMS train data.
+- Current GUI printer scoping is intentionally hard-coded by workflow; future config work should add printer capability flags (for example a `zpl` marker) so these menus can stay dynamic.
 - Barcode dialog now defaults to an operator-focused layout and moves low-level controls under `Advanced Settings...`.
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
 

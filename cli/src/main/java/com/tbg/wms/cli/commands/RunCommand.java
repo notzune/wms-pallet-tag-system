@@ -14,6 +14,8 @@ import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
 import com.tbg.wms.core.exception.WmsPrintException;
+import com.tbg.wms.core.label.LabelSelectionSupport;
+import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ import picocli.CommandLine.Option;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -44,6 +47,7 @@ public final class RunCommand implements Callable<Integer> {
     private static final Logger log = LoggerFactory.getLogger(RunCommand.class);
     private static final int JOB_ID_LENGTH = 8;
     private static final int MAX_LABELS_PER_JOB = 10_000;
+    private static final int MAX_LABEL_PREVIEW_ROWS = 100;
 
     @Option(
             names = {"-s", "--shipment-id"},
@@ -85,6 +89,12 @@ public final class RunCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
+    @Option(
+            names = {"--labels"},
+            description = "Shipment label selection expression. Use 'all' or 1-based indexes/ranges like 1,3,5-7"
+    )
+    private String labelSelectionExpression;
+
     /**
      * Executes shipment/carrier print workflow for CLI mode.
      *
@@ -102,6 +112,9 @@ public final class RunCommand implements Callable<Integer> {
             String inputId = resolveInputId();
             boolean carrierMode = isCarrierMoveMode();
             MDC.put(carrierMode ? "carrierMoveId" : "shipmentId", inputId);
+            if (carrierMode && labelSelectionExpression != null && !labelSelectionExpression.isBlank()) {
+                throw new IllegalArgumentException("--labels is only supported with --shipment-id.");
+            }
 
             boolean printToFileMode = dryRun || printToFile;
             String effectiveOutputDir = printToFile
@@ -148,9 +161,10 @@ public final class RunCommand implements Callable<Integer> {
                                        boolean printToFileMode) throws Exception {
         log.info("Starting shipment print job for {}", id);
         LabelWorkflowService.PreparedJob prepared = workflow.prepareShipmentJob(id);
-        printShipmentPlanSummary(prepared);
+        List<Lpn> selectedLpns = resolveSelectedShipmentLpns(prepared);
+        printShipmentPlanSummary(prepared, selectedLpns);
 
-        int labels = prepared.getLpnsForLabels().size();
+        int labels = selectedLpns.size();
         enforceMaxLabels(labels);
 
         String printerId = resolvePrinterId(
@@ -161,6 +175,7 @@ public final class RunCommand implements Callable<Integer> {
 
         AdvancedPrintWorkflowService.PrintResult result = workflow.printShipmentJob(
                 prepared,
+                selectedLpns,
                 printerId,
                 outputPath,
                 printToFileMode
@@ -215,6 +230,17 @@ public final class RunCommand implements Callable<Integer> {
 
     private boolean isCarrierMoveMode() {
         return carrierMoveId != null && !carrierMoveId.isBlank();
+    }
+
+    private List<Lpn> resolveSelectedShipmentLpns(LabelWorkflowService.PreparedJob prepared) {
+        if (labelSelectionExpression == null || labelSelectionExpression.isBlank()) {
+            return prepared.getLpnsForLabels();
+        }
+        List<Integer> selectedIndexes = LabelSelectionSupport.parseOneBasedSelection(
+                labelSelectionExpression,
+                prepared.getLpnsForLabels().size()
+        );
+        return LabelSelectionSupport.selectByOneBasedIndexes(prepared.getLpnsForLabels(), selectedIndexes);
     }
 
     private Path prepareOutputDirectory(String outputDirectory) throws Exception {
@@ -276,7 +302,7 @@ public final class RunCommand implements Callable<Integer> {
         }
     }
 
-    private void printShipmentPlanSummary(LabelWorkflowService.PreparedJob prepared) {
+    private void printShipmentPlanSummary(LabelWorkflowService.PreparedJob prepared, List<Lpn> selectedLpns) {
         System.out.println();
         System.out.println("=== Shipment Plan Summary ===");
         System.out.println("Shipment: " + prepared.getShipmentId());
@@ -287,10 +313,26 @@ public final class RunCommand implements Callable<Integer> {
         if (!prepared.getPlanResult().getSkusMissingFootprint().isEmpty()) {
             System.out.println("Missing footprint SKUs: " + String.join(", ", prepared.getPlanResult().getSkusMissingFootprint()));
         }
-        System.out.println("Labels: " + prepared.getLpnsForLabels().size());
+        System.out.println("Labels selected: " + selectedLpns.size() + " / " + prepared.getLpnsForLabels().size());
+        if (labelSelectionExpression != null && !labelSelectionExpression.isBlank()) {
+            System.out.println("Selection: " + labelSelectionExpression.trim());
+        }
         System.out.println("Info Tags: 1");
+        printShipmentLabelPreview(prepared, selectedLpns);
         System.out.println("=============================");
         System.out.println();
+    }
+
+    private void printShipmentLabelPreview(LabelWorkflowService.PreparedJob prepared, List<Lpn> selectedLpns) {
+        System.out.println("Label Preview:");
+        for (int i = 0; i < prepared.getLpnsForLabels().size() && i < MAX_LABEL_PREVIEW_ROWS; i++) {
+            Lpn lpn = prepared.getLpnsForLabels().get(i);
+            boolean selected = selectedLpns.contains(lpn);
+            System.out.printf("  [%s] %d. %s%n", selected ? "x" : " ", i + 1, lpn.getLpnId());
+        }
+        if (prepared.getLpnsForLabels().size() > MAX_LABEL_PREVIEW_ROWS) {
+            System.out.println("  ... showing first " + MAX_LABEL_PREVIEW_ROWS + " labels");
+        }
     }
 
     private void printCarrierMovePlanSummary(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared, int labelCount) {

@@ -11,6 +11,7 @@ package com.tbg.wms.cli.gui;
 import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.RuntimePathResolver;
+import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
 
 import javax.swing.*;
@@ -24,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -38,8 +40,6 @@ import java.util.prefs.Preferences;
  */
 public final class LabelGuiFrame extends JFrame {
     private static final long serialVersionUID = 1L;
-    // Synthetic printer option used to enable print-to-file from the dropdown.
-    private static final String FILE_PRINTER_ID = "FILE";
     private static final String PREF_PRINT_TO_FILE_DIR = "printToFile.defaultOutputDir";
     private static final int SHIPMENT_MIN_CHARS = 11;
     private static final int COMBO_WIDTH_REDUCTION_PX = 12;
@@ -61,10 +61,13 @@ public final class LabelGuiFrame extends JFrame {
     private final JButton previewButton = new JButton("Preview");
     private final JButton clearButton = new JButton("Clear");
     private final JButton printButton = new JButton("Confirm Print");
+    private final JButton labelSelectionToggleButton = new JButton("Deselect All");
     private final JTextArea shipmentArea = new JTextArea();
     private final JPanel shipmentPreviewPanel = new JPanel();
+    private final JPanel labelSelectionPanel = new JPanel();
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
+    private final JLabel labelSelectionStatusLabel = new JLabel(" ");
     private final JLabel versionLabel = new JLabel();
     private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
@@ -75,6 +78,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient LabelPreviewFormatter previewFormatter = new LabelPreviewFormatter();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
+    private transient List<JCheckBox> shipmentLabelCheckboxes = List.of();
     private transient LabelWorkflowService.PreparedJob preparedJob;
     private transient AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
 
@@ -155,7 +159,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private static boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
-        return selected != null && FILE_PRINTER_ID.equals(selected.getId());
+        return GuiPrinterTargetSupport.isPrintToFile(selected);
     }
 
     private JComponent buildToolBar() {
@@ -268,6 +272,7 @@ public final class LabelGuiFrame extends JFrame {
         previewButton.addActionListener(e -> previewJob());
         clearButton.addActionListener(e -> clearForm());
         printButton.addActionListener(e -> confirmAndPrint());
+        labelSelectionToggleButton.addActionListener(e -> toggleShipmentLabelSelection());
         carrierMoveModeButton.addActionListener(e -> updateInputModeUi());
         shipmentModeButton.addActionListener(e -> updateInputModeUi());
     }
@@ -297,7 +302,7 @@ public final class LabelGuiFrame extends JFrame {
                 try {
                     List<LabelWorkflowService.PrinterOption> printers = get();
                     loadedPrinters = List.copyOf(printers);
-                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = buildPrintTargetModel(true);
+                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = buildMainPrintTargetModel(true);
                     int printerCount = printers.size();
                     printerCombo.setModel(model);
                     applyTopRowSizing();
@@ -352,7 +357,6 @@ public final class LabelGuiFrame extends JFrame {
                         preparedJob = (LabelWorkflowService.PreparedJob) prepared;
                         renderPreview(preparedJob);
                     }
-                    printButton.setEnabled(true);
                     setReady("Preview ready. Verify details, then click Confirm Print.");
                 } catch (Exception ex) {
                     setReady("Preview failed.");
@@ -367,13 +371,16 @@ public final class LabelGuiFrame extends JFrame {
         shipmentPreviewPanel.removeAll();
         shipmentArea.setText(previewFormatter.buildShipmentSummaryText(job, 1));
         shipmentPreviewPanel.add(shipmentArea);
+        shipmentPreviewPanel.add(buildShipmentLabelSelectionPanel(job));
         mathArea.setText(previewFormatter.buildShipmentMathText(job, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT));
+        updateShipmentSelectionUi();
         shipmentPreviewPanel.revalidate();
         shipmentPreviewPanel.repaint();
     }
 
     private void renderCarrierMovePreview(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
         Objects.requireNonNull(job, "job cannot be null");
+        resetShipmentLabelSelection();
         shipmentPreviewPanel.removeAll();
         StringBuilder summary = new StringBuilder(previewFormatter.buildCarrierMoveSummary(job));
         shipmentArea.setText(summary.toString());
@@ -440,6 +447,74 @@ public final class LabelGuiFrame extends JFrame {
         return shown;
     }
 
+    private JComponent buildShipmentLabelSelectionPanel(LabelWorkflowService.PreparedJob job) {
+        Objects.requireNonNull(job, "job cannot be null");
+        shipmentLabelCheckboxes = new ArrayList<>(job.getLpnsForLabels().size());
+
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        controls.add(labelSelectionToggleButton);
+        controls.add(labelSelectionStatusLabel);
+
+        JPanel checkboxGrid = new JPanel(new GridLayout(0, 3, 8, 4));
+        int index = 1;
+        for (Lpn lpn : job.getLpnsForLabels()) {
+            JCheckBox checkbox = new JCheckBox(buildShipmentLabelOptionText(index, lpn), true);
+            checkbox.addActionListener(e -> updateShipmentSelectionUi());
+            shipmentLabelCheckboxes.add(checkbox);
+            checkboxGrid.add(checkbox);
+            index++;
+        }
+
+        labelSelectionPanel.removeAll();
+        labelSelectionPanel.setLayout(new BorderLayout(0, 6));
+        labelSelectionPanel.setBorder(BorderFactory.createTitledBorder("Label Selection"));
+        labelSelectionPanel.add(controls, BorderLayout.NORTH);
+        labelSelectionPanel.add(checkboxGrid, BorderLayout.CENTER);
+        return labelSelectionPanel;
+    }
+
+    private String buildShipmentLabelOptionText(int index, Lpn lpn) {
+        String lpnId = lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank() ? "UNKNOWN" : lpn.getLpnId();
+        return String.format("%02d. %s", index, lpnId);
+    }
+
+    private void toggleShipmentLabelSelection() {
+        boolean selectAll = shipmentLabelCheckboxes.stream().anyMatch(box -> !box.isSelected());
+        for (JCheckBox checkbox : shipmentLabelCheckboxes) {
+            checkbox.setSelected(selectAll);
+        }
+        updateShipmentSelectionUi();
+    }
+
+    private void updateShipmentSelectionUi() {
+        int total = shipmentLabelCheckboxes.size();
+        int selected = getSelectedShipmentLpns().size();
+        labelSelectionStatusLabel.setText("Selected " + selected + " of " + total + " labels");
+        labelSelectionToggleButton.setText(selected == total ? "Deselect All" : "Select All");
+        updatePrintButtonEnabled();
+    }
+
+    private List<Lpn> getSelectedShipmentLpns() {
+        if (preparedJob == null || shipmentLabelCheckboxes.isEmpty()) {
+            return List.of();
+        }
+        List<Lpn> selected = new ArrayList<>();
+        List<Lpn> available = preparedJob.getLpnsForLabels();
+        for (int i = 0; i < shipmentLabelCheckboxes.size() && i < available.size(); i++) {
+            if (shipmentLabelCheckboxes.get(i).isSelected()) {
+                selected.add(available.get(i));
+            }
+        }
+        return selected;
+    }
+
+    private void resetShipmentLabelSelection() {
+        shipmentLabelCheckboxes = List.of();
+        labelSelectionPanel.removeAll();
+        labelSelectionStatusLabel.setText(" ");
+        labelSelectionToggleButton.setText("Deselect All");
+    }
+
     private void confirmAndPrint() {
         boolean carrierMoveMode = isCarrierMoveMode();
         boolean previewMissing = carrierMoveMode ? preparedCarrierJob == null : preparedJob == null;
@@ -455,10 +530,16 @@ public final class LabelGuiFrame extends JFrame {
             return;
         }
 
+        List<Lpn> selectedShipmentLpns = carrierMoveMode ? List.of() : getSelectedShipmentLpns();
+        if (!carrierMoveMode && selectedShipmentLpns.isEmpty()) {
+            showError("Select at least one label to print.");
+            return;
+        }
+
         if (!printToFile) {
             int plannedLabels = carrierMoveMode
                     ? previewFormatter.countCarrierMoveLabels(preparedCarrierJob)
-                    : preparedJob.getLpnsForLabels().size();
+                    : selectedShipmentLpns.size();
             int plannedInfoTags = carrierMoveMode
                     ? preparedCarrierJob.getTotalStops() + 1
                     : 1;
@@ -492,7 +573,7 @@ public final class LabelGuiFrame extends JFrame {
                 }
                 Path outDir = defaultPrintToFileOutputDir().resolve("gui-" + preparedJob.getShipmentId() + "-" +
                         OUTPUT_TS.format(LocalDateTime.now()));
-                return advancedService.printShipmentJob(preparedJob, printerId, outDir, printToFile);
+                return advancedService.printShipmentJob(preparedJob, selectedShipmentLpns, printerId, outDir, printToFile);
             }
 
             @Override
@@ -544,6 +625,7 @@ public final class LabelGuiFrame extends JFrame {
         statusLabel.setText(message);
         previewButton.setEnabled(true);
         clearButton.setEnabled(true);
+        updatePrintButtonEnabled();
     }
 
     private void showError(String message) {
@@ -553,6 +635,7 @@ public final class LabelGuiFrame extends JFrame {
     private void clearForm() {
         shipmentField.setText("");
         shipmentArea.setText("");
+        resetShipmentLabelSelection();
         shipmentPreviewPanel.removeAll();
         shipmentPreviewPanel.add(shipmentArea);
         shipmentPreviewPanel.revalidate();
@@ -569,6 +652,7 @@ public final class LabelGuiFrame extends JFrame {
         inputLabel.setText(isCarrierMoveMode() ? "Carrier Move ID:" : "Shipment ID:");
         preparedJob = null;
         preparedCarrierJob = null;
+        resetShipmentLabelSelection();
         shipmentArea.setText("");
         shipmentPreviewPanel.removeAll();
         shipmentPreviewPanel.add(shipmentArea);
@@ -580,6 +664,14 @@ public final class LabelGuiFrame extends JFrame {
 
     private boolean isCarrierMoveMode() {
         return carrierMoveModeButton.isSelected();
+    }
+
+    private void updatePrintButtonEnabled() {
+        if (preparedCarrierJob != null && isCarrierMoveMode()) {
+            printButton.setEnabled(true);
+            return;
+        }
+        printButton.setEnabled(preparedJob != null && !getSelectedShipmentLpns().isEmpty() && !isCarrierMoveMode());
     }
 
     private void openQueueDialog() {
@@ -772,17 +864,24 @@ public final class LabelGuiFrame extends JFrame {
         barcodeDialogFactory.open(this);
     }
 
+    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildMainPrintTargetModel(boolean includeFileOption) {
+        return buildPrintTargetModel(GuiPrinterTargetSupport.filterLabelScreenPrinters(loadedPrinters), includeFileOption);
+    }
+
     private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption) {
+        return buildPrintTargetModel(loadedPrinters, includeFileOption);
+    }
+
+    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(
+            List<LabelWorkflowService.PrinterOption> printerOptions,
+            boolean includeFileOption
+    ) {
         DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
-        for (LabelWorkflowService.PrinterOption option : loadedPrinters) {
+        for (LabelWorkflowService.PrinterOption option : printerOptions) {
             model.addElement(option);
         }
         if (includeFileOption) {
-            model.addElement(new LabelWorkflowService.PrinterOption(
-                    FILE_PRINTER_ID,
-                    "Print to file",
-                    defaultPrintToFileOutputDir().toString()
-            ));
+            model.addElement(GuiPrinterTargetSupport.buildPrintToFileOption(defaultPrintToFileOutputDir()));
         }
         return model;
     }
@@ -860,7 +959,7 @@ public final class LabelGuiFrame extends JFrame {
             preferences.put(PREF_PRINT_TO_FILE_DIR, configuredPath.toString());
             LabelWorkflowService.PrinterOption previousSelection =
                     (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-            printerCombo.setModel(buildPrintTargetModel(true));
+            printerCombo.setModel(buildMainPrintTargetModel(true));
             applyTopRowSizing();
             restoreSelection(previousSelection);
             setReady("Settings saved.");
