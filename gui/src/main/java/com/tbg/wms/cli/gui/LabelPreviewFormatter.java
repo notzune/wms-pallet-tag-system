@@ -19,14 +19,14 @@ final class LabelPreviewFormatter {
             "----------------------------------------------------------------------------------------------------------------------\n";
     private static final String STOP_BLOCK_SEPARATOR =
             "====================================================================================================\n";
-    private static final int CARRIER_MOVE_SUMMARY_INFO_TAG_BASE = 1;
-
     private static String value(String v) {
         return (v == null || v.isBlank()) ? "-" : v;
     }
 
     String buildShipmentSummaryText(LabelWorkflowService.PreparedJob job, int infoTagsToGenerate) {
         Objects.requireNonNull(job, "job cannot be null");
+        WorkflowPrintPlanSupport.ShipmentPlanSummary plan =
+                WorkflowPrintPlanSupport.buildShipmentPlan(job, job.getLpnsForLabels(), infoTagsToGenerate);
         StringBuilder summary = new StringBuilder();
         summary.append("Shipment: ").append(job.getShipment().getShipmentId()).append('\n');
         summary.append("Order: ").append(value(job.getShipment().getOrderId())).append('\n');
@@ -45,17 +45,17 @@ final class LabelPreviewFormatter {
         if (job.getShipment().getLpnCount() > 0) {
             summary.append(" - Actual LPNs: ").append(job.getShipment().getLpnCount()).append('\n');
         }
-        summary.append(" - Labels To Generate: ").append(job.getLpnsForLabels().size()).append('\n');
-        summary.append(" - Info Tags To Generate: ").append(infoTagsToGenerate).append('\n');
+        summary.append(" - Labels To Generate: ").append(plan.getTotalLabels()).append('\n');
+        summary.append(" - Info Tags To Generate: ").append(plan.getInfoTagCount()).append('\n');
         summary.append(" - Virtual Labels Used: ").append(job.isUsingVirtualLabels() ? "YES" : "NO").append('\n');
-        summary.append(" - Total Units: ").append(job.getPlanResult().getTotalUnits()).append('\n');
-        summary.append(" - Estimated Pallets (Footprint): ").append(job.getPlanResult().getEstimatedPallets()).append('\n');
-        summary.append(" - Full Pallets (Footprint): ").append(job.getPlanResult().getFullPallets()).append('\n');
-        summary.append(" - Partial Pallets (Footprint): ").append(job.getPlanResult().getPartialPallets()).append('\n');
+        summary.append(" - Total Units: ").append(plan.getTotalUnits()).append('\n');
+        summary.append(" - Estimated Pallets (Footprint): ").append(plan.getEstimatedPallets()).append('\n');
+        summary.append(" - Full Pallets (Footprint): ").append(plan.getFullPallets()).append('\n');
+        summary.append(" - Partial Pallets (Footprint): ").append(plan.getPartialPallets()).append('\n');
         summary.append(" - Missing Footprint SKUs: ")
-                .append(job.getPlanResult().getSkusMissingFootprint().isEmpty()
+                .append(plan.getMissingFootprintSkus().isEmpty()
                         ? "None"
-                        : String.join(", ", job.getPlanResult().getSkusMissingFootprint()))
+                        : String.join(", ", plan.getMissingFootprintSkus()))
                 .append('\n');
         return summary.toString();
     }
@@ -97,11 +97,12 @@ final class LabelPreviewFormatter {
     }
 
     String buildCarrierMoveSummary(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        WorkflowPrintPlanSupport.CarrierMovePlanSummary plan = WorkflowPrintPlanSupport.buildCarrierMovePlan(job);
         StringBuilder summary = new StringBuilder();
-        summary.append("Carrier Move ID: ").append(job.getCarrierMoveId()).append('\n');
-        summary.append("Total Stops: ").append(job.getTotalStops()).append('\n');
-        summary.append("Estimated Labels: ").append(countCarrierMoveLabels(job)).append('\n');
-        summary.append("Estimated Info Tags: ").append(job.getTotalStops() + CARRIER_MOVE_SUMMARY_INFO_TAG_BASE).append('\n');
+        summary.append("Carrier Move ID: ").append(plan.getCarrierMoveId()).append('\n');
+        summary.append("Total Stops: ").append(plan.getTotalStops()).append('\n');
+        summary.append("Estimated Labels: ").append(plan.getTotalLabels()).append('\n');
+        summary.append("Estimated Info Tags: ").append(plan.getInfoTagCount()).append('\n');
         return summary.toString();
     }
 
@@ -144,16 +145,6 @@ final class LabelPreviewFormatter {
         return section.toString();
     }
 
-    int countCarrierMoveLabels(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
-        int total = 0;
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
-            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                total += shipmentJob.getLpnsForLabels().size();
-            }
-        }
-        return total;
-    }
-
     String buildQueuePreview(AdvancedPrintWorkflowService.PreparedQueueJob queueJob) {
         StringBuilder preview = new StringBuilder();
         int totalLabels = 0;
@@ -161,22 +152,27 @@ final class LabelPreviewFormatter {
         preview.append("Queue Items: ").append(queueJob.getItems().size()).append('\n');
         for (AdvancedPrintWorkflowService.PreparedQueueItem item : queueJob.getItems()) {
             if (item.getType() == AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE) {
-                int labels = countCarrierMoveLabels(item.getCarrierMoveJob());
-                int info = item.getCarrierMoveJob().getTotalStops() + 1;
-                totalLabels += labels;
-                totalInfoTags += info;
+                WorkflowPrintPlanSupport.CarrierMovePlanSummary plan =
+                        WorkflowPrintPlanSupport.buildCarrierMovePlan(item.getCarrierMoveJob());
+                totalLabels += plan.getTotalLabels();
+                totalInfoTags += plan.getInfoTagCount();
                 preview.append(" - C:").append(item.getSourceId())
-                        .append(" | stops=").append(item.getCarrierMoveJob().getTotalStops())
-                        .append(" | labels=").append(labels)
-                        .append(" | infoTags=").append(info)
+                        .append(" | stops=").append(plan.getTotalStops())
+                        .append(" | labels=").append(plan.getTotalLabels())
+                        .append(" | infoTags=").append(plan.getInfoTagCount())
                         .append('\n');
             } else {
-                int labels = item.getShipmentJob().getLpnsForLabels().size();
-                totalLabels += labels;
-                totalInfoTags += 1;
+                WorkflowPrintPlanSupport.ShipmentPlanSummary plan =
+                        WorkflowPrintPlanSupport.buildShipmentPlan(
+                                item.getShipmentJob(),
+                                item.getShipmentJob().getLpnsForLabels(),
+                                1
+                        );
+                totalLabels += plan.getTotalLabels();
+                totalInfoTags += plan.getInfoTagCount();
                 preview.append(" - S:").append(item.getSourceId())
-                        .append(" | labels=").append(labels)
-                        .append(" | infoTags=1")
+                        .append(" | labels=").append(plan.getTotalLabels())
+                        .append(" | infoTags=").append(plan.getInfoTagCount())
                         .append('\n');
             }
         }

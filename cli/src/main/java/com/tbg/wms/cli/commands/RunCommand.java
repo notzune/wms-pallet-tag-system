@@ -10,6 +10,7 @@ package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.cli.gui.AdvancedPrintWorkflowService;
 import com.tbg.wms.cli.gui.LabelWorkflowService;
+import com.tbg.wms.cli.gui.WorkflowPrintPlanSupport;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
@@ -163,7 +164,9 @@ public final class RunCommand implements Callable<Integer> {
         log.info("Starting shipment print job for {}", id);
         LabelWorkflowService.PreparedJob prepared = workflow.prepareShipmentJob(id);
         List<Lpn> selectedLpns = resolveSelectedShipmentLpns(prepared);
-        printShipmentPlanSummary(prepared, selectedLpns);
+        WorkflowPrintPlanSupport.ShipmentPlanSummary plan =
+                WorkflowPrintPlanSupport.buildShipmentPlan(prepared, selectedLpns, 1);
+        printShipmentPlanSummary(plan, prepared, selectedLpns);
 
         int labels = selectedLpns.size();
         enforceMaxLabels(labels);
@@ -195,9 +198,9 @@ public final class RunCommand implements Callable<Integer> {
                                           boolean printToFileMode) throws Exception {
         log.info("Starting carrier move print job for {}", id);
         AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared = workflow.prepareCarrierMoveJob(id);
-        int labelCount = countCarrierMoveLabels(prepared);
-        enforceMaxLabels(labelCount);
-        printCarrierMovePlanSummary(prepared, labelCount);
+        WorkflowPrintPlanSupport.CarrierMovePlanSummary plan = WorkflowPrintPlanSupport.buildCarrierMovePlan(prepared);
+        enforceMaxLabels(plan.getTotalLabels());
+        printCarrierMovePlanSummary(plan);
 
         LabelWorkflowService.PreparedJob firstShipment = firstCarrierShipment(prepared);
         String printerId = resolvePrinterId(
@@ -280,16 +283,6 @@ public final class RunCommand implements Callable<Integer> {
         return routed.getId();
     }
 
-    private int countCarrierMoveLabels(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared) {
-        int total = 0;
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : prepared.getStopGroups()) {
-            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                total += shipmentJob.getLpnsForLabels().size();
-            }
-        }
-        return total;
-    }
-
     private LabelWorkflowService.PreparedJob firstCarrierShipment(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared) {
         for (AdvancedPrintWorkflowService.PreparedStopGroup stop : prepared.getStopGroups()) {
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
@@ -307,22 +300,26 @@ public final class RunCommand implements Callable<Integer> {
         }
     }
 
-    private void printShipmentPlanSummary(LabelWorkflowService.PreparedJob prepared, List<Lpn> selectedLpns) {
+    private void printShipmentPlanSummary(
+            WorkflowPrintPlanSupport.ShipmentPlanSummary plan,
+            LabelWorkflowService.PreparedJob prepared,
+            List<Lpn> selectedLpns
+    ) {
         System.out.println();
         System.out.println("=== Shipment Plan Summary ===");
-        System.out.println("Shipment: " + prepared.getShipmentId());
-        System.out.println("Total units: " + prepared.getPlanResult().getTotalUnits());
-        System.out.println("Estimated pallets (footprint): " + prepared.getPlanResult().getEstimatedPallets());
-        System.out.println("  Full pallets: " + prepared.getPlanResult().getFullPallets());
-        System.out.println("  Partial pallets: " + prepared.getPlanResult().getPartialPallets());
-        if (!prepared.getPlanResult().getSkusMissingFootprint().isEmpty()) {
-            System.out.println("Missing footprint SKUs: " + String.join(", ", prepared.getPlanResult().getSkusMissingFootprint()));
+        System.out.println("Shipment: " + plan.getShipmentId());
+        System.out.println("Total units: " + plan.getTotalUnits());
+        System.out.println("Estimated pallets (footprint): " + plan.getEstimatedPallets());
+        System.out.println("  Full pallets: " + plan.getFullPallets());
+        System.out.println("  Partial pallets: " + plan.getPartialPallets());
+        if (!plan.getMissingFootprintSkus().isEmpty()) {
+            System.out.println("Missing footprint SKUs: " + String.join(", ", plan.getMissingFootprintSkus()));
         }
-        System.out.println("Labels selected: " + selectedLpns.size() + " / " + prepared.getLpnsForLabels().size());
+        System.out.println("Labels selected: " + plan.getSelectedLabels() + " / " + plan.getTotalLabels());
         if (labelSelectionExpression != null && !labelSelectionExpression.isBlank()) {
             System.out.println("Selection: " + labelSelectionExpression.trim());
         }
-        System.out.println("Info Tags: 1");
+        System.out.println("Info Tags: " + plan.getInfoTagCount());
         printShipmentLabelPreview(prepared, selectedLpns);
         System.out.println("=============================");
         System.out.println();
@@ -340,28 +337,17 @@ public final class RunCommand implements Callable<Integer> {
         }
     }
 
-    private void printCarrierMovePlanSummary(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared, int labelCount) {
-        int full = 0;
-        int partial = 0;
-        int totalUnits = 0;
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : prepared.getStopGroups()) {
-            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                full += shipmentJob.getPlanResult().getFullPallets();
-                partial += shipmentJob.getPlanResult().getPartialPallets();
-                totalUnits += shipmentJob.getPlanResult().getTotalUnits();
-            }
-        }
-
+    private void printCarrierMovePlanSummary(WorkflowPrintPlanSupport.CarrierMovePlanSummary plan) {
         System.out.println();
         System.out.println("=== Carrier Move Plan Summary ===");
-        System.out.println("Carrier Move: " + prepared.getCarrierMoveId());
-        System.out.println("Stops: " + prepared.getTotalStops());
-        System.out.println("Total units: " + totalUnits);
-        System.out.println("Estimated pallets (footprint): " + (full + partial));
-        System.out.println("  Full pallets: " + full);
-        System.out.println("  Partial pallets: " + partial);
-        System.out.println("Labels: " + labelCount);
-        System.out.println("Info Tags: " + (prepared.getTotalStops() + 1));
+        System.out.println("Carrier Move: " + plan.getCarrierMoveId());
+        System.out.println("Stops: " + plan.getTotalStops());
+        System.out.println("Total units: " + plan.getTotalUnits());
+        System.out.println("Estimated pallets (footprint): " + plan.getEstimatedPallets());
+        System.out.println("  Full pallets: " + plan.getFullPallets());
+        System.out.println("  Partial pallets: " + plan.getPartialPallets());
+        System.out.println("Labels: " + plan.getTotalLabels());
+        System.out.println("Info Tags: " + plan.getInfoTagCount());
         System.out.println("=================================");
         System.out.println();
     }
