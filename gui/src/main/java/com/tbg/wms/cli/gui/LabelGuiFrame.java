@@ -11,6 +11,7 @@ package com.tbg.wms.cli.gui;
 import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.RuntimePathResolver;
+import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
 
@@ -492,12 +493,12 @@ public final class LabelGuiFrame extends JFrame {
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
                 for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
                     String labelText = buildCarrierMoveLabelOptionText(index, stop, shipmentJob, lpn);
-                    AdvancedPrintWorkflowService.CarrierMoveLabelSelection selection =
-                            new AdvancedPrintWorkflowService.CarrierMoveLabelSelection(
+                    LabelSelectionRef selection = LabelSelectionRef.forCarrierMove(
+                            index,
                                     shipmentJob.getShipmentId(),
                                     resolveLpnId(lpn),
                                     stop.getStopPosition()
-                            );
+                    );
                     options.add(new PreviewLabelOption(labelText, lpn, selection));
                     index++;
                 }
@@ -572,11 +573,11 @@ public final class LabelGuiFrame extends JFrame {
         return selected;
     }
 
-    private List<AdvancedPrintWorkflowService.CarrierMoveLabelSelection> getSelectedCarrierMoveLabels() {
+    private List<LabelSelectionRef> getSelectedCarrierMoveLabels() {
         if (preparedCarrierJob == null) {
             return List.of();
         }
-        List<AdvancedPrintWorkflowService.CarrierMoveLabelSelection> selected = new ArrayList<>();
+        List<LabelSelectionRef> selected = new ArrayList<>();
         for (PreviewLabelOption option : getSelectedPreviewOptions()) {
             if (option.carrierMoveSelection() != null) {
                 selected.add(option.carrierMoveSelection());
@@ -585,9 +586,9 @@ public final class LabelGuiFrame extends JFrame {
         return selected;
     }
 
-    private int countSelectedCarrierMoveStops(List<AdvancedPrintWorkflowService.CarrierMoveLabelSelection> selectedLabels) {
+    private int countSelectedCarrierMoveStops(List<LabelSelectionRef> selectedLabels) {
         return (int) selectedLabels.stream()
-                .map(AdvancedPrintWorkflowService.CarrierMoveLabelSelection::getStopPosition)
+                .map(LabelSelectionRef::getStopPosition)
                 .distinct()
                 .count();
     }
@@ -616,7 +617,7 @@ public final class LabelGuiFrame extends JFrame {
         }
 
         List<Lpn> selectedShipmentLpns = carrierMoveMode ? List.of() : getSelectedShipmentLpns();
-        List<AdvancedPrintWorkflowService.CarrierMoveLabelSelection> selectedCarrierLabels =
+        List<LabelSelectionRef> selectedCarrierLabels =
                 carrierMoveMode ? getSelectedCarrierMoveLabels() : List.of();
         if ((!carrierMoveMode && selectedShipmentLpns.isEmpty())
                 || (carrierMoveMode && selectedCarrierLabels.isEmpty())) {
@@ -1126,12 +1127,12 @@ public final class LabelGuiFrame extends JFrame {
     private static final class PreviewLabelOption {
         private final String labelText;
         private final Lpn lpn;
-        private final AdvancedPrintWorkflowService.CarrierMoveLabelSelection carrierMoveSelection;
+        private final LabelSelectionRef carrierMoveSelection;
 
         private PreviewLabelOption(
                 String labelText,
                 Lpn lpn,
-                AdvancedPrintWorkflowService.CarrierMoveLabelSelection carrierMoveSelection
+                LabelSelectionRef carrierMoveSelection
         ) {
             this.labelText = Objects.requireNonNull(labelText, "labelText");
             this.lpn = lpn;
@@ -1146,7 +1147,7 @@ public final class LabelGuiFrame extends JFrame {
             return lpn;
         }
 
-        private AdvancedPrintWorkflowService.CarrierMoveLabelSelection carrierMoveSelection() {
+        private LabelSelectionRef carrierMoveSelection() {
             return carrierMoveSelection;
         }
     }

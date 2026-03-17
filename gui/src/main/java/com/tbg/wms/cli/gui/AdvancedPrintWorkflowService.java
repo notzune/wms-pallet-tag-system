@@ -11,6 +11,7 @@ package com.tbg.wms.cli.gui;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.label.LabelDataBuilder;
+import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.model.CarrierMoveStopRef;
 import com.tbg.wms.core.model.Lpn;
@@ -198,7 +199,7 @@ public final class AdvancedPrintWorkflowService {
 
     public PrintResult printCarrierMoveJob(
             PreparedCarrierMoveJob job,
-            List<CarrierMoveLabelSelection> selectedLabels,
+            List<LabelSelectionRef> selectedLabels,
             String printerId,
             Path outputDir,
             boolean printToFile
@@ -296,14 +297,15 @@ public final class AdvancedPrintWorkflowService {
         return filtered;
     }
 
-    static List<CarrierMoveLabelSelection> collectAllCarrierMoveLabelSelections(PreparedCarrierMoveJob job) {
+    static List<LabelSelectionRef> collectAllCarrierMoveLabelSelections(PreparedCarrierMoveJob job) {
         Objects.requireNonNull(job, "job cannot be null");
-        List<CarrierMoveLabelSelection> selected = new ArrayList<>();
+        List<LabelSelectionRef> selected = new ArrayList<>();
         for (PreparedStopGroup stop : job.getStopGroups()) {
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
                 for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
                     if (lpn != null && lpn.getLpnId() != null) {
-                        selected.add(new CarrierMoveLabelSelection(
+                        selected.add(LabelSelectionRef.forCarrierMove(
+                                selected.size() + 1,
                                 shipmentJob.getShipmentId(),
                                 lpn.getLpnId(),
                                 stop.getStopPosition()
@@ -412,7 +414,7 @@ public final class AdvancedPrintWorkflowService {
         throw new IllegalArgumentException("Carrier move has no printable shipments.");
     }
 
-    private List<PrintTask> buildCarrierMoveTasks(PreparedCarrierMoveJob job, List<CarrierMoveLabelSelection> selectedLabels) {
+    private List<PrintTask> buildCarrierMoveTasks(PreparedCarrierMoveJob job, List<LabelSelectionRef> selectedLabels) {
         Objects.requireNonNull(job, "job cannot be null");
         Objects.requireNonNull(selectedLabels, "selectedLabels cannot be null");
         Map<String, LinkedHashSet<String>> selectedLpnsByShipment = indexCarrierMoveSelections(selectedLabels);
@@ -462,9 +464,9 @@ public final class AdvancedPrintWorkflowService {
         return tasks;
     }
 
-    private Map<String, LinkedHashSet<String>> indexCarrierMoveSelections(List<CarrierMoveLabelSelection> selectedLabels) {
+    private Map<String, LinkedHashSet<String>> indexCarrierMoveSelections(List<LabelSelectionRef> selectedLabels) {
         Map<String, LinkedHashSet<String>> selectedLpnsByShipment = new LinkedHashMap<>();
-        for (CarrierMoveLabelSelection selection : selectedLabels) {
+        for (LabelSelectionRef selection : selectedLabels) {
             if (selection == null || selection.getShipmentId() == null || selection.getShipmentId().isBlank()
                     || selection.getLpnId() == null || selection.getLpnId().isBlank()) {
                 continue;
@@ -653,30 +655,6 @@ public final class AdvancedPrintWorkflowService {
 
         public List<LabelWorkflowService.PreparedJob> getShipmentJobs() {
             return shipmentJobs;
-        }
-    }
-
-    public static final class CarrierMoveLabelSelection {
-        private final String shipmentId;
-        private final String lpnId;
-        private final int stopPosition;
-
-        public CarrierMoveLabelSelection(String shipmentId, String lpnId, int stopPosition) {
-            this.shipmentId = Objects.requireNonNull(shipmentId, "shipmentId").trim();
-            this.lpnId = Objects.requireNonNull(lpnId, "lpnId").trim();
-            this.stopPosition = stopPosition;
-        }
-
-        public String getShipmentId() {
-            return shipmentId;
-        }
-
-        public String getLpnId() {
-            return lpnId;
-        }
-
-        public int getStopPosition() {
-            return stopPosition;
         }
     }
 

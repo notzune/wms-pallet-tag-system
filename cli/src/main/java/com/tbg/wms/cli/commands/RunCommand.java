@@ -14,6 +14,7 @@ import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
 import com.tbg.wms.core.exception.WmsPrintException;
+import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.label.LabelSelectionSupport;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
@@ -236,11 +237,15 @@ public final class RunCommand implements Callable<Integer> {
         if (labelSelectionExpression == null || labelSelectionExpression.isBlank()) {
             return prepared.getLpnsForLabels();
         }
-        List<Integer> selectedIndexes = LabelSelectionSupport.parseOneBasedSelection(
-                labelSelectionExpression,
-                prepared.getLpnsForLabels().size()
+        List<LabelSelectionRef> availableSelections = LabelSelectionSupport.buildShipmentSelections(
+                prepared.getShipmentId(),
+                prepared.getLpnsForLabels()
         );
-        return LabelSelectionSupport.selectByOneBasedIndexes(prepared.getLpnsForLabels(), selectedIndexes);
+        List<LabelSelectionRef> selectedRefs = LabelSelectionSupport.selectByExpression(
+                availableSelections,
+                labelSelectionExpression
+        );
+        return LabelSelectionSupport.selectLpnsByRefs(prepared.getLpnsForLabels(), selectedRefs);
     }
 
     private Path prepareOutputDirectory(String outputDirectory) throws Exception {

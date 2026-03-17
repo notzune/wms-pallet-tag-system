@@ -1,5 +1,7 @@
 package com.tbg.wms.core.label;
 
+import com.tbg.wms.core.model.Lpn;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,6 +14,55 @@ import java.util.Set;
 public final class LabelSelectionSupport {
 
     private LabelSelectionSupport() {
+    }
+
+    public static List<LabelSelectionRef> buildShipmentSelections(String shipmentId, List<Lpn> availableLpns) {
+        Objects.requireNonNull(availableLpns, "availableLpns cannot be null");
+        String normalizedShipmentId = shipmentId == null ? "" : shipmentId.trim();
+        if (normalizedShipmentId.isEmpty()) {
+            throw new IllegalArgumentException("shipmentId cannot be blank");
+        }
+        List<LabelSelectionRef> selections = new ArrayList<>(availableLpns.size());
+        for (int i = 0; i < availableLpns.size(); i++) {
+            Lpn lpn = availableLpns.get(i);
+            if (lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank()) {
+                throw new IllegalArgumentException("Shipment label is missing an LPN ID at index " + (i + 1));
+            }
+            selections.add(LabelSelectionRef.forShipment(i + 1, normalizedShipmentId, lpn.getLpnId()));
+        }
+        return selections;
+    }
+
+    public static List<LabelSelectionRef> selectByExpression(List<LabelSelectionRef> availableSelections, String expression) {
+        Objects.requireNonNull(availableSelections, "availableSelections cannot be null");
+        List<Integer> selectedIndexes = parseOneBasedSelection(expression, availableSelections.size());
+        return selectByOneBasedIndexes(availableSelections, selectedIndexes);
+    }
+
+    public static List<Lpn> selectLpnsByRefs(List<Lpn> availableLpns, List<LabelSelectionRef> selectedRefs) {
+        Objects.requireNonNull(availableLpns, "availableLpns cannot be null");
+        Objects.requireNonNull(selectedRefs, "selectedRefs cannot be null");
+        if (selectedRefs.isEmpty()) {
+            throw new IllegalArgumentException("Select at least one label.");
+        }
+
+        Set<String> selectedLpnIds = new LinkedHashSet<>();
+        for (LabelSelectionRef selectedRef : selectedRefs) {
+            if (selectedRef != null) {
+                selectedLpnIds.add(selectedRef.getLpnId());
+            }
+        }
+        if (selectedLpnIds.isEmpty()) {
+            throw new IllegalArgumentException("Select at least one label.");
+        }
+
+        List<Lpn> selected = new ArrayList<>(selectedLpnIds.size());
+        for (Lpn lpn : availableLpns) {
+            if (lpn != null && selectedLpnIds.contains(lpn.getLpnId())) {
+                selected.add(lpn);
+            }
+        }
+        return selected;
     }
 
     public static List<Integer> parseOneBasedSelection(String expression, int availableCount) {
