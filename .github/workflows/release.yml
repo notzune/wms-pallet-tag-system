@@ -121,6 +121,7 @@ jobs:
           path: |
             dist/wms-pallet-tag-system-*-portable.zip
             dist/WMS Pallet Tag System-*.exe
+            dist/WMS Pallet Tag System-*.exe.sha256
 
       - name: Create Release
         if: github.event_name == 'push'
@@ -130,3 +131,4 @@ jobs:
           files: |
             dist/wms-pallet-tag-system-*-portable.zip
             dist/WMS Pallet Tag System-*.exe
+            dist/WMS Pallet Tag System-*.exe.sha256

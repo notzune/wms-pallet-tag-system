@@ -245,6 +245,8 @@ if ($InstallerType -ne 'none') {
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\install-wms-installer.bat") -Destination (Join-Path $distDir "install-wms-installer.bat") -Force
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.ps1") -Destination (Join-Path $distDir "uninstall-wms-tags.ps1") -Force
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.bat") -Destination (Join-Path $distDir "uninstall-wms-tags.bat") -Force
+        $installerSha256 = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        Set-Content -LiteralPath ($installerPath + ".sha256") -Value "$installerSha256  $($installerCandidate.Name)" -Encoding ASCII
     }
 }
 

@@ -1,6 +1,7 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.RuntimePathResolver;
+import com.tbg.wms.core.update.ReleaseAssetSupport;
 import com.tbg.wms.core.update.ReleaseCheckService;
 
 import java.io.IOException;
@@ -18,6 +19,7 @@ import java.util.Objects;
  */
 public final class GuidedUpdateService {
     private final HttpClient httpClient;
+    private final InstallerVerificationService installerVerificationService;
 
     public GuidedUpdateService() {
         this(HttpClient.newBuilder()
@@ -28,18 +30,28 @@ public final class GuidedUpdateService {
 
     GuidedUpdateService(HttpClient httpClient) {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient cannot be null");
+        this.installerVerificationService = new InstallerVerificationService(httpClient);
     }
 
-    public Path downloadInstaller(Class<?> anchorType, ReleaseCheckService.ReleaseAsset asset)
+    public Path downloadInstaller(Class<?> anchorType, ReleaseCheckService.ReleaseInfo releaseInfo)
             throws IOException, InterruptedException {
         Objects.requireNonNull(anchorType, "anchorType cannot be null");
-        Objects.requireNonNull(asset, "asset cannot be null");
+        Objects.requireNonNull(releaseInfo, "releaseInfo cannot be null");
+        ReleaseCheckService.ReleaseAsset installerAsset = releaseInfo.preferredInstallerAsset();
+        if (installerAsset == null) {
+            throw new IOException("No installer asset is available for guided upgrade.");
+        }
+        ReleaseCheckService.ReleaseAsset checksumAsset =
+                ReleaseAssetSupport.findChecksumAsset(releaseInfo.assets(), installerAsset);
+        if (checksumAsset == null) {
+            throw new IOException("No published checksum is available for the installer asset.");
+        }
 
         Path updatesDir = RuntimePathResolver.resolveAppHome(anchorType).resolve("updates");
         Files.createDirectories(updatesDir);
-        Path target = updatesDir.resolve(asset.name());
+        Path target = updatesDir.resolve(installerAsset.name());
 
-        HttpRequest request = HttpRequest.newBuilder(URI.create(asset.downloadUrl()))
+        HttpRequest request = HttpRequest.newBuilder(URI.create(installerAsset.downloadUrl()))
                 .timeout(Duration.ofMinutes(3))
                 .header("Accept", "application/octet-stream")
                 .header("User-Agent", "wms-pallet-tag-system")
@@ -49,6 +61,7 @@ public final class GuidedUpdateService {
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new IOException("Installer download failed with HTTP " + response.statusCode());
         }
+        installerVerificationService.verifyInstaller(target, checksumAsset.downloadUrl());
         return target;
     }
 }

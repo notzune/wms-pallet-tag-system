@@ -16,6 +16,7 @@ import com.tbg.wms.core.RuntimeSettings;
 import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
+import com.tbg.wms.core.update.ReleaseAssetSupport;
 import com.tbg.wms.core.update.ReleaseCheckService;
 
 import javax.swing.*;
@@ -882,7 +883,11 @@ public final class LabelGuiFrame extends JFrame {
             return "No update check has completed yet.";
         }
         if (latestReleaseInfo.updateAvailable()) {
-            return latestReleaseInfo.preferredInstallerAsset() == null
+            boolean guidedReady = latestReleaseInfo.preferredInstallerAsset() != null
+                    && ReleaseAssetSupport.findChecksumAsset(
+                    latestReleaseInfo.assets(),
+                    latestReleaseInfo.preferredInstallerAsset()) != null;
+            return !guidedReady
                     ? "Update available: " + latestReleaseInfo.latestVersion()
                     : "Update available: " + latestReleaseInfo.latestVersion() + " (guided install ready)";
         }
@@ -909,16 +914,18 @@ public final class LabelGuiFrame extends JFrame {
         }
 
         ReleaseCheckService.ReleaseAsset installerAsset = releaseInfo.preferredInstallerAsset();
-        Object[] options = installerAsset == null
+        boolean guidedReady = installerAsset != null
+                && ReleaseAssetSupport.findChecksumAsset(releaseInfo.assets(), installerAsset) != null;
+        Object[] options = !guidedReady
                 ? new Object[]{"Open Download Page", "Close"}
                 : new Object[]{"Download and Install", "Open Download Page", "Close"};
         int choice = JOptionPane.showOptionDialog(
                 this,
                 "Current version: " + releaseInfo.currentVersion()
                         + "\nLatest version: " + releaseInfo.latestVersion()
-                        + (installerAsset == null
-                        ? "\n\nNo published installer asset was found for guided upgrade. Open the latest release page now?"
-                        : "\n\nA packaged installer is available. Download it and start the upgrade now?"),
+                        + (!guidedReady
+                        ? "\n\nA verified guided upgrade is unavailable because the published release does not include both the installer and its checksum. Open the latest release page now?"
+                        : "\n\nA verified packaged installer is available. Download it and start the upgrade now?"),
                 "Update Available",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.INFORMATION_MESSAGE,
@@ -926,19 +933,16 @@ public final class LabelGuiFrame extends JFrame {
                 options,
                 options[0]
         );
-        if (installerAsset != null && choice == 0) {
-            performGuidedUpgrade(releaseInfo, installerAsset);
+        if (guidedReady && choice == 0) {
+            performGuidedUpgrade(releaseInfo);
             return;
         }
-        if ((installerAsset == null && choice == 0) || (installerAsset != null && choice == 1)) {
+        if ((!guidedReady && choice == 0) || (guidedReady && choice == 1)) {
             openReleaseUrl(releaseInfo.releaseUrl());
         }
     }
 
-    private void performGuidedUpgrade(
-            ReleaseCheckService.ReleaseInfo releaseInfo,
-            ReleaseCheckService.ReleaseAsset installerAsset
-    ) {
+    private void performGuidedUpgrade(ReleaseCheckService.ReleaseInfo releaseInfo) {
         Path installScript = installMaintenanceService.findInstallScript(LabelGuiFrame.class).orElse(null);
         if (installScript == null) {
             openReleaseUrl(releaseInfo.releaseUrl());
@@ -949,7 +953,7 @@ public final class LabelGuiFrame extends JFrame {
         SwingWorker<Path, Void> worker = new SwingWorker<>() {
             @Override
             protected Path doInBackground() throws Exception {
-                return guidedUpdateService.downloadInstaller(LabelGuiFrame.class, installerAsset);
+                return guidedUpdateService.downloadInstaller(LabelGuiFrame.class, releaseInfo);
             }
 
             @Override

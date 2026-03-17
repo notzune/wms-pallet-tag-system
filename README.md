@@ -155,6 +155,7 @@ Notes:
 - GUI `Tools` / `Settings` now include `Check for Updates...` and `Uninstall / Clean Install Prep...` actions for packaged installs
 - When a newer GitHub Release is available, the `Tools` button shows an alert badge and the update check can open the latest download page
 - When the latest GitHub Release includes the packaged installer asset, the GUI can download it into `updates/` and launch the guided upgrade flow directly
+- Guided upgrade requires both the installer asset and its published `.sha256` checksum; if either is missing, the app falls back to the release page
 - `uninstall-wms-tags.ps1` now supports clean-install prep by removing the installed product and then wiping the install directory plus non-secret runtime settings
 - Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
 - The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
@@ -335,6 +336,7 @@ Workflow:
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
 - `Tools` shows an alert badge when an application update is available, and `Settings...` exposes manual update checks plus packaged-install uninstall / clean-wipe launchers.
 - If the latest release includes the packaged installer `.exe`, update checks can use a guided download-and-install path instead of only opening the release page.
+- See [docs/update-security-evaluation.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
 
 ## Walmart SKU Behavior
 
