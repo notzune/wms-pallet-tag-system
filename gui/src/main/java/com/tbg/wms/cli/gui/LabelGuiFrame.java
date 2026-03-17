@@ -63,10 +63,12 @@ public final class LabelGuiFrame extends JFrame {
     private final JButton clearButton = new JButton("Clear");
     private final JButton printButton = new JButton("Confirm Print");
     private final JButton labelSelectionToggleButton = new JButton("Deselect All");
+    private final JToggleButton labelSelectionCollapseButton = new JToggleButton("Label Selection [collapsed]", false);
     private final JCheckBox includeInfoTagsCheckBox = new JCheckBox("Include info tags", true);
     private final JTextArea shipmentArea = new JTextArea();
     private final JPanel shipmentPreviewPanel = new JPanel();
     private final JPanel labelSelectionPanel = new JPanel();
+    private final JPanel labelSelectionContentPanel = new JPanel(new BorderLayout(0, 6));
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
     private final JLabel labelSelectionStatusLabel = new JLabel(" ");
@@ -276,6 +278,7 @@ public final class LabelGuiFrame extends JFrame {
         clearButton.addActionListener(e -> clearForm());
         printButton.addActionListener(e -> confirmAndPrint());
         labelSelectionToggleButton.addActionListener(e -> togglePreviewLabelSelection());
+        labelSelectionCollapseButton.addActionListener(e -> updateLabelSelectionCollapseUi());
         includeInfoTagsCheckBox.addActionListener(e -> updatePreviewSelectionUi());
         carrierMoveModeButton.addActionListener(e -> updateInputModeUi());
         shipmentModeButton.addActionListener(e -> updateInputModeUi());
@@ -459,9 +462,16 @@ public final class LabelGuiFrame extends JFrame {
 
         labelSelectionPanel.removeAll();
         labelSelectionPanel.setLayout(new BorderLayout(0, 6));
-        labelSelectionPanel.setBorder(BorderFactory.createTitledBorder("Label Selection"));
-        labelSelectionPanel.add(controls, BorderLayout.NORTH);
-        labelSelectionPanel.add(checkboxGrid, BorderLayout.CENTER);
+        labelSelectionPanel.setBorder(BorderFactory.createEtchedBorder());
+        labelSelectionCollapseButton.setFocusPainted(false);
+        labelSelectionCollapseButton.setHorizontalAlignment(SwingConstants.LEFT);
+        labelSelectionPanel.add(labelSelectionCollapseButton, BorderLayout.NORTH);
+        labelSelectionContentPanel.removeAll();
+        labelSelectionContentPanel.add(controls, BorderLayout.NORTH);
+        labelSelectionContentPanel.add(checkboxGrid, BorderLayout.CENTER);
+        labelSelectionPanel.add(labelSelectionContentPanel, BorderLayout.CENTER);
+        labelSelectionCollapseButton.setSelected(false);
+        updateLabelSelectionCollapseUi();
         return labelSelectionPanel;
     }
 
@@ -540,6 +550,16 @@ public final class LabelGuiFrame extends JFrame {
         labelSelectionToggleButton.setText(selected == total ? "Deselect All" : "Select All");
         refreshPreviewText();
         updatePrintButtonEnabled();
+    }
+
+    private void updateLabelSelectionCollapseUi() {
+        boolean expanded = labelSelectionCollapseButton.isSelected();
+        labelSelectionCollapseButton.setText(expanded
+                ? "Label Selection [expanded]"
+                : "Label Selection [collapsed]");
+        labelSelectionContentPanel.setVisible(expanded);
+        labelSelectionPanel.revalidate();
+        labelSelectionPanel.repaint();
     }
 
     private void refreshPreviewText() {
@@ -651,8 +671,11 @@ public final class LabelGuiFrame extends JFrame {
         previewLabelCheckboxes = List.of();
         previewLabelOptions = List.of();
         labelSelectionPanel.removeAll();
+        labelSelectionContentPanel.removeAll();
         labelSelectionStatusLabel.setText(" ");
         labelSelectionToggleButton.setText("Deselect All");
+        labelSelectionCollapseButton.setSelected(false);
+        labelSelectionCollapseButton.setText("Label Selection [collapsed]");
         includeInfoTagsCheckBox.setSelected(true);
     }
 
