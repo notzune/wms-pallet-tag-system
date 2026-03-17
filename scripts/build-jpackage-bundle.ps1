@@ -116,6 +116,7 @@ $version = Get-VersionText -SourceRoot $SourceRoot -JarPath $JarPath
 $javaHome = Resolve-JpackageHome
 $appName = "WMS Pallet Tag System"
 $installDirName = "WMS-Pallet-Tag-System"
+$winUpgradeUuid = "0d6f4c87-1ec5-4f65-a9d3-4f7a0d4f4d4f"
 
 if (-not $BundleDir) {
     $BundleDir = Join-Path $SourceRoot "dist\wms-pallet-tag-system-$version-app"
@@ -183,6 +184,8 @@ Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walm_loc_num_matrix.csv") 
 Copy-Item -Path (Join-Path $SourceRoot "config\templates\*") -Destination (Join-Path $BundleDir "config\templates") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.ps1") -Destination (Join-Path $BundleDir "scripts\verify-wms-tags.ps1") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.bat") -Destination (Join-Path $BundleDir "scripts\verify-wms-tags.bat") -Force
+Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.ps1") -Destination (Join-Path $BundleDir "scripts\uninstall-wms-tags.ps1") -Force
+Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.bat") -Destination (Join-Path $BundleDir "scripts\uninstall-wms-tags.bat") -Force
 
 Write-LauncherScript -Path (Join-Path $BundleDir "run.bat") -ExtraArgs ''
 Write-LauncherScript -Path (Join-Path $BundleDir "wms-tags-gui.bat") -ExtraArgs 'gui'
@@ -218,6 +221,7 @@ if ($InstallerType -ne 'none') {
         '--app-image', $BundleDir,
         '--app-version', $version,
         '--vendor', 'Tropicana Brands Group',
+        '--win-upgrade-uuid', $winUpgradeUuid,
         '--install-dir', $installDirName,
         '--win-dir-chooser',
         '--win-menu',
@@ -237,6 +241,10 @@ if ($InstallerType -ne 'none') {
         $installerPath = Join-Path $distDir $installerCandidate.Name
         Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
         Move-Item -LiteralPath $installerCandidate.FullName -Destination $installerPath
+        Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\install-wms-installer.ps1") -Destination (Join-Path $distDir "install-wms-installer.ps1") -Force
+        Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\install-wms-installer.bat") -Destination (Join-Path $distDir "install-wms-installer.bat") -Force
+        Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.ps1") -Destination (Join-Path $distDir "uninstall-wms-tags.ps1") -Force
+        Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.bat") -Destination (Join-Path $distDir "uninstall-wms-tags.bat") -Force
     }
 }
 

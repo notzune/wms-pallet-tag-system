@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.7.0-blue)
+![Version](https://img.shields.io/badge/version-1.7.1-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.7.0` (2026-03-17).
+Current release: `1.7.1` (2026-03-17).
 
 ## Tracked Enhancements
 
@@ -135,6 +135,13 @@ Use the `jpackage` builder when you want a native executable layout while keepin
 .\scripts\build-jpackage-bundle.ps1 -InstallerType exe
 ```
 
+3. Optional: install with logging or replace an existing same-version install:
+
+```powershell
+.\dist\install-wms-installer.ps1
+.\dist\install-wms-installer.ps1 -ReplaceExisting
+```
+
 Notes:
 
 - Default app-image output is `dist/wms-pallet-tag-system-<version>-app`
@@ -142,6 +149,9 @@ Notes:
 - The generated app image includes `WMS Pallet Tag System.exe`, plus `run.bat` and `wms-tags-gui.bat` wrappers for CLI and GUI entrypoints
 - The bundled runtime comes from the `jpackage` JDK unless you pass `-RuntimeImage`; use a Java 17 runtime image for release parity with the project baseline
 - The optional installer defaults to per-user install to avoid admin privileges when possible
+- Newer installer builds now use a stable Windows upgrade UUID so normal version-to-version upgrades can reuse the same install identity
+- The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
+- `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
 - Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
 - The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
 

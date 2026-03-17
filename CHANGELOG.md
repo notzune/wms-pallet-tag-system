@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None.
 
+## [1.7.1] - 2026-03-17
+
+### Added
+
+- Installer helper scripts for logged install, same-version replacement, and direct uninstall of packaged installs.
+
+### Changed
+
+- Project metadata/version updated to `1.7.1` across Maven modules and release documentation.
+- Windows installer packaging now uses a stable upgrade UUID so newer installer builds can replace prior installed versions more reliably, while helper scripts cover same-version replacement and direct uninstall.
+
 ## [1.7.0] - 2026-03-17
 
 ### Added
