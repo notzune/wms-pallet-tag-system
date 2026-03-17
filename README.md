@@ -152,6 +152,9 @@ Notes:
 - Newer installer builds now use a stable Windows upgrade UUID so normal version-to-version upgrades can reuse the same install identity
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
+- GUI `Tools` / `Settings` now include `Check for Updates...` and `Uninstall / Clean Install Prep...` actions for packaged installs
+- When a newer GitHub Release is available, the `Tools` button shows an alert badge and the update check can open the latest download page
+- `uninstall-wms-tags.ps1` now supports clean-install prep by removing the installed product and then wiping the install directory plus non-secret runtime settings
 - Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
 - The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
 
@@ -329,6 +332,7 @@ Workflow:
 - Use `capabilities: [ ZPL ]` for pallet-label workflows and `capabilities: [ RAIL ]` for the rail labels tool.
 - Barcode dialog now defaults to an operator-focused layout and moves low-level controls under `Advanced Settings...`.
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
+- `Tools` shows an alert badge when an application update is available, and `Settings...` exposes manual update checks plus packaged-install uninstall / clean-wipe launchers.
 
 ## Walmart SKU Behavior
 

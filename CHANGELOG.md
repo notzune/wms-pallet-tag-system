@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- None.
+- GUI `Tools` / `Settings` now expose manual update checks against the latest GitHub Release, including an update-available alert badge on the toolbar when a newer version exists.
+- Packaged-install uninstall flow now supports clean-install prep by wiping the install directory and non-secret runtime settings after product uninstall.
 
 ## [1.7.1] - 2026-03-17
 

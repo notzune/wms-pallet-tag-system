@@ -16,6 +16,7 @@ import com.tbg.wms.core.RuntimeSettings;
 import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
+import com.tbg.wms.core.update.ReleaseCheckService;
 
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
@@ -51,6 +52,7 @@ public final class LabelGuiFrame extends JFrame {
     private static final int MAX_PREVIEW_STOPS = 250;
     private static final int MAX_PREVIEW_SHIPMENTS_PER_STOP = 250;
     private static final int MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT = 1000;
+    private static final Icon UPDATE_AVAILABLE_ICON = new AlertBadgeIcon(16);
     private static final String[] VERSION_RESOURCE_PATHS = {
             "/META-INF/maven/com.tbg.wms/gui/pom.properties",
             "/META-INF/maven/com.tbg.wms/cli/pom.properties",
@@ -64,6 +66,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JButton previewButton = new JButton("Preview");
     private final JButton clearButton = new JButton("Clear");
     private final JButton printButton = new JButton("Confirm Print");
+    private final JButton toolsButton = new JButton("Tools");
     private final JButton labelSelectionToggleButton = new JButton("Deselect All");
     private final JToggleButton labelSelectionCollapseButton = new JToggleButton("Label Selection [collapsed]", false);
     private final JCheckBox includeInfoTagsCheckBox = new JCheckBox("Include info tags", true);
@@ -84,11 +87,15 @@ public final class LabelGuiFrame extends JFrame {
     private final transient AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
     private final transient LabelPreviewFormatter previewFormatter = new LabelPreviewFormatter();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
+    private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
+    private final transient InstallMaintenanceService installMaintenanceService = new InstallMaintenanceService();
     private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
     private transient List<JCheckBox> previewLabelCheckboxes = List.of();
     private transient List<PreviewLabelOption> previewLabelOptions = List.of();
     private transient LabelWorkflowService.PreparedJob preparedJob;
     private transient AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
+    private transient ReleaseCheckService.ReleaseInfo latestReleaseInfo;
+    private transient boolean updateCheckInProgress;
 
     public LabelGuiFrame() {
         super(buildWindowTitle());
@@ -113,6 +120,7 @@ public final class LabelGuiFrame extends JFrame {
         applyTopRowSizing();
         loadPrintersAsync();
         new OutDirectoryRetentionService().pruneDefaultOutDirectory(LabelGuiFrame.class);
+        checkForUpdatesAsync(false);
         printButton.setEnabled(false);
     }
 
@@ -175,8 +183,8 @@ public final class LabelGuiFrame extends JFrame {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
 
-        JButton toolsButton = new JButton("Tools");
         toolsButton.setFocusable(false);
+        toolsButton.setHorizontalTextPosition(SwingConstants.LEFT);
         toolBar.add(toolsButton);
 
         JPopupMenu toolsMenu = new JPopupMenu();
@@ -192,6 +200,12 @@ public final class LabelGuiFrame extends JFrame {
         JMenuItem resumeItem = new JMenuItem("Resume Incomplete Job...");
         resumeItem.addActionListener(e -> openResumeDialog());
         toolsMenu.add(resumeItem);
+        JMenuItem updatesItem = new JMenuItem("Check for Updates...");
+        updatesItem.addActionListener(e -> checkForUpdatesAsync(true));
+        toolsMenu.add(updatesItem);
+        JMenuItem uninstallItem = new JMenuItem("Uninstall / Clean Install Prep...");
+        uninstallItem.addActionListener(e -> openUninstallDialog());
+        toolsMenu.add(uninstallItem);
         JMenuItem settingsItem = new JMenuItem("Settings...");
         settingsItem.addActionListener(e -> openSettingsDialog());
         toolsMenu.addSeparator();
@@ -815,6 +829,150 @@ public final class LabelGuiFrame extends JFrame {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
+    private void checkForUpdatesAsync(boolean userInitiated) {
+        checkForUpdatesAsync(userInitiated, null);
+    }
+
+    private void checkForUpdatesAsync(boolean userInitiated, JLabel statusOutput) {
+        if (updateCheckInProgress) {
+            if (userInitiated && statusOutput != null) {
+                statusOutput.setText("Update check already in progress...");
+            }
+            return;
+        }
+        updateCheckInProgress = true;
+        if (statusOutput != null) {
+            statusOutput.setText("Checking for updates...");
+        }
+
+        SwingWorker<ReleaseCheckService.ReleaseInfo, Void> worker = new SwingWorker<>() {
+            @Override
+            protected ReleaseCheckService.ReleaseInfo doInBackground() throws Exception {
+                return releaseCheckService.checkLatestRelease(resolveVersionTag());
+            }
+
+            @Override
+            protected void done() {
+                updateCheckInProgress = false;
+                try {
+                    latestReleaseInfo = get();
+                    refreshUpdateAvailabilityUi();
+                    if (statusOutput != null) {
+                        statusOutput.setText(formatUpdateStatus());
+                    }
+                    if (userInitiated) {
+                        showUpdatePrompt(latestReleaseInfo);
+                    }
+                } catch (Exception ex) {
+                    if (statusOutput != null) {
+                        statusOutput.setText("Update check failed.");
+                    }
+                    if (userInitiated) {
+                        showError("Update check failed: " + rootMessage(ex));
+                    }
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private String formatUpdateStatus() {
+        if (latestReleaseInfo == null) {
+            return "No update check has completed yet.";
+        }
+        if (latestReleaseInfo.updateAvailable()) {
+            return "Update available: " + latestReleaseInfo.latestVersion();
+        }
+        return "Up to date on " + latestReleaseInfo.currentVersion() + ".";
+    }
+
+    private void refreshUpdateAvailabilityUi() {
+        boolean updateAvailable = latestReleaseInfo != null && latestReleaseInfo.updateAvailable();
+        toolsButton.setIcon(updateAvailable ? UPDATE_AVAILABLE_ICON : null);
+        toolsButton.setToolTipText(updateAvailable
+                ? "Update available: " + latestReleaseInfo.latestVersion()
+                : null);
+    }
+
+    private void showUpdatePrompt(ReleaseCheckService.ReleaseInfo releaseInfo) {
+        if (!releaseInfo.updateAvailable()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "You are up to date on version " + releaseInfo.currentVersion() + ".",
+                    "Updates",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            return;
+        }
+
+        Object[] options = {"Open Download Page", "Close"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Current version: " + releaseInfo.currentVersion()
+                        + "\nLatest version: " + releaseInfo.latestVersion()
+                        + "\n\nOpen the latest release download page now?",
+                "Update Available",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+        if (choice == JOptionPane.YES_OPTION) {
+            openReleaseUrl(releaseInfo.releaseUrl());
+        }
+    }
+
+    private void openReleaseUrl(String releaseUrl) {
+        if (releaseUrl == null || releaseUrl.isBlank()) {
+            showError("Release download URL is unavailable.");
+            return;
+        }
+        try {
+            if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                showError("Desktop browser launch is not supported on this machine.");
+                return;
+            }
+            Desktop.getDesktop().browse(java.net.URI.create(releaseUrl));
+        } catch (Exception ex) {
+            showError("Could not open release page: " + rootMessage(ex));
+        }
+    }
+
+    private void openUninstallDialog() {
+        Path uninstallScript = installMaintenanceService.findUninstallScript(LabelGuiFrame.class).orElse(null);
+        if (uninstallScript == null) {
+            showError("Uninstall script not found in the packaged app or repo scripts directory.");
+            return;
+        }
+
+        Object[] options = {"Cancel", "Uninstall Only", "Clean Wipe"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Choose uninstall mode:\n"
+                        + "- Uninstall Only removes the installed product.\n"
+                        + "- Clean Wipe also removes the install directory and runtime settings to prepare for a clean reinstall.\n\n"
+                        + "The app will close after launch so the uninstall can complete.",
+                "Uninstall / Clean Install Prep",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+        if (choice != 1 && choice != 2) {
+            return;
+        }
+
+        try {
+            installMaintenanceService.launchUninstall(uninstallScript, choice == 2);
+            dispose();
+            System.exit(0);
+        } catch (Exception ex) {
+            showError("Failed to launch uninstall: " + rootMessage(ex));
+        }
+    }
+
     private void clearForm() {
         shipmentField.setText("");
         shipmentArea.setText("");
@@ -1096,10 +1254,13 @@ public final class LabelGuiFrame extends JFrame {
         installTerminalLikeMouseClipboardBehavior(outputDirField);
         JButton browseButton = new JButton("Browse...");
         JButton cleanupNowButton = new JButton("Clean Old Output Now");
+        JButton checkUpdatesButton = new JButton("Check for Updates...");
+        JButton uninstallButton = new JButton("Uninstall / Clean Install Prep...");
         JButton advancedSettingsButton = new JButton("Advanced Settings...");
         JTextField retentionDaysField = new JTextField(
                 String.valueOf(runtimeSettings.outRetentionDays(OutDirectoryRetentionService.DEFAULT_RETENTION_DAYS)), 6);
         installTerminalLikeMouseClipboardBehavior(retentionDaysField);
+        JLabel updateStatusLabel = new JLabel(formatUpdateStatus());
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -1133,6 +1294,32 @@ public final class LabelGuiFrame extends JFrame {
 
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.weightx = 0.0;
+        content.add(new JLabel("Updates:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        content.add(updateStatusLabel, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        content.add(checkUpdatesButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.weightx = 0.0;
+        content.add(new JLabel("Install maintenance:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        content.add(new JLabel("Launch uninstall or clean-install prep for packaged installs."), gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        content.add(uninstallButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
         gbc.weightx = 0.0;
         content.add(new JLabel("Config editing:"), gbc);
 
@@ -1169,6 +1356,8 @@ public final class LabelGuiFrame extends JFrame {
             runOutDirectoryCleanup(dialog, retentionDays);
         });
 
+        checkUpdatesButton.addActionListener(e -> checkForUpdatesAsync(true, updateStatusLabel));
+        uninstallButton.addActionListener(e -> openUninstallDialog());
         advancedSettingsButton.addActionListener(e -> openAdvancedSettingsDialog(dialog));
 
         saveButton.addActionListener(e -> {
