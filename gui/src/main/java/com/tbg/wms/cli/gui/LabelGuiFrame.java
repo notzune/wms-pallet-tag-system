@@ -25,7 +25,6 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.InputStream;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -1275,7 +1274,7 @@ public final class LabelGuiFrame extends JFrame {
         if (configured != null && !configured.isBlank()) {
             try {
                 return Paths.get(configured.trim());
-            } catch (InvalidPathException ignored) {
+            } catch (java.nio.file.InvalidPathException ignored) {
                 // Fallback to runtime-derived default if persisted value is invalid.
             }
         }
@@ -1283,163 +1282,19 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void openSettingsDialog() {
-        JDialog dialog = new JDialog(this, "Settings", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        dialog.setLayout(new BorderLayout(8, 8));
-
-        JPanel content = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        JTextField outputDirField = new JTextField(defaultPrintToFileOutputDir().toString(), 40);
-        installTerminalLikeMouseClipboardBehavior(outputDirField);
-        JButton browseButton = new JButton("Browse...");
-        JButton cleanupNowButton = new JButton("Clean Old Output Now");
-        JButton checkUpdatesButton = new JButton("Check for Updates...");
-        JButton uninstallButton = new JButton("Uninstall / Clean Install Prep...");
-        JButton advancedSettingsButton = new JButton("Advanced Settings...");
-        JTextField retentionDaysField = new JTextField(
-                String.valueOf(runtimeSettings.outRetentionDays(OutDirectoryRetentionService.DEFAULT_RETENTION_DAYS)), 6);
-        installTerminalLikeMouseClipboardBehavior(retentionDaysField);
-        JLabel updateStatusLabel = new JLabel(formatUpdateStatus());
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 0.0;
-        content.add(new JLabel("Default print-to-file output dir:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        content.add(outputDirField, gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0.0;
-        content.add(browseButton, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0.0;
-        content.add(new JLabel("Out cleanup policy:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 0.0;
-        JPanel retentionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        retentionPanel.add(new JLabel("Delete generated files/folders older than"));
-        retentionPanel.add(retentionDaysField);
-        retentionPanel.add(new JLabel("day(s) from out/."));
-        content.add(retentionPanel, gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0.0;
-        content.add(cleanupNowButton, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.weightx = 0.0;
-        content.add(new JLabel("Updates:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        content.add(updateStatusLabel, gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0.0;
-        content.add(checkUpdatesButton, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.weightx = 0.0;
-        content.add(new JLabel("Install maintenance:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        content.add(new JLabel("Launch uninstall or clean-install prep for packaged installs."), gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0.0;
-        content.add(uninstallButton, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.weightx = 0.0;
-        content.add(new JLabel("Config editing:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        content.add(new JLabel("Advanced Settings edits runtime config files only. Env secrets remain outside the GUI."), gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0.0;
-        content.add(advancedSettingsButton, gbc);
-
-        JButton saveButton = new JButton("Save");
-        JButton cancelButton = new JButton("Cancel");
-        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonRow.add(saveButton);
-        buttonRow.add(cancelButton);
-
-        browseButton.addActionListener(e -> {
-            JFileChooser chooser = new JFileChooser(outputDirField.getText());
-            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            chooser.setDialogTitle("Select default print-to-file output directory");
-            if (chooser.showOpenDialog(dialog) == JFileChooser.APPROVE_OPTION) {
-                outputDirField.setText(chooser.getSelectedFile().toPath().toString());
-            }
-        });
-
-        cleanupNowButton.addActionListener(e -> {
-            Integer retentionDays = parseRetentionDays(retentionDaysField.getText());
-            if (retentionDays == null) {
-                showError("Out cleanup retention must be a positive whole number of days.");
-                return;
-            }
-            runtimeSettings.setOutRetentionDays(retentionDays);
-            runOutDirectoryCleanup(dialog, retentionDays);
-        });
-
-        checkUpdatesButton.addActionListener(e -> checkForUpdatesAsync(true, updateStatusLabel));
-        uninstallButton.addActionListener(e -> openUninstallDialog());
-        advancedSettingsButton.addActionListener(e -> openAdvancedSettingsDialog(dialog));
-
-        saveButton.addActionListener(e -> {
-            String raw = outputDirField.getText();
-            if (raw == null || raw.isBlank()) {
-                showError("Default output directory is required.");
-                return;
-            }
-            Integer retentionDays = parseRetentionDays(retentionDaysField.getText());
-            if (retentionDays == null) {
-                showError("Out cleanup retention must be a positive whole number of days.");
-                return;
-            }
-
-            Path configuredPath;
-            try {
-                configuredPath = Paths.get(raw.trim()).toAbsolutePath().normalize();
-            } catch (InvalidPathException ex) {
-                showError("Invalid output directory path.");
-                return;
-            }
-
-            preferences.put(PREF_PRINT_TO_FILE_DIR, configuredPath.toString());
-            runtimeSettings.setOutRetentionDays(retentionDays);
-            LabelWorkflowService.PrinterOption previousSelection =
-                    (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-            printerCombo.setModel(buildMainPrintTargetModel(true));
-            applyTopRowSizing();
-            restoreSelection(previousSelection);
-            setReady("Settings saved.");
-            dialog.dispose();
-        });
-
-        cancelButton.addActionListener(e -> dialog.dispose());
-
-        dialog.add(content, BorderLayout.CENTER);
-        dialog.add(buttonRow, BorderLayout.SOUTH);
-        dialog.pack();
-        dialog.setLocationRelativeTo(this);
+        MainSettingsDialog dialog = new MainSettingsDialog(
+                this,
+                defaultPrintToFileOutputDir(),
+                runtimeSettings.outRetentionDays(OutDirectoryRetentionService.DEFAULT_RETENTION_DAYS),
+                formatUpdateStatus(),
+                this::showError,
+                this::installTerminalLikeMouseClipboardBehavior,
+                this::saveMainSettings,
+                retentionDays -> runOutDirectoryCleanup(this, retentionDays),
+                statusLabel -> checkForUpdatesAsync(true, statusLabel),
+                this::openUninstallDialog,
+                () -> openAdvancedSettingsDialog(this)
+        );
         dialog.setVisible(true);
     }
 
@@ -1503,16 +1358,15 @@ public final class LabelGuiFrame extends JFrame {
         }
     }
 
-    private Integer parseRetentionDays(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        try {
-            int parsed = Integer.parseInt(raw.trim());
-            return parsed > 0 ? parsed : null;
-        } catch (NumberFormatException ex) {
-            return null;
-        }
+    private void saveMainSettings(Path configuredPath, int retentionDays) {
+        preferences.put(PREF_PRINT_TO_FILE_DIR, configuredPath.toString());
+        runtimeSettings.setOutRetentionDays(retentionDays);
+        LabelWorkflowService.PrinterOption previousSelection =
+                (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
+        printerCombo.setModel(buildMainPrintTargetModel(true));
+        applyTopRowSizing();
+        restoreSelection(previousSelection);
+        setReady("Settings saved.");
     }
 
     private void runOutDirectoryCleanup(Component owner, int retentionDays) {

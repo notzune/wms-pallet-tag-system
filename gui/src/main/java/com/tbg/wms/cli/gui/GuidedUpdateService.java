@@ -15,7 +15,11 @@ import java.time.Duration;
 import java.util.Objects;
 
 /**
- * Downloads published installer assets and launches the packaged installer helper.
+ * Downloads published installer assets for verified guided upgrades.
+ *
+ * <p>The service intentionally does not launch installers directly or decide update eligibility.
+ * It only handles transport and integrity prerequisites, including cleanup of partial or failed
+ * downloads so later update attempts start from a known-good state.</p>
  */
 public final class GuidedUpdateService {
     private final HttpClient httpClient;
@@ -59,9 +63,15 @@ public final class GuidedUpdateService {
                 .build();
         HttpResponse<Path> response = httpClient.send(request, HttpResponse.BodyHandlers.ofFile(target));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            Files.deleteIfExists(target);
             throw new IOException("Installer download failed with HTTP " + response.statusCode());
         }
-        installerVerificationService.verifyInstaller(target, checksumAsset.downloadUrl());
-        return target;
+        try {
+            installerVerificationService.verifyInstaller(target, checksumAsset.downloadUrl());
+            return target;
+        } catch (Exception ex) {
+            Files.deleteIfExists(target);
+            throw ex;
+        }
     }
 }

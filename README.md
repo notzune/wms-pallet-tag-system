@@ -381,6 +381,11 @@ Package-level documentation is maintained in every `package-info.java` under:
 - `db/src/main/java/com/tbg/wms/db`
 - `gui/src/main/java/com/tbg/wms/cli/gui/**`
 
+Recent documentation maintenance:
+
+- missing `package-info.java` coverage was filled for the newer `core` subpackages (`barcode`, `db`, `ems`, `label`, `labeling`, `location`, `sku`, `update`)
+- GUI settings/update/install maintenance responsibilities are now documented separately from the main frame through `MainSettingsDialog`
+
 Documentation expectations for helper classes:
 
 - State why the helper was created.

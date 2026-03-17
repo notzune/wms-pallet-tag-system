@@ -8,6 +8,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Locale;
@@ -15,6 +16,9 @@ import java.util.Objects;
 
 /**
  * Verifies downloaded installer assets against published SHA-256 checksum sidecars.
+ *
+ * <p>Hashing is streamed from disk instead of loading the whole installer into memory so large
+ * packaged releases can be verified without avoidable heap spikes.</p>
  */
 public final class InstallerVerificationService {
     private final HttpClient httpClient;
@@ -61,8 +65,16 @@ public final class InstallerVerificationService {
     private String calculateSha256(Path installerPath) throws IOException {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = Files.readAllBytes(installerPath);
-            return HexFormat.of().formatHex(digest.digest(bytes));
+            byte[] buffer = new byte[8192];
+            try (InputStream in = Files.newInputStream(installerPath)) {
+                int read;
+                while ((read = in.read(buffer)) >= 0) {
+                    if (read > 0) {
+                        digest.update(buffer, 0, read);
+                    }
+                }
+            }
+            return HexFormat.of().formatHex(digest.digest());
         } catch (Exception ex) {
             throw new IOException("Failed to calculate installer SHA-256.", ex);
         }

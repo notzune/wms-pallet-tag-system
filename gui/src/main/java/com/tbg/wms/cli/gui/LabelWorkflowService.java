@@ -214,7 +214,7 @@ public final class LabelWorkflowService {
 
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
         NetworkPrintService printService = new NetworkPrintService();
-        Shipment shipmentForLabels = buildShipmentForLabeling(job.getShipment(), job.getLpnsForLabels());
+        Shipment shipmentForLabels = LabelingSupport.buildShipmentForLabeling(job.getShipment(), job.getLpnsForLabels());
 
         int printedCount = 0;
         for (int i = 0; i < job.getLpnsForLabels().size(); i++) {
@@ -242,51 +242,6 @@ public final class LabelWorkflowService {
             return PrintResult.printToFile(printedCount, targetDir.toAbsolutePath());
         }
         return new PrintResult(printedCount, targetDir.toAbsolutePath(), printer.getId(), printer.getEndpoint());
-    }
-
-    private Shipment buildShipmentForLabeling(Shipment shipment, List<Lpn> lpnsForLabels) {
-        if (shipment == null) {
-            throw new IllegalArgumentException("shipment cannot be null");
-        }
-        if (lpnsForLabels == null) {
-            throw new IllegalArgumentException("lpnsForLabels cannot be null");
-        }
-        if (shipment.getLpnCount() == lpnsForLabels.size()) {
-            return shipment;
-        }
-        return new Shipment(
-                shipment.getShipmentId(),
-                shipment.getExternalId(),
-                shipment.getOrderId(),
-                shipment.getWarehouseId(),
-                shipment.getShipToName(),
-                shipment.getShipToAddress1(),
-                shipment.getShipToAddress2(),
-                shipment.getShipToAddress3(),
-                shipment.getShipToCity(),
-                shipment.getShipToState(),
-                shipment.getShipToZip(),
-                shipment.getShipToCountry(),
-                shipment.getShipToPhone(),
-                shipment.getCarrierCode(),
-                shipment.getServiceLevel(),
-                shipment.getDocumentNumber(),
-                shipment.getTrackingNumber(),
-                shipment.getDestinationLocation(),
-                shipment.getCustomerPo(),
-                shipment.getLocationNumber(),
-                shipment.getDepartmentNumber(),
-                shipment.getStopId(),
-                shipment.getStopSequence(),
-                shipment.getCarrierMoveId(),
-                shipment.getProNumber(),
-                shipment.getBolNumber(),
-                shipment.getStatus(),
-                shipment.getShipDate(),
-                shipment.getDeliveryDate(),
-                shipment.getCreatedDate(),
-                lpnsForLabels
-        );
     }
 
     private List<SkuMathRow> buildSkuMathRows(List<ShipmentSkuFootprint> rows, SkuMappingService skuMapping) {

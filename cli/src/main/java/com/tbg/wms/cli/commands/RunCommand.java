@@ -327,9 +327,15 @@ public final class RunCommand implements Callable<Integer> {
 
     private void printShipmentLabelPreview(LabelWorkflowService.PreparedJob prepared, List<Lpn> selectedLpns) {
         System.out.println("Label Preview:");
+        java.util.Set<String> selectedIds = new java.util.HashSet<>();
+        for (Lpn selectedLpn : selectedLpns) {
+            if (selectedLpn != null && selectedLpn.getLpnId() != null) {
+                selectedIds.add(selectedLpn.getLpnId());
+            }
+        }
         for (int i = 0; i < prepared.getLpnsForLabels().size() && i < MAX_LABEL_PREVIEW_ROWS; i++) {
             Lpn lpn = prepared.getLpnsForLabels().get(i);
-            boolean selected = selectedLpns.contains(lpn);
+            boolean selected = lpn != null && selectedIds.contains(lpn.getLpnId());
             System.out.printf("  [%s] %d. %s%n", selected ? "x" : " ", i + 1, lpn.getLpnId());
         }
         if (prepared.getLpnsForLabels().size() > MAX_LABEL_PREVIEW_ROWS) {
