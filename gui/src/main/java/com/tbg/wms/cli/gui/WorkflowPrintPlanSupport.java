@@ -34,6 +34,18 @@ public final class WorkflowPrintPlanSupport {
     }
 
     public static CarrierMovePlanSummary buildCarrierMovePlan(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared) {
+        return buildCarrierMovePlan(
+                prepared,
+                countCarrierMoveLabels(prepared),
+                prepared.getTotalStops() + 1
+        );
+    }
+
+    public static CarrierMovePlanSummary buildCarrierMovePlan(
+            AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared,
+            int selectedLabels,
+            int infoTagCount
+    ) {
         Objects.requireNonNull(prepared, "prepared cannot be null");
         int full = 0;
         int partial = 0;
@@ -55,8 +67,19 @@ public final class WorkflowPrintPlanSupport {
                 full,
                 partial,
                 labels,
-                prepared.getTotalStops() + 1
+                selectedLabels,
+                infoTagCount
         );
+    }
+
+    private static int countCarrierMoveLabels(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared) {
+        int labels = 0;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : prepared.getStopGroups()) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                labels += shipmentJob.getLpnsForLabels().size();
+            }
+        }
+        return labels;
     }
 
     public static final class ShipmentPlanSummary {
@@ -124,6 +147,10 @@ public final class WorkflowPrintPlanSupport {
             return infoTagCount;
         }
 
+        public int getSelectedDocuments() {
+            return selectedLabels + infoTagCount;
+        }
+
         public List<String> getMissingFootprintSkus() {
             return missingFootprintSkus;
         }
@@ -137,6 +164,7 @@ public final class WorkflowPrintPlanSupport {
         private final int fullPallets;
         private final int partialPallets;
         private final int totalLabels;
+        private final int selectedLabels;
         private final int infoTagCount;
 
         private CarrierMovePlanSummary(
@@ -147,6 +175,7 @@ public final class WorkflowPrintPlanSupport {
                 int fullPallets,
                 int partialPallets,
                 int totalLabels,
+                int selectedLabels,
                 int infoTagCount
         ) {
             this.carrierMoveId = carrierMoveId;
@@ -156,6 +185,7 @@ public final class WorkflowPrintPlanSupport {
             this.fullPallets = fullPallets;
             this.partialPallets = partialPallets;
             this.totalLabels = totalLabels;
+            this.selectedLabels = selectedLabels;
             this.infoTagCount = infoTagCount;
         }
 
@@ -187,8 +217,16 @@ public final class WorkflowPrintPlanSupport {
             return totalLabels;
         }
 
+        public int getSelectedLabels() {
+            return selectedLabels;
+        }
+
         public int getInfoTagCount() {
             return infoTagCount;
+        }
+
+        public int getSelectedDocuments() {
+            return selectedLabels + infoTagCount;
         }
     }
 }

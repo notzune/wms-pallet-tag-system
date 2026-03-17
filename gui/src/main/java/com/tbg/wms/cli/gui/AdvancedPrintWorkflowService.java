@@ -176,17 +176,28 @@ public final class AdvancedPrintWorkflowService {
     }
 
     public PrintResult printShipmentJob(LabelWorkflowService.PreparedJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
-        return printShipmentJob(job, job.getLpnsForLabels(), printerId, outputDir, printToFile);
+        return printShipmentJob(job, job.getLpnsForLabels(), printerId, outputDir, printToFile, true);
     }
 
     public PrintResult printShipmentJob(LabelWorkflowService.PreparedJob job, List<Lpn> selectedLpns, String printerId, Path outputDir, boolean printToFile) throws Exception {
+        return printShipmentJob(job, selectedLpns, printerId, outputDir, printToFile, true);
+    }
+
+    public PrintResult printShipmentJob(
+            LabelWorkflowService.PreparedJob job,
+            List<Lpn> selectedLpns,
+            String printerId,
+            Path outputDir,
+            boolean printToFile,
+            boolean includeInfoTags
+    ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         PrinterConfig printer = resolvePrinterForPrint(job.getRouting(), printerId, printToFile);
         Path targetDir = outputDir == null
                 ? Paths.get("out", "gui-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()))
                 : outputDir;
         List<Lpn> lpnsToPrint = filterLpnsForPrint(job.getLpnsForLabels(), selectedLpns);
-        ShipmentPrintBatch shipmentBatch = ShipmentPrintBatch.forShipment(job, lpnsToPrint);
+        ShipmentPrintBatch shipmentBatch = ShipmentPrintBatch.forShipment(job, lpnsToPrint, includeInfoTags);
         List<PrintTask> tasks = buildShipmentTasks(shipmentBatch);
         JobCheckpoint checkpoint = createCheckpoint("shipment-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()),
                 InputMode.SHIPMENT, job.getShipmentId(), targetDir, printToFile, printer, tasks);
@@ -195,7 +206,7 @@ public final class AdvancedPrintWorkflowService {
     }
 
     public PrintResult printCarrierMoveJob(PreparedCarrierMoveJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
-        return printCarrierMoveJob(job, collectAllCarrierMoveLabelSelections(job), printerId, outputDir, printToFile);
+        return printCarrierMoveJob(job, collectAllCarrierMoveLabelSelections(job), printerId, outputDir, printToFile, true);
     }
 
     public PrintResult printCarrierMoveJob(
@@ -205,13 +216,24 @@ public final class AdvancedPrintWorkflowService {
             Path outputDir,
             boolean printToFile
     ) throws Exception {
+        return printCarrierMoveJob(job, selectedLabels, printerId, outputDir, printToFile, true);
+    }
+
+    public PrintResult printCarrierMoveJob(
+            PreparedCarrierMoveJob job,
+            List<LabelSelectionRef> selectedLabels,
+            String printerId,
+            Path outputDir,
+            boolean printToFile,
+            boolean includeInfoTags
+    ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         LabelWorkflowService.PreparedJob firstShipment = firstCarrierShipment(job);
         PrinterConfig printer = resolvePrinterForPrint(firstShipment.getRouting(), printerId, printToFile);
         Path targetDir = outputDir == null
                 ? Paths.get("out", "gui-cmid-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()))
                 : outputDir;
-        List<PrintTask> tasks = buildCarrierMoveTasks(job, selectedLabels);
+        List<PrintTask> tasks = buildCarrierMoveTasks(job, selectedLabels, includeInfoTags);
         JobCheckpoint checkpoint = createCheckpoint("carrier-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()),
                 InputMode.CARRIER_MOVE, job.carrierMoveId, targetDir, printToFile, printer, tasks);
         executeTasks(checkpoint, printer, 0);
@@ -318,6 +340,22 @@ public final class AdvancedPrintWorkflowService {
         return selected;
     }
 
+    static int countShipmentInfoTags(int selectedLabels, boolean includeInfoTags) {
+        return includeInfoTags && selectedLabels > 0 ? 1 : 0;
+    }
+
+    static int countCarrierMoveInfoTags(List<LabelSelectionRef> selectedLabels, boolean includeInfoTags) {
+        Objects.requireNonNull(selectedLabels, "selectedLabels cannot be null");
+        if (!includeInfoTags || selectedLabels.isEmpty()) {
+            return 0;
+        }
+        return (int) selectedLabels.stream()
+                .map(LabelSelectionRef::getStopPosition)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count() + 1;
+    }
+
     private List<PrintTask> buildShipmentTasks(ShipmentPrintBatch batch) {
         Objects.requireNonNull(batch, "batch cannot be null");
         LabelWorkflowService.PreparedJob job = batch.getShipmentJob();
@@ -411,7 +449,11 @@ public final class AdvancedPrintWorkflowService {
         throw new IllegalArgumentException("Carrier move has no printable shipments.");
     }
 
-    private List<PrintTask> buildCarrierMoveTasks(PreparedCarrierMoveJob job, List<LabelSelectionRef> selectedLabels) {
+    private List<PrintTask> buildCarrierMoveTasks(
+            PreparedCarrierMoveJob job,
+            List<LabelSelectionRef> selectedLabels,
+            boolean includeInfoTags
+    ) {
         Objects.requireNonNull(job, "job cannot be null");
         Objects.requireNonNull(selectedLabels, "selectedLabels cannot be null");
         Map<String, LinkedHashSet<String>> selectedLpnsByShipment = indexCarrierMoveSelections(selectedLabels);
@@ -424,12 +466,16 @@ public final class AdvancedPrintWorkflowService {
             for (ShipmentPrintBatch shipmentBatch : stopBatch.getShipmentBatches()) {
                 tasks.addAll(buildShipmentTasks(shipmentBatch));
             }
-            tasks.add(buildStopInfoTask(job, stopBatch));
+            if (includeInfoTags) {
+                tasks.add(buildStopInfoTask(job, stopBatch));
+            }
         }
 
-        String finalFile = "info-final-cmid-" + safeSlug(job.carrierMoveId) + ".zpl";
-        String finalInfo = InfoTagZplBuilder.buildFinalInfoTag(job);
-        tasks.add(new PrintTask(TaskKind.FINAL_INFO_TAG, finalFile, finalInfo, "INFO-FINAL " + job.carrierMoveId));
+        if (includeInfoTags) {
+            String finalFile = "info-final-cmid-" + safeSlug(job.carrierMoveId) + ".zpl";
+            String finalInfo = InfoTagZplBuilder.buildFinalInfoTag(job);
+            tasks.add(new PrintTask(TaskKind.FINAL_INFO_TAG, finalFile, finalInfo, "INFO-FINAL " + job.carrierMoveId));
+        }
         return tasks;
     }
 
@@ -703,8 +749,12 @@ public final class AdvancedPrintWorkflowService {
             this.includeShipmentInfoTag = includeShipmentInfoTag;
         }
 
-        private static ShipmentPrintBatch forShipment(LabelWorkflowService.PreparedJob shipmentJob, List<Lpn> lpnsToPrint) {
-            return new ShipmentPrintBatch(shipmentJob, lpnsToPrint, null, null, true);
+        private static ShipmentPrintBatch forShipment(
+                LabelWorkflowService.PreparedJob shipmentJob,
+                List<Lpn> lpnsToPrint,
+                boolean includeInfoTags
+        ) {
+            return new ShipmentPrintBatch(shipmentJob, lpnsToPrint, null, null, includeInfoTags);
         }
 
         private static ShipmentPrintBatch forCarrierStop(

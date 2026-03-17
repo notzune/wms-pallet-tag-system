@@ -63,6 +63,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JButton clearButton = new JButton("Clear");
     private final JButton printButton = new JButton("Confirm Print");
     private final JButton labelSelectionToggleButton = new JButton("Deselect All");
+    private final JCheckBox includeInfoTagsCheckBox = new JCheckBox("Include info tags", true);
     private final JTextArea shipmentArea = new JTextArea();
     private final JPanel shipmentPreviewPanel = new JPanel();
     private final JPanel labelSelectionPanel = new JPanel();
@@ -275,6 +276,7 @@ public final class LabelGuiFrame extends JFrame {
         clearButton.addActionListener(e -> clearForm());
         printButton.addActionListener(e -> confirmAndPrint());
         labelSelectionToggleButton.addActionListener(e -> togglePreviewLabelSelection());
+        includeInfoTagsCheckBox.addActionListener(e -> updatePreviewSelectionUi());
         carrierMoveModeButton.addActionListener(e -> updateInputModeUi());
         shipmentModeButton.addActionListener(e -> updateInputModeUi());
     }
@@ -370,11 +372,10 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void renderPreview(LabelWorkflowService.PreparedJob job) {
+        resetPreviewLabelSelection();
         shipmentPreviewPanel.removeAll();
-        shipmentArea.setText(previewFormatter.buildShipmentSummaryText(job, 1));
         shipmentPreviewPanel.add(shipmentArea);
         shipmentPreviewPanel.add(buildLabelSelectionPanel(buildShipmentLabelOptions(job)));
-        mathArea.setText(previewFormatter.buildShipmentMathText(job, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT));
         updatePreviewSelectionUi();
         shipmentPreviewPanel.revalidate();
         shipmentPreviewPanel.repaint();
@@ -384,22 +385,11 @@ public final class LabelGuiFrame extends JFrame {
         Objects.requireNonNull(job, "job cannot be null");
         resetPreviewLabelSelection();
         shipmentPreviewPanel.removeAll();
-        StringBuilder summary = new StringBuilder(previewFormatter.buildCarrierMoveSummary(job));
-        shipmentArea.setText(summary.toString());
         shipmentPreviewPanel.add(shipmentArea);
         shipmentPreviewPanel.add(buildLabelSelectionPanel(buildCarrierMoveLabelOptions(job)));
 
-        int shownStops = addStopPreviewSections(job);
-        if (job.getStopGroups().size() > shownStops) {
-            summary.append("Preview Notice: Showing first ").append(MAX_PREVIEW_STOPS)
-                    .append(" stops of ").append(job.getStopGroups().size()).append(".\n");
-            shipmentArea.setText(summary.toString());
-        }
-
-        mathArea.setText(previewFormatter.buildCarrierMoveMathText(
-                job,
-                MAX_PREVIEW_STOPS,
-                MAX_PREVIEW_SHIPMENTS_PER_STOP));
+        addStopPreviewSections(job);
+        updatePreviewSelectionUi();
         shipmentPreviewPanel.revalidate();
         shipmentPreviewPanel.repaint();
     }
@@ -456,6 +446,7 @@ public final class LabelGuiFrame extends JFrame {
         previewLabelCheckboxes = new ArrayList<>(options.size());
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         controls.add(labelSelectionToggleButton);
+        controls.add(includeInfoTagsCheckBox);
         controls.add(labelSelectionStatusLabel);
 
         JPanel checkboxGrid = new JPanel(new GridLayout(0, 3, 8, 4));
@@ -542,9 +533,59 @@ public final class LabelGuiFrame extends JFrame {
     private void updatePreviewSelectionUi() {
         int total = previewLabelCheckboxes.size();
         int selected = getSelectedPreviewOptions().size();
-        labelSelectionStatusLabel.setText("Selected " + selected + " of " + total + " labels");
+        int infoTags = currentInfoTagCount();
+        int totalDocuments = selected + infoTags;
+        labelSelectionStatusLabel.setText("Selected " + selected + " of " + total + " labels | Info Tags " + infoTags
+                + " | Total Documents " + totalDocuments);
         labelSelectionToggleButton.setText(selected == total ? "Deselect All" : "Select All");
+        refreshPreviewText();
         updatePrintButtonEnabled();
+    }
+
+    private void refreshPreviewText() {
+        if (preparedCarrierJob != null && isCarrierMoveMode()) {
+            List<LabelSelectionRef> selectedLabels = getSelectedCarrierMoveLabels();
+            shipmentArea.setText(buildCarrierMoveSummaryText(preparedCarrierJob, selectedLabels));
+            mathArea.setText(previewFormatter.buildCarrierMoveMathText(
+                    preparedCarrierJob,
+                    MAX_PREVIEW_STOPS,
+                    MAX_PREVIEW_SHIPMENTS_PER_STOP,
+                    selectedLabels.size(),
+                    currentInfoTagCount()
+            ));
+            return;
+        }
+        if (preparedJob != null && !isCarrierMoveMode()) {
+            List<Lpn> selectedLpns = getSelectedShipmentLpns();
+            shipmentArea.setText(previewFormatter.buildShipmentSummaryText(
+                    preparedJob,
+                    selectedLpns,
+                    currentInfoTagCount()
+            ));
+            mathArea.setText(previewFormatter.buildShipmentMathText(
+                    preparedJob,
+                    MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT,
+                    selectedLpns.size(),
+                    currentInfoTagCount()
+            ));
+        }
+    }
+
+    private String buildCarrierMoveSummaryText(
+            AdvancedPrintWorkflowService.PreparedCarrierMoveJob job,
+            List<LabelSelectionRef> selectedLabels
+    ) {
+        StringBuilder summary = new StringBuilder(previewFormatter.buildCarrierMoveSummary(
+                job,
+                selectedLabels.size(),
+                currentInfoTagCount()
+        ));
+        int shownStops = Math.min(job.getStopGroups().size(), MAX_PREVIEW_STOPS);
+        if (job.getStopGroups().size() > shownStops) {
+            summary.append("Preview Notice: Showing first ").append(MAX_PREVIEW_STOPS)
+                    .append(" stops of ").append(job.getStopGroups().size()).append(".\n");
+        }
+        return summary.toString();
     }
 
     private List<PreviewLabelOption> getSelectedPreviewOptions() {
@@ -593,12 +634,26 @@ public final class LabelGuiFrame extends JFrame {
                 .count();
     }
 
+    private int currentInfoTagCount() {
+        if (!includeInfoTagsCheckBox.isSelected()) {
+            return 0;
+        }
+        if (preparedCarrierJob != null && isCarrierMoveMode()) {
+            return AdvancedPrintWorkflowService.countCarrierMoveInfoTags(getSelectedCarrierMoveLabels(), true);
+        }
+        if (preparedJob != null && !isCarrierMoveMode()) {
+            return AdvancedPrintWorkflowService.countShipmentInfoTags(getSelectedShipmentLpns().size(), true);
+        }
+        return 0;
+    }
+
     private void resetPreviewLabelSelection() {
         previewLabelCheckboxes = List.of();
         previewLabelOptions = List.of();
         labelSelectionPanel.removeAll();
         labelSelectionStatusLabel.setText(" ");
         labelSelectionToggleButton.setText("Deselect All");
+        includeInfoTagsCheckBox.setSelected(true);
     }
 
     private void confirmAndPrint() {
@@ -629,14 +684,12 @@ public final class LabelGuiFrame extends JFrame {
             int plannedLabels = carrierMoveMode
                     ? selectedCarrierLabels.size()
                     : selectedShipmentLpns.size();
-            int plannedInfoTags = carrierMoveMode
-                    ? countSelectedCarrierMoveStops(selectedCarrierLabels) + 1
-                    : 1;
+            int plannedInfoTags = currentInfoTagCount();
             int choice = JOptionPane.showConfirmDialog(
                     this,
                     carrierMoveMode
                             ? "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?"
-                            : "Print " + plannedLabels + " labels to " + selected + "?",
+                            : "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?",
                     "Confirm Print",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE
@@ -658,11 +711,25 @@ public final class LabelGuiFrame extends JFrame {
                 if (carrierMoveMode) {
                     Path outDir = defaultPrintToFileOutputDir().resolve("gui-cmid-" + preparedCarrierJob.getCarrierMoveId() + "-" +
                             OUTPUT_TS.format(LocalDateTime.now()));
-                    return advancedService.printCarrierMoveJob(preparedCarrierJob, selectedCarrierLabels, printerId, outDir, printToFile);
+                    return advancedService.printCarrierMoveJob(
+                            preparedCarrierJob,
+                            selectedCarrierLabels,
+                            printerId,
+                            outDir,
+                            printToFile,
+                            includeInfoTagsCheckBox.isSelected()
+                    );
                 }
                 Path outDir = defaultPrintToFileOutputDir().resolve("gui-" + preparedJob.getShipmentId() + "-" +
                         OUTPUT_TS.format(LocalDateTime.now()));
-                return advancedService.printShipmentJob(preparedJob, selectedShipmentLpns, printerId, outDir, printToFile);
+                return advancedService.printShipmentJob(
+                        preparedJob,
+                        selectedShipmentLpns,
+                        printerId,
+                        outDir,
+                        printToFile,
+                        includeInfoTagsCheckBox.isSelected()
+                );
             }
 
             @Override

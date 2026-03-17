@@ -1,5 +1,6 @@
 package com.tbg.wms.cli.gui;
 
+import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.Lpn;
 import org.junit.jupiter.api.Test;
 
@@ -31,5 +32,25 @@ class AdvancedPrintWorkflowServiceTest {
                 () -> AdvancedPrintWorkflowService.filterLpnsForPrint(List.of(), List.of()));
 
         assertEquals("Select at least one label to print.", ex.getMessage());
+    }
+
+    @Test
+    void countShipmentInfoTags_shouldRespectSelectionAndToggle() {
+        assertEquals(1, AdvancedPrintWorkflowService.countShipmentInfoTags(2, true));
+        assertEquals(0, AdvancedPrintWorkflowService.countShipmentInfoTags(0, true));
+        assertEquals(0, AdvancedPrintWorkflowService.countShipmentInfoTags(2, false));
+    }
+
+    @Test
+    void countCarrierMoveInfoTags_shouldCountDistinctSelectedStopsPlusFinalTag() {
+        List<LabelSelectionRef> selected = List.of(
+                LabelSelectionRef.forCarrierMove(1, "S1", "L1", 1),
+                LabelSelectionRef.forCarrierMove(2, "S1", "L2", 1),
+                LabelSelectionRef.forCarrierMove(3, "S2", "L3", 3)
+        );
+
+        assertEquals(3, AdvancedPrintWorkflowService.countCarrierMoveInfoTags(selected, true));
+        assertEquals(0, AdvancedPrintWorkflowService.countCarrierMoveInfoTags(selected, false));
+        assertEquals(0, AdvancedPrintWorkflowService.countCarrierMoveInfoTags(List.of(), true));
     }
 }
