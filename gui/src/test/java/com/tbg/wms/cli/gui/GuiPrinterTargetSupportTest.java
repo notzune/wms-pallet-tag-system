@@ -12,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GuiPrinterTargetSupportTest {
 
     @Test
-    void filterLabelScreenPrinters_shouldKeepOfficeAndDispatchOnly() {
+    void filterLabelScreenPrinters_shouldKeepZplCapablePrintersOnly() {
         List<LabelWorkflowService.PrinterOption> filtered = GuiPrinterTargetSupport.filterLabelScreenPrinters(List.of(
-                new LabelWorkflowService.PrinterOption("OFFICE", "Office", "1"),
-                new LabelWorkflowService.PrinterOption("ORDER_PICK", "Order Pick", "2"),
-                new LabelWorkflowService.PrinterOption("DISPATCH", "Dispatch", "3")
+                new LabelWorkflowService.PrinterOption("OFFICE", "Office", "1", List.of("ZPL")),
+                new LabelWorkflowService.PrinterOption("ORDER_PICK", "Order Pick", "2", List.of("RAIL")),
+                new LabelWorkflowService.PrinterOption("DISPATCH", "Dispatch", "3", List.of("ZPL"))
         ));
 
         assertEquals(List.of("OFFICE", "DISPATCH"),
@@ -24,15 +24,23 @@ class GuiPrinterTargetSupportTest {
     }
 
     @Test
-    void filterRailToolPrinters_shouldKeepRailTargetsOnly() {
+    void filterRailToolPrinters_shouldKeepRailCapablePrintersOnly() {
         List<LabelWorkflowService.PrinterOption> filtered = GuiPrinterTargetSupport.filterRailToolPrinters(List.of(
-                new LabelWorkflowService.PrinterOption("OFFICE", "Office", "1"),
-                new LabelWorkflowService.PrinterOption("ORDER_PICK", "Order Pick", "2"),
-                new LabelWorkflowService.PrinterOption("RAIL_OFFICE", "Rail", "3")
+                new LabelWorkflowService.PrinterOption("OFFICE", "Office", "1", List.of("ZPL")),
+                new LabelWorkflowService.PrinterOption("ORDER_PICK", "Order Pick", "2", List.of("RAIL")),
+                new LabelWorkflowService.PrinterOption("RAIL_OFFICE", "Rail", "3", List.of("RAIL"))
         ));
 
         assertEquals(List.of("ORDER_PICK", "RAIL_OFFICE"),
                 filtered.stream().map(LabelWorkflowService.PrinterOption::getId).collect(Collectors.toList()));
+    }
+
+    @Test
+    void hasCapability_shouldMatchCaseInsensitively() {
+        LabelWorkflowService.PrinterOption option =
+                new LabelWorkflowService.PrinterOption("OFFICE", "Office", "1", List.of("zpl"));
+
+        assertTrue(GuiPrinterTargetSupport.hasCapability(option, "ZPL"));
     }
 
     @Test

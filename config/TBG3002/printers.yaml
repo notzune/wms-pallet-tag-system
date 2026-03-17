@@ -4,6 +4,7 @@ siteCode: TBG3002
 # Inventory of printers at this site.
 # "id" is what routing rules reference (stable identifier).
 # "tags" help group printers by function (DISPATCH, QA, DOCK, etc.).
+# "capabilities" drive workflow-specific menus (for example ZPL for pallet labels, RAIL for rail cards).
 # "locationHint" is optional human context (physical placement).
 printers:
   - id: OFFICE
@@ -11,6 +12,7 @@ printers:
     ip: 10.19.64.106
     port: 9100
     tags: [ TEST, QA ]
+    capabilities: [ ZPL ]
     locationHint: "Admin office (backup/test)"
 
   - id: RAIL_OFFICE
@@ -18,6 +20,7 @@ printers:
     ip: 10.19.64.16
     port: 9100
     tags: [ PROD, RAIL, DEFAULT ]
+    capabilities: [ RAIL ]
     locationHint: "Rail office (default rail printer)"
 
   - id: ORDER_PICK
@@ -25,6 +28,7 @@ printers:
     ip: 10.19.64.52
     port: 9100
     tags: [ TEST, RAIL ]
+    capabilities: [ RAIL ]
     locationHint: "Order pick (secondary rail test printer)"
 
   - id: DISPATCH
@@ -32,6 +36,7 @@ printers:
     ip: 10.19.64.53
     port: 9100
     tags: [ PROD, DISPATCH ]
+    capabilities: [ ZPL ]
     locationHint: "Dispatch office (production)"
 
   # Placeholder for the new post go-live printer
@@ -41,5 +46,6 @@ printers:
     ip: 0.0.0.0
     port: 9100
     tags: [ PROD, FLOOR ]
+    capabilities: [ ZPL ]
     locationHint: "Warehouse floor (planned post go-live)"
     enabled: false

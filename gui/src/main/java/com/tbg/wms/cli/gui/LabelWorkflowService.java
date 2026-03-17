@@ -74,7 +74,12 @@ public final class LabelWorkflowService {
         List<PrinterOption> options = new ArrayList<>();
         for (PrinterConfig printer : routing.getPrinters().values()) {
             if (printer.isEnabled()) {
-                options.add(new PrinterOption(printer.getId(), printer.getName(), printer.getEndpoint()));
+                options.add(new PrinterOption(
+                        printer.getId(),
+                        printer.getName(),
+                        printer.getEndpoint(),
+                        printer.getCapabilities()
+                ));
             }
         }
         options.sort(Comparator.comparing(PrinterOption::getId));
@@ -392,15 +397,25 @@ public final class LabelWorkflowService {
         private final String id;
         private final String name;
         private final String endpoint;
+        private final List<String> capabilities;
 
         public PrinterOption(String id, String name, String endpoint) {
+            this(id, name, endpoint, List.of());
+        }
+
+        public PrinterOption(String id, String name, String endpoint, List<String> capabilities) {
             this.id = id;
             this.name = name;
             this.endpoint = endpoint;
+            this.capabilities = capabilities == null ? List.of() : List.copyOf(capabilities);
         }
 
         public String getId() {
             return id;
+        }
+
+        public List<String> getCapabilities() {
+            return capabilities;
         }
 
         @Override

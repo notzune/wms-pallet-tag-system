@@ -256,7 +256,7 @@ Workflow:
 - Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
 - Railcar card preview panel (item lines + CAN/DOM/KEV + pass/fuel/BH fields)
 - Diagnostics panel (row counts and unresolved footprints)
-- Rail print target dropdown only shows `ORDER_PICK`, `RAIL_OFFICE`, and `Print to file`.
+- Rail print target dropdown only shows printers marked with the `RAIL` capability, plus `System default printer` and `Print to file`.
 - Click `Generate PDF` to produce a letter-size multi-card PDF.
 - Click `Print` to generate PDF and send it to the selected rail printer, or keep `Print to file` selected to save only.
 
@@ -277,7 +277,7 @@ Workflow:
 - Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
 - Main window footer shows `Version <x.y.z>` and resolves from package metadata with Maven `pom.properties` fallback.
 - Enter ID, select printer, and click `Preview`.
-- Label-generation printer dropdown only shows `OFFICE`, `DISPATCH`, and `Print to file`.
+- Label-generation printer dropdown only shows printers marked with the `ZPL` capability, plus `Print to file`.
 - Shipment preview shows shipment summary, label plan, and SKU-level pallet math (full vs partial).
 - Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU
   breakdown.
@@ -289,7 +289,8 @@ Workflow:
 - Select `Print to file` from the printer dropdown to save ZPL under `out/` without printer I/O.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
 - Use `Tools -> Rail Labels...` for end-to-end rail merge generation from live WMS train data.
-- Current GUI printer scoping is intentionally hard-coded by workflow; future config work should add printer capability flags (for example a `zpl` marker) so these menus can stay dynamic.
+- GUI printer scoping is driven by printer `capabilities` in `config/<site>/printers.yaml`.
+- Use `capabilities: [ ZPL ]` for pallet-label workflows and `capabilities: [ RAIL ]` for the rail labels tool.
 - Barcode dialog now defaults to an operator-focused layout and moves low-level controls under `Advanced Settings...`.
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
 

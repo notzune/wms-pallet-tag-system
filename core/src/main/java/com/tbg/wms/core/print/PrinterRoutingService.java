@@ -105,10 +105,11 @@ public final class PrinterRoutingService {
             // Match historical behavior: YAML omits these often, so keep deterministic defaults.
             int port = printerEntry.port == null ? DEFAULT_PRINTER_PORT : printerEntry.port;
             List<String> tags = printerEntry.tags == null ? Collections.emptyList() : printerEntry.tags;
+            List<String> capabilities = printerEntry.capabilities == null ? Collections.emptyList() : printerEntry.capabilities;
             String locationHint = printerEntry.locationHint;
             boolean enabled = printerEntry.enabled == null || printerEntry.enabled;
 
-            PrinterConfig printer = new PrinterConfig(id, name, ip, port, tags, locationHint, enabled);
+            PrinterConfig printer = new PrinterConfig(id, name, ip, port, tags, capabilities, locationHint, enabled);
             printers.put(id, printer);
             log.debug("Loaded printer: {}", printer);
         }
@@ -273,6 +274,7 @@ public final class PrinterRoutingService {
         public String ip;
         public Integer port;
         public List<String> tags;
+        public List<String> capabilities;
         public String locationHint;
         public Boolean enabled;
     }

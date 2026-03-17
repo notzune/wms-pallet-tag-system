@@ -59,7 +59,8 @@ public final class RailWorkflowService {
                 printers.add(new LabelWorkflowService.PrinterOption(
                         printer.getId(),
                         printer.getName(),
-                        printer.getEndpoint()
+                        printer.getEndpoint(),
+                        printer.getCapabilities()
                 ));
             }
         }
