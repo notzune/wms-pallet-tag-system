@@ -87,6 +87,14 @@ public final class LabelWorkflowService {
         return options;
     }
 
+    public void clearCaches() {
+        routingBySite.clear();
+        printersBySite.clear();
+        siteConfigBySite.clear();
+        cachedSkuMapping = null;
+        cachedTemplate = null;
+    }
+
     /**
      * Resolves a printer config by ID using cached routing data.
      */
@@ -384,7 +392,7 @@ public final class LabelWorkflowService {
         }
         synchronized (this) {
             if (cachedTemplate == null) {
-                Path templatePath = Paths.get("config/templates/walmart-canada-label.zpl");
+                Path templatePath = configBaseDir.resolve("templates").resolve("walmart-canada-label.zpl");
                 if (!Files.exists(templatePath)) {
                     throw new IllegalStateException("ZPL template not found: " + templatePath);
                 }

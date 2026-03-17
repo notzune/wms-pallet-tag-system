@@ -55,6 +55,10 @@ public final class AdvancedPrintWorkflowService {
         return shipmentService.prepareJob(shipmentId);
     }
 
+    public void clearCaches() {
+        shipmentService.clearCaches();
+    }
+
     public PreparedCarrierMoveJob prepareCarrierMoveJob(String carrierMoveId) throws Exception {
         if (carrierMoveId == null || carrierMoveId.isBlank()) {
             throw new IllegalArgumentException("Carrier Move ID is required.");
