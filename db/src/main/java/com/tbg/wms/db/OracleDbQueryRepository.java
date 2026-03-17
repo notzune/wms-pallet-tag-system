@@ -689,8 +689,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
      * @throws SQLException if database operation fails
      */
     private List<Lpn> fetchLpnsWithLineItems(String shipmentId) throws SQLException {
-        List<Lpn> lpns = new ArrayList<>();
-
         String lpnSql = "SELECT DISTINCT " +
                 "il.LODNUM, il.LODUCC, il.STOLOC, il.LODWGT, " +
                 "id.LOTNUM, id.SUP_LOTNUM, id.MANDTE, id.EXPIRE_DTE " +
@@ -704,36 +702,32 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(lpnSql)) {
             Map<String, List<LineItem>> lineItemsByLpn = fetchLineItemsByLpn(conn, shipmentId);
+            LinkedHashMap<String, MutableLpnRow> lpnsById = new LinkedHashMap<>();
 
             stmt.setString(1, shipmentId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     String normalizedLpnId = NormalizationService.normalizeString(rs.getString("LODNUM"));
-                    List<LineItem> lineItems = lineItemsByLpn.getOrDefault(normalizedLpnId, List.of());
-
-                    LocalDate mfgDate = nullableLocalDate(rs, "MANDTE");
-                    LocalDate expiryDate = nullableLocalDate(rs, "EXPIRE_DTE");
-
-                    Lpn lpn = new Lpn(
+                    if (normalizedLpnId.isBlank()) {
+                        continue;
+                    }
+                    MutableLpnRow row = lpnsById.computeIfAbsent(
                             normalizedLpnId,
-                            NormalizationService.normalizeString(shipmentId),
-                            NormalizationService.normalizeBarcode(rs.getString("LODUCC")),
-                            0, // case count - will be calculated from line items
-                            0, // unit count - will be calculated from line items
-                            rs.getDouble("LODWGT"),
-                            NormalizationService.normalizeOptionalStagingLocation(rs.getString("STOLOC")),
-                            NormalizationService.normalizeString(rs.getString("LOTNUM")),
-                            NormalizationService.normalizeString(rs.getString("SUP_LOTNUM")),
-                            mfgDate,
-                            expiryDate,
-                            lineItems
+                            ignored -> new MutableLpnRow(
+                                    normalizedLpnId,
+                                    NormalizationService.normalizeString(shipmentId),
+                                    lineItemsByLpn.getOrDefault(normalizedLpnId, List.of())
+                            )
                     );
-                    lpns.add(lpn);
+                    row.merge(rs, this);
                 }
             }
+            List<Lpn> lpns = new ArrayList<>(lpnsById.size());
+            for (MutableLpnRow row : lpnsById.values()) {
+                lpns.add(row.toLpn());
+            }
+            return lpns;
         }
-
-        return lpns;
     }
 
     /**
@@ -968,6 +962,67 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     private LocalDate nullableLocalDate(ResultSet rs, String column) throws SQLException {
         Date date = rs.getDate(column);
         return date == null ? null : date.toLocalDate();
+    }
+
+    /**
+     * Keeps the first meaningful value while allowing later rows to backfill blanks produced by
+     * mixed-detail inventory joins.
+     */
+    private static String preferNonBlank(String currentValue, String candidateValue) {
+        return currentValue == null || currentValue.isBlank() ? candidateValue : currentValue;
+    }
+
+    private static final class MutableLpnRow {
+        private final String lpnId;
+        private final String shipmentId;
+        private final List<LineItem> lineItems;
+        private String sscc;
+        private double weight;
+        private String stagingLocation;
+        private String warehouseLot;
+        private String customerLot;
+        private LocalDate manufactureDate;
+        private LocalDate bestByDate;
+
+        private MutableLpnRow(String lpnId, String shipmentId, List<LineItem> lineItems) {
+            this.lpnId = lpnId;
+            this.shipmentId = shipmentId;
+            this.lineItems = List.copyOf(lineItems);
+        }
+
+        private void merge(ResultSet rs, OracleDbQueryRepository repository) throws SQLException {
+            sscc = preferNonBlank(sscc, NormalizationService.normalizeBarcode(rs.getString("LODUCC")));
+            if (weight == 0.0d) {
+                weight = rs.getDouble("LODWGT");
+            }
+            stagingLocation = preferNonBlank(stagingLocation,
+                    NormalizationService.normalizeOptionalStagingLocation(rs.getString("STOLOC")));
+            warehouseLot = preferNonBlank(warehouseLot, NormalizationService.normalizeString(rs.getString("LOTNUM")));
+            customerLot = preferNonBlank(customerLot, NormalizationService.normalizeString(rs.getString("SUP_LOTNUM")));
+            if (manufactureDate == null) {
+                manufactureDate = repository.nullableLocalDate(rs, "MANDTE");
+            }
+            if (bestByDate == null) {
+                bestByDate = repository.nullableLocalDate(rs, "EXPIRE_DTE");
+            }
+        }
+
+        private Lpn toLpn() {
+            return new Lpn(
+                    lpnId,
+                    shipmentId,
+                    sscc,
+                    0,
+                    0,
+                    weight,
+                    stagingLocation,
+                    warehouseLot,
+                    customerLot,
+                    manufactureDate,
+                    bestByDate,
+                    lineItems
+            );
+        }
     }
 
     private static final class MutableRailStop {

@@ -18,9 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Guided upgrade now requires a matching published `.sha256` checksum for the installer and refuses automatic launch when the checksum is missing or verification fails.
 - Packaged-install uninstall flow now supports clean-install prep by wiping the install directory and non-secret runtime settings after product uninstall.
 - `LabelGuiFrame` no longer owns the full main settings dialog UI; settings responsibilities are now split into `MainSettingsDialog`.
+- GUI print-task expansion and artifact naming are now split into dedicated helpers (`PrintTaskPlanner`, `ArtifactNameSupport`) so `AdvancedPrintWorkflowService` stays focused on workflow orchestration and checkpoint execution.
 - Shared shipment relabeling/subset-print shipment reconstruction now lives in `LabelingSupport` instead of being duplicated across GUI workflow services.
 - Guided installer verification now streams SHA-256 hashing from disk and deletes failed/partial downloads.
 - CLI shipment preview selection rendering now uses identifier-set lookup instead of repeated list containment checks for better large-job scaling.
+- Oracle shipment loading now coalesces duplicate pallet rows produced by mixed inventory-detail joins so one physical LPN cannot generate duplicate pallet labels.
 
 ## [1.7.1] - 2026-03-17
 
