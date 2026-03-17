@@ -10,7 +10,9 @@ package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.OutDirectoryRetentionService;
 import com.tbg.wms.core.RuntimePathResolver;
+import com.tbg.wms.core.RuntimeSettings;
 import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
@@ -75,6 +77,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JLabel versionLabel = new JLabel();
     private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
+    private final transient RuntimeSettings runtimeSettings = new RuntimeSettings();
 
     private final transient AppConfig config = new AppConfig();
     private final transient LabelWorkflowService service = new LabelWorkflowService(config);
@@ -109,6 +112,7 @@ public final class LabelGuiFrame extends JFrame {
         autoResumeIfFound();
         applyTopRowSizing();
         loadPrintersAsync();
+        new OutDirectoryRetentionService().pruneDefaultOutDirectory(LabelGuiFrame.class);
         printButton.setEnabled(false);
     }
 
@@ -1091,6 +1095,11 @@ public final class LabelGuiFrame extends JFrame {
         JTextField outputDirField = new JTextField(defaultPrintToFileOutputDir().toString(), 40);
         installTerminalLikeMouseClipboardBehavior(outputDirField);
         JButton browseButton = new JButton("Browse...");
+        JButton cleanupNowButton = new JButton("Clean Old Output Now");
+        JButton advancedSettingsButton = new JButton("Advanced Settings...");
+        JTextField retentionDaysField = new JTextField(
+                String.valueOf(runtimeSettings.outRetentionDays(OutDirectoryRetentionService.DEFAULT_RETENTION_DAYS)), 6);
+        installTerminalLikeMouseClipboardBehavior(retentionDaysField);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -1104,6 +1113,36 @@ public final class LabelGuiFrame extends JFrame {
         gbc.gridx = 2;
         gbc.weightx = 0.0;
         content.add(browseButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.0;
+        content.add(new JLabel("Out cleanup policy:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.0;
+        JPanel retentionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        retentionPanel.add(new JLabel("Delete generated files/folders older than"));
+        retentionPanel.add(retentionDaysField);
+        retentionPanel.add(new JLabel("day(s) from out/."));
+        content.add(retentionPanel, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        content.add(cleanupNowButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weightx = 0.0;
+        content.add(new JLabel("Config editing:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        content.add(new JLabel("Advanced Settings edits runtime config files only. Env secrets remain outside the GUI."), gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        content.add(advancedSettingsButton, gbc);
 
         JButton saveButton = new JButton("Save");
         JButton cancelButton = new JButton("Cancel");
@@ -1120,10 +1159,27 @@ public final class LabelGuiFrame extends JFrame {
             }
         });
 
+        cleanupNowButton.addActionListener(e -> {
+            Integer retentionDays = parseRetentionDays(retentionDaysField.getText());
+            if (retentionDays == null) {
+                showError("Out cleanup retention must be a positive whole number of days.");
+                return;
+            }
+            runtimeSettings.setOutRetentionDays(retentionDays);
+            runOutDirectoryCleanup(dialog, retentionDays);
+        });
+
+        advancedSettingsButton.addActionListener(e -> openAdvancedSettingsDialog(dialog));
+
         saveButton.addActionListener(e -> {
             String raw = outputDirField.getText();
             if (raw == null || raw.isBlank()) {
                 showError("Default output directory is required.");
+                return;
+            }
+            Integer retentionDays = parseRetentionDays(retentionDaysField.getText());
+            if (retentionDays == null) {
+                showError("Out cleanup retention must be a positive whole number of days.");
                 return;
             }
 
@@ -1136,6 +1192,7 @@ public final class LabelGuiFrame extends JFrame {
             }
 
             preferences.put(PREF_PRINT_TO_FILE_DIR, configuredPath.toString());
+            runtimeSettings.setOutRetentionDays(retentionDays);
             LabelWorkflowService.PrinterOption previousSelection =
                     (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
             printerCombo.setModel(buildMainPrintTargetModel(true));
@@ -1212,6 +1269,52 @@ public final class LabelGuiFrame extends JFrame {
         public PrinterConfig resolvePrinter(String printerId) throws Exception {
             return service.resolvePrinter(printerId);
         }
+    }
+
+    private Integer parseRetentionDays(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            int parsed = Integer.parseInt(raw.trim());
+            return parsed > 0 ? parsed : null;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private void runOutDirectoryCleanup(Component owner, int retentionDays) {
+        OutDirectoryRetentionService.CleanupResult result =
+                new OutDirectoryRetentionService().pruneDefaultOutDirectory(LabelGuiFrame.class);
+        JOptionPane.showMessageDialog(
+                owner,
+                "Cleanup complete.\nDeleted files: " + result.getDeletedFiles()
+                        + "\nDeleted folders: " + result.getDeletedDirectories()
+                        + "\nRetention days: " + retentionDays
+                        + "\nRoot: " + result.getRootDir(),
+                "Out Cleanup",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+    private void openAdvancedSettingsDialog(Component owner) {
+        AdvancedSettingsDialog dialog = new AdvancedSettingsDialog(
+                this,
+                config,
+                this::reloadRuntimeConfigArtifacts,
+                this::showError,
+                this::installTerminalLikeMouseClipboardBehavior
+        );
+        dialog.setLocationRelativeTo(owner);
+        dialog.setVisible(true);
+    }
+
+    private void reloadRuntimeConfigArtifacts() {
+        service.clearCaches();
+        advancedService.clearCaches();
+        loadedPrinters = List.of();
+        loadPrintersAsync();
+        setReady("Runtime config reloaded.");
     }
 
     private static final class PreviewLabelOption {

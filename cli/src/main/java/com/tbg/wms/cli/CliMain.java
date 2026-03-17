@@ -12,6 +12,7 @@ package com.tbg.wms.cli;
 
 import com.tbg.wms.cli.commands.RootCommand;
 import com.tbg.wms.cli.gui.LabelGuiFrame;
+import com.tbg.wms.core.OutDirectoryRetentionService;
 import picocli.CommandLine;
 
 import javax.swing.*;
@@ -53,6 +54,7 @@ public final class CliMain {
      * @param args command-line arguments
      */
     public static void main(String[] args) {
+        new OutDirectoryRetentionService().pruneDefaultOutDirectory(CliMain.class);
         if (args == null || args.length == 0) {
             SwingUtilities.invokeLater(() -> {
                 LabelGuiFrame frame = new LabelGuiFrame();
