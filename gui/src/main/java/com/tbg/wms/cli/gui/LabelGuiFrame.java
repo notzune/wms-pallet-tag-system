@@ -190,27 +190,21 @@ public final class LabelGuiFrame extends JFrame {
         toolBar.add(toolsButton);
 
         JPopupMenu toolsMenu = new JPopupMenu();
-        JMenuItem barcodeItem = new JMenuItem("Barcode Generator...");
-        barcodeItem.addActionListener(e -> openBarcodeDialog());
-        toolsMenu.add(barcodeItem);
-        JMenuItem queueItem = new JMenuItem("Queue Print...");
-        queueItem.addActionListener(e -> openQueueDialog());
-        toolsMenu.add(queueItem);
         JMenuItem railLabelsItem = new JMenuItem("Rail Labels...");
         railLabelsItem.addActionListener(e -> openRailLabelsDialog());
         toolsMenu.add(railLabelsItem);
+        JMenuItem queueItem = new JMenuItem("Queue Print...");
+        queueItem.addActionListener(e -> openQueueDialog());
+        toolsMenu.add(queueItem);
+        JMenuItem barcodeItem = new JMenuItem("Barcode Generator...");
+        barcodeItem.addActionListener(e -> openBarcodeDialog());
+        toolsMenu.add(barcodeItem);
+        toolsMenu.addSeparator();
         JMenuItem resumeItem = new JMenuItem("Resume Incomplete Job...");
         resumeItem.addActionListener(e -> openResumeDialog());
         toolsMenu.add(resumeItem);
-        JMenuItem updatesItem = new JMenuItem("Check for Updates...");
-        updatesItem.addActionListener(e -> checkForUpdatesAsync(true));
-        toolsMenu.add(updatesItem);
-        JMenuItem uninstallItem = new JMenuItem("Uninstall / Clean Install Prep...");
-        uninstallItem.addActionListener(e -> openUninstallDialog());
-        toolsMenu.add(uninstallItem);
         JMenuItem settingsItem = new JMenuItem("Settings...");
         settingsItem.addActionListener(e -> openSettingsDialog());
-        toolsMenu.addSeparator();
         toolsMenu.add(settingsItem);
 
         toolsButton.addActionListener(e ->
