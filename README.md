@@ -63,7 +63,13 @@ Portable bundles include a JRE and do not require a separate Java install.
 
 ## Setup and Quick Start
 
-### Development build
+Choose one of these paths:
+
+- Portable/manual install: extract the ZIP, edit `wms-tags.env`, and run `run.bat` or `wms-tags-gui.bat`
+- Packaged installer: run `WMS Pallet Tag System-<version>.exe` or `install-wms-installer.ps1`
+- Manual build from repo: build with Maven, then optionally package with `build-portable-bundle.ps1` or `build-jpackage-bundle.ps1`
+
+### Manual Build From Repo
 
 1. Configure environment:
 
@@ -74,12 +80,12 @@ copy .env.example .env
 2. Build and test:
 
 ```bash
-mvnw.cmd test
+.\mvnw.cmd test
 ```
 
 If you get `No compiler is provided in this environment`, install a JDK and ensure `JAVA_HOME` points to it.
 
-3. Run commands:
+3. Run commands directly from the repo:
 
 ```bash
 java -jar cli/target/cli-*.jar config
@@ -91,6 +97,15 @@ java -jar cli/target/cli-*.jar rail-helper --input-csv <INPUT.csv> --item-footpr
 java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID> --output-dir out/rail-print
 java -jar cli/target/cli-*.jar rail-print --template --output-dir out/rail-print
 java -jar cli/target/cli-*.jar gui
+```
+
+4. Optional: build operator-ready artifacts from the repo:
+
+```powershell
+.\mvnw.cmd -q -pl cli -am "-Dmaven.test.skip=true" package
+.\scripts\build-portable-bundle.ps1
+.\scripts\build-jpackage-bundle.ps1
+.\scripts\build-jpackage-bundle.ps1 -InstallerType exe
 ```
 
 ### Portable bundle (recommended for operators)
@@ -121,6 +136,24 @@ On Linux/macOS:
 ./run.sh
 ```
 
+### Manual Install From Portable ZIP
+
+1. Download the latest `wms-pallet-tag-system-<version>-portable.zip` from GitHub Releases.
+2. Extract it to a writable folder, for example `C:\wms-pallet-tag-system`.
+3. Edit `wms-tags.env` in the extracted root directory.
+4. Launch:
+
+```powershell
+.\run.bat gui
+```
+
+5. For CLI usage:
+
+```powershell
+.\run.bat config
+.\run.bat run --shipment-id <SHIP_ID> --dry-run
+```
+
 ### App image / executable bundle
 
 Use the `jpackage` builder when you want a native executable layout while keeping the portable ZIP/manual install path as fallback.
@@ -144,6 +177,12 @@ Use the `jpackage` builder when you want a native executable layout while keepin
 .\dist\install-wms-installer.ps1 -ReplaceExisting
 ```
 
+4. Optional: uninstall or prep for a clean reinstall:
+
+```powershell
+.\dist\uninstall-wms-tags.ps1
+```
+
 Notes:
 
 - Default app-image output is `dist/wms-pallet-tag-system-<version>-app`
@@ -158,9 +197,19 @@ Notes:
 - When a newer GitHub Release is available, the `Tools` button shows an alert badge and the update check can open the latest download page
 - When the latest GitHub Release includes the packaged installer asset, the GUI can download it into `updates/` and launch the guided upgrade flow directly
 - Guided upgrade requires both the installer asset and its published `.sha256` checksum; if either is missing, the app falls back to the release page
+- Full silent auto-update is still out of scope because safe self-replacement on Windows needs a detached updater, signing, lock handling, and rollback support that are not implemented yet
 - `uninstall-wms-tags.ps1` now supports clean-install prep by removing the installed product and then wiping the install directory plus non-secret runtime settings
 - Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
 - The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
+
+### Update Paths
+
+- Portable/manual install:
+  download the latest portable ZIP or installer from GitHub Releases and replace/reinstall manually
+- Packaged install:
+  use `Tools -> Settings -> Check for Updates...` for release checks and guided installer download when the release includes both the `.exe` and `.sha256`
+- Clean reinstall:
+  use `Tools -> Settings -> Uninstall / Clean Install Prep...` or `uninstall-wms-tags.ps1`
 
 ## Configuration
 
@@ -425,9 +474,12 @@ Behavior:
 
 - Builds the CLI JAR.
 - Builds the portable bundle using `dist/temurin17-jre.zip`.
+- Builds the packaged Windows installer `.exe` through `build-jpackage-bundle.ps1 -InstallerType exe`.
+- Generates and publishes the installer SHA-256 sidecar `WMS Pallet Tag System-<version>.exe.sha256` for guided update verification.
 - PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from
   `cli/target/maven-archiver/pom.properties`.
-- Tags: attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
+- PRs: also upload the installer `.exe` and `.exe.sha256` as workflow artifacts.
+- Tags: attach the portable ZIP, installer `.exe`, and matching `.exe.sha256` to the GitHub Release.
 - Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
 ## Project Structure
@@ -442,6 +494,8 @@ wms-pallet-tag-system/
 |-- .env.example
 |-- config/
 |   |-- wms-tags.env.example
+|   |-- walmart-sku-matrix.csv
+|   |-- walm_loc_num_matrix.csv
 |   |-- templates/
 |   |   `-- walmart-canada-label.zpl
 |   `-- TBG3002/
@@ -453,6 +507,11 @@ wms-pallet-tag-system/
 |       |-- main/
 |       |   |-- java/com/tbg/wms/core/
 |       |   |   |-- AppConfig.java                  # env + runtime configuration loading
+|       |   |   |-- ConfigFileLocator.java          # runtime env file discovery and validation
+|       |   |   |-- EnvStyleConfigParser.java       # dotenv/env-style parsing
+|       |   |   |-- OutDirectoryRetentionService.java # stale out/ cleanup policy
+|       |   |   |-- RuntimePathResolver.java        # runtime-relative path resolution
+|       |   |   |-- RuntimeSettings.java            # non-secret user runtime preferences
 |       |   |   |-- barcode/                        # barcode ZPL builders and barcode logic
 |       |   |   |-- db/                             # DB-related core abstractions/models
 |       |   |   |-- exception/                      # typed app exceptions + exit code mapping
@@ -463,7 +522,8 @@ wms-pallet-tag-system/
 |       |   |   |-- print/                          # printer config, routing, network print
 |       |   |   |-- rail/                           # rail planners, CSV support, merge exporters
 |       |   |   |-- sku/                            # SKU matrix loading/mapping services
-|       |   |   `-- template/                       # template parsing/merge logic
+|       |   |   |-- template/                       # template parsing/merge logic
+|       |   |   `-- update/                         # release/version/update helpers
 |       |   `-- resources/
 |       `-- test/
 |           `-- java/com/tbg/wms/core/              # unit tests by package area
@@ -482,7 +542,11 @@ wms-pallet-tag-system/
 |       |   |-- LabelGuiFrame.java                  # desktop shell and tool entrypoints
 |       |   |-- LabelWorkflowService.java           # shipment preview/print orchestration
 |       |   |-- AdvancedPrintWorkflowService.java   # carrier move / queue / resume orchestration
+|       |   |-- MainSettingsDialog.java             # primary settings and maintenance dialog
+|       |   |-- AdvancedSettingsDialog.java         # non-secret runtime config editor
 |       |   |-- BarcodeDialogFactory.java           # barcode UI dialog wiring
+|       |   |-- PrintTaskPlanner.java               # shipment/carrier print task planning
+|       |   |-- ArtifactNameSupport.java            # shared artifact filename slugging
 |       |   |-- TextFieldClipboardController.java   # terminal-like right-click behavior
 |       |   `-- rail/                               # rail GUI workflow package
 |       |       |-- RailLabelsDialog.java           # rail workflow dialog
@@ -517,7 +581,10 @@ wms-pallet-tag-system/
 |-- scripts/                      # Build and launcher helpers
 |   |-- setup-wms-tags.ps1        # local install helper
 |   |-- build-portable-bundle.ps1 # portable package builder
-|   |-- build-jpackage-bundle.ps1 # app-image / installer builder
+|   |-- build-jpackage-bundle.ps1 # app-image / installer builder + installer sha256
+|   |-- install-wms-installer.ps1 # logged installer runner / replace-existing helper
+|   |-- uninstall-wms-tags.ps1    # uninstall / clean-install prep helper
+|   |-- verify-wms-tags.ps1       # packaged smoke-test helper
 |   |-- run.bat                   # bundle launcher
 |   `-- wms-tags-gui.bat          # bundle GUI launcher
 |-- vba/                          # Excel macro helper modules (.bas)
@@ -530,9 +597,10 @@ wms-pallet-tag-system/
 |-- analysis/                     # Internal analysis notes and DB dumps
 |   |-- docs/
 |   `-- python-tools/
-|-- dist/                         # Generated portable bundles
+|-- docs/                         # Handoff notes, security notes, PR drafts
+|-- dist/                         # Generated portable/app-image/installer bundles
 |-- logs/                         # Runtime logs
-`-- walmart_sku_matrix.csv
+`-- out/                          # Generated print artifacts
 ```
 
 ## Troubleshooting
