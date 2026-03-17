@@ -4,7 +4,7 @@
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
 ![Version](https://img.shields.io/badge/version-1.7.0-blue)
-![Java](https://img.shields.io/badge/java-11%2B-orange)
+![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
@@ -118,6 +118,32 @@ On Linux/macOS:
 ```bash
 ./run.sh
 ```
+
+### App image / executable bundle
+
+Use the `jpackage` builder when you want a native executable layout while keeping the portable ZIP/manual install path as fallback.
+
+1. Build the app image:
+
+```powershell
+.\scripts\build-jpackage-bundle.ps1
+```
+
+2. Optional: also build a per-user Windows installer:
+
+```powershell
+.\scripts\build-jpackage-bundle.ps1 -InstallerType exe
+```
+
+Notes:
+
+- Default app-image output is `dist/wms-pallet-tag-system-<version>-app`
+- The app image keeps `config/`, `wms-tags.env`, `out/`, and `logs/` next to the executable
+- The generated app image includes `WMS Pallet Tag System.exe`, plus `run.bat` and `wms-tags-gui.bat` wrappers for CLI and GUI entrypoints
+- The bundled runtime comes from the `jpackage` JDK unless you pass `-RuntimeImage`; use a Java 17 runtime image for release parity with the project baseline
+- The optional installer defaults to per-user install to avoid admin privileges when possible
+- Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
+- The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
 
 ## Configuration
 
@@ -368,7 +394,7 @@ Triggers on:
 Behavior:
 
 - Builds the CLI JAR.
-- Builds the portable bundle using `dist/temurin11-jre.zip`.
+- Builds the portable bundle using `dist/temurin17-jre.zip`.
 - PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from
   `cli/target/maven-archiver/pom.properties`.
 - Tags: attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
@@ -461,6 +487,7 @@ wms-pallet-tag-system/
 |-- scripts/                      # Build and launcher helpers
 |   |-- setup-wms-tags.ps1        # local install helper
 |   |-- build-portable-bundle.ps1 # portable package builder
+|   |-- build-jpackage-bundle.ps1 # app-image / installer builder
 |   |-- run.bat                   # bundle launcher
 |   `-- wms-tags-gui.bat          # bundle GUI launcher
 |-- vba/                          # Excel macro helper modules (.bas)

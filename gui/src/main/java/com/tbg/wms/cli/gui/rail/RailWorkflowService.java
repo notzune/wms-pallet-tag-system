@@ -6,6 +6,7 @@ package com.tbg.wms.cli.gui.rail;
 import com.tbg.wms.cli.gui.GuiPrinterTargetSupport;
 import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
 import com.tbg.wms.core.rail.RailCarCard;
@@ -30,9 +31,11 @@ import java.util.Objects;
 public final class RailWorkflowService {
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private final AppConfig config;
+    private final Path configBaseDir;
 
     public RailWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
+        this.configBaseDir = RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(RailWorkflowService.class, "config");
     }
 
     /**
@@ -52,7 +55,7 @@ public final class RailWorkflowService {
     }
 
     public List<LabelWorkflowService.PrinterOption> loadRailPrinters() throws Exception {
-        PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), Path.of("config"));
+        PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), configBaseDir);
         List<LabelWorkflowService.PrinterOption> printers = new ArrayList<>();
         for (PrinterConfig printer : routing.getPrinters().values()) {
             if (printer.isEnabled()) {
@@ -94,7 +97,7 @@ public final class RailWorkflowService {
             return new GenerationResult(targetDir, pdfPath, true, "System default printer");
         }
         if (!targetPrinterId.isEmpty() && !GuiPrinterTargetSupport.FILE_PRINTER_ID.equals(targetPrinterId)) {
-            PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), Path.of("config"));
+            PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), configBaseDir);
             PrinterConfig printer = routing.findPrinter(targetPrinterId)
                     .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + targetPrinterId));
             new RailPrintService().print(pdfPath, printer);

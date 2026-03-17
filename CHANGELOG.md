@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project metadata/version updated to `1.7.0` across Maven modules and release documentation.
 - Added printer `capabilities` metadata to site config so pallet-label and rail menus stay dynamic by workflow.
 - Upgraded the project Java baseline to 17 across Maven, CI, Javadoc generation, and portable bundle runtime packaging.
+- Added a `jpackage` app-image / installer build path while keeping the portable ZIP flow as the manual fallback distribution; optional installer generation uses WiX when available.
 
 - Performance tuning pass across rail/sku/gui services to reduce repeated allocations and repeated scans.
 - Removed an Oracle shipment-load N+1 pattern by batching all shipment line-items in one query and grouping by LPN in-memory.

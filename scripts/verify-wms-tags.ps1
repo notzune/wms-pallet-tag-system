@@ -68,6 +68,35 @@ function Get-JavaInfo {
     }
 }
 
+function Get-BundledRuntimeInfo {
+    param([string]$InstallDir)
+
+    $releaseFile = Join-Path $InstallDir "runtime\release"
+    if (-not (Test-Path -LiteralPath $releaseFile)) {
+        return $null
+    }
+
+    $versionLine = Get-Content -LiteralPath $releaseFile | Where-Object { $_ -like 'JAVA_VERSION=*' } | Select-Object -First 1
+    if (-not $versionLine) {
+        return [pscustomobject]@{
+            Exists  = $true
+            Major   = $null
+            Version = "Bundled runtime"
+        }
+    }
+
+    $versionText = ($versionLine -replace '^JAVA_VERSION="?([^"]+)"?$', '$1').Trim()
+    $major = $null
+    if ($versionText) {
+        $major = [int]($versionText.Split(".")[0])
+    }
+    return [pscustomobject]@{
+        Exists  = $true
+        Major   = $major
+        Version = $versionText
+    }
+}
+
 function Resolve-JavaCommand {
     param([string]$InstallDir)
     $bundled = Join-Path $InstallDir "runtime\bin\java.exe"
@@ -75,6 +104,17 @@ function Resolve-JavaCommand {
         return (Resolve-Path -LiteralPath $bundled).Path
     }
     return "java"
+}
+
+function Resolve-AppCommand {
+    param([string]$InstallDir)
+
+    $appExe = Join-Path $InstallDir "WMS Pallet Tag System.exe"
+    if (Test-Path -LiteralPath $appExe) {
+        return (Resolve-Path -LiteralPath $appExe).Path
+    }
+
+    return $null
 }
 
 $results = New-Object System.Collections.Generic.List[object]
@@ -87,6 +127,9 @@ if (Test-Path -LiteralPath $InstallDir) {
 }
 
 $jarPath = Join-Path $resolvedInstallDir "wms-tags.jar"
+if (-not (Test-Path -LiteralPath $jarPath)) {
+    $jarPath = Join-Path $resolvedInstallDir "app\wms-tags.jar"
+}
 $envPath = Join-Path $resolvedInstallDir "wms-tags.env"
 $printersPath = Join-Path $resolvedInstallDir "config\TBG3002\printers.yaml"
 $routingPath = Join-Path $resolvedInstallDir "config\TBG3002\printer-routing.yaml"
@@ -94,23 +137,29 @@ $skuMatrixPath = Join-Path $resolvedInstallDir "config\walmart-sku-matrix.csv"
 $locationMatrixPath = Join-Path $resolvedInstallDir "config\walm_loc_num_matrix.csv"
 $manifestPath = Join-Path $resolvedInstallDir "install-manifest.json"
 $bundleManifestPath = Join-Path $resolvedInstallDir "bundle-manifest.json"
+$appImageManifestPath = Join-Path $resolvedInstallDir "appimage-manifest.json"
 $javaCmd = Resolve-JavaCommand -InstallDir $resolvedInstallDir
+$appCmd = Resolve-AppCommand -InstallDir $resolvedInstallDir
 
 Add-Result -Check "Install directory exists" -Passed (Test-Path -LiteralPath $resolvedInstallDir) -Details $resolvedInstallDir
 Add-Result -Check "Jar file exists" -Passed (Test-Path -LiteralPath $jarPath) -Details $jarPath
+Add-Result -Check "Launcher exists" -Passed ($null -ne $appCmd) -Details ($(if ($appCmd) { $appCmd } else { "Launcher not bundled" }))
 Add-Result -Check "Env file exists" -Passed (Test-Path -LiteralPath $envPath) -Details $envPath
 Add-Result -Check "Printers file exists" -Passed (Test-Path -LiteralPath $printersPath) -Details $printersPath
 Add-Result -Check "Routing file exists" -Passed (Test-Path -LiteralPath $routingPath) -Details $routingPath
 Add-Result -Check "SKU matrix exists" -Passed (Test-Path -LiteralPath $skuMatrixPath) -Details $skuMatrixPath
 Add-Result -Check "Location matrix exists" -Passed (Test-Path -LiteralPath $locationMatrixPath) -Details $locationMatrixPath
 
-$javaInfo = Get-JavaInfo -JavaCommand $javaCmd
+$javaInfo = Get-BundledRuntimeInfo -InstallDir $resolvedInstallDir
+if (-not $javaInfo) {
+    $javaInfo = Get-JavaInfo -JavaCommand $javaCmd
+}
 if (-not $javaInfo.Exists) {
     Add-Result -Check "Java installed" -Passed $false -Details "java command not found"
-    Add-Result -Check "Java version >= 21" -Passed $false -Details "Not installed"
+    Add-Result -Check "Java version >= 17" -Passed $false -Details "Not installed"
 } else {
     Add-Result -Check "Java installed" -Passed $true -Details $javaInfo.Version
-    Add-Result -Check "Java version >= 21" -Passed (($javaInfo.Major -as [int]) -ge 21) -Details $javaInfo.Version
+    Add-Result -Check "Java version >= 17" -Passed (($javaInfo.Major -as [int]) -ge 17) -Details $javaInfo.Version
 }
 
 if (Test-Path -LiteralPath $jarPath) {
@@ -137,6 +186,16 @@ if (Test-Path -LiteralPath $jarPath) {
             Add-Result -Check "Bundle manifest readable" -Passed $false -Details $_.Exception.Message
         }
     }
+    if (-not $expectedHash -and (Test-Path -LiteralPath $appImageManifestPath)) {
+        try {
+            $manifest = Get-Content -LiteralPath $appImageManifestPath -Raw | ConvertFrom-Json
+            if ($manifest.JarSha256) {
+                $expectedHash = [string]$manifest.JarSha256
+            }
+        } catch {
+            Add-Result -Check "App image manifest readable" -Passed $false -Details $_.Exception.Message
+        }
+    }
 
     if ($expectedHash) {
         $hashPassed = ($actualHash.ToUpperInvariant() -eq $expectedHash.ToUpperInvariant())
@@ -146,15 +205,23 @@ if (Test-Path -LiteralPath $jarPath) {
     }
 }
 
-if ((Test-Path -LiteralPath $jarPath) -and $javaInfo.Exists) {
+if (($appCmd -or (Test-Path -LiteralPath $jarPath)) -and $javaInfo.Exists) {
     Push-Location $resolvedInstallDir
     try {
-        $configOutput = & $javaCmd -jar $jarPath config 2>&1 | Out-String
+        if ($appCmd) {
+            $configOutput = & $appCmd config 2>&1 | Out-String
+        } else {
+            $configOutput = & $javaCmd -jar $jarPath config 2>&1 | Out-String
+        }
         $configOk = ($LASTEXITCODE -eq 0)
         Add-Result -Check "Config command" -Passed $configOk -Details ($configOutput.Trim() -replace "\r?\n", " | ")
 
         if (-not $SkipDbTest) {
-            $dbOutput = & $javaCmd -jar $jarPath db-test 2>&1 | Out-String
+            if ($appCmd) {
+                $dbOutput = & $appCmd db-test 2>&1 | Out-String
+            } else {
+                $dbOutput = & $javaCmd -jar $jarPath db-test 2>&1 | Out-String
+            }
             $dbOk = ($LASTEXITCODE -eq 0)
             Add-Result -Check "DB connectivity (db-test)" -Passed $dbOk -Details ($dbOutput.Trim() -replace "\r?\n", " | ")
         } else {
@@ -167,7 +234,11 @@ if ((Test-Path -LiteralPath $jarPath) -and $javaInfo.Exists) {
             } else {
                 $dryRunDir = Join-Path $env:TEMP "wms-tags-dryrun-$timestamp"
                 New-Item -ItemType Directory -Path $dryRunDir -Force | Out-Null
-                $runOutput = & $javaCmd -jar $jarPath run --shipment-id $ShipmentId --dry-run --output-dir $dryRunDir 2>&1 | Out-String
+                if ($appCmd) {
+                    $runOutput = & $appCmd run --shipment-id $ShipmentId --dry-run --output-dir $dryRunDir 2>&1 | Out-String
+                } else {
+                    $runOutput = & $javaCmd -jar $jarPath run --shipment-id $ShipmentId --dry-run --output-dir $dryRunDir 2>&1 | Out-String
+                }
                 $runOk = ($LASTEXITCODE -eq 0)
                 $zplCount = (Get-ChildItem -Path $dryRunDir -Recurse -Filter "*.zpl" -File -ErrorAction SilentlyContinue | Measure-Object).Count
                 $details = "Exit=$LASTEXITCODE, ZPL=$zplCount, Dir=$dryRunDir, Output=" + ($runOutput.Trim() -replace "\r?\n", " | ")

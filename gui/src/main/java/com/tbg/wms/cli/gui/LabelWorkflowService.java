@@ -9,6 +9,7 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.label.SiteConfig;
@@ -54,7 +55,7 @@ public final class LabelWorkflowService {
     private volatile LabelTemplate cachedTemplate;
 
     public LabelWorkflowService(AppConfig config) {
-        this(config, Paths.get("config"));
+        this(config, RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(LabelWorkflowService.class, "config"));
     }
 
     LabelWorkflowService(AppConfig config, Path configBaseDir) {

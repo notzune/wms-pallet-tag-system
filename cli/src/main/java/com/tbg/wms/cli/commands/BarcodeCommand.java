@@ -267,7 +267,10 @@ public final class BarcodeCommand implements Callable<Integer> {
 
         PrinterRoutingService routing;
         try {
-            routing = PrinterRoutingService.load(site, Paths.get("config"));
+            routing = PrinterRoutingService.load(
+                    site,
+                    RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(BarcodeCommand.class, "config")
+            );
         } catch (Exception e) {
             log.error("Failed to load printer routing configuration", e);
             System.err.println("Error: Unable to load printer routing configuration.");

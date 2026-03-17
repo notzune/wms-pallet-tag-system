@@ -53,6 +53,12 @@ final class ConfigFileLocator {
             candidates.add(executableDir.resolve(".env"));
             candidates.add(executableDir.resolve("config").resolve(defaultFileName));
         }
+        Path appHome = RuntimePathResolver.resolveAppHome(anchorClass);
+        if (appHome != null) {
+            candidates.add(appHome.resolve(defaultFileName));
+            candidates.add(appHome.resolve(".env"));
+            candidates.add(appHome.resolve("config").resolve(defaultFileName));
+        }
 
         for (Path candidate : candidates) {
             if (Files.exists(candidate) && Files.isRegularFile(candidate)) {

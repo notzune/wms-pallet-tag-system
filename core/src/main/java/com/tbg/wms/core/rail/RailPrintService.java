@@ -4,6 +4,7 @@
 package com.tbg.wms.core.rail;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -91,7 +92,10 @@ public final class RailPrintService {
 
     private PrinterConfig resolveRailPrinter(AppConfig config) throws IOException {
         String site = config.activeSiteCode();
-        PrinterRoutingService routing = PrinterRoutingService.load(site, Path.of("config"));
+        PrinterRoutingService routing = PrinterRoutingService.load(
+                site,
+                RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(RailPrintService.class, "config")
+        );
         String printerId = config.railDefaultPrinterIdOrNull();
         if (printerId == null || printerId.isBlank()) {
             printerId = routing.getDefaultPrinterId();
