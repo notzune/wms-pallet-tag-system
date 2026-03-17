@@ -46,7 +46,9 @@ Not implemented yet:
 ## Engineering Quality Notes
 
 - DB shipment hydration avoids per-LPN line-item queries by loading all shipment line-items in one query and grouping in memory.
+- DB shipment hydration now also coalesces duplicate LPN rows from mixed inventory-detail joins so one physical pallet cannot generate duplicate labels.
 - GUI workflow caches are site-scoped and thread-safe to prevent stale cross-site printer/site metadata reuse.
+- GUI preview selection refresh now snapshots the selected labels once per update cycle instead of rebuilding shipment/carrier subsets repeatedly.
 - Query and command execution paths remain hardened with prepared statements and argumentized process invocation patterns.
 
 ## Prerequisites
@@ -328,6 +330,8 @@ Workflow:
 - Carrier mode prints all shipment labels in stop order, then per-stop info tags, then one final info tag.
 - Shipment mode prints shipment labels and one shipment info tag.
 - Select `Print to file` from the printer dropdown to save ZPL under `out/` without printer I/O.
+- Preview now supports per-label subset selection, starts with all labels selected, and keeps the label-selection panel collapsed by default to reduce noise on large jobs.
+- Preview includes an `Include info tags` toggle and shows `labels + info tags = total documents` in the selection status and math summary.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
 - Use `Tools -> Rail Labels...` for end-to-end rail merge generation from live WMS train data.
 - GUI printer scoping is driven by printer `capabilities` in `config/<site>/printers.yaml`.
@@ -336,6 +340,8 @@ Workflow:
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
 - `Tools` shows an alert badge when an application update is available, and `Settings...` exposes manual update checks plus packaged-install uninstall / clean-wipe launchers.
 - If the latest release includes the packaged installer `.exe`, update checks can use a guided download-and-install path instead of only opening the release page.
+- `Settings...` also exposes `Advanced Settings...` for non-secret runtime config files under `config/`; `wms-tags.env` stays outside the GUI because it contains database/network secrets.
+- Runtime output cleanup now prunes stale `out/` artifacts older than 14 days by default, and the retention window is configurable from `Settings...`.
 - See [docs/update-security-evaluation.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
 
 ## Walmart SKU Behavior
@@ -385,6 +391,7 @@ Recent documentation maintenance:
 
 - missing `package-info.java` coverage was filled for the newer `core` subpackages (`barcode`, `db`, `ems`, `label`, `labeling`, `location`, `sku`, `update`)
 - GUI settings/update/install maintenance responsibilities are now documented separately from the main frame through `MainSettingsDialog`
+- GUI print-task planning and artifact naming are now documented separately from workflow orchestration through `PrintTaskPlanner` and `ArtifactNameSupport`
 
 Documentation expectations for helper classes:
 

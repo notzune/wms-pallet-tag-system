@@ -7,12 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+No unreleased changes documented yet.
+
+## [1.7.1] - 2026-03-17
+
 ### Added
 
+- Installer helper scripts for logged install, same-version replacement, and direct uninstall of packaged installs.
 - Missing `package-info.java` coverage was added for `core.barcode`, `core.db`, `core.ems`, `core.label`, `core.labeling`, `core.location`, `core.sku`, and `core.update`.
 
 ### Changed
 
+- Project metadata/version updated to `1.7.1` across Maven modules and release documentation.
+- Windows installer packaging now uses a stable upgrade UUID so newer installer builds can replace prior installed versions more reliably, while helper scripts cover same-version replacement and direct uninstall.
 - GUI `Tools` / `Settings` now expose manual update checks against the latest GitHub Release, including an update-available alert badge on the toolbar when a newer version exists.
 - Guided upgrade flow now downloads the published installer asset into `updates/` and launches the packaged installer helper when a release includes the `.exe` asset.
 - Guided upgrade now requires a matching published `.sha256` checksum for the installer and refuses automatic launch when the checksum is missing or verification fails.
@@ -21,19 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GUI print-task expansion and artifact naming are now split into dedicated helpers (`PrintTaskPlanner`, `ArtifactNameSupport`) so `AdvancedPrintWorkflowService` stays focused on workflow orchestration and checkpoint execution.
 - Shared shipment relabeling/subset-print shipment reconstruction now lives in `LabelingSupport` instead of being duplicated across GUI workflow services.
 - Guided installer verification now streams SHA-256 hashing from disk and deletes failed/partial downloads.
+- CLI and GUI version metadata lookup now share `VersionSupport` helpers instead of duplicating build-resource resolution logic.
+- GUI preview selection refresh now snapshots selected labels once per update cycle instead of rebuilding the same selection lists multiple times.
 - CLI shipment preview selection rendering now uses identifier-set lookup instead of repeated list containment checks for better large-job scaling.
 - Oracle shipment loading now coalesces duplicate pallet rows produced by mixed inventory-detail joins so one physical LPN cannot generate duplicate pallet labels.
-
-## [1.7.1] - 2026-03-17
-
-### Added
-
-- Installer helper scripts for logged install, same-version replacement, and direct uninstall of packaged installs.
-
-### Changed
-
-- Project metadata/version updated to `1.7.1` across Maven modules and release documentation.
-- Windows installer packaging now uses a stable upgrade UUID so newer installer builds can replace prior installed versions more reliably, while helper scripts cover same-version replacement and direct uninstall.
 
 ## [1.7.0] - 2026-03-17
 
