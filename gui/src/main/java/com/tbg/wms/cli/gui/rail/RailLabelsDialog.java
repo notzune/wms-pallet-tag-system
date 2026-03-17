@@ -311,6 +311,7 @@ public final class RailLabelsDialog extends JDialog {
             protected void done() {
                 try {
                     DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
+                    model.addElement(GuiPrinterTargetSupport.buildSystemDefaultPrinterOption());
                     for (LabelWorkflowService.PrinterOption option : get()) {
                         model.addElement(option);
                     }

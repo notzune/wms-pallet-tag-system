@@ -72,7 +72,7 @@ public final class RailWorkflowService {
      *
      * @param job       prepared job produced by {@link #prepareRailJob(String)}
      * @param outputDir optional output directory (null for timestamped default)
-     * @param printerId printer target ID, or null/blank/FILE to skip printing
+     * @param printerId printer target ID, `SYSTEM_DEFAULT`, or null/blank/FILE to skip printing
      * @return generation result details
      */
     public GenerationResult generatePdf(PreparedRailJob job, Path outputDir, String printerId) throws Exception {
@@ -88,6 +88,10 @@ public final class RailWorkflowService {
                 (float) config.railLabelOffsetYInches()
         ).renderPdf(job.result.getCards(), pdfPath);
         String targetPrinterId = printerId == null ? "" : printerId.trim();
+        if (GuiPrinterTargetSupport.SYSTEM_DEFAULT_PRINTER_ID.equals(targetPrinterId)) {
+            new RailPrintService().print(pdfPath);
+            return new GenerationResult(targetDir, pdfPath, true, "System default printer");
+        }
         if (!targetPrinterId.isEmpty() && !GuiPrinterTargetSupport.FILE_PRINTER_ID.equals(targetPrinterId)) {
             PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), Path.of("config"));
             PrinterConfig printer = routing.findPrinter(targetPrinterId)

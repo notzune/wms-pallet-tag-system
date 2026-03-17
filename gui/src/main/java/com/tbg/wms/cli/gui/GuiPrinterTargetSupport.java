@@ -12,6 +12,7 @@ import java.util.Set;
  */
 public final class GuiPrinterTargetSupport {
     public static final String FILE_PRINTER_ID = "FILE";
+    public static final String SYSTEM_DEFAULT_PRINTER_ID = "SYSTEM_DEFAULT";
     private static final Set<String> LABEL_SCREEN_PRINTER_IDS = orderedSet("OFFICE", "DISPATCH");
     private static final Set<String> RAIL_TOOL_PRINTER_IDS = orderedSet("ORDER_PICK", "RAIL_OFFICE");
 
@@ -30,9 +31,21 @@ public final class GuiPrinterTargetSupport {
         return selected != null && FILE_PRINTER_ID.equals(selected.getId());
     }
 
+    public static boolean isSystemDefaultPrinter(LabelWorkflowService.PrinterOption selected) {
+        return selected != null && SYSTEM_DEFAULT_PRINTER_ID.equals(selected.getId());
+    }
+
     public static LabelWorkflowService.PrinterOption buildPrintToFileOption(Path outputDir) {
         Objects.requireNonNull(outputDir, "outputDir cannot be null");
         return new LabelWorkflowService.PrinterOption(FILE_PRINTER_ID, "Print to file", outputDir.toString());
+    }
+
+    public static LabelWorkflowService.PrinterOption buildSystemDefaultPrinterOption() {
+        return new LabelWorkflowService.PrinterOption(
+                SYSTEM_DEFAULT_PRINTER_ID,
+                "System default printer",
+                "Host default"
+        );
     }
 
     private static List<LabelWorkflowService.PrinterOption> filterPrinters(List<LabelWorkflowService.PrinterOption> printers, Set<String> allowedIds) {
