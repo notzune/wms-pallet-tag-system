@@ -51,8 +51,8 @@ Not implemented yet:
 
 ## Prerequisites
 
-- JDK 11+ for development builds (`javac` must be available; JRE-only installs will fail Maven compile)
-- Java 11+ runtime for running packaged bundles (JRE is acceptable for runtime only)
+- JDK 17+ for development builds (`javac` must be available; JRE-only installs will fail Maven compile)
+- Java 17+ runtime for running packaged bundles (JRE is acceptable for runtime only)
 - Maven Wrapper included (`mvnw`, `mvnw.cmd`)
 - Oracle WMS network access
 - Zebra printer network access (for non-dry-run printing)
