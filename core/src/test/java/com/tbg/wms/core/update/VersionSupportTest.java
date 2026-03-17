@@ -18,4 +18,14 @@ class VersionSupportTest {
         assertTrue(VersionSupport.compare("1.8.0", "1.7.9") > 0);
         assertEquals(0, VersionSupport.compare("v1.7.1", "1.7.1"));
     }
+
+    @Test
+    void resolvePackageVersion_shouldReturnBlankWhenUnavailable() {
+        assertEquals("", VersionSupport.resolvePackageVersion(VersionSupportTest.class));
+    }
+
+    @Test
+    void readFirstNonBlankProperty_shouldReturnBlankForMissingProperty() {
+        assertEquals("", VersionSupport.readFirstNonBlankProperty(VersionSupportTest.class, "version", "/missing.properties"));
+    }
 }

@@ -18,13 +18,13 @@ import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.update.ReleaseAssetSupport;
 import com.tbg.wms.core.update.ReleaseCheckService;
+import com.tbg.wms.core.update.VersionSupport;
 
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -32,7 +32,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.prefs.Preferences;
 
 /**
@@ -133,34 +132,18 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private static String resolveVersionTag() {
-        Package pkg = LabelGuiFrame.class.getPackage();
-        String version = pkg == null ? null : pkg.getImplementationVersion();
-        if (version == null || version.isBlank()) {
-            version = System.getProperty("wms.tags.version", "");
+        String version = VersionSupport.resolvePackageVersion(LabelGuiFrame.class);
+        if (version.isBlank()) {
+            version = System.getProperty("wms.tags.version", "").trim();
         }
-        if (version == null || version.isBlank()) {
+        if (version.isBlank()) {
             version = resolveVersionFromPomProperties();
         }
         return version.trim();
     }
 
     private static String resolveVersionFromPomProperties() {
-        for (String path : VERSION_RESOURCE_PATHS) {
-            try (InputStream in = LabelGuiFrame.class.getResourceAsStream(path)) {
-                if (in == null) {
-                    continue;
-                }
-                Properties properties = new Properties();
-                properties.load(in);
-                String version = properties.getProperty("version", "").trim();
-                if (!version.isEmpty()) {
-                    return version;
-                }
-            } catch (Exception ignored) {
-                // Fall through to next candidate resource.
-            }
-        }
-        return "";
+        return VersionSupport.readFirstNonBlankProperty(LabelGuiFrame.class, "version", VERSION_RESOURCE_PATHS);
     }
 
     private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
@@ -554,15 +537,16 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void updatePreviewSelectionUi() {
+        PreviewSelectionSnapshot selection = snapshotPreviewSelection();
         int total = previewLabelCheckboxes.size();
-        int selected = getSelectedPreviewOptions().size();
-        int infoTags = currentInfoTagCount();
-        int totalDocuments = selected + infoTags;
+        int selected = selection.selectedLabelCount();
+        int infoTags = selection.infoTagCount();
+        int totalDocuments = selection.totalDocuments();
         labelSelectionStatusLabel.setText("Selected " + selected + " of " + total + " labels | Info Tags " + infoTags
                 + " | Total Documents " + totalDocuments);
         labelSelectionToggleButton.setText(selected == total ? "Deselect All" : "Select All");
-        refreshPreviewText();
-        updatePrintButtonEnabled();
+        refreshPreviewText(selection);
+        updatePrintButtonEnabled(selection);
     }
 
     private void updateLabelSelectionCollapseUi() {
@@ -575,31 +559,29 @@ public final class LabelGuiFrame extends JFrame {
         labelSelectionPanel.repaint();
     }
 
-    private void refreshPreviewText() {
+    private void refreshPreviewText(PreviewSelectionSnapshot selection) {
         if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            List<LabelSelectionRef> selectedLabels = getSelectedCarrierMoveLabels();
-            shipmentArea.setText(buildCarrierMoveSummaryText(preparedCarrierJob, selectedLabels));
+            shipmentArea.setText(buildCarrierMoveSummaryText(preparedCarrierJob, selection.selectedCarrierLabels()));
             mathArea.setText(previewFormatter.buildCarrierMoveMathText(
                     preparedCarrierJob,
                     MAX_PREVIEW_STOPS,
                     MAX_PREVIEW_SHIPMENTS_PER_STOP,
-                    selectedLabels.size(),
-                    currentInfoTagCount()
+                    selection.selectedLabelCount(),
+                    selection.infoTagCount()
             ));
             return;
         }
         if (preparedJob != null && !isCarrierMoveMode()) {
-            List<Lpn> selectedLpns = getSelectedShipmentLpns();
             shipmentArea.setText(previewFormatter.buildShipmentSummaryText(
                     preparedJob,
-                    selectedLpns,
-                    currentInfoTagCount()
+                    selection.selectedShipmentLpns(),
+                    selection.infoTagCount()
             ));
             mathArea.setText(previewFormatter.buildShipmentMathText(
                     preparedJob,
                     MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT,
-                    selectedLpns.size(),
-                    currentInfoTagCount()
+                    selection.selectedLabelCount(),
+                    selection.infoTagCount()
             ));
         }
     }
@@ -668,16 +650,44 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private int currentInfoTagCount() {
+        return snapshotPreviewSelection().infoTagCount();
+    }
+
+    private int computeInfoTagCount(int selectedShipmentLabels, List<LabelSelectionRef> selectedCarrierLabels) {
         if (!includeInfoTagsCheckBox.isSelected()) {
             return 0;
         }
         if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            return PrintTaskPlanner.countCarrierMoveInfoTags(getSelectedCarrierMoveLabels(), true);
+            return PrintTaskPlanner.countCarrierMoveInfoTags(selectedCarrierLabels, true);
         }
         if (preparedJob != null && !isCarrierMoveMode()) {
-            return PrintTaskPlanner.countShipmentInfoTags(getSelectedShipmentLpns().size(), true);
+            return PrintTaskPlanner.countShipmentInfoTags(selectedShipmentLabels, true);
         }
         return 0;
+    }
+
+    private PreviewSelectionSnapshot snapshotPreviewSelection() {
+        if (previewLabelCheckboxes.isEmpty() || previewLabelOptions.isEmpty()) {
+            return new PreviewSelectionSnapshot(List.of(), List.of(), List.of(), 0);
+        }
+        List<PreviewLabelOption> selectedOptions = new ArrayList<>();
+        List<Lpn> selectedShipmentLpns = new ArrayList<>();
+        List<LabelSelectionRef> selectedCarrierLabels = new ArrayList<>();
+        for (int i = 0; i < previewLabelCheckboxes.size() && i < previewLabelOptions.size(); i++) {
+            if (!previewLabelCheckboxes.get(i).isSelected()) {
+                continue;
+            }
+            PreviewLabelOption option = previewLabelOptions.get(i);
+            selectedOptions.add(option);
+            if (option.lpn() != null) {
+                selectedShipmentLpns.add(option.lpn());
+            }
+            if (option.carrierMoveSelection() != null) {
+                selectedCarrierLabels.add(option.carrierMoveSelection());
+            }
+        }
+        int infoTagCount = computeInfoTagCount(selectedShipmentLpns.size(), selectedCarrierLabels);
+        return new PreviewSelectionSnapshot(selectedOptions, selectedShipmentLpns, selectedCarrierLabels, infoTagCount);
     }
 
     private void resetPreviewLabelSelection() {
@@ -707,9 +717,10 @@ public final class LabelGuiFrame extends JFrame {
             return;
         }
 
-        List<Lpn> selectedShipmentLpns = carrierMoveMode ? List.of() : getSelectedShipmentLpns();
+        PreviewSelectionSnapshot selection = snapshotPreviewSelection();
+        List<Lpn> selectedShipmentLpns = carrierMoveMode ? List.of() : selection.selectedShipmentLpns();
         List<LabelSelectionRef> selectedCarrierLabels =
-                carrierMoveMode ? getSelectedCarrierMoveLabels() : List.of();
+                carrierMoveMode ? selection.selectedCarrierLabels() : List.of();
         if ((!carrierMoveMode && selectedShipmentLpns.isEmpty())
                 || (carrierMoveMode && selectedCarrierLabels.isEmpty())) {
             showError("Select at least one label to print.");
@@ -720,7 +731,7 @@ public final class LabelGuiFrame extends JFrame {
             int plannedLabels = carrierMoveMode
                     ? selectedCarrierLabels.size()
                     : selectedShipmentLpns.size();
-            int plannedInfoTags = currentInfoTagCount();
+            int plannedInfoTags = selection.infoTagCount();
             int choice = JOptionPane.showConfirmDialog(
                     this,
                     carrierMoveMode
@@ -817,7 +828,7 @@ public final class LabelGuiFrame extends JFrame {
         statusLabel.setText(message);
         previewButton.setEnabled(true);
         clearButton.setEnabled(true);
-        updatePrintButtonEnabled();
+        updatePrintButtonEnabled(snapshotPreviewSelection());
     }
 
     private void showError(String message) {
@@ -1049,12 +1060,12 @@ public final class LabelGuiFrame extends JFrame {
         return carrierMoveModeButton.isSelected();
     }
 
-    private void updatePrintButtonEnabled() {
+    private void updatePrintButtonEnabled(PreviewSelectionSnapshot selection) {
         if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            printButton.setEnabled(!getSelectedCarrierMoveLabels().isEmpty());
+            printButton.setEnabled(!selection.selectedCarrierLabels().isEmpty());
             return;
         }
-        printButton.setEnabled(preparedJob != null && !getSelectedShipmentLpns().isEmpty() && !isCarrierMoveMode());
+        printButton.setEnabled(preparedJob != null && !selection.selectedShipmentLpns().isEmpty() && !isCarrierMoveMode());
     }
 
     private void openQueueDialog() {
@@ -1355,6 +1366,27 @@ public final class LabelGuiFrame extends JFrame {
         @Override
         public PrinterConfig resolvePrinter(String printerId) throws Exception {
             return service.resolvePrinter(printerId);
+        }
+    }
+
+    private record PreviewSelectionSnapshot(
+            List<PreviewLabelOption> selectedOptions,
+            List<Lpn> selectedShipmentLpns,
+            List<LabelSelectionRef> selectedCarrierLabels,
+            int infoTagCount
+    ) {
+        private PreviewSelectionSnapshot {
+            selectedOptions = List.copyOf(selectedOptions);
+            selectedShipmentLpns = List.copyOf(selectedShipmentLpns);
+            selectedCarrierLabels = List.copyOf(selectedCarrierLabels);
+        }
+
+        private int selectedLabelCount() {
+            return selectedOptions.size();
+        }
+
+        private int totalDocuments() {
+            return selectedLabelCount() + infoTagCount;
         }
     }
 

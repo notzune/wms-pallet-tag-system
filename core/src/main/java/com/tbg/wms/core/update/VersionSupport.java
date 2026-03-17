@@ -1,5 +1,10 @@
 package com.tbg.wms.core.update;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 import java.util.Objects;
 
 /**
@@ -19,6 +24,62 @@ public final class VersionSupport {
             raw = raw.substring(1).trim();
         }
         return raw;
+    }
+
+    public static String resolvePackageVersion(Class<?> anchorType) {
+        Objects.requireNonNull(anchorType, "anchorType cannot be null");
+        Package pkg = anchorType.getPackage();
+        String implementationVersion = pkg == null ? null : pkg.getImplementationVersion();
+        return implementationVersion == null ? "" : implementationVersion.trim();
+    }
+
+    public static String readFirstNonBlankResourceLine(Class<?> anchorType, String... resourcePaths) {
+        Objects.requireNonNull(anchorType, "anchorType cannot be null");
+        Objects.requireNonNull(resourcePaths, "resourcePaths cannot be null");
+        for (String resourcePath : resourcePaths) {
+            if (resourcePath == null || resourcePath.isBlank()) {
+                continue;
+            }
+            try (InputStream in = anchorType.getResourceAsStream(resourcePath)) {
+                if (in == null) {
+                    continue;
+                }
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                    String line = reader.readLine();
+                    if (line != null && !line.isBlank()) {
+                        return line.trim();
+                    }
+                }
+            } catch (Exception ignored) {
+                // Fall through to the next candidate.
+            }
+        }
+        return "";
+    }
+
+    public static String readFirstNonBlankProperty(Class<?> anchorType, String propertyName, String... resourcePaths) {
+        Objects.requireNonNull(anchorType, "anchorType cannot be null");
+        Objects.requireNonNull(propertyName, "propertyName cannot be null");
+        Objects.requireNonNull(resourcePaths, "resourcePaths cannot be null");
+        for (String resourcePath : resourcePaths) {
+            if (resourcePath == null || resourcePath.isBlank()) {
+                continue;
+            }
+            try (InputStream in = anchorType.getResourceAsStream(resourcePath)) {
+                if (in == null) {
+                    continue;
+                }
+                Properties properties = new Properties();
+                properties.load(in);
+                String value = properties.getProperty(propertyName, "").trim();
+                if (!value.isEmpty()) {
+                    return value;
+                }
+            } catch (Exception ignored) {
+                // Fall through to the next candidate.
+            }
+        }
+        return "";
     }
 
     public static int compare(String leftVersion, String rightVersion) {
