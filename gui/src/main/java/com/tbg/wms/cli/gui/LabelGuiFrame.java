@@ -672,10 +672,10 @@ public final class LabelGuiFrame extends JFrame {
             return 0;
         }
         if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            return AdvancedPrintWorkflowService.countCarrierMoveInfoTags(getSelectedCarrierMoveLabels(), true);
+            return PrintTaskPlanner.countCarrierMoveInfoTags(getSelectedCarrierMoveLabels(), true);
         }
         if (preparedJob != null && !isCarrierMoveMode()) {
-            return AdvancedPrintWorkflowService.countShipmentInfoTags(getSelectedShipmentLpns().size(), true);
+            return PrintTaskPlanner.countShipmentInfoTags(getSelectedShipmentLpns().size(), true);
         }
         return 0;
     }

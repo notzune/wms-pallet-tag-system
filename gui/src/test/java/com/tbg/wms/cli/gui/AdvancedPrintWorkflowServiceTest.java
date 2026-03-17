@@ -18,7 +18,7 @@ class AdvancedPrintWorkflowServiceTest {
         Lpn second = new Lpn("LPN-2", "S1", null, 0, 0, 0.0, null, null, null, null, null, List.of());
         Lpn third = new Lpn("LPN-3", "S1", null, 0, 0, 0.0, null, null, null, null, null, List.of());
 
-        List<Lpn> filtered = AdvancedPrintWorkflowService.filterLpnsForPrint(
+        List<Lpn> filtered = PrintTaskPlanner.filterLpnsForPrint(
                 List.of(first, second, third),
                 List.of(third, first)
         );
@@ -29,16 +29,16 @@ class AdvancedPrintWorkflowServiceTest {
     @Test
     void filterLpnsForPrint_shouldRejectEmptySelection() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AdvancedPrintWorkflowService.filterLpnsForPrint(List.of(), List.of()));
+                () -> PrintTaskPlanner.filterLpnsForPrint(List.of(), List.of()));
 
         assertEquals("Select at least one label to print.", ex.getMessage());
     }
 
     @Test
     void countShipmentInfoTags_shouldRespectSelectionAndToggle() {
-        assertEquals(1, AdvancedPrintWorkflowService.countShipmentInfoTags(2, true));
-        assertEquals(0, AdvancedPrintWorkflowService.countShipmentInfoTags(0, true));
-        assertEquals(0, AdvancedPrintWorkflowService.countShipmentInfoTags(2, false));
+        assertEquals(1, PrintTaskPlanner.countShipmentInfoTags(2, true));
+        assertEquals(0, PrintTaskPlanner.countShipmentInfoTags(0, true));
+        assertEquals(0, PrintTaskPlanner.countShipmentInfoTags(2, false));
     }
 
     @Test
@@ -49,8 +49,18 @@ class AdvancedPrintWorkflowServiceTest {
                 LabelSelectionRef.forCarrierMove(3, "S2", "L3", 3)
         );
 
-        assertEquals(3, AdvancedPrintWorkflowService.countCarrierMoveInfoTags(selected, true));
-        assertEquals(0, AdvancedPrintWorkflowService.countCarrierMoveInfoTags(selected, false));
-        assertEquals(0, AdvancedPrintWorkflowService.countCarrierMoveInfoTags(List.of(), true));
+        assertEquals(3, PrintTaskPlanner.countCarrierMoveInfoTags(selected, true));
+        assertEquals(0, PrintTaskPlanner.countCarrierMoveInfoTags(selected, false));
+        assertEquals(0, PrintTaskPlanner.countCarrierMoveInfoTags(List.of(), true));
+    }
+
+    @Test
+    void countCarrierMoveInfoTags_shouldNotEmitFinalTagWhenSelectionsLackStops() {
+        List<LabelSelectionRef> selected = List.of(
+                LabelSelectionRef.forShipment(1, "S1", "L1"),
+                LabelSelectionRef.forShipment(2, "S1", "L2")
+        );
+
+        assertEquals(0, PrintTaskPlanner.countCarrierMoveInfoTags(selected, true));
     }
 }
