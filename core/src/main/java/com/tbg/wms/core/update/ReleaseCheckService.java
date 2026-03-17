@@ -9,6 +9,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -51,6 +53,7 @@ public final class ReleaseCheckService {
         String latestVersion = VersionSupport.normalize(root.path("tag_name").asText(""));
         String releaseName = root.path("name").asText("");
         String releaseUrl = root.path("html_url").asText("");
+        List<ReleaseAsset> assets = parseAssets(root.path("assets"));
         boolean updateAvailable = !latestVersion.isBlank()
                 && !normalizedCurrentVersion.isBlank()
                 && VersionSupport.compare(latestVersion, normalizedCurrentVersion) > 0;
@@ -59,8 +62,24 @@ public final class ReleaseCheckService {
                 latestVersion,
                 releaseName,
                 releaseUrl,
+                assets,
                 updateAvailable
         );
+    }
+
+    private List<ReleaseAsset> parseAssets(JsonNode assetsNode) {
+        if (assetsNode == null || !assetsNode.isArray()) {
+            return List.of();
+        }
+        List<ReleaseAsset> assets = new ArrayList<>();
+        for (JsonNode assetNode : assetsNode) {
+            String name = assetNode.path("name").asText("");
+            String downloadUrl = assetNode.path("browser_download_url").asText("");
+            if (!name.isBlank() && !downloadUrl.isBlank()) {
+                assets.add(new ReleaseAsset(name, downloadUrl));
+            }
+        }
+        return List.copyOf(assets);
     }
 
     public record ReleaseInfo(
@@ -68,7 +87,20 @@ public final class ReleaseCheckService {
             String latestVersion,
             String releaseName,
             String releaseUrl,
+            List<ReleaseAsset> assets,
             boolean updateAvailable
+    ) {
+        public ReleaseAsset preferredInstallerAsset() {
+            return assets.stream()
+                    .filter(asset -> asset.name().endsWith(".exe"))
+                    .findFirst()
+                    .orElse(null);
+        }
+    }
+
+    public record ReleaseAsset(
+            String name,
+            String downloadUrl
     ) {
     }
 }

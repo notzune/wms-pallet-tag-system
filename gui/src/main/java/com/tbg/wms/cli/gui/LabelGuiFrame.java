@@ -89,6 +89,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
     private final transient InstallMaintenanceService installMaintenanceService = new InstallMaintenanceService();
+    private final transient GuidedUpdateService guidedUpdateService = new GuidedUpdateService();
     private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
     private transient List<JCheckBox> previewLabelCheckboxes = List.of();
     private transient List<PreviewLabelOption> previewLabelOptions = List.of();
@@ -881,7 +882,9 @@ public final class LabelGuiFrame extends JFrame {
             return "No update check has completed yet.";
         }
         if (latestReleaseInfo.updateAvailable()) {
-            return "Update available: " + latestReleaseInfo.latestVersion();
+            return latestReleaseInfo.preferredInstallerAsset() == null
+                    ? "Update available: " + latestReleaseInfo.latestVersion()
+                    : "Update available: " + latestReleaseInfo.latestVersion() + " (guided install ready)";
         }
         return "Up to date on " + latestReleaseInfo.currentVersion() + ".";
     }
@@ -905,22 +908,64 @@ public final class LabelGuiFrame extends JFrame {
             return;
         }
 
-        Object[] options = {"Open Download Page", "Close"};
+        ReleaseCheckService.ReleaseAsset installerAsset = releaseInfo.preferredInstallerAsset();
+        Object[] options = installerAsset == null
+                ? new Object[]{"Open Download Page", "Close"}
+                : new Object[]{"Download and Install", "Open Download Page", "Close"};
         int choice = JOptionPane.showOptionDialog(
                 this,
                 "Current version: " + releaseInfo.currentVersion()
                         + "\nLatest version: " + releaseInfo.latestVersion()
-                        + "\n\nOpen the latest release download page now?",
+                        + (installerAsset == null
+                        ? "\n\nNo published installer asset was found for guided upgrade. Open the latest release page now?"
+                        : "\n\nA packaged installer is available. Download it and start the upgrade now?"),
                 "Update Available",
-                JOptionPane.YES_NO_OPTION,
+                JOptionPane.DEFAULT_OPTION,
                 JOptionPane.INFORMATION_MESSAGE,
                 null,
                 options,
                 options[0]
         );
-        if (choice == JOptionPane.YES_OPTION) {
+        if (installerAsset != null && choice == 0) {
+            performGuidedUpgrade(releaseInfo, installerAsset);
+            return;
+        }
+        if ((installerAsset == null && choice == 0) || (installerAsset != null && choice == 1)) {
             openReleaseUrl(releaseInfo.releaseUrl());
         }
+    }
+
+    private void performGuidedUpgrade(
+            ReleaseCheckService.ReleaseInfo releaseInfo,
+            ReleaseCheckService.ReleaseAsset installerAsset
+    ) {
+        Path installScript = installMaintenanceService.findInstallScript(LabelGuiFrame.class).orElse(null);
+        if (installScript == null) {
+            openReleaseUrl(releaseInfo.releaseUrl());
+            return;
+        }
+
+        setBusy("Downloading update " + releaseInfo.latestVersion() + "...");
+        SwingWorker<Path, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Path doInBackground() throws Exception {
+                return guidedUpdateService.downloadInstaller(LabelGuiFrame.class, installerAsset);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Path installerPath = get();
+                    installMaintenanceService.launchInstaller(installScript, installerPath);
+                    dispose();
+                    System.exit(0);
+                } catch (Exception ex) {
+                    setReady("Update download failed.");
+                    showError("Could not start guided update: " + rootMessage(ex));
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void openReleaseUrl(String releaseUrl) {

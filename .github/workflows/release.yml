@@ -38,6 +38,16 @@ jobs:
             Invoke-WebRequest -Uri $url -OutFile $runtimeZip
           }
 
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          choco install wixtoolset --no-progress -y
+          $wixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+          if (-not (Test-Path -LiteralPath $wixPath)) {
+            throw "Expected WiX path not found: $wixPath"
+          }
+          Add-Content -Path $env:GITHUB_PATH -Value $wixPath
+
       - name: Build Portable Bundle
         shell: pwsh
         run: |
@@ -78,6 +88,11 @@ jobs:
           }
           Compress-Archive -Path $bundleDir -DestinationPath $bundleZip
 
+      - name: Build Installer Bundle
+        shell: pwsh
+        run: |
+          .\scripts\build-jpackage-bundle.ps1 -InstallerType exe -SourceRoot $env:GITHUB_WORKSPACE
+
       - name: Build Release Notes
         if: github.event_name == 'push'
         shell: pwsh
@@ -103,7 +118,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wms-pallet-tag-system-${{ github.sha }}-portable
-          path: dist/wms-pallet-tag-system-*-portable.zip
+          path: |
+            dist/wms-pallet-tag-system-*-portable.zip
+            dist/WMS Pallet Tag System-*.exe
 
       - name: Create Release
         if: github.event_name == 'push'
@@ -112,3 +129,4 @@ jobs:
           body_path: release-notes.txt
           files: |
             dist/wms-pallet-tag-system-*-portable.zip
+            dist/WMS Pallet Tag System-*.exe
