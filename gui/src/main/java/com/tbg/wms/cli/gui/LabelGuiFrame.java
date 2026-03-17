@@ -78,7 +78,8 @@ public final class LabelGuiFrame extends JFrame {
     private final transient LabelPreviewFormatter previewFormatter = new LabelPreviewFormatter();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
-    private transient List<JCheckBox> shipmentLabelCheckboxes = List.of();
+    private transient List<JCheckBox> previewLabelCheckboxes = List.of();
+    private transient List<PreviewLabelOption> previewLabelOptions = List.of();
     private transient LabelWorkflowService.PreparedJob preparedJob;
     private transient AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
 
@@ -272,7 +273,7 @@ public final class LabelGuiFrame extends JFrame {
         previewButton.addActionListener(e -> previewJob());
         clearButton.addActionListener(e -> clearForm());
         printButton.addActionListener(e -> confirmAndPrint());
-        labelSelectionToggleButton.addActionListener(e -> toggleShipmentLabelSelection());
+        labelSelectionToggleButton.addActionListener(e -> togglePreviewLabelSelection());
         carrierMoveModeButton.addActionListener(e -> updateInputModeUi());
         shipmentModeButton.addActionListener(e -> updateInputModeUi());
     }
@@ -371,20 +372,21 @@ public final class LabelGuiFrame extends JFrame {
         shipmentPreviewPanel.removeAll();
         shipmentArea.setText(previewFormatter.buildShipmentSummaryText(job, 1));
         shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.add(buildShipmentLabelSelectionPanel(job));
+        shipmentPreviewPanel.add(buildLabelSelectionPanel(buildShipmentLabelOptions(job)));
         mathArea.setText(previewFormatter.buildShipmentMathText(job, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT));
-        updateShipmentSelectionUi();
+        updatePreviewSelectionUi();
         shipmentPreviewPanel.revalidate();
         shipmentPreviewPanel.repaint();
     }
 
     private void renderCarrierMovePreview(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
         Objects.requireNonNull(job, "job cannot be null");
-        resetShipmentLabelSelection();
+        resetPreviewLabelSelection();
         shipmentPreviewPanel.removeAll();
         StringBuilder summary = new StringBuilder(previewFormatter.buildCarrierMoveSummary(job));
         shipmentArea.setText(summary.toString());
         shipmentPreviewPanel.add(shipmentArea);
+        shipmentPreviewPanel.add(buildLabelSelectionPanel(buildCarrierMoveLabelOptions(job)));
 
         int shownStops = addStopPreviewSections(job);
         if (job.getStopGroups().size() > shownStops) {
@@ -447,22 +449,20 @@ public final class LabelGuiFrame extends JFrame {
         return shown;
     }
 
-    private JComponent buildShipmentLabelSelectionPanel(LabelWorkflowService.PreparedJob job) {
-        Objects.requireNonNull(job, "job cannot be null");
-        shipmentLabelCheckboxes = new ArrayList<>(job.getLpnsForLabels().size());
-
+    private JComponent buildLabelSelectionPanel(List<PreviewLabelOption> options) {
+        Objects.requireNonNull(options, "options cannot be null");
+        previewLabelOptions = List.copyOf(options);
+        previewLabelCheckboxes = new ArrayList<>(options.size());
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         controls.add(labelSelectionToggleButton);
         controls.add(labelSelectionStatusLabel);
 
         JPanel checkboxGrid = new JPanel(new GridLayout(0, 3, 8, 4));
-        int index = 1;
-        for (Lpn lpn : job.getLpnsForLabels()) {
-            JCheckBox checkbox = new JCheckBox(buildShipmentLabelOptionText(index, lpn), true);
-            checkbox.addActionListener(e -> updateShipmentSelectionUi());
-            shipmentLabelCheckboxes.add(checkbox);
+        for (PreviewLabelOption option : options) {
+            JCheckBox checkbox = new JCheckBox(option.labelText(), true);
+            checkbox.addActionListener(e -> updatePreviewSelectionUi());
+            previewLabelCheckboxes.add(checkbox);
             checkboxGrid.add(checkbox);
-            index++;
         }
 
         labelSelectionPanel.removeAll();
@@ -473,43 +473,128 @@ public final class LabelGuiFrame extends JFrame {
         return labelSelectionPanel;
     }
 
-    private String buildShipmentLabelOptionText(int index, Lpn lpn) {
-        String lpnId = lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank() ? "UNKNOWN" : lpn.getLpnId();
-        return String.format("%02d. %s", index, lpnId);
+    private List<PreviewLabelOption> buildShipmentLabelOptions(LabelWorkflowService.PreparedJob job) {
+        Objects.requireNonNull(job, "job cannot be null");
+        List<PreviewLabelOption> options = new ArrayList<>(job.getLpnsForLabels().size());
+        int index = 1;
+        for (Lpn lpn : job.getLpnsForLabels()) {
+            options.add(new PreviewLabelOption(buildShipmentLabelOptionText(index, lpn), lpn, null));
+            index++;
+        }
+        return options;
     }
 
-    private void toggleShipmentLabelSelection() {
-        boolean selectAll = shipmentLabelCheckboxes.stream().anyMatch(box -> !box.isSelected());
-        for (JCheckBox checkbox : shipmentLabelCheckboxes) {
+    private List<PreviewLabelOption> buildCarrierMoveLabelOptions(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        Objects.requireNonNull(job, "job cannot be null");
+        List<PreviewLabelOption> options = new ArrayList<>();
+        int index = 1;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
+                    String labelText = buildCarrierMoveLabelOptionText(index, stop, shipmentJob, lpn);
+                    AdvancedPrintWorkflowService.CarrierMoveLabelSelection selection =
+                            new AdvancedPrintWorkflowService.CarrierMoveLabelSelection(
+                                    shipmentJob.getShipmentId(),
+                                    resolveLpnId(lpn),
+                                    stop.getStopPosition()
+                            );
+                    options.add(new PreviewLabelOption(labelText, lpn, selection));
+                    index++;
+                }
+            }
+        }
+        return options;
+    }
+
+    private String buildShipmentLabelOptionText(int index, Lpn lpn) {
+        return String.format("%02d. %s", index, resolveLpnId(lpn));
+    }
+
+    private String buildCarrierMoveLabelOptionText(
+            int index,
+            AdvancedPrintWorkflowService.PreparedStopGroup stop,
+            LabelWorkflowService.PreparedJob shipmentJob,
+            Lpn lpn
+    ) {
+        return String.format(
+                "%02d. Stop %02d | Shipment %s | %s",
+                index,
+                stop.getStopPosition(),
+                shipmentJob.getShipmentId(),
+                resolveLpnId(lpn)
+        );
+    }
+
+    private String resolveLpnId(Lpn lpn) {
+        String lpnId = lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank() ? "UNKNOWN" : lpn.getLpnId();
+        return lpnId;
+    }
+
+    private void togglePreviewLabelSelection() {
+        boolean selectAll = previewLabelCheckboxes.stream().anyMatch(box -> !box.isSelected());
+        for (JCheckBox checkbox : previewLabelCheckboxes) {
             checkbox.setSelected(selectAll);
         }
-        updateShipmentSelectionUi();
+        updatePreviewSelectionUi();
     }
 
-    private void updateShipmentSelectionUi() {
-        int total = shipmentLabelCheckboxes.size();
-        int selected = getSelectedShipmentLpns().size();
+    private void updatePreviewSelectionUi() {
+        int total = previewLabelCheckboxes.size();
+        int selected = getSelectedPreviewOptions().size();
         labelSelectionStatusLabel.setText("Selected " + selected + " of " + total + " labels");
         labelSelectionToggleButton.setText(selected == total ? "Deselect All" : "Select All");
         updatePrintButtonEnabled();
     }
 
-    private List<Lpn> getSelectedShipmentLpns() {
-        if (preparedJob == null || shipmentLabelCheckboxes.isEmpty()) {
+    private List<PreviewLabelOption> getSelectedPreviewOptions() {
+        if (previewLabelCheckboxes.isEmpty() || previewLabelOptions.isEmpty()) {
             return List.of();
         }
-        List<Lpn> selected = new ArrayList<>();
-        List<Lpn> available = preparedJob.getLpnsForLabels();
-        for (int i = 0; i < shipmentLabelCheckboxes.size() && i < available.size(); i++) {
-            if (shipmentLabelCheckboxes.get(i).isSelected()) {
-                selected.add(available.get(i));
+        List<PreviewLabelOption> selected = new ArrayList<>();
+        for (int i = 0; i < previewLabelCheckboxes.size() && i < previewLabelOptions.size(); i++) {
+            if (previewLabelCheckboxes.get(i).isSelected()) {
+                selected.add(previewLabelOptions.get(i));
             }
         }
         return selected;
     }
 
-    private void resetShipmentLabelSelection() {
-        shipmentLabelCheckboxes = List.of();
+    private List<Lpn> getSelectedShipmentLpns() {
+        if (preparedJob == null) {
+            return List.of();
+        }
+        List<Lpn> selected = new ArrayList<>();
+        for (PreviewLabelOption option : getSelectedPreviewOptions()) {
+            if (option.lpn() != null) {
+                selected.add(option.lpn());
+            }
+        }
+        return selected;
+    }
+
+    private List<AdvancedPrintWorkflowService.CarrierMoveLabelSelection> getSelectedCarrierMoveLabels() {
+        if (preparedCarrierJob == null) {
+            return List.of();
+        }
+        List<AdvancedPrintWorkflowService.CarrierMoveLabelSelection> selected = new ArrayList<>();
+        for (PreviewLabelOption option : getSelectedPreviewOptions()) {
+            if (option.carrierMoveSelection() != null) {
+                selected.add(option.carrierMoveSelection());
+            }
+        }
+        return selected;
+    }
+
+    private int countSelectedCarrierMoveStops(List<AdvancedPrintWorkflowService.CarrierMoveLabelSelection> selectedLabels) {
+        return (int) selectedLabels.stream()
+                .map(AdvancedPrintWorkflowService.CarrierMoveLabelSelection::getStopPosition)
+                .distinct()
+                .count();
+    }
+
+    private void resetPreviewLabelSelection() {
+        previewLabelCheckboxes = List.of();
+        previewLabelOptions = List.of();
         labelSelectionPanel.removeAll();
         labelSelectionStatusLabel.setText(" ");
         labelSelectionToggleButton.setText("Deselect All");
@@ -531,17 +616,20 @@ public final class LabelGuiFrame extends JFrame {
         }
 
         List<Lpn> selectedShipmentLpns = carrierMoveMode ? List.of() : getSelectedShipmentLpns();
-        if (!carrierMoveMode && selectedShipmentLpns.isEmpty()) {
+        List<AdvancedPrintWorkflowService.CarrierMoveLabelSelection> selectedCarrierLabels =
+                carrierMoveMode ? getSelectedCarrierMoveLabels() : List.of();
+        if ((!carrierMoveMode && selectedShipmentLpns.isEmpty())
+                || (carrierMoveMode && selectedCarrierLabels.isEmpty())) {
             showError("Select at least one label to print.");
             return;
         }
 
         if (!printToFile) {
             int plannedLabels = carrierMoveMode
-                    ? previewFormatter.countCarrierMoveLabels(preparedCarrierJob)
+                    ? selectedCarrierLabels.size()
                     : selectedShipmentLpns.size();
             int plannedInfoTags = carrierMoveMode
-                    ? preparedCarrierJob.getTotalStops() + 1
+                    ? countSelectedCarrierMoveStops(selectedCarrierLabels) + 1
                     : 1;
             int choice = JOptionPane.showConfirmDialog(
                     this,
@@ -569,7 +657,7 @@ public final class LabelGuiFrame extends JFrame {
                 if (carrierMoveMode) {
                     Path outDir = defaultPrintToFileOutputDir().resolve("gui-cmid-" + preparedCarrierJob.getCarrierMoveId() + "-" +
                             OUTPUT_TS.format(LocalDateTime.now()));
-                    return advancedService.printCarrierMoveJob(preparedCarrierJob, printerId, outDir, printToFile);
+                    return advancedService.printCarrierMoveJob(preparedCarrierJob, selectedCarrierLabels, printerId, outDir, printToFile);
                 }
                 Path outDir = defaultPrintToFileOutputDir().resolve("gui-" + preparedJob.getShipmentId() + "-" +
                         OUTPUT_TS.format(LocalDateTime.now()));
@@ -635,7 +723,7 @@ public final class LabelGuiFrame extends JFrame {
     private void clearForm() {
         shipmentField.setText("");
         shipmentArea.setText("");
-        resetShipmentLabelSelection();
+        resetPreviewLabelSelection();
         shipmentPreviewPanel.removeAll();
         shipmentPreviewPanel.add(shipmentArea);
         shipmentPreviewPanel.revalidate();
@@ -652,7 +740,7 @@ public final class LabelGuiFrame extends JFrame {
         inputLabel.setText(isCarrierMoveMode() ? "Carrier Move ID:" : "Shipment ID:");
         preparedJob = null;
         preparedCarrierJob = null;
-        resetShipmentLabelSelection();
+        resetPreviewLabelSelection();
         shipmentArea.setText("");
         shipmentPreviewPanel.removeAll();
         shipmentPreviewPanel.add(shipmentArea);
@@ -668,7 +756,7 @@ public final class LabelGuiFrame extends JFrame {
 
     private void updatePrintButtonEnabled() {
         if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            printButton.setEnabled(true);
+            printButton.setEnabled(!getSelectedCarrierMoveLabels().isEmpty());
             return;
         }
         printButton.setEnabled(preparedJob != null && !getSelectedShipmentLpns().isEmpty() && !isCarrierMoveMode());
@@ -1032,6 +1120,34 @@ public final class LabelGuiFrame extends JFrame {
         @Override
         public PrinterConfig resolvePrinter(String printerId) throws Exception {
             return service.resolvePrinter(printerId);
+        }
+    }
+
+    private static final class PreviewLabelOption {
+        private final String labelText;
+        private final Lpn lpn;
+        private final AdvancedPrintWorkflowService.CarrierMoveLabelSelection carrierMoveSelection;
+
+        private PreviewLabelOption(
+                String labelText,
+                Lpn lpn,
+                AdvancedPrintWorkflowService.CarrierMoveLabelSelection carrierMoveSelection
+        ) {
+            this.labelText = Objects.requireNonNull(labelText, "labelText");
+            this.lpn = lpn;
+            this.carrierMoveSelection = carrierMoveSelection;
+        }
+
+        private String labelText() {
+            return labelText;
+        }
+
+        private Lpn lpn() {
+            return lpn;
+        }
+
+        private AdvancedPrintWorkflowService.CarrierMoveLabelSelection carrierMoveSelection() {
+            return carrierMoveSelection;
         }
     }
 }

@@ -193,13 +193,23 @@ public final class AdvancedPrintWorkflowService {
     }
 
     public PrintResult printCarrierMoveJob(PreparedCarrierMoveJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
+        return printCarrierMoveJob(job, collectAllCarrierMoveLabelSelections(job), printerId, outputDir, printToFile);
+    }
+
+    public PrintResult printCarrierMoveJob(
+            PreparedCarrierMoveJob job,
+            List<CarrierMoveLabelSelection> selectedLabels,
+            String printerId,
+            Path outputDir,
+            boolean printToFile
+    ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         LabelWorkflowService.PreparedJob firstShipment = firstCarrierShipment(job);
         PrinterConfig printer = resolvePrinterForPrint(firstShipment.getRouting(), printerId, printToFile);
         Path targetDir = outputDir == null
                 ? Paths.get("out", "gui-cmid-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()))
                 : outputDir;
-        List<PrintTask> tasks = buildCarrierMoveTasks(job);
+        List<PrintTask> tasks = buildCarrierMoveTasks(job, selectedLabels);
         JobCheckpoint checkpoint = createCheckpoint("carrier-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()),
                 InputMode.CARRIER_MOVE, job.carrierMoveId, targetDir, printToFile, printer, tasks);
         executeTasks(checkpoint, printer, 0);
@@ -284,6 +294,25 @@ public final class AdvancedPrintWorkflowService {
             throw new IllegalArgumentException("Selected labels are no longer available for printing.");
         }
         return filtered;
+    }
+
+    static List<CarrierMoveLabelSelection> collectAllCarrierMoveLabelSelections(PreparedCarrierMoveJob job) {
+        Objects.requireNonNull(job, "job cannot be null");
+        List<CarrierMoveLabelSelection> selected = new ArrayList<>();
+        for (PreparedStopGroup stop : job.getStopGroups()) {
+            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
+                for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
+                    if (lpn != null && lpn.getLpnId() != null) {
+                        selected.add(new CarrierMoveLabelSelection(
+                                shipmentJob.getShipmentId(),
+                                lpn.getLpnId(),
+                                stop.getStopPosition()
+                        ));
+                    }
+                }
+            }
+        }
+        return selected;
     }
 
     private List<PrintTask> buildShipmentTasks(
@@ -383,7 +412,13 @@ public final class AdvancedPrintWorkflowService {
         throw new IllegalArgumentException("Carrier move has no printable shipments.");
     }
 
-    private List<PrintTask> buildCarrierMoveTasks(PreparedCarrierMoveJob job) {
+    private List<PrintTask> buildCarrierMoveTasks(PreparedCarrierMoveJob job, List<CarrierMoveLabelSelection> selectedLabels) {
+        Objects.requireNonNull(job, "job cannot be null");
+        Objects.requireNonNull(selectedLabels, "selectedLabels cannot be null");
+        Map<String, LinkedHashSet<String>> selectedLpnsByShipment = indexCarrierMoveSelections(selectedLabels);
+        if (selectedLpnsByShipment.isEmpty()) {
+            throw new IllegalArgumentException("Select at least one label to print.");
+        }
         int totalShipmentJobs = 0;
         for (PreparedStopGroup stop : job.stopGroups) {
             totalShipmentJobs += stop.shipmentJobs.size();
@@ -393,9 +428,20 @@ public final class AdvancedPrintWorkflowService {
         int totalStops = job.stopGroups.size();
         for (PreparedStopGroup stop : job.stopGroups) {
             List<String> shipmentIds = new ArrayList<>(stop.shipmentJobs.size());
+            List<LabelWorkflowService.PreparedJob> stopShipmentJobs = new ArrayList<>(stop.shipmentJobs.size());
+            boolean stopHasSelectedLabels = false;
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.shipmentJobs) {
+                List<Lpn> selectedLpns = filterCarrierMoveShipmentLpns(shipmentJob, selectedLpnsByShipment);
+                if (selectedLpns.isEmpty()) {
+                    continue;
+                }
+                stopHasSelectedLabels = true;
                 shipmentIds.add(shipmentJob.getShipmentId());
-                tasks.addAll(buildShipmentTasks(shipmentJob, shipmentJob.getLpnsForLabels(), stop.stopSequence, stop.stopPosition, false));
+                stopShipmentJobs.add(shipmentJob);
+                tasks.addAll(buildShipmentTasks(shipmentJob, selectedLpns, stop.stopSequence, stop.stopPosition, false));
+            }
+            if (!stopHasSelectedLabels) {
+                continue;
             }
 
             String stopInfoFile = String.format("info-stop-%02d-of-%02d.zpl", stop.stopPosition, totalStops);
@@ -405,7 +451,7 @@ public final class AdvancedPrintWorkflowService {
                     totalStops,
                     stop.stopSequence,
                     shipmentIds,
-                    stop.shipmentJobs
+                    stopShipmentJobs
             );
             tasks.add(new PrintTask(TaskKind.STOP_INFO_TAG, stopInfoFile, stopInfo, "INFO-STOP " + stop.stopPosition));
         }
@@ -414,6 +460,37 @@ public final class AdvancedPrintWorkflowService {
         String finalInfo = InfoTagZplBuilder.buildFinalInfoTag(job);
         tasks.add(new PrintTask(TaskKind.FINAL_INFO_TAG, finalFile, finalInfo, "INFO-FINAL " + job.carrierMoveId));
         return tasks;
+    }
+
+    private Map<String, LinkedHashSet<String>> indexCarrierMoveSelections(List<CarrierMoveLabelSelection> selectedLabels) {
+        Map<String, LinkedHashSet<String>> selectedLpnsByShipment = new LinkedHashMap<>();
+        for (CarrierMoveLabelSelection selection : selectedLabels) {
+            if (selection == null || selection.getShipmentId() == null || selection.getShipmentId().isBlank()
+                    || selection.getLpnId() == null || selection.getLpnId().isBlank()) {
+                continue;
+            }
+            selectedLpnsByShipment
+                    .computeIfAbsent(selection.getShipmentId(), ignored -> new LinkedHashSet<>())
+                    .add(selection.getLpnId());
+        }
+        return selectedLpnsByShipment;
+    }
+
+    private List<Lpn> filterCarrierMoveShipmentLpns(
+            LabelWorkflowService.PreparedJob shipmentJob,
+            Map<String, LinkedHashSet<String>> selectedLpnsByShipment
+    ) {
+        LinkedHashSet<String> selectedIds = selectedLpnsByShipment.get(shipmentJob.getShipmentId());
+        if (selectedIds == null || selectedIds.isEmpty()) {
+            return List.of();
+        }
+        List<Lpn> selectedLpns = new ArrayList<>(selectedIds.size());
+        for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
+            if (lpn != null && selectedIds.contains(lpn.getLpnId())) {
+                selectedLpns.add(lpn);
+            }
+        }
+        return selectedLpns;
     }
 
     private JobCheckpoint createCheckpoint(String id, InputMode mode, String sourceId, Path outputDir, boolean printToFile, PrinterConfig printer, List<PrintTask> tasks) throws Exception {
@@ -576,6 +653,30 @@ public final class AdvancedPrintWorkflowService {
 
         public List<LabelWorkflowService.PreparedJob> getShipmentJobs() {
             return shipmentJobs;
+        }
+    }
+
+    public static final class CarrierMoveLabelSelection {
+        private final String shipmentId;
+        private final String lpnId;
+        private final int stopPosition;
+
+        public CarrierMoveLabelSelection(String shipmentId, String lpnId, int stopPosition) {
+            this.shipmentId = Objects.requireNonNull(shipmentId, "shipmentId").trim();
+            this.lpnId = Objects.requireNonNull(lpnId, "lpnId").trim();
+            this.stopPosition = stopPosition;
+        }
+
+        public String getShipmentId() {
+            return shipmentId;
+        }
+
+        public String getLpnId() {
+            return lpnId;
+        }
+
+        public int getStopPosition() {
+            return stopPosition;
         }
     }
 
