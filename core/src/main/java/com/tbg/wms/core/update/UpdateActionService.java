@@ -8,12 +8,15 @@ import java.util.List;
  */
 public final class UpdateActionService {
 
-    public List<InstallTarget> selectInstallTargets(UpdateCatalogService.ReleaseCatalog catalog) {
+    public List<InstallTarget> selectInstallTargets(UpdateCatalogService.ReleaseCatalog catalog, boolean experimentalEnabled) {
         if (catalog == null) {
             return List.of();
         }
         List<InstallTarget> targets = new ArrayList<>();
         for (UpdateCatalogService.ReleaseEntry release : catalog.releases()) {
+            if (release.prerelease() && !experimentalEnabled) {
+                continue;
+            }
             ReleaseCheckService.ReleaseAsset installerAsset = release.preferredInstallerAsset();
             if (installerAsset == null) {
                 continue;

@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Objects;
 
@@ -114,24 +116,9 @@ public final class VersionSupport {
     }
 
     public static int compare(String leftVersion, String rightVersion) {
-        String left = normalize(leftVersion);
-        String right = normalize(rightVersion);
-        if (left.equals(right)) {
-            return 0;
-        }
-
-        String[] leftSegments = left.split("[.-]");
-        String[] rightSegments = right.split("[.-]");
-        int maxSegments = Math.max(leftSegments.length, rightSegments.length);
-        for (int index = 0; index < maxSegments; index++) {
-            String leftSegment = index < leftSegments.length ? leftSegments[index] : "0";
-            String rightSegment = index < rightSegments.length ? rightSegments[index] : "0";
-            int segmentCompare = compareSegment(leftSegment, rightSegment);
-            if (segmentCompare != 0) {
-                return segmentCompare;
-            }
-        }
-        return 0;
+        ParsedVersion left = ParsedVersion.parse(leftVersion);
+        ParsedVersion right = ParsedVersion.parse(rightVersion);
+        return left.compareTo(right);
     }
 
     public static boolean isPrerelease(String version) {
@@ -181,5 +168,125 @@ public final class VersionSupport {
             return -1;
         }
         return leftSegment.compareToIgnoreCase(rightSegment);
+    }
+
+    private record ParsedVersion(int major, int minor, int patch, List<QualifierToken> qualifiers)
+            implements Comparable<ParsedVersion> {
+        private static ParsedVersion parse(String version) {
+            String normalized = normalize(version);
+            if (normalized.isBlank()) {
+                return new ParsedVersion(0, 0, 0, List.of());
+            }
+
+            String numericPart = normalized;
+            String qualifierPart = "";
+            int qualifierSeparator = normalized.indexOf('-');
+            if (qualifierSeparator >= 0) {
+                numericPart = normalized.substring(0, qualifierSeparator);
+                qualifierPart = normalized.substring(qualifierSeparator + 1);
+            }
+
+            String[] numericSegments = numericPart.split("\\.");
+            int major = parseNumericSegment(numericSegments, 0);
+            int minor = parseNumericSegment(numericSegments, 1);
+            int patch = parseNumericSegment(numericSegments, 2);
+            return new ParsedVersion(major, minor, patch, parseQualifierTokens(qualifierPart));
+        }
+
+        private static int parseNumericSegment(String[] segments, int index) {
+            if (segments == null || index >= segments.length) {
+                return 0;
+            }
+            String segment = segments[index] == null ? "" : segments[index].trim();
+            return segment.chars().allMatch(Character::isDigit) ? Integer.parseInt(segment) : 0;
+        }
+
+        private static List<QualifierToken> parseQualifierTokens(String qualifierPart) {
+            if (qualifierPart == null || qualifierPart.isBlank()) {
+                return List.of();
+            }
+            List<QualifierToken> tokens = new ArrayList<>();
+            String[] groups = qualifierPart.split("[.-]");
+            for (String group : groups) {
+                if (group == null || group.isBlank()) {
+                    continue;
+                }
+                StringBuilder current = new StringBuilder();
+                Boolean currentNumeric = null;
+                for (int i = 0; i < group.length(); i++) {
+                    char ch = group.charAt(i);
+                    boolean numeric = Character.isDigit(ch);
+                    if (currentNumeric != null && currentNumeric != numeric) {
+                        tokens.add(QualifierToken.of(current.toString(), currentNumeric));
+                        current.setLength(0);
+                    }
+                    current.append(ch);
+                    currentNumeric = numeric;
+                }
+                if (current.length() > 0 && currentNumeric != null) {
+                    tokens.add(QualifierToken.of(current.toString(), currentNumeric));
+                }
+            }
+            return List.copyOf(tokens);
+        }
+
+        @Override
+        public int compareTo(ParsedVersion other) {
+            int majorCompare = Integer.compare(major, other.major);
+            if (majorCompare != 0) {
+                return majorCompare;
+            }
+            int minorCompare = Integer.compare(minor, other.minor);
+            if (minorCompare != 0) {
+                return minorCompare;
+            }
+            int patchCompare = Integer.compare(patch, other.patch);
+            if (patchCompare != 0) {
+                return patchCompare;
+            }
+            if (qualifiers.isEmpty() && other.qualifiers.isEmpty()) {
+                return 0;
+            }
+            if (qualifiers.isEmpty()) {
+                return 1;
+            }
+            if (other.qualifiers.isEmpty()) {
+                return -1;
+            }
+            int maxTokens = Math.max(qualifiers.size(), other.qualifiers.size());
+            for (int i = 0; i < maxTokens; i++) {
+                if (i >= qualifiers.size()) {
+                    return -1;
+                }
+                if (i >= other.qualifiers.size()) {
+                    return 1;
+                }
+                int tokenCompare = qualifiers.get(i).compareTo(other.qualifiers.get(i));
+                if (tokenCompare != 0) {
+                    return tokenCompare;
+                }
+            }
+            return 0;
+        }
+    }
+
+    private record QualifierToken(String value, boolean numeric) implements Comparable<QualifierToken> {
+        private static QualifierToken of(String value, boolean numeric) {
+            return new QualifierToken(value, numeric);
+        }
+
+        @Override
+        public int compareTo(QualifierToken other) {
+            if (numeric && other.numeric) {
+                return Integer.compare(Integer.parseInt(value), Integer.parseInt(other.value));
+            }
+            if (numeric) {
+                return -1;
+            }
+            if (other.numeric) {
+                return 1;
+            }
+            return value.compareToIgnoreCase(other.value);
+        }
     }
 }

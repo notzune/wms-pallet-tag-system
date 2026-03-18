@@ -20,6 +20,12 @@ class VersionSupportTest {
     }
 
     @Test
+    void compare_shouldTreatNumericPrereleaseSuffixesNumerically() {
+        assertTrue(VersionSupport.compare("1.7.2-rc10", "1.7.2-rc2") > 0);
+        assertTrue(VersionSupport.compare("1.7.2", "1.7.2-rc10") > 0);
+    }
+
+    @Test
     void resolvePackageVersion_shouldReturnBlankWhenUnavailable() {
         assertEquals("", VersionSupport.resolvePackageVersion(VersionSupportTest.class));
     }

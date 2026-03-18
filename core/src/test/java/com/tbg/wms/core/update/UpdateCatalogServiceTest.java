@@ -13,8 +13,11 @@ import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import javax.net.ssl.SSLContext;
@@ -75,6 +78,67 @@ class UpdateCatalogServiceTest {
         assertNotNull(catalog.latestStable().preferredInstallerAsset());
         assertFalse(catalog.latestStable().prerelease());
         assertTrue(catalog.latestPrerelease().prerelease());
+    }
+
+    @Test
+    void loadCatalog_shouldFollowPaginationUntilOlderReleasesAreLoaded() throws Exception {
+        String pageOne = """
+                [
+                  {
+                    "tag_name": "v1.7.2",
+                    "name": "v1.7.2",
+                    "html_url": "https://example.test/releases/v1.7.2",
+                    "prerelease": false,
+                    "draft": false,
+                    "assets": [
+                      {
+                        "name": "WMS.Pallet.Tag.System-1.7.2.exe",
+                        "browser_download_url": "https://example.test/releases/v1.7.2/installer.exe"
+                      }
+                    ]
+                  }
+                ]
+                """;
+        String pageTwo = """
+                [
+                  {
+                    "tag_name": "v1.6.0",
+                    "name": "v1.6.0",
+                    "html_url": "https://example.test/releases/v1.6.0",
+                    "prerelease": false,
+                    "draft": false,
+                    "assets": [
+                      {
+                        "name": "WMS.Pallet.Tag.System-1.6.0.exe",
+                        "browser_download_url": "https://example.test/releases/v1.6.0/installer.exe"
+                      }
+                    ]
+                  }
+                ]
+                """;
+
+        QueueResponseHttpClient client = new QueueResponseHttpClient(List.of(
+                new FixedResponse<>(
+                        200,
+                        pageOne,
+                        URI.create("https://api.github.com/repos/notzune/wms-pallet-tag-system/releases?per_page=100"),
+                        Map.of("link", List.of(
+                                "<https://api.github.com/repos/notzune/wms-pallet-tag-system/releases?per_page=100&page=2>; rel=\"next\""))
+                ),
+                new FixedResponse<>(
+                        200,
+                        pageTwo,
+                        URI.create("https://api.github.com/repos/notzune/wms-pallet-tag-system/releases?per_page=100&page=2"),
+                        Map.of()
+                )
+        ));
+
+        UpdateCatalogService service = new UpdateCatalogService(client, new ObjectMapper());
+
+        UpdateCatalogService.ReleaseCatalog catalog = service.loadCatalog("1.7.0");
+
+        assertEquals(List.of("1.7.2", "1.6.0"),
+                catalog.stableReleases().stream().map(UpdateCatalogService.ReleaseEntry::version).toList());
     }
 
     private static final class FixedResponseHttpClient extends HttpClient {
@@ -160,7 +224,92 @@ class UpdateCatalogServiceTest {
         }
     }
 
-    private record FixedResponse<T>(int statusCode, T body, URI uri) implements HttpResponse<T> {
+    private static final class QueueResponseHttpClient extends HttpClient {
+        private final Queue<HttpResponse<String>> responses;
+
+        private QueueResponseHttpClient(List<HttpResponse<String>> responses) {
+            this.responses = new ArrayDeque<>(responses);
+        }
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return Redirect.NEVER;
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return Optional.empty();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return null;
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return null;
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Version version() {
+            return HttpClient.Version.HTTP_1_1;
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return Optional.empty();
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler)
+                throws IOException, InterruptedException {
+            HttpResponse<String> response = responses.poll();
+            if (response == null) {
+                throw new IOException("No queued response available");
+            }
+            return (HttpResponse<T>) response;
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler
+        ) {
+            throw new UnsupportedOperationException("Not needed for this test");
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler,
+                HttpResponse.PushPromiseHandler<T> pushPromiseHandler
+        ) {
+            throw new UnsupportedOperationException("Not needed for this test");
+        }
+    }
+
+    private record FixedResponse<T>(int statusCode, T body, URI uri, Map<String, List<String>> headerMap) implements HttpResponse<T> {
+        private FixedResponse(int statusCode, T body, URI uri) {
+            this(statusCode, body, uri, Map.of());
+        }
+
         @Override
         public HttpRequest request() {
             return HttpRequest.newBuilder(uri).build();
@@ -173,7 +322,7 @@ class UpdateCatalogServiceTest {
 
         @Override
         public HttpHeaders headers() {
-            return HttpHeaders.of(java.util.Map.of(), (left, right) -> true);
+            return HttpHeaders.of(headerMap, (left, right) -> true);
         }
 
         @Override

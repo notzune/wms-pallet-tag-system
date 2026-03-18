@@ -918,7 +918,7 @@ public final class LabelGuiFrame extends JFrame {
                 catalog,
                 decision,
                 uiState,
-                updateActionService.selectInstallTargets(catalog),
+                updateActionService.selectInstallTargets(catalog, experimentalEnabled),
                 experimentalEnabled
         );
         latestUpdateSnapshot = snapshot;

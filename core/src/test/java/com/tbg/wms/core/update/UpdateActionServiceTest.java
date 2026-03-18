@@ -30,10 +30,39 @@ class UpdateActionServiceTest {
                 null
         );
 
-        List<UpdateActionService.InstallTarget> targets = new UpdateActionService().selectInstallTargets(catalog);
+        List<UpdateActionService.InstallTarget> targets = new UpdateActionService().selectInstallTargets(catalog, false);
 
         assertEquals(List.of("1.7.2", "1.7.1", "1.7.0"),
                 targets.stream().map(UpdateActionService.InstallTarget::version).toList());
+    }
+
+    @Test
+    void selectTargets_shouldHidePrereleasesWhenExperimentalUpdatesAreDisabled() {
+        UpdateCatalogService.ReleaseCatalog catalog = new UpdateCatalogService.ReleaseCatalog(
+                "1.7.1",
+                List.of(
+                        release("1.7.2-rc1", true, true),
+                        release("1.7.1", false, true),
+                        release("1.7.0", false, true)
+                ),
+                List.of(
+                        release("1.7.1", false, true),
+                        release("1.7.0", false, true)
+                ),
+                List.of(release("1.7.2-rc1", true, true)),
+                release("1.7.1", false, true),
+                release("1.7.2-rc1", true, true)
+        );
+
+        UpdateActionService service = new UpdateActionService();
+
+        List<UpdateActionService.InstallTarget> stableOnlyTargets = service.selectInstallTargets(catalog, false);
+        List<UpdateActionService.InstallTarget> experimentalTargets = service.selectInstallTargets(catalog, true);
+
+        assertEquals(List.of("1.7.1", "1.7.0"),
+                stableOnlyTargets.stream().map(UpdateActionService.InstallTarget::version).toList());
+        assertEquals(List.of("1.7.2-rc1", "1.7.1", "1.7.0"),
+                experimentalTargets.stream().map(UpdateActionService.InstallTarget::version).toList());
     }
 
     @Test
