@@ -78,9 +78,28 @@ jobs:
         shell: pwsh
         run: |
           choco install wixtoolset --no-progress -y
-          $wixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
-          if (-not (Test-Path -LiteralPath $wixPath)) {
-            throw "Expected WiX path not found: $wixPath"
+          $wixCommands = @(
+            Get-Command candle.exe -ErrorAction SilentlyContinue
+            Get-Command light.exe -ErrorAction SilentlyContinue
+          ) | Where-Object { $_ -and $_.Source }
+          if ($wixCommands.Count -lt 2) {
+            $pathCandidates = @()
+            $pathCandidates += [Environment]::GetEnvironmentVariable("Path", "Process") -split ';'
+            $pathCandidates += [Environment]::GetEnvironmentVariable("Path", "Machine") -split ';'
+            $pathCandidates += [Environment]::GetEnvironmentVariable("Path", "User") -split ';'
+            $wixPath = $pathCandidates |
+              Where-Object { $_ } |
+              Select-Object -Unique |
+              Where-Object {
+                (Test-Path -LiteralPath (Join-Path $_ "candle.exe")) -and
+                (Test-Path -LiteralPath (Join-Path $_ "light.exe"))
+              } |
+              Select-Object -First 1
+          } else {
+            $wixPath = Split-Path -Parent $wixCommands[0].Source
+          }
+          if (-not $wixPath) {
+            throw "WiX Toolset binaries not found after installation. Expected candle.exe and light.exe on PATH."
           }
           Add-Content -Path $env:GITHUB_PATH -Value $wixPath
 
