@@ -1,14 +1,39 @@
 # Next Agent Notes
 
-- Printer workflow scoping now uses `capabilities` metadata in `config/<site>/printers.yaml` (`ZPL` for pallet labels, `RAIL` for rail cards). Keep future menu work capability-driven instead of ID-driven.
-- Project baseline is now Java 17 for local builds, CI, Javadoc, and bundled runtime packaging. Keep future dependency/runtime updates aligned to the current LTS target.
-- There is now a `scripts/build-jpackage-bundle.ps1` path for app-image / installer packaging. Keep the portable ZIP flow supported as the manual fallback for machines where the packaged executable is not viable. The app image works without WiX; optional `.exe` / `.msi` installer generation needs WiX Toolset on `PATH`. For release parity, build the app image with a Java 17 runtime image or under a Java 17 JDK.
-- Release automation now needs to support both stable tags (`vX.Y.Z`) and prerelease tags (`vX.Y.Z-rcN`). Prerelease tags should publish GitHub Releases marked as prereleases while still attaching the portable ZIP, installer `.exe`, and matching `.exe.sha256`.
-- Installer helpers now exist for packaged installs: `install-wms-installer.ps1` / `.bat` for logged install and same-version replacement, plus `uninstall-wms-tags.ps1` / `.bat` for uninstall and clean-install prep.
-- GUI now performs a GitHub Releases update check and shows an alert badge on `Tools` when a newer version is available. `Tools -> Settings...` also exposes manual update checks and packaged-install uninstall / clean-wipe launchers.
-- Guided upgrade now prefers a published installer asset from the latest GitHub Release, downloads it into `updates/`, verifies it against a published `.sha256`, and launches the packaged installer helper. Keep the release workflow publishing both the `.exe` and `.sha256` assets, or the GUI will fall back to opening the release page.
-- Review pass completed a first SRP/DRY cleanup slice: the main settings UI moved out of `LabelGuiFrame` into `MainSettingsDialog`, shared shipment relabeling moved into `LabelingSupport`, and missing `package-info.java` coverage was filled across core subpackages.
-- Review pass completed a second slice: print-task expansion and artifact naming moved into `PrintTaskPlanner` / `ArtifactNameSupport`, and Oracle shipment loading now coalesces duplicate LPN rows from mixed inventory-detail joins.
-- Review pass completed a third slice: CLI/GUI build-version lookup now shares `VersionSupport`, and GUI preview refreshes snapshot selected labels once per update cycle instead of rescanning the same selection multiple times.
-- Next agent should walk the updater workflow end to end against a real newer published release or prerelease: confirm the release workflow publishes the portable ZIP, installer `.exe`, and matching `.exe.sha256`, then verify the packaged app detects the new version, downloads the installer, validates checksum, and launches the guided upgrade path cleanly.
-- The largest remaining architecture hotspots are still `LabelGuiFrame` and `OracleDbQueryRepository`, but the highest-signal duplication/bug risks in `AdvancedPrintWorkflowService` are now largely extracted.
+- Active feature branch work is now on `v1.7.2-update-manager`, not `dev`.
+- Project baseline remains Java 17 for local builds, CI, Javadoc, and bundled runtime packaging. Keep future dependency/runtime updates aligned to the current LTS target.
+- Project/module version has been bumped to `1.7.2`.
+- Release/update architecture now has three core services under `core.update`:
+  - `UpdateCatalogService`
+  - `UpdatePolicyService`
+  - `UpdateActionService`
+- GUI update state now also depends on:
+  - `UpdatePromptStateStore`
+  - `UpdateUiSupport`
+  - `UpdateManagerSnapshot`
+  - `UpdateManagerDialog`
+- `LabelGuiFrame` now uses the shared runtime version resolver, so the header/footer version should reflect the running build instead of stale pom metadata.
+- Update manager behavior now includes:
+  - always checking latest stable
+  - optional prerelease visibility via persistent opt-in
+  - stable updates-behind count
+  - startup prompt only for newer stable release lines
+  - ignore-by-exact-target-version
+  - persistent toolbar warning badge for hard updates
+  - manual target selection for upgrade or downgrade when GitHub publishes installer plus checksum assets
+- Guided install now supports manual target selection and confirmation warnings for prerelease/downgrade installs.
+- Placeholder branding is now wired into Swing runtime and `jpackage` packaging through:
+  - `gui/src/main/resources/icons/wms-placeholder-icon.png`
+  - `gui/src/main/resources/icons/wms-placeholder-icon.ico`
+  - `AppIconSupport`
+- Installer helper UX is improved for guided installs:
+  - `install-wms-installer.ps1` now shows a status window
+  - successful guided installs attempt to relaunch the installed app
+  - failures keep the status window open with the error text
+- Important nuance: if an operator launches the raw packaged `.exe` directly outside the helper path, native Windows Installer UI still controls that flow. The richer status/relaunch UX is provided by `install-wms-installer.ps1` / `.bat` and the in-app guided updater.
+- Remaining work for `1.7.2` is mostly final polish and integration:
+  - refresh any remaining release/operator docs that still mention `1.7.1`
+  - run final `javadoc:aggregate`
+  - build a real installer smoke artifact with `-InstallerType exe`
+  - do an end-to-end updater validation against a published `1.7.2-rc1` once the branch is merged and tagged
+- Largest remaining architecture hotspot is still `LabelGuiFrame`; the updater additions are functional but the class remains a broad coordinator.
