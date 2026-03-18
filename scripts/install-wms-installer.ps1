@@ -14,6 +14,7 @@ $script:StatusForm = $null
 $script:StatusLabel = $null
 $script:CloseButton = $null
 $script:ProgressBar = $null
+$script:StatusWindowKeepOpenDelayMs = 1200
 
 function Initialize-StatusWindow {
     $script:StatusForm = New-Object System.Windows.Forms.Form
@@ -75,13 +76,24 @@ function Complete-StatusWindow {
     }
     if ($KeepOpen -and $script:CloseButton) {
         $script:CloseButton.Visible = $true
-        $script:StatusForm.ShowDialog() | Out-Null
+        if ($script:StatusForm) {
+            $script:StatusForm.TopMost = $false
+            $script:StatusForm.Activate()
+        }
+        Wait-ForStatusWindowClose
         return
     }
     [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 1200
+    Start-Sleep -Milliseconds $script:StatusWindowKeepOpenDelayMs
     if ($script:StatusForm) {
         $script:StatusForm.Close()
+    }
+}
+
+function Wait-ForStatusWindowClose {
+    while ($script:StatusForm -and $script:StatusForm.Visible) {
+        [System.Windows.Forms.Application]::DoEvents()
+        Start-Sleep -Milliseconds 100
     }
 }
 
@@ -101,7 +113,7 @@ function Get-InstallerVersion {
     param([string]$Path)
 
     $name = [System.IO.Path]::GetFileNameWithoutExtension($Path)
-    if ($name -match '(\d+\.\d+\.\d+)$') {
+    if ($name -match '(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$') {
         return $Matches[1]
     }
     return $null
@@ -171,68 +183,74 @@ function Invoke-Uninstall {
     }
 }
 
-if (-not $InstallerPath) {
-    $scriptRoot = Split-Path -Parent $PSCommandPath
-    $candidate = Get-ChildItem -Path $scriptRoot -Filter 'WMS Pallet Tag System-*.exe' -File -ErrorAction SilentlyContinue |
-        Sort-Object LastWriteTime -Descending |
-        Select-Object -First 1
-    if ($candidate) {
-        $InstallerPath = $candidate.FullName
+function Invoke-WmsInstallerMain {
+    if (-not $InstallerPath) {
+        $scriptRoot = Split-Path -Parent $PSCommandPath
+        $candidate = Get-ChildItem -Path $scriptRoot -Filter 'WMS Pallet Tag System-*.exe' -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if ($candidate) {
+            $InstallerPath = $candidate.FullName
+        }
+    }
+
+    try {
+        if (-not $InstallerPath -or -not (Test-Path -LiteralPath $InstallerPath)) {
+            throw "Installer not found. Pass -InstallerPath or place the script next to the built installer."
+        }
+
+        Initialize-StatusWindow
+        Update-StatusWindow 'Preparing install...'
+
+        $resolvedInstallerPath = (Resolve-Path -LiteralPath $InstallerPath).Path
+        $installerVersion = Get-InstallerVersion -Path $resolvedInstallerPath
+        if (-not $LogPath) {
+            $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+            $LogPath = Join-Path (Split-Path -Parent $resolvedInstallerPath) "install-wms-tags-$timestamp.log"
+        }
+
+        $installed = Get-InstalledWmsProduct
+        if ($installed) {
+            $installedVersion = [string]$installed.DisplayVersion
+            Write-Host "Detected installed version: $installedVersion"
+            if ($ReplaceExisting -or ($installerVersion -and $installedVersion -eq $installerVersion)) {
+                Update-StatusWindow "Removing existing version $installedVersion..."
+                $uninstallLog = [System.IO.Path]::ChangeExtension($LogPath, '.uninstall.log')
+                Invoke-Uninstall -InstalledProduct $installed -LogPath $uninstallLog
+            }
+        }
+
+        Update-StatusWindow "Installing version $installerVersion..."
+        Write-Host "Launching installer: $resolvedInstallerPath"
+        Write-Host "Installer log: $LogPath"
+        $process = Start-Process -FilePath $resolvedInstallerPath -ArgumentList @('/log', $LogPath) -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+            throw "Installer failed with exit code $($process.ExitCode). See log: $LogPath"
+        }
+
+        if ($LaunchAfterInstall) {
+            Update-StatusWindow 'Launching application...'
+            $installedAfter = Get-InstalledWmsProduct
+            $installedExe = Resolve-InstalledExecutable -InstalledProduct $installedAfter
+            if ($installedExe) {
+                Start-Process -FilePath $installedExe | Out-Null
+            } else {
+                Write-Warning 'Installed application executable could not be resolved after install.'
+            }
+        }
+
+        Write-Host "Installation complete."
+        Complete-StatusWindow -Message 'Installation complete.' -KeepOpen:$false
+    } catch {
+        $message = $_.Exception.Message
+        Write-Error $message
+        if ($script:StatusForm) {
+            Complete-StatusWindow -Message ("Installation failed.`n" + $message) -KeepOpen:$true
+        }
+        throw
     }
 }
 
-try {
-    if (-not $InstallerPath -or -not (Test-Path -LiteralPath $InstallerPath)) {
-        throw "Installer not found. Pass -InstallerPath or place the script next to the built installer."
-    }
-
-    Initialize-StatusWindow
-    Update-StatusWindow 'Preparing install...'
-
-    $resolvedInstallerPath = (Resolve-Path -LiteralPath $InstallerPath).Path
-    $installerVersion = Get-InstallerVersion -Path $resolvedInstallerPath
-    if (-not $LogPath) {
-        $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-        $LogPath = Join-Path (Split-Path -Parent $resolvedInstallerPath) "install-wms-tags-$timestamp.log"
-    }
-
-    $installed = Get-InstalledWmsProduct
-    if ($installed) {
-        $installedVersion = [string]$installed.DisplayVersion
-        Write-Host "Detected installed version: $installedVersion"
-        if ($ReplaceExisting -or ($installerVersion -and $installedVersion -eq $installerVersion)) {
-            Update-StatusWindow "Removing existing version $installedVersion..."
-            $uninstallLog = [System.IO.Path]::ChangeExtension($LogPath, '.uninstall.log')
-            Invoke-Uninstall -InstalledProduct $installed -LogPath $uninstallLog
-        }
-    }
-
-    Update-StatusWindow "Installing version $installerVersion..."
-    Write-Host "Launching installer: $resolvedInstallerPath"
-    Write-Host "Installer log: $LogPath"
-    $process = Start-Process -FilePath $resolvedInstallerPath -ArgumentList @('/log', $LogPath) -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-        throw "Installer failed with exit code $($process.ExitCode). See log: $LogPath"
-    }
-
-    if ($LaunchAfterInstall) {
-        Update-StatusWindow 'Launching application...'
-        $installedAfter = Get-InstalledWmsProduct
-        $installedExe = Resolve-InstalledExecutable -InstalledProduct $installedAfter
-        if ($installedExe) {
-            Start-Process -FilePath $installedExe | Out-Null
-        } else {
-            Write-Warning 'Installed application executable could not be resolved after install.'
-        }
-    }
-
-    Write-Host "Installation complete."
-    Complete-StatusWindow -Message 'Installation complete.' -KeepOpen:$false
-} catch {
-    $message = $_.Exception.Message
-    Write-Error $message
-    if ($script:StatusForm) {
-        Complete-StatusWindow -Message ("Installation failed.`n" + $message) -KeepOpen:$true
-    }
-    throw
+if (-not $env:WMS_INSTALLER_HELPER_TEST_MODE) {
+    Invoke-WmsInstallerMain
 }
