@@ -51,29 +51,7 @@ public final class GuidedUpdateService {
         if (checksumAsset == null) {
             throw new IOException("No published checksum is available for the installer asset.");
         }
-
-        Path updatesDir = RuntimePathResolver.resolveAppHome(anchorType).resolve("updates");
-        Files.createDirectories(updatesDir);
-        Path target = updatesDir.resolve(installerAsset.name());
-
-        HttpRequest request = HttpRequest.newBuilder(URI.create(installerAsset.downloadUrl()))
-                .timeout(Duration.ofMinutes(3))
-                .header("Accept", "application/octet-stream")
-                .header("User-Agent", "wms-pallet-tag-system")
-                .GET()
-                .build();
-        HttpResponse<Path> response = httpClient.send(request, HttpResponse.BodyHandlers.ofFile(target));
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            Files.deleteIfExists(target);
-            throw new IOException("Installer download failed with HTTP " + response.statusCode());
-        }
-        try {
-            installerVerificationService.verifyInstaller(target, checksumAsset.downloadUrl());
-            return target;
-        } catch (Exception ex) {
-            Files.deleteIfExists(target);
-            throw ex;
-        }
+        return downloadInstaller(anchorType, installerAsset, checksumAsset);
     }
 
     public Path downloadInstaller(Class<?> anchorType, UpdateActionService.InstallTarget installTarget)

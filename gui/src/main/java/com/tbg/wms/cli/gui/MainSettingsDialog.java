@@ -76,13 +76,13 @@ final class MainSettingsDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0.0;
-        content.add(new JLabel("Out cleanup policy:"), gbc);
+        content.add(new JLabel("Output cleanup policy:"), gbc);
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         JPanel retentionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         retentionPanel.add(new JLabel("Delete generated files/folders older than"));
         retentionPanel.add(retentionDaysField);
-        retentionPanel.add(new JLabel("day(s) from out/."));
+        retentionPanel.add(new JLabel("day(s) from the out/ directory."));
         content.add(retentionPanel, gbc);
         gbc.gridx = 2;
         gbc.weightx = 0.0;
@@ -113,7 +113,7 @@ final class MainSettingsDialog extends JDialog {
         cleanupNowButton.addActionListener(e -> {
             Integer parsed = parseRetentionDays(retentionDaysField.getText());
             if (parsed == null) {
-                showError.accept("Out cleanup retention must be a positive whole number of days.");
+                showError.accept("Output cleanup retention must be a positive whole number of days.");
                 return;
             }
             onCleanup.accept(parsed);
@@ -158,7 +158,7 @@ final class MainSettingsDialog extends JDialog {
         }
         Integer parsedRetention = parseRetentionDays(retentionDaysField.getText());
         if (parsedRetention == null) {
-            showError.accept("Out cleanup retention must be a positive whole number of days.");
+            showError.accept("Output cleanup retention must be a positive whole number of days.");
             return;
         }
 
