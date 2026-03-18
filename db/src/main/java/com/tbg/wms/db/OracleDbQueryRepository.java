@@ -310,19 +310,19 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             List<String> descriptionColumns = prtmstColumnResolver.getColumns(conn);
+            ShipmentDescriptionResolver descriptionResolver =
+                    new ShipmentDescriptionResolver(conn, descriptionColumns, prtmstColumnResolver);
             stmt.setString(1, normalizedId);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     String sku = NormalizationService.normalizeSku(rs.getString("PRTNUM"));
                     String fallbackDescription = NormalizationService.normalizeString(rs.getString("ITEM_DESCRIPTION"));
-                    String itemDescription = resolveItemDescription(
-                            conn,
+                    String itemDescription = descriptionResolver.resolveDescription(
                             sku,
                             NormalizationService.normalizeString(rs.getString("PRT_CLIENT_ID")),
                             NormalizationService.normalizeString(rs.getString("WH_ID")),
-                            fallbackDescription,
-                            descriptionColumns
+                            fallbackDescription
                     );
 
                     rows.add(new ShipmentSkuFootprint(
@@ -828,118 +828,6 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         Matcher matcher = DC_NUMBER_PATTERN.matcher(shipToName);
         if (matcher.find()) {
             return matcher.group(1);
-        }
-        return null;
-    }
-
-    private String resolveItemDescription(Connection conn,
-                                          String sku,
-                                          String prtClientId,
-                                          String whId,
-                                          String fallbackDescription,
-                                          List<String> descriptionColumns) {
-        String prtdscDescription = fetchDescriptionFromPrtdsc(conn, sku, prtClientId, whId);
-        if (DescriptionTextHeuristics.isHumanReadable(prtdscDescription)) {
-            return prtdscDescription;
-        }
-
-        String prtmstDescription = fetchDescriptionFromPrtmst(conn, sku, prtClientId, descriptionColumns);
-        if (DescriptionTextHeuristics.isHumanReadable(prtmstDescription)) {
-            return prtmstDescription;
-        }
-        if (DescriptionTextHeuristics.isHumanReadable(fallbackDescription)) {
-            return fallbackDescription;
-        }
-        return null;
-    }
-
-    private String fetchDescriptionFromPrtdsc(Connection conn,
-                                              String sku,
-                                              String prtClientId,
-                                              String whId) {
-        if (sku == null || sku.isBlank()) {
-            return null;
-        }
-
-        List<String> clientCandidates = new ArrayList<>();
-        if (prtClientId != null && !prtClientId.isBlank()) {
-            clientCandidates.add(prtClientId);
-        }
-        clientCandidates.add("----");
-
-        List<String> whCandidates = new ArrayList<>();
-        if (whId != null && !whId.isBlank()) {
-            whCandidates.add(whId);
-        }
-        whCandidates.add("----");
-
-        String sql = "SELECT SHORT_DSC, LNGDSC FROM WMSP.PRTDSC " +
-                "WHERE COLNAM = 'prtnum|prt_client_id|wh_id_tmpl' AND COLVAL = ? " +
-                "FETCH FIRST 1 ROWS ONLY";
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
-                // Probe most specific keys first (real client/warehouse), then wildcard placeholders.
-                for (String clientCandidate : clientCandidates) {
-                    for (String whCandidate : whCandidates) {
-                        String colVal = skuCandidate + "|" + clientCandidate + "|" + whCandidate;
-                        stmt.setString(1, colVal);
-                        try (ResultSet rs = stmt.executeQuery()) {
-                            if (rs.next()) {
-                                String shortDsc = NormalizationService.normalizeString(rs.getString("SHORT_DSC"));
-                                if (DescriptionTextHeuristics.isHumanReadable(shortDsc)) {
-                                    return shortDsc;
-                                }
-                                String longDsc = NormalizationService.normalizeString(rs.getString("LNGDSC"));
-                                if (DescriptionTextHeuristics.isHumanReadable(longDsc)) {
-                                    return longDsc;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            log.debug("Could not query PRTDSC for SKU {}: {}", sku, e.getMessage());
-        }
-        return null;
-    }
-
-    private String fetchDescriptionFromPrtmst(Connection conn,
-                                              String sku,
-                                              String prtClientId,
-                                              List<String> descriptionColumns) {
-        if (sku == null || sku.isBlank() || descriptionColumns == null || descriptionColumns.isEmpty()) {
-            return null;
-        }
-
-        String selectCols = String.join(", ", descriptionColumns);
-        boolean hasClientId = prtClientId != null && !prtClientId.isBlank();
-        String sql = hasClientId
-                ? "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? AND PRT_CLIENT_ID = ? FETCH FIRST 3 ROWS ONLY"
-                : "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? FETCH FIRST 3 ROWS ONLY";
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
-                stmt.setString(1, skuCandidate);
-                if (hasClientId) {
-                    stmt.setString(2, prtClientId);
-                }
-
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        // Honor preferred column order (SHORT_DSC before longer alternates).
-                        for (String column : descriptionColumns) {
-                            String value = NormalizationService.normalizeString(rs.getString(column));
-                            if (DescriptionTextHeuristics.isHumanReadable(value)) {
-                                return value;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            log.debug("Could not resolve PRTMST description for SKU {}: {}", sku, e.getMessage());
         }
         return null;
     }

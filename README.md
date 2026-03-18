@@ -1,16 +1,16 @@
 # WMS Pallet Tag System
 
-[![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
-[![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
+[![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
+[![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.7.1-blue)
+![Version](https://img.shields.io/badge/version-1.7.2-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.7.1` (2026-03-17).
+Current development target: `1.7.2`.
 
 ## Tracked Enhancements
 
@@ -194,30 +194,37 @@ Notes:
 - Prerelease tags such as `v1.7.1-rc1` are supported in CI and publish GitHub Releases marked as prereleases automatically
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
-- GUI `Tools` / `Settings` now include `Check for Updates...` and `Uninstall / Clean Install Prep...` actions for packaged installs
-- When a newer GitHub Release is available, the `Tools` button shows an alert badge and the update check can open the latest download page
-- When the latest GitHub Release includes the packaged installer asset, the GUI can download it into `updates/` and launch the guided upgrade flow directly
-- Guided upgrade requires both the installer asset and its published `.sha256` checksum; if either is missing, the app falls back to the release page
+- GUI `Tools` / `Settings` now include `Update Manager...` and `Uninstall / Clean Install Prep...` actions for packaged installs
+- The update manager always checks the latest stable release and can optionally include prerelease builds when `Enable experimental / prerelease updates` is turned on
+- The update manager shows the running version, latest stable version, latest experimental version, stable releases behind, and whether the current build is current, recommended for update, or behind a newer release line
+- One stable release behind in the same release line is treated as `update recommended`
+- Behind a newer stable release line triggers a startup warning prompt plus a persistent `Tools` badge until the app is updated or the release state changes
+- Ignoring a startup prompt suppresses only that exact target version popup; it does not clear the toolbar warning badge
+- The update manager can target any published release with both installer and checksum assets, including downgrades and prereleases
+- Downgrades and prerelease installs require explicit confirmation because features may be missing or unstable
+- Guided install requires both the installer asset and its published `.sha256` checksum; if either is missing, the app falls back to the release page
+- Guided install now shows a visible installer/update status window and relaunches the app after success
 - Full silent auto-update is still out of scope because safe self-replacement on Windows needs a detached updater, signing, lock handling, and rollback support that are not implemented yet
 - `uninstall-wms-tags.ps1` now supports clean-install prep by removing the installed product and then wiping the install directory plus non-secret runtime settings
 - Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
 - The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
+- If an operator launches the raw installer `.exe` directly outside the helper path, Windows Installer UI remains the controlling experience; the richer status/relaunch flow is provided by `install-wms-installer.ps1` / `.bat` and the in-app guided updater
 
 ### Update Paths
 
 - Portable/manual install:
   download the latest portable ZIP or installer from GitHub Releases and replace/reinstall manually
 - Packaged install:
-  use `Tools -> Settings -> Check for Updates...` for release checks and guided installer download when the release includes both the `.exe` and `.sha256`
+  use `Tools -> Settings -> Update Manager...` for stable/prerelease visibility, guided installer download, and manual version selection when the release includes both the `.exe` and `.sha256`
 - Clean reinstall:
   use `Tools -> Settings -> Uninstall / Clean Install Prep...` or `uninstall-wms-tags.ps1`
 
 ### Release Order
 
 - Merge the release-prep PR to `main`
-- Tag `v1.7.1-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
+- Tag `v1.7.2-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
 - Validate portable ZIP, installer `.exe`, `.exe.sha256`, and updater behavior against that prerelease
-- Tag `v1.7.1` when the prerelease is accepted
+- Tag `v1.7.2` when the prerelease is accepted
 
 ## Configuration
 

@@ -3,6 +3,7 @@ package com.tbg.wms.cli.gui;
 import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.update.ReleaseAssetSupport;
 import com.tbg.wms.core.update.ReleaseCheckService;
+import com.tbg.wms.core.update.UpdateActionService;
 
 import java.io.IOException;
 import java.net.URI;
@@ -50,6 +51,24 @@ public final class GuidedUpdateService {
         if (checksumAsset == null) {
             throw new IOException("No published checksum is available for the installer asset.");
         }
+        return downloadInstaller(anchorType, installerAsset, checksumAsset);
+    }
+
+    public Path downloadInstaller(Class<?> anchorType, UpdateActionService.InstallTarget installTarget)
+            throws IOException, InterruptedException {
+        Objects.requireNonNull(anchorType, "anchorType cannot be null");
+        Objects.requireNonNull(installTarget, "installTarget cannot be null");
+        return downloadInstaller(anchorType, installTarget.installerAsset(), installTarget.checksumAsset());
+    }
+
+    private Path downloadInstaller(
+            Class<?> anchorType,
+            ReleaseCheckService.ReleaseAsset installerAsset,
+            ReleaseCheckService.ReleaseAsset checksumAsset
+    ) throws IOException, InterruptedException {
+        Objects.requireNonNull(anchorType, "anchorType cannot be null");
+        Objects.requireNonNull(installerAsset, "installerAsset cannot be null");
+        Objects.requireNonNull(checksumAsset, "checksumAsset cannot be null");
 
         Path updatesDir = RuntimePathResolver.resolveAppHome(anchorType).resolve("updates");
         Files.createDirectories(updatesDir);

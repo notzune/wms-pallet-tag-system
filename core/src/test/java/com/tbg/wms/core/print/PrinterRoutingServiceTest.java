@@ -338,5 +338,45 @@ class PrinterRoutingServiceTest {
         PrinterRoutingService service = PrinterRoutingService.load("TBG3002", tempDir);
         assertEquals(1, service.getRules().size());
     }
+
+    @Test
+    void load_shouldRejectRulesWithMultipleDefinedConditions(@TempDir Path tempDir) throws Exception {
+        Path siteDir = Files.createDirectories(tempDir.resolve("TBG3002"));
+
+        Files.writeString(siteDir.resolve("printers.yaml"), String.join("\n",
+                "siteCode: TBG3002",
+                "printers:",
+                "  - id: OFFICE",
+                "    name: Office_Test",
+                "    ip: 10.19.64.106",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        Files.writeString(siteDir.resolve("printer-routing.yaml"), String.join("\n",
+                "siteCode: TBG3002",
+                "defaultPrinterId: OFFICE",
+                "rules:",
+                "  - id: invalid-multi-condition",
+                "    enabled: true",
+                "    when:",
+                "      all:",
+                "        - field: stagingLocation",
+                "          op: EQUALS",
+                "          value: ROSSI",
+                "        - field: carrierCode",
+                "          op: EQUALS",
+                "          value: MDLE",
+                "    then:",
+                "      printerId: OFFICE",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        IllegalArgumentException thrown = assertThrows(
+                IllegalArgumentException.class,
+                () -> PrinterRoutingService.load("TBG3002", tempDir)
+        );
+
+        assertTrue(thrown.getMessage().contains("multiple conditions"));
+    }
 }
 

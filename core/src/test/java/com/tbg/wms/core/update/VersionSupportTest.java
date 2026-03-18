@@ -20,6 +20,12 @@ class VersionSupportTest {
     }
 
     @Test
+    void compare_shouldTreatNumericPrereleaseSuffixesNumerically() {
+        assertTrue(VersionSupport.compare("1.7.2-rc10", "1.7.2-rc2") > 0);
+        assertTrue(VersionSupport.compare("1.7.2", "1.7.2-rc10") > 0);
+    }
+
+    @Test
     void resolvePackageVersion_shouldReturnBlankWhenUnavailable() {
         assertEquals("", VersionSupport.resolvePackageVersion(VersionSupportTest.class));
     }
@@ -27,5 +33,23 @@ class VersionSupportTest {
     @Test
     void readFirstNonBlankProperty_shouldReturnBlankForMissingProperty() {
         assertEquals("", VersionSupport.readFirstNonBlankProperty(VersionSupportTest.class, "version", "/missing.properties"));
+    }
+
+    @Test
+    void resolveRuntimeVersion_shouldPreferRunningPackageMetadataBeforeFallbackResources() {
+        String propertyName = "wms.tags.version.test";
+        System.setProperty(propertyName, "1.7.1");
+        try {
+            assertEquals(
+                    "1.7.1",
+                    VersionSupport.resolveRuntimeVersion(
+                            VersionSupportTest.class,
+                            propertyName,
+                            "version",
+                            "/com/tbg/wms/core/update/runtime-version.properties")
+            );
+        } finally {
+            System.clearProperty(propertyName);
+        }
     }
 }

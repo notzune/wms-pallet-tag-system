@@ -17,13 +17,14 @@ public final class BuildVersionProvider implements IVersionProvider {
 
     @Override
     public String[] getVersion() throws Exception {
-        String resourceVersion = VersionSupport.readFirstNonBlankResourceLine(BuildVersionProvider.class, "/version.txt");
-        if (!resourceVersion.isBlank()) {
-            return new String[]{resourceVersion};
-        }
-        String implementationVersion = VersionSupport.resolvePackageVersion(BuildVersionProvider.class);
-        if (!implementationVersion.isBlank()) {
-            return new String[]{implementationVersion};
+        String runtimeVersion = VersionSupport.resolveRuntimeVersion(
+                BuildVersionProvider.class,
+                "wms.tags.version",
+                "version",
+                "/version.txt"
+        );
+        if (!runtimeVersion.isBlank()) {
+            return new String[]{runtimeVersion};
         }
         return new String[]{"unknown"};
     }
