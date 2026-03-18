@@ -38,6 +38,32 @@ public final class VersionSupport {
         return implementationVersion == null ? "" : implementationVersion.trim();
     }
 
+    public static String resolveRuntimeVersion(
+            Class<?> anchorType,
+            String systemPropertyName,
+            String propertyName,
+            String... resourcePaths
+    ) {
+        Objects.requireNonNull(anchorType, "anchorType cannot be null");
+        String version = resolvePackageVersion(anchorType);
+        if (!version.isBlank()) {
+            return version;
+        }
+        if (systemPropertyName != null && !systemPropertyName.isBlank()) {
+            version = System.getProperty(systemPropertyName, "").trim();
+            if (!version.isBlank()) {
+                return version;
+            }
+        }
+        if (propertyName != null && !propertyName.isBlank()) {
+            version = readFirstNonBlankProperty(anchorType, propertyName, resourcePaths);
+            if (!version.isBlank()) {
+                return version;
+            }
+        }
+        return readFirstNonBlankResourceLine(anchorType, resourcePaths);
+    }
+
     public static String readFirstNonBlankResourceLine(Class<?> anchorType, String... resourcePaths) {
         Objects.requireNonNull(anchorType, "anchorType cannot be null");
         Objects.requireNonNull(resourcePaths, "resourcePaths cannot be null");

@@ -134,18 +134,12 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private static String resolveVersionTag() {
-        String version = VersionSupport.resolvePackageVersion(LabelGuiFrame.class);
-        if (version.isBlank()) {
-            version = System.getProperty("wms.tags.version", "").trim();
-        }
-        if (version.isBlank()) {
-            version = resolveVersionFromPomProperties();
-        }
-        return version.trim();
-    }
-
-    private static String resolveVersionFromPomProperties() {
-        return VersionSupport.readFirstNonBlankProperty(LabelGuiFrame.class, "version", VERSION_RESOURCE_PATHS);
+        return VersionSupport.resolveRuntimeVersion(
+                LabelGuiFrame.class,
+                "wms.tags.version",
+                "version",
+                VERSION_RESOURCE_PATHS
+        ).trim();
     }
 
     private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
