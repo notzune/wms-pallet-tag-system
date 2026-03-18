@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 No unreleased changes documented yet.
 
+## [1.7.2] - 2026-03-18
+
+### Added
+
+- GUI update manager workflow with release catalog/policy services, install target selection, prompt state persistence, and a dedicated update dialog.
+- Placeholder application icon assets plus GUI support for loading packaged app icons consistently.
+- Update-focused test coverage for catalog parsing, policy selection, prompt state, action handling, and related GUI support paths.
+
+### Changed
+
+- Project metadata/version updated to `1.7.2` across Maven modules and release documentation.
+- Guided update copy and related GUI update flows were polished for clearer operator-facing messaging.
+- Runtime version resolution is now unified through shared version-support helpers used by update and packaging flows.
+- Shipment description resolution and printer-routing boundaries were refactored to reduce query amplification and keep responsibilities clearer across core/db services.
+- README issue tracking was sanitized to point readers at the GitHub issues tracker instead of a stale curated list.
+
+### Fixed
+
+- Update version comparison, GitHub release pagination handling, and install-target gating were stabilized for release detection and guided upgrade behavior.
+- Packaged installer helper parsing and status handling were stabilized for guided install/update flows.
+
 ## [1.7.1] - 2026-03-17
 
 ### Added
