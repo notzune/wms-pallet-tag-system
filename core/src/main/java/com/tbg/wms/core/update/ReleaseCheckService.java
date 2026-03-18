@@ -17,43 +17,24 @@ import java.util.Objects;
  * Looks up the latest published GitHub release for the app.
  */
 public final class ReleaseCheckService {
-    private static final URI LATEST_RELEASE_URI =
-            URI.create("https://api.github.com/repos/notzune/wms-pallet-tag-system/releases/latest");
-
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
+    private final UpdateCatalogService updateCatalogService;
 
     public ReleaseCheckService() {
-        this(HttpClient.newBuilder()
-                        .connectTimeout(Duration.ofSeconds(5))
-                        .followRedirects(HttpClient.Redirect.NORMAL)
-                        .build(),
-                new ObjectMapper());
+        this(new UpdateCatalogService());
     }
 
-    ReleaseCheckService(HttpClient httpClient, ObjectMapper objectMapper) {
-        this.httpClient = Objects.requireNonNull(httpClient, "httpClient cannot be null");
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper cannot be null");
+    ReleaseCheckService(UpdateCatalogService updateCatalogService) {
+        this.updateCatalogService = Objects.requireNonNull(updateCatalogService, "updateCatalogService cannot be null");
     }
 
     public ReleaseInfo checkLatestRelease(String currentVersion) throws IOException, InterruptedException {
-        String normalizedCurrentVersion = VersionSupport.normalize(currentVersion);
-        HttpRequest request = HttpRequest.newBuilder(LATEST_RELEASE_URI)
-                .timeout(Duration.ofSeconds(10))
-                .header("Accept", "application/vnd.github+json")
-                .header("User-Agent", "wms-pallet-tag-system")
-                .GET()
-                .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
-            throw new IOException("Release check failed with HTTP " + response.statusCode());
-        }
-
-        JsonNode root = objectMapper.readTree(response.body());
-        String latestVersion = VersionSupport.normalize(root.path("tag_name").asText(""));
-        String releaseName = root.path("name").asText("");
-        String releaseUrl = root.path("html_url").asText("");
-        List<ReleaseAsset> assets = parseAssets(root.path("assets"));
+        UpdateCatalogService.ReleaseCatalog catalog = updateCatalogService.loadCatalog(currentVersion);
+        String normalizedCurrentVersion = catalog.currentVersion();
+        UpdateCatalogService.ReleaseEntry latestStable = catalog.latestStable();
+        String latestVersion = latestStable == null ? "" : latestStable.version();
+        String releaseName = latestStable == null ? "" : latestStable.releaseName();
+        String releaseUrl = latestStable == null ? "" : latestStable.releaseUrl();
+        List<ReleaseAsset> assets = latestStable == null ? List.of() : latestStable.assets();
         boolean updateAvailable = !latestVersion.isBlank()
                 && !normalizedCurrentVersion.isBlank()
                 && VersionSupport.compare(latestVersion, normalizedCurrentVersion) > 0;
@@ -65,21 +46,6 @@ public final class ReleaseCheckService {
                 assets,
                 updateAvailable
         );
-    }
-
-    private List<ReleaseAsset> parseAssets(JsonNode assetsNode) {
-        if (assetsNode == null || !assetsNode.isArray()) {
-            return List.of();
-        }
-        List<ReleaseAsset> assets = new ArrayList<>();
-        for (JsonNode assetNode : assetsNode) {
-            String name = assetNode.path("name").asText("");
-            String downloadUrl = assetNode.path("browser_download_url").asText("");
-            if (!name.isBlank() && !downloadUrl.isBlank()) {
-                assets.add(new ReleaseAsset(name, downloadUrl));
-            }
-        }
-        return List.copyOf(assets);
     }
 
     public record ReleaseInfo(

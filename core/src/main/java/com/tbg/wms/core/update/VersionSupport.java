@@ -108,6 +108,40 @@ public final class VersionSupport {
         return 0;
     }
 
+    public static boolean isPrerelease(String version) {
+        String normalized = normalize(version);
+        return normalized.contains("-");
+    }
+
+    public static int compareReleaseLine(String leftVersion, String rightVersion) {
+        int[] leftLine = releaseLine(normalize(leftVersion));
+        int[] rightLine = releaseLine(normalize(rightVersion));
+        int majorCompare = Integer.compare(leftLine[0], rightLine[0]);
+        if (majorCompare != 0) {
+            return majorCompare;
+        }
+        return Integer.compare(leftLine[1], rightLine[1]);
+    }
+
+    private static int[] releaseLine(String version) {
+        if (version == null || version.isBlank()) {
+            return new int[]{0, 0};
+        }
+        String[] segments = version.split("[.-]");
+        return new int[]{
+                parseLeadingNumericSegment(segments, 0),
+                parseLeadingNumericSegment(segments, 1)
+        };
+    }
+
+    private static int parseLeadingNumericSegment(String[] segments, int index) {
+        if (segments == null || index >= segments.length) {
+            return 0;
+        }
+        String segment = segments[index];
+        return segment.chars().allMatch(Character::isDigit) ? Integer.parseInt(segment) : 0;
+    }
+
     private static int compareSegment(String leftSegment, String rightSegment) {
         boolean leftNumeric = leftSegment.chars().allMatch(Character::isDigit);
         boolean rightNumeric = rightSegment.chars().allMatch(Character::isDigit);

@@ -132,6 +132,7 @@ class UpdateCatalogServiceTest {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler)
                 throws IOException, InterruptedException {
             if (request == null || responseBodyHandler == null) {
@@ -141,6 +142,7 @@ class UpdateCatalogServiceTest {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <T> CompletableFuture<HttpResponse<T>> sendAsync(
                 HttpRequest request,
                 HttpResponse.BodyHandler<T> responseBodyHandler
