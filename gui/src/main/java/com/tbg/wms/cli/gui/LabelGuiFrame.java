@@ -16,8 +16,9 @@ import com.tbg.wms.core.RuntimeSettings;
 import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.print.PrinterConfig;
-import com.tbg.wms.core.update.ReleaseAssetSupport;
-import com.tbg.wms.core.update.ReleaseCheckService;
+import com.tbg.wms.core.update.UpdateActionService;
+import com.tbg.wms.core.update.UpdateCatalogService;
+import com.tbg.wms.core.update.UpdatePolicyService;
 import com.tbg.wms.core.update.VersionSupport;
 
 import javax.swing.*;
@@ -88,7 +89,11 @@ public final class LabelGuiFrame extends JFrame {
     private final transient AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
     private final transient LabelPreviewFormatter previewFormatter = new LabelPreviewFormatter();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
-    private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
+    private final transient UpdateCatalogService updateCatalogService = new UpdateCatalogService();
+    private final transient UpdatePolicyService updatePolicyService = new UpdatePolicyService();
+    private final transient UpdateActionService updateActionService = new UpdateActionService();
+    private final transient UpdatePromptStateStore updatePromptStateStore = new UpdatePromptStateStore();
+    private final transient UpdateUiSupport updateUiSupport = new UpdateUiSupport();
     private final transient InstallMaintenanceService installMaintenanceService = new InstallMaintenanceService();
     private final transient GuidedUpdateService guidedUpdateService = new GuidedUpdateService();
     private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
@@ -96,7 +101,7 @@ public final class LabelGuiFrame extends JFrame {
     private transient List<PreviewLabelOption> previewLabelOptions = List.of();
     private transient LabelWorkflowService.PreparedJob preparedJob;
     private transient AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
-    private transient ReleaseCheckService.ReleaseInfo latestReleaseInfo;
+    private transient UpdateManagerSnapshot latestUpdateSnapshot = emptyUpdateSnapshot();
     private transient boolean updateCheckInProgress;
 
     public LabelGuiFrame() {
@@ -105,6 +110,7 @@ public final class LabelGuiFrame extends JFrame {
         setSize(1080, 720);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(8, 8));
+        setIconImage(AppIconSupport.loadWindowIcon());
 
         JPanel topContainer = new JPanel(new BorderLayout());
         topContainer.add(buildToolBar(), BorderLayout.NORTH);
@@ -122,7 +128,7 @@ public final class LabelGuiFrame extends JFrame {
         applyTopRowSizing();
         loadPrintersAsync();
         new OutDirectoryRetentionService().pruneDefaultOutDirectory(LabelGuiFrame.class);
-        checkForUpdatesAsync(false);
+        checkForUpdatesAsync(true);
         printButton.setEnabled(false);
     }
 
@@ -157,6 +163,24 @@ public final class LabelGuiFrame extends JFrame {
 
     private static boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
         return GuiPrinterTargetSupport.isPrintToFile(selected);
+    }
+
+    private static UpdateManagerSnapshot emptyUpdateSnapshot() {
+        UpdatePolicyService.UpdateDecision decision = new UpdatePolicyService.UpdateDecision(
+                resolveVersionTag(),
+                "",
+                "",
+                0,
+                false,
+                false,
+                UpdatePolicyService.UpdateSeverity.CURRENT
+        );
+        UpdateUiSupport.UpdateUiState uiState = new UpdateUiSupport.UpdateUiState(
+                "No update check has completed yet.",
+                false,
+                false
+        );
+        return new UpdateManagerSnapshot(null, decision, uiState, List.of(), false);
     }
 
     private JComponent buildToolBar() {
@@ -829,13 +853,13 @@ public final class LabelGuiFrame extends JFrame {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    private void checkForUpdatesAsync(boolean userInitiated) {
-        checkForUpdatesAsync(userInitiated, null);
+    private void checkForUpdatesAsync(boolean startupCheck) {
+        checkForUpdatesAsync(startupCheck, null);
     }
 
-    private void checkForUpdatesAsync(boolean userInitiated, JLabel statusOutput) {
+    private void checkForUpdatesAsync(boolean startupCheck, JLabel statusOutput) {
         if (updateCheckInProgress) {
-            if (userInitiated && statusOutput != null) {
+            if (statusOutput != null) {
                 statusOutput.setText("Update check already in progress...");
             }
             return;
@@ -845,30 +869,27 @@ public final class LabelGuiFrame extends JFrame {
             statusOutput.setText("Checking for updates...");
         }
 
-        SwingWorker<ReleaseCheckService.ReleaseInfo, Void> worker = new SwingWorker<>() {
+        SwingWorker<UpdateManagerSnapshot, Void> worker = new SwingWorker<>() {
             @Override
-            protected ReleaseCheckService.ReleaseInfo doInBackground() throws Exception {
-                return releaseCheckService.checkLatestRelease(resolveVersionTag());
+            protected UpdateManagerSnapshot doInBackground() throws Exception {
+                return refreshUpdateSnapshot(updatePromptStateStore.experimentalUpdatesEnabled());
             }
 
             @Override
             protected void done() {
                 updateCheckInProgress = false;
                 try {
-                    latestReleaseInfo = get();
+                    latestUpdateSnapshot = get();
                     refreshUpdateAvailabilityUi();
                     if (statusOutput != null) {
                         statusOutput.setText(formatUpdateStatus());
                     }
-                    if (userInitiated) {
-                        showUpdatePrompt(latestReleaseInfo);
+                    if (startupCheck) {
+                        maybeShowStartupUpdatePrompt();
                     }
                 } catch (Exception ex) {
                     if (statusOutput != null) {
                         statusOutput.setText("Update check failed.");
-                    }
-                    if (userInitiated) {
-                        showError("Update check failed: " + rootMessage(ex));
                     }
                 }
             }
@@ -877,81 +898,88 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private String formatUpdateStatus() {
-        if (latestReleaseInfo == null) {
-            return "No update check has completed yet.";
-        }
-        if (latestReleaseInfo.updateAvailable()) {
-            boolean guidedReady = latestReleaseInfo.preferredInstallerAsset() != null
-                    && ReleaseAssetSupport.findChecksumAsset(
-                    latestReleaseInfo.assets(),
-                    latestReleaseInfo.preferredInstallerAsset()) != null;
-            return !guidedReady
-                    ? "Update available: " + latestReleaseInfo.latestVersion()
-                    : "Update available: " + latestReleaseInfo.latestVersion() + " (guided install ready)";
-        }
-        return "Up to date on " + latestReleaseInfo.currentVersion() + ".";
+        return latestUpdateSnapshot.summary();
     }
 
     private void refreshUpdateAvailabilityUi() {
-        boolean updateAvailable = latestReleaseInfo != null && latestReleaseInfo.updateAvailable();
-        toolsButton.setIcon(updateAvailable ? UPDATE_AVAILABLE_ICON : null);
-        toolsButton.setToolTipText(updateAvailable
-                ? "Update available: " + latestReleaseInfo.latestVersion()
+        boolean showToolbarWarning = latestUpdateSnapshot.showToolbarWarning();
+        toolsButton.setIcon(showToolbarWarning ? UPDATE_AVAILABLE_ICON : null);
+        toolsButton.setToolTipText(showToolbarWarning
+                ? "New stable update available: " + latestUpdateSnapshot.latestStableVersion()
                 : null);
     }
 
-    private void showUpdatePrompt(ReleaseCheckService.ReleaseInfo releaseInfo) {
-        if (!releaseInfo.updateAvailable()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "You are up to date on version " + releaseInfo.currentVersion() + ".",
-                    "Updates",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+    private UpdateManagerSnapshot refreshUpdateSnapshot(boolean experimentalEnabled) throws Exception {
+        updatePromptStateStore.setExperimentalUpdatesEnabled(experimentalEnabled);
+        UpdateCatalogService.ReleaseCatalog catalog = updateCatalogService.loadCatalog(resolveVersionTag());
+        UpdatePolicyService.UpdateDecision decision = updatePolicyService.evaluate(catalog, experimentalEnabled);
+        UpdateUiSupport.UpdateUiState uiState = updateUiSupport.buildState(decision, updatePromptStateStore);
+        UpdateManagerSnapshot snapshot = new UpdateManagerSnapshot(
+                catalog,
+                decision,
+                uiState,
+                updateActionService.selectInstallTargets(catalog),
+                experimentalEnabled
+        );
+        latestUpdateSnapshot = snapshot;
+        return snapshot;
+    }
+
+    private void maybeShowStartupUpdatePrompt() {
+        if (!latestUpdateSnapshot.showStartupPrompt()) {
             return;
         }
-
-        ReleaseCheckService.ReleaseAsset installerAsset = releaseInfo.preferredInstallerAsset();
-        boolean guidedReady = installerAsset != null
-                && ReleaseAssetSupport.findChecksumAsset(releaseInfo.assets(), installerAsset) != null;
-        Object[] options = !guidedReady
-                ? new Object[]{"Open Download Page", "Close"}
-                : new Object[]{"Download and Install", "Open Download Page", "Close"};
+        Object[] options = {"Update Now", "View Details", "Ignore This Version"};
         int choice = JOptionPane.showOptionDialog(
                 this,
-                "Current version: " + releaseInfo.currentVersion()
-                        + "\nLatest version: " + releaseInfo.latestVersion()
-                        + (!guidedReady
-                        ? "\n\nA verified guided upgrade is unavailable because the published release does not include both the installer and its checksum. Open the latest release page now?"
-                        : "\n\nA verified packaged installer is available. Download it and start the upgrade now?"),
-                "Update Available",
+                "Current version: " + latestUpdateSnapshot.currentVersion()
+                        + "\nLatest stable version: " + latestUpdateSnapshot.latestStableVersion()
+                        + "\nStable releases behind: " + latestUpdateSnapshot.stableUpdatesBehind()
+                        + "\n\nA newer stable release line is available.",
+                "New Stable Update Available",
                 JOptionPane.DEFAULT_OPTION,
-                JOptionPane.INFORMATION_MESSAGE,
+                JOptionPane.WARNING_MESSAGE,
                 null,
                 options,
                 options[0]
         );
-        if (guidedReady && choice == 0) {
-            performGuidedUpgrade(releaseInfo);
-            return;
-        }
-        if ((!guidedReady && choice == 0) || (guidedReady && choice == 1)) {
-            openReleaseUrl(releaseInfo.releaseUrl());
+        if (choice == 0) {
+            UpdateActionService.InstallTarget selectedTarget = latestUpdateSnapshot.installTargets().stream()
+                    .filter(target -> Objects.equals(target.version(), latestUpdateSnapshot.latestStableVersion()))
+                    .findFirst()
+                    .orElse(null);
+            if (selectedTarget != null) {
+                performGuidedUpgrade(selectedTarget);
+            } else {
+                openReleaseUrl(latestUpdateSnapshot.latestStableReleaseUrl());
+            }
+        } else if (choice == 1) {
+            openUpdateManagerDialog();
+        } else if (choice == 2) {
+            updatePromptStateStore.ignorePromptTarget(latestUpdateSnapshot.latestStableVersion());
+            latestUpdateSnapshot = new UpdateManagerSnapshot(
+                    latestUpdateSnapshot.catalog(),
+                    latestUpdateSnapshot.decision(),
+                    updateUiSupport.buildState(latestUpdateSnapshot.decision(), updatePromptStateStore),
+                    latestUpdateSnapshot.installTargets(),
+                    latestUpdateSnapshot.experimentalUpdatesEnabled()
+            );
+            refreshUpdateAvailabilityUi();
         }
     }
 
-    private void performGuidedUpgrade(ReleaseCheckService.ReleaseInfo releaseInfo) {
+    private void performGuidedUpgrade(UpdateActionService.InstallTarget installTarget) {
         Path installScript = installMaintenanceService.findInstallScript(LabelGuiFrame.class).orElse(null);
         if (installScript == null) {
-            openReleaseUrl(releaseInfo.releaseUrl());
+            openReleaseUrl(installTarget.releaseUrl());
             return;
         }
 
-        setBusy("Downloading update " + releaseInfo.latestVersion() + "...");
+        setBusy("Downloading update " + installTarget.version() + "...");
         SwingWorker<Path, Void> worker = new SwingWorker<>() {
             @Override
             protected Path doInBackground() throws Exception {
-                return guidedUpdateService.downloadInstaller(LabelGuiFrame.class, releaseInfo);
+                return guidedUpdateService.downloadInstaller(LabelGuiFrame.class, installTarget);
             }
 
             @Override
@@ -968,6 +996,34 @@ public final class LabelGuiFrame extends JFrame {
             }
         };
         worker.execute();
+    }
+
+    private void openUpdateManagerDialog() {
+        UpdateManagerDialog dialog = new UpdateManagerDialog(
+                this,
+                latestUpdateSnapshot,
+                this::refreshUpdateSnapshot,
+                this::installTargetFromDialog,
+                this::openReleaseUrl
+        );
+        dialog.setVisible(true);
+    }
+
+    private void installTargetFromDialog(UpdateActionService.InstallTarget installTarget) {
+        UpdateActionService.TargetWarning warning = updateActionService.buildWarning(resolveVersionTag(), installTarget);
+        if (warning.requiresConfirmation()) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    warning.message(),
+                    "Confirm Version Change",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+            if (choice != JOptionPane.OK_OPTION) {
+                return;
+            }
+        }
+        performGuidedUpgrade(installTarget);
     }
 
     private void openReleaseUrl(String releaseUrl) {
@@ -1296,7 +1352,7 @@ public final class LabelGuiFrame extends JFrame {
                 this::installTerminalLikeMouseClipboardBehavior,
                 this::saveMainSettings,
                 retentionDays -> runOutDirectoryCleanup(this, retentionDays),
-                statusLabel -> checkForUpdatesAsync(true, statusLabel),
+                this::openUpdateManagerDialog,
                 this::openUninstallDialog,
                 () -> openAdvancedSettingsDialog(this)
         );

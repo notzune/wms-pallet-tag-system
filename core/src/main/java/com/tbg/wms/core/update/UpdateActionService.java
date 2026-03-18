@@ -49,6 +49,20 @@ public final class UpdateActionService {
         return new TargetWarning(downgradeTarget, experimentalTarget, requiresConfirmation, message);
     }
 
+    public TargetWarning buildWarning(String currentVersion, InstallTarget target) {
+        String normalizedCurrentVersion = VersionSupport.normalize(currentVersion);
+        String normalizedTargetVersion = target == null ? "" : VersionSupport.normalize(target.version());
+        boolean downgradeTarget = !normalizedCurrentVersion.isBlank()
+                && !normalizedTargetVersion.isBlank()
+                && VersionSupport.compare(normalizedTargetVersion, normalizedCurrentVersion) < 0;
+        boolean experimentalTarget = target != null && target.prerelease();
+        boolean requiresConfirmation = downgradeTarget || experimentalTarget;
+        String message = !requiresConfirmation
+                ? ""
+                : "Older or experimental versions may be missing features or behave unexpectedly. Continue?";
+        return new TargetWarning(downgradeTarget, experimentalTarget, requiresConfirmation, message);
+    }
+
     public record InstallTarget(
             String version,
             String tagName,

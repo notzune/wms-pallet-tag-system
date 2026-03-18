@@ -123,6 +123,7 @@ $javaHome = Resolve-JpackageHome
 $appName = "WMS Pallet Tag System"
 $installDirName = "WMS-Pallet-Tag-System"
 $winUpgradeUuid = "0d6f4c87-1ec5-4f65-a9d3-4f7a0d4f4d4f"
+$iconPath = Join-Path $SourceRoot "gui\src\main\resources\icons\wms-placeholder-icon.ico"
 
 if (-not $BundleDir) {
     $BundleDir = Join-Path $SourceRoot "dist\wms-pallet-tag-system-$BundleVersionLabel-app"
@@ -151,6 +152,9 @@ $jpackageArgs = @(
     '--vendor', 'Tropicana Brands Group',
     '--java-options', '-Dwms.app.home=$APPDIR\..'
 )
+if (Test-Path -LiteralPath $iconPath) {
+    $jpackageArgs += @('--icon', $iconPath)
+}
 if ($RuntimeImage) {
     $resolvedRuntimeImage = (Resolve-Path -LiteralPath $RuntimeImage).Path
     $jpackageArgs += @('--runtime-image', $resolvedRuntimeImage)
@@ -236,6 +240,9 @@ if ($InstallerType -ne 'none') {
         '--win-menu',
         '--win-shortcut'
     )
+    if (Test-Path -LiteralPath $iconPath) {
+        $installerArgs += @('--icon', $iconPath)
+    }
     if (-not $SystemWideInstall) {
         $installerArgs += '--win-per-user-install'
     }

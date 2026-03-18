@@ -22,7 +22,7 @@ final class MainSettingsDialog extends JDialog {
     private final transient Consumer<JTextComponent[]> installClipboardBehavior;
     private final transient BiConsumer<Path, Integer> onSave;
     private final transient IntConsumer onCleanup;
-    private final transient Consumer<JLabel> onCheckUpdates;
+    private final transient Runnable onOpenUpdateManager;
     private final transient Runnable onUninstall;
     private final transient Runnable onAdvancedSettings;
 
@@ -35,7 +35,7 @@ final class MainSettingsDialog extends JDialog {
             Consumer<JTextComponent[]> installClipboardBehavior,
             BiConsumer<Path, Integer> onSave,
             IntConsumer onCleanup,
-            Consumer<JLabel> onCheckUpdates,
+            Runnable onOpenUpdateManager,
             Runnable onUninstall,
             Runnable onAdvancedSettings
     ) {
@@ -44,7 +44,7 @@ final class MainSettingsDialog extends JDialog {
         this.installClipboardBehavior = Objects.requireNonNull(installClipboardBehavior, "installClipboardBehavior cannot be null");
         this.onSave = Objects.requireNonNull(onSave, "onSave cannot be null");
         this.onCleanup = Objects.requireNonNull(onCleanup, "onCleanup cannot be null");
-        this.onCheckUpdates = Objects.requireNonNull(onCheckUpdates, "onCheckUpdates cannot be null");
+        this.onOpenUpdateManager = Objects.requireNonNull(onOpenUpdateManager, "onOpenUpdateManager cannot be null");
         this.onUninstall = Objects.requireNonNull(onUninstall, "onUninstall cannot be null");
         this.onAdvancedSettings = Objects.requireNonNull(onAdvancedSettings, "onAdvancedSettings cannot be null");
 
@@ -64,7 +64,7 @@ final class MainSettingsDialog extends JDialog {
 
         JButton browseButton = new JButton("Browse...");
         JButton cleanupNowButton = new JButton("Clean Old Output Now");
-        JButton checkUpdatesButton = new JButton("Check for Updates...");
+        JButton checkUpdatesButton = new JButton("Update Manager...");
         JButton uninstallButton = new JButton("Uninstall / Clean Install Prep...");
         JButton advancedSettingsButton = new JButton("Advanced Settings...");
 
@@ -118,7 +118,7 @@ final class MainSettingsDialog extends JDialog {
             }
             onCleanup.accept(parsed);
         });
-        checkUpdatesButton.addActionListener(e -> onCheckUpdates.accept(updateStatusLabel));
+        checkUpdatesButton.addActionListener(e -> onOpenUpdateManager.run());
         uninstallButton.addActionListener(e -> onUninstall.run());
         advancedSettingsButton.addActionListener(e -> onAdvancedSettings.run());
         saveButton.addActionListener(e -> saveSettings(outputDirField, retentionDaysField));

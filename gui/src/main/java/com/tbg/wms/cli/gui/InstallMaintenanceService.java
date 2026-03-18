@@ -48,6 +48,8 @@ public final class InstallMaintenanceService {
     public void launchUninstall(Path scriptPath, boolean wipeInstallRoot) throws IOException {
         List<String> command = new ArrayList<>();
         command.add("powershell");
+        command.add("-NoProfile");
+        command.add("-Sta");
         command.add("-ExecutionPolicy");
         command.add("Bypass");
         command.add("-File");
