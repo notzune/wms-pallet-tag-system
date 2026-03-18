@@ -3,9 +3,11 @@ param(
     [ValidateSet("none", "exe", "msi")]
     [string]$InstallerType = "none",
     [string]$BundleDir,
+    [string]$BundleVersionLabel,
     [string]$JarPath,
     [string]$SourceRoot,
     [string]$RuntimeImage,
+    [string]$AppVersion,
     [switch]$SystemWideInstall
 )
 
@@ -108,18 +110,22 @@ if (-not $JarPath) {
     }
 }
 
-if (-not (Test-Path -LiteralPath $JarPath)) {
+if ([string]::IsNullOrWhiteSpace($JarPath) -or -not (Test-Path -LiteralPath $JarPath)) {
     throw "Jar not found: $JarPath. Build first with .\mvnw.cmd -pl cli -am -Dmaven.test.skip=true package"
 }
 
-$version = Get-VersionText -SourceRoot $SourceRoot -JarPath $JarPath
+$resolvedVersion = Get-VersionText -SourceRoot $SourceRoot -JarPath $JarPath
+$version = if ($AppVersion) { $AppVersion.Trim() } else { $resolvedVersion }
+if (-not $BundleVersionLabel) {
+    $BundleVersionLabel = $resolvedVersion
+}
 $javaHome = Resolve-JpackageHome
 $appName = "WMS Pallet Tag System"
 $installDirName = "WMS-Pallet-Tag-System"
 $winUpgradeUuid = "0d6f4c87-1ec5-4f65-a9d3-4f7a0d4f4d4f"
 
 if (-not $BundleDir) {
-    $BundleDir = Join-Path $SourceRoot "dist\wms-pallet-tag-system-$version-app"
+    $BundleDir = Join-Path $SourceRoot "dist\wms-pallet-tag-system-$BundleVersionLabel-app"
 }
 
 $distDir = Split-Path -Parent $BundleDir
@@ -161,7 +167,8 @@ if (-not (Test-Path -LiteralPath $builtAppDir)) {
 }
 
 Remove-Item -LiteralPath $BundleDir -Recurse -Force -ErrorAction SilentlyContinue
-Move-Item -LiteralPath $builtAppDir -Destination $BundleDir
+Copy-Item -LiteralPath $builtAppDir -Destination $BundleDir -Recurse -Force
+Remove-Item -LiteralPath $builtAppDir -Recurse -Force -ErrorAction SilentlyContinue
 
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "config\TBG3002") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "config\templates") -Force | Out-Null
@@ -201,6 +208,8 @@ $manifest = [pscustomobject]@{
     JarSha256 = $jarHash
     AppImageDir = $BundleDir
     InstallerType = $InstallerType
+    AppVersion = $version
+    BundleVersionLabel = $BundleVersionLabel
 }
 $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $BundleDir "appimage-manifest.json") -Encoding UTF8
 
@@ -238,7 +247,9 @@ if ($InstallerType -ne 'none') {
 
     $installerCandidate = Get-ChildItem -Path $installerDest -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($installerCandidate) {
-        $installerPath = Join-Path $distDir $installerCandidate.Name
+        $installerExtension = [System.IO.Path]::GetExtension($installerCandidate.Name)
+        $installerLeaf = "$appName-$BundleVersionLabel$installerExtension"
+        $installerPath = Join-Path $distDir $installerLeaf
         Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
         Move-Item -LiteralPath $installerCandidate.FullName -Destination $installerPath
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\install-wms-installer.ps1") -Destination (Join-Path $distDir "install-wms-installer.ps1") -Force
@@ -246,7 +257,7 @@ if ($InstallerType -ne 'none') {
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.ps1") -Destination (Join-Path $distDir "uninstall-wms-tags.ps1") -Force
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.bat") -Destination (Join-Path $distDir "uninstall-wms-tags.bat") -Force
         $installerSha256 = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
-        Set-Content -LiteralPath ($installerPath + ".sha256") -Value "$installerSha256  $($installerCandidate.Name)" -Encoding ASCII
+        Set-Content -LiteralPath ($installerPath + ".sha256") -Value "$installerSha256  $installerLeaf" -Encoding ASCII
     }
 }
 

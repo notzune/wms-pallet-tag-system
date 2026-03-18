@@ -8,7 +8,12 @@ import java.util.Properties;
 import java.util.Objects;
 
 /**
- * Minimal version normalization/comparison for release tags like {@code v1.7.1}.
+ * Minimal version normalization/comparison for release identifiers such as {@code v1.7.1}
+ * and {@code v1.7.1-rc1}.
+ *
+ * <p>The helper intentionally stays small because it is used by runtime update checks and
+ * release-facing metadata paths that only need predictable tag normalization and ordering, not
+ * full semantic-version feature coverage.</p>
  */
 public final class VersionSupport {
     private VersionSupport() {

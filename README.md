@@ -191,6 +191,7 @@ Notes:
 - The bundled runtime comes from the `jpackage` JDK unless you pass `-RuntimeImage`; use a Java 17 runtime image for release parity with the project baseline
 - The optional installer defaults to per-user install to avoid admin privileges when possible
 - Newer installer builds now use a stable Windows upgrade UUID so normal version-to-version upgrades can reuse the same install identity
+- Prerelease tags such as `v1.7.1-rc1` are supported in CI and publish GitHub Releases marked as prereleases automatically
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
 - GUI `Tools` / `Settings` now include `Check for Updates...` and `Uninstall / Clean Install Prep...` actions for packaged installs
@@ -210,6 +211,13 @@ Notes:
   use `Tools -> Settings -> Check for Updates...` for release checks and guided installer download when the release includes both the `.exe` and `.sha256`
 - Clean reinstall:
   use `Tools -> Settings -> Uninstall / Clean Install Prep...` or `uninstall-wms-tags.ps1`
+
+### Release Order
+
+- Merge the release-prep PR to `main`
+- Tag `v1.7.1-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
+- Validate portable ZIP, installer `.exe`, `.exe.sha256`, and updater behavior against that prerelease
+- Tag `v1.7.1` when the prerelease is accepted
 
 ## Configuration
 
@@ -468,7 +476,7 @@ Triggers on pushes to `main` and `dev`, plus manual dispatch.
 Triggers on:
 
 - PRs targeting `main` (builds and uploads a portable ZIP as a workflow artifact).
-- Tag pushes matching `v*.*.*` (creates a GitHub Release).
+- Tag pushes matching `v*.*.*` or `v*.*.*-*` (creates a GitHub Release).
 
 Behavior:
 
@@ -479,7 +487,8 @@ Behavior:
 - PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from
   `cli/target/maven-archiver/pom.properties`.
 - PRs: also upload the installer `.exe` and `.exe.sha256` as workflow artifacts.
-- Tags: attach the portable ZIP, installer `.exe`, and matching `.exe.sha256` to the GitHub Release.
+- Stable tags (`vX.Y.Z`): attach the portable ZIP, installer `.exe`, and matching `.exe.sha256` to a normal GitHub Release.
+- Prerelease tags (`vX.Y.Z-<suffix>` such as `v1.7.1-rc1`): attach the same artifacts to a GitHub Release marked as a prerelease.
 - Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
 ## Project Structure
