@@ -25,6 +25,7 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -42,6 +43,7 @@ import java.util.prefs.Preferences;
  * to keep responsibilities separated.</p>
  */
 public final class LabelGuiFrame extends JFrame {
+    @Serial
     private static final long serialVersionUID = 1L;
     private static final String PREF_PRINT_TO_FILE_DIR = "printToFile.defaultOutputDir";
     private static final int SHIPMENT_MIN_CHARS = 11;
@@ -734,9 +736,7 @@ public final class LabelGuiFrame extends JFrame {
             int plannedInfoTags = selection.infoTagCount();
             int choice = JOptionPane.showConfirmDialog(
                     this,
-                    carrierMoveMode
-                            ? "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?"
-                            : "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?",
+                    "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?",
                     "Confirm Print",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE

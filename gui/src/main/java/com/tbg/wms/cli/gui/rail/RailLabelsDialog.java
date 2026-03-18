@@ -12,6 +12,7 @@ import com.tbg.wms.core.rail.RailCarCard;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -21,6 +22,7 @@ import java.util.Objects;
  * Rail labels screen with train load, railcar table preview, card preview, and print action.
  */
 public final class RailLabelsDialog extends JDialog {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final JTextField trainIdField = new JTextField(16);

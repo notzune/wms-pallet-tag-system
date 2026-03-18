@@ -61,7 +61,8 @@ jobs:
           cache: "maven"
 
       - name: Build JAR
-        run: mvn -B -Dmaven.test.skip=true clean package
+        run: |
+          & .\mvnw.cmd -B '-Dmaven.test.skip=true' clean package
 
       - name: Download Temurin 17 JRE
         shell: pwsh

@@ -336,11 +336,18 @@ public final class RunCommand implements Callable<Integer> {
         for (int i = 0; i < prepared.getLpnsForLabels().size() && i < MAX_LABEL_PREVIEW_ROWS; i++) {
             Lpn lpn = prepared.getLpnsForLabels().get(i);
             boolean selected = lpn != null && selectedIds.contains(lpn.getLpnId());
-            System.out.printf("  [%s] %d. %s%n", selected ? "x" : " ", i + 1, lpn.getLpnId());
+            System.out.printf("  [%s] %d. %s%n", selected ? "x" : " ", i + 1, renderLpnPreviewId(lpn));
         }
         if (prepared.getLpnsForLabels().size() > MAX_LABEL_PREVIEW_ROWS) {
             System.out.println("  ... showing first " + MAX_LABEL_PREVIEW_ROWS + " labels");
         }
+    }
+
+    private static String renderLpnPreviewId(Lpn lpn) {
+        if (lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank()) {
+            return "UNKNOWN";
+        }
+        return lpn.getLpnId();
     }
 
     private void printCarrierMovePlanSummary(WorkflowPrintPlanSupport.CarrierMovePlanSummary plan) {

@@ -6,6 +6,7 @@ import com.tbg.wms.core.RuntimePathResolver;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.io.Serial;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import java.util.Objects;
  * GUI editor for non-secret runtime configuration files stored next to the application.
  */
 final class AdvancedSettingsDialog extends JDialog {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final JComboBox<EditableConfigFile> fileCombo = new JComboBox<>();

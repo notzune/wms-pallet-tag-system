@@ -8,6 +8,8 @@
 
 package com.tbg.wms.core.exception;
 
+import java.io.Serial;
+
 /**
  * Exception thrown when database connectivity fails.
  *
@@ -22,6 +24,7 @@ package com.tbg.wms.core.exception;
  */
 public final class WmsDbConnectivityException extends WmsException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

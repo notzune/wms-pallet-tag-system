@@ -3,6 +3,7 @@ package com.tbg.wms.cli.gui;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.io.Serial;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,6 +15,7 @@ import java.util.function.Consumer;
  * Primary operator/admin settings dialog for non-secret runtime preferences and maintenance actions.
  */
 final class MainSettingsDialog extends JDialog {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final transient Consumer<String> showError;
