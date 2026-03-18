@@ -25,4 +25,12 @@ public final class ReleaseAssetSupport {
                 .findFirst()
                 .orElse(null);
     }
+
+    public static ReleaseCheckService.ReleaseAsset findInstallerAsset(List<ReleaseCheckService.ReleaseAsset> assets) {
+        Objects.requireNonNull(assets, "assets cannot be null");
+        return assets.stream()
+                .filter(asset -> asset.name().endsWith(".exe"))
+                .findFirst()
+                .orElse(null);
+    }
 }
