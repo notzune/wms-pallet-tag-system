@@ -30,10 +30,14 @@
   - `install-wms-installer.ps1` now shows a status window
   - successful guided installs attempt to relaunch the installed app
   - failures keep the status window open with the error text
+- Stabilization follow-up work for `v1.7.2` is now also landed:
+  - `#33` fixed numeric prerelease ordering, GitHub release pagination, and prerelease target gating
+  - `#34` fixed prerelease installer filename parsing and removed the invalid modal reopen in the helper failure path
+  - `#35` rejects unsupported multi-condition routing rules explicitly and moves shipment description fallback lookups into a cached helper
+  - `#36` fixes README branch badges, settings copy, and guided-update duplication
 - Important nuance: if an operator launches the raw packaged `.exe` directly outside the helper path, native Windows Installer UI still controls that flow. The richer status/relaunch UX is provided by `install-wms-installer.ps1` / `.bat` and the in-app guided updater.
-- Remaining work for `1.7.2` is mostly final polish and integration:
-  - refresh any remaining release/operator docs that still mention `1.7.1`
+- Remaining work for `1.7.2` is now integration-focused:
   - run final `javadoc:aggregate`
-  - build a real installer smoke artifact with `-InstallerType exe`
+  - request code review on the branch/PR
   - do an end-to-end updater validation against a published `1.7.2-rc1` once the branch is merged and tagged
 - Largest remaining architecture hotspot is still `LabelGuiFrame`; the updater additions are functional but the class remains a broad coordinator.
