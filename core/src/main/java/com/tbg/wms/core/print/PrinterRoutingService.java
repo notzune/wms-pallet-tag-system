@@ -132,6 +132,19 @@ public final class PrinterRoutingService {
                 continue;
             }
 
+            int definedConditionCount = 0;
+            for (RuleConditionEntry condition : conditions) {
+                if (condition != null) {
+                    definedConditionCount++;
+                }
+            }
+            if (definedConditionCount > 1) {
+                throw new IllegalArgumentException(
+                        "Routing rule '" + id + "' in " + routingFile + " defines multiple conditions in when.all; "
+                                + "this configuration is not yet supported."
+                );
+            }
+
             // For now, preserve one-condition semantics used by existing routing configs.
             RuleConditionEntry condition = firstDefinedCondition(conditions);
             if (condition == null) {
