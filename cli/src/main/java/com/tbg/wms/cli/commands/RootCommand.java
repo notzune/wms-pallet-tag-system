@@ -41,6 +41,7 @@ import java.util.concurrent.Callable;
         subcommands = {
                 ShowConfigCommand.class,
                 DbTestCommand.class,
+                EmsReconCommand.class,
                 RunCommand.class,
                 RailHelperCommand.class,
                 RailPrintCommand.class,

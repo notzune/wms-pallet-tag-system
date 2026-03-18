@@ -9,6 +9,7 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.label.SiteConfig;
@@ -42,6 +43,7 @@ public final class LabelWorkflowService {
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     private final AppConfig config;
+    private final Path configBaseDir;
     // Cache routing configs by site code to avoid repeated disk reads.
     private final ConcurrentMap<String, PrinterRoutingService> routingBySite = new ConcurrentHashMap<>();
     // Cache resolved printers by site and printer ID to avoid repeated lookups.
@@ -53,7 +55,12 @@ public final class LabelWorkflowService {
     private volatile LabelTemplate cachedTemplate;
 
     public LabelWorkflowService(AppConfig config) {
+        this(config, RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(LabelWorkflowService.class, "config"));
+    }
+
+    LabelWorkflowService(AppConfig config, Path configBaseDir) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
+        this.configBaseDir = Objects.requireNonNull(configBaseDir, "configBaseDir cannot be null");
     }
 
     /**
@@ -68,11 +75,24 @@ public final class LabelWorkflowService {
         List<PrinterOption> options = new ArrayList<>();
         for (PrinterConfig printer : routing.getPrinters().values()) {
             if (printer.isEnabled()) {
-                options.add(new PrinterOption(printer.getId(), printer.getName(), printer.getEndpoint()));
+                options.add(new PrinterOption(
+                        printer.getId(),
+                        printer.getName(),
+                        printer.getEndpoint(),
+                        printer.getCapabilities()
+                ));
             }
         }
         options.sort(Comparator.comparing(PrinterOption::getId));
         return options;
+    }
+
+    public void clearCaches() {
+        routingBySite.clear();
+        printersBySite.clear();
+        siteConfigBySite.clear();
+        cachedSkuMapping = null;
+        cachedTemplate = null;
     }
 
     /**
@@ -194,7 +214,7 @@ public final class LabelWorkflowService {
 
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
         NetworkPrintService printService = new NetworkPrintService();
-        Shipment shipmentForLabels = buildShipmentForLabeling(job.getShipment(), job.getLpnsForLabels());
+        Shipment shipmentForLabels = LabelingSupport.buildShipmentForLabeling(job.getShipment(), job.getLpnsForLabels());
 
         int printedCount = 0;
         for (int i = 0; i < job.getLpnsForLabels().size(); i++) {
@@ -222,51 +242,6 @@ public final class LabelWorkflowService {
             return PrintResult.printToFile(printedCount, targetDir.toAbsolutePath());
         }
         return new PrintResult(printedCount, targetDir.toAbsolutePath(), printer.getId(), printer.getEndpoint());
-    }
-
-    private Shipment buildShipmentForLabeling(Shipment shipment, List<Lpn> lpnsForLabels) {
-        if (shipment == null) {
-            throw new IllegalArgumentException("shipment cannot be null");
-        }
-        if (lpnsForLabels == null) {
-            throw new IllegalArgumentException("lpnsForLabels cannot be null");
-        }
-        if (shipment.getLpnCount() == lpnsForLabels.size()) {
-            return shipment;
-        }
-        return new Shipment(
-                shipment.getShipmentId(),
-                shipment.getExternalId(),
-                shipment.getOrderId(),
-                shipment.getWarehouseId(),
-                shipment.getShipToName(),
-                shipment.getShipToAddress1(),
-                shipment.getShipToAddress2(),
-                shipment.getShipToAddress3(),
-                shipment.getShipToCity(),
-                shipment.getShipToState(),
-                shipment.getShipToZip(),
-                shipment.getShipToCountry(),
-                shipment.getShipToPhone(),
-                shipment.getCarrierCode(),
-                shipment.getServiceLevel(),
-                shipment.getDocumentNumber(),
-                shipment.getTrackingNumber(),
-                shipment.getDestinationLocation(),
-                shipment.getCustomerPo(),
-                shipment.getLocationNumber(),
-                shipment.getDepartmentNumber(),
-                shipment.getStopId(),
-                shipment.getStopSequence(),
-                shipment.getCarrierMoveId(),
-                shipment.getProNumber(),
-                shipment.getBolNumber(),
-                shipment.getStatus(),
-                shipment.getShipDate(),
-                shipment.getDeliveryDate(),
-                shipment.getCreatedDate(),
-                lpnsForLabels
-        );
     }
 
     private List<SkuMathRow> buildSkuMathRows(List<ShipmentSkuFootprint> rows, SkuMappingService skuMapping) {
@@ -331,7 +306,7 @@ public final class LabelWorkflowService {
         if (cached != null) {
             return cached;
         }
-        PrinterRoutingService routing = PrinterRoutingService.load(siteCode, Paths.get("config"));
+        PrinterRoutingService routing = PrinterRoutingService.load(siteCode, configBaseDir);
         PrinterRoutingService prior = routingBySite.putIfAbsent(siteCode, routing);
         return prior == null ? routing : prior;
     }
@@ -372,7 +347,7 @@ public final class LabelWorkflowService {
         }
         synchronized (this) {
             if (cachedTemplate == null) {
-                Path templatePath = Paths.get("config/templates/walmart-canada-label.zpl");
+                Path templatePath = configBaseDir.resolve("templates").resolve("walmart-canada-label.zpl");
                 if (!Files.exists(templatePath)) {
                     throw new IllegalStateException("ZPL template not found: " + templatePath);
                 }
@@ -386,15 +361,25 @@ public final class LabelWorkflowService {
         private final String id;
         private final String name;
         private final String endpoint;
+        private final List<String> capabilities;
 
         public PrinterOption(String id, String name, String endpoint) {
+            this(id, name, endpoint, List.of());
+        }
+
+        public PrinterOption(String id, String name, String endpoint, List<String> capabilities) {
             this.id = id;
             this.name = name;
             this.endpoint = endpoint;
+            this.capabilities = capabilities == null ? List.of() : List.copyOf(capabilities);
         }
 
         public String getId() {
             return id;
+        }
+
+        public List<String> getCapabilities() {
+            return capabilities;
         }
 
         @Override

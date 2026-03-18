@@ -7,12 +7,8 @@
  */
 package com.tbg.wms.cli.commands;
 
+import com.tbg.wms.core.update.VersionSupport;
 import picocli.CommandLine.IVersionProvider;
-
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Reads CLI version from build-filtered classpath metadata.
@@ -21,20 +17,13 @@ public final class BuildVersionProvider implements IVersionProvider {
 
     @Override
     public String[] getVersion() throws Exception {
-        try (InputStream in = BuildVersionProvider.class.getResourceAsStream("/version.txt")) {
-            if (in != null) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-                    String line = reader.readLine();
-                    if (line != null && !line.isBlank()) {
-                        return new String[]{line.trim()};
-                    }
-                }
-            }
+        String resourceVersion = VersionSupport.readFirstNonBlankResourceLine(BuildVersionProvider.class, "/version.txt");
+        if (!resourceVersion.isBlank()) {
+            return new String[]{resourceVersion};
         }
-        Package pkg = BuildVersionProvider.class.getPackage();
-        String implementationVersion = pkg == null ? null : pkg.getImplementationVersion();
-        if (implementationVersion != null && !implementationVersion.isBlank()) {
-            return new String[]{implementationVersion.trim()};
+        String implementationVersion = VersionSupport.resolvePackageVersion(BuildVersionProvider.class);
+        if (!implementationVersion.isBlank()) {
+            return new String[]{implementationVersion};
         }
         return new String[]{"unknown"};
     }

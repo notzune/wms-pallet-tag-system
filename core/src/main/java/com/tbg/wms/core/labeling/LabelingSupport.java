@@ -21,6 +21,10 @@ import java.util.*;
 
 /**
  * Shared helpers for label workflows (CLI/GUI).
+ *
+ * <p>This utility centralizes small but sensitive labeling rules that would otherwise drift across
+ * modules, such as virtual pallet generation, footprint maps, and shipment relabeling for subset
+ * print flows.</p>
  */
 public final class LabelingSupport {
 
@@ -167,6 +171,53 @@ public final class LabelingSupport {
         }
 
         return virtualLpns;
+    }
+
+    /**
+     * Returns a shipment instance that reflects the exact LPN list being labeled or printed.
+     *
+     * <p>This keeps pallet sequence math aligned when a workflow prints only a subset of the
+     * shipment's physical or virtual pallets.</p>
+     */
+    public static Shipment buildShipmentForLabeling(Shipment shipment, List<Lpn> lpnsForLabels) {
+        Objects.requireNonNull(shipment, "shipment cannot be null");
+        Objects.requireNonNull(lpnsForLabels, "lpnsForLabels cannot be null");
+        if (shipment.getLpnCount() == lpnsForLabels.size()) {
+            return shipment;
+        }
+        return new Shipment(
+                shipment.getShipmentId(),
+                shipment.getExternalId(),
+                shipment.getOrderId(),
+                shipment.getWarehouseId(),
+                shipment.getShipToName(),
+                shipment.getShipToAddress1(),
+                shipment.getShipToAddress2(),
+                shipment.getShipToAddress3(),
+                shipment.getShipToCity(),
+                shipment.getShipToState(),
+                shipment.getShipToZip(),
+                shipment.getShipToCountry(),
+                shipment.getShipToPhone(),
+                shipment.getCarrierCode(),
+                shipment.getServiceLevel(),
+                shipment.getDocumentNumber(),
+                shipment.getTrackingNumber(),
+                shipment.getDestinationLocation(),
+                shipment.getCustomerPo(),
+                shipment.getLocationNumber(),
+                shipment.getDepartmentNumber(),
+                shipment.getStopId(),
+                shipment.getStopSequence(),
+                shipment.getCarrierMoveId(),
+                shipment.getProNumber(),
+                shipment.getBolNumber(),
+                shipment.getStatus(),
+                shipment.getShipDate(),
+                shipment.getDeliveryDate(),
+                shipment.getCreatedDate(),
+                lpnsForLabels
+        );
     }
 
     /**

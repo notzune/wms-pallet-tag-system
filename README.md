@@ -3,14 +3,21 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.6.0-blue)
-![Java](https://img.shields.io/badge/java-11%2B-orange)
+![Version](https://img.shields.io/badge/version-1.7.1-blue)
+![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.6.0` (2026-03-04).
+Current release: `1.7.1` (2026-03-17).
+
+## Tracked Enhancements
+
+- [Issue #6: Add per-label printing from GUI preview](https://github.com/notzune/wms-pallet-tag-system/issues/6)
+- [Issue #8: Scope GUI printer menus by workflow](https://github.com/notzune/wms-pallet-tag-system/issues/8)
+- [Issue #5: Clean up GUI menu and tool options](https://github.com/notzune/wms-pallet-tag-system/issues/5)
+- [Issue #7: Add cleanup for stale files in out directory](https://github.com/notzune/wms-pallet-tag-system/issues/7)
 
 ## Current Scope
 
@@ -18,6 +25,7 @@ Implemented and supported:
 
 - `config` command (resolved runtime config with redaction)
 - `db-test` command (database connectivity diagnostics)
+- `ems-recon` command (legacy EMS reconciliation XLS analysis and fix-plan output)
 - `run` command (shipment or carrier-move label generation and printing)
 - `gui` command (desktop workflow with shipment/carrier-move preview and confirm-print)
 - `barcode` command (standalone barcode ZPL generation and optional printing)
@@ -38,13 +46,15 @@ Not implemented yet:
 ## Engineering Quality Notes
 
 - DB shipment hydration avoids per-LPN line-item queries by loading all shipment line-items in one query and grouping in memory.
+- DB shipment hydration now also coalesces duplicate LPN rows from mixed inventory-detail joins so one physical pallet cannot generate duplicate labels.
 - GUI workflow caches are site-scoped and thread-safe to prevent stale cross-site printer/site metadata reuse.
+- GUI preview selection refresh now snapshots the selected labels once per update cycle instead of rebuilding shipment/carrier subsets repeatedly.
 - Query and command execution paths remain hardened with prepared statements and argumentized process invocation patterns.
 
 ## Prerequisites
 
-- JDK 11+ for development builds (`javac` must be available; JRE-only installs will fail Maven compile)
-- Java 11+ runtime for running packaged bundles (JRE is acceptable for runtime only)
+- JDK 17+ for development builds (`javac` must be available; JRE-only installs will fail Maven compile)
+- Java 17+ runtime for running packaged bundles (JRE is acceptable for runtime only)
 - Maven Wrapper included (`mvnw`, `mvnw.cmd`)
 - Oracle WMS network access
 - Zebra printer network access (for non-dry-run printing)
@@ -53,7 +63,13 @@ Portable bundles include a JRE and do not require a separate Java install.
 
 ## Setup and Quick Start
 
-### Development build
+Choose one of these paths:
+
+- Portable/manual install: extract the ZIP, edit `wms-tags.env`, and run `run.bat` or `wms-tags-gui.bat`
+- Packaged installer: run `WMS Pallet Tag System-<version>.exe` or `install-wms-installer.ps1`
+- Manual build from repo: build with Maven, then optionally package with `build-portable-bundle.ps1` or `build-jpackage-bundle.ps1`
+
+### Manual Build From Repo
 
 1. Configure environment:
 
@@ -64,22 +80,32 @@ copy .env.example .env
 2. Build and test:
 
 ```bash
-mvnw.cmd test
+.\mvnw.cmd test
 ```
 
 If you get `No compiler is provided in this environment`, install a JDK and ensure `JAVA_HOME` points to it.
 
-3. Run commands:
+3. Run commands directly from the repo:
 
 ```bash
 java -jar cli/target/cli-*.jar config
 java -jar cli/target/cli-*.jar db-test
+java -jar cli/target/cli-*.jar ems-recon --report <REPORT.xls> --output-dir out/ems-recon
 java -jar cli/target/cli-*.jar run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar run --carrier-move-id <CMID> --dry-run --output-dir out/
 java -jar cli/target/cli-*.jar rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
 java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID> --output-dir out/rail-print
 java -jar cli/target/cli-*.jar rail-print --template --output-dir out/rail-print
 java -jar cli/target/cli-*.jar gui
+```
+
+4. Optional: build operator-ready artifacts from the repo:
+
+```powershell
+.\mvnw.cmd -q -pl cli -am "-Dmaven.test.skip=true" package
+.\scripts\build-portable-bundle.ps1
+.\scripts\build-jpackage-bundle.ps1
+.\scripts\build-jpackage-bundle.ps1 -InstallerType exe
 ```
 
 ### Portable bundle (recommended for operators)
@@ -97,6 +123,7 @@ For CLI usage:
 ```bash
 run.bat config
 run.bat db-test
+run.bat ems-recon --report <REPORT.xls> --output-dir out/ems-recon
 run.bat run --shipment-id <SHIP_ID> --dry-run --output-dir out/
 run.bat run --carrier-move-id <CMID> --dry-run --output-dir out/
 run.bat rail-helper --input-csv <INPUT.csv> --item-footprint-csv <ITEM_FAMILY.csv> --output-dir out/rail-helper
@@ -108,6 +135,89 @@ On Linux/macOS:
 ```bash
 ./run.sh
 ```
+
+### Manual Install From Portable ZIP
+
+1. Download the latest `wms-pallet-tag-system-<version>-portable.zip` from GitHub Releases.
+2. Extract it to a writable folder, for example `C:\wms-pallet-tag-system`.
+3. Edit `wms-tags.env` in the extracted root directory.
+4. Launch:
+
+```powershell
+.\run.bat gui
+```
+
+5. For CLI usage:
+
+```powershell
+.\run.bat config
+.\run.bat run --shipment-id <SHIP_ID> --dry-run
+```
+
+### App image / executable bundle
+
+Use the `jpackage` builder when you want a native executable layout while keeping the portable ZIP/manual install path as fallback.
+
+1. Build the app image:
+
+```powershell
+.\scripts\build-jpackage-bundle.ps1
+```
+
+2. Optional: also build a per-user Windows installer:
+
+```powershell
+.\scripts\build-jpackage-bundle.ps1 -InstallerType exe
+```
+
+3. Optional: install with logging or replace an existing same-version install:
+
+```powershell
+.\dist\install-wms-installer.ps1
+.\dist\install-wms-installer.ps1 -ReplaceExisting
+```
+
+4. Optional: uninstall or prep for a clean reinstall:
+
+```powershell
+.\dist\uninstall-wms-tags.ps1
+```
+
+Notes:
+
+- Default app-image output is `dist/wms-pallet-tag-system-<version>-app`
+- The app image keeps `config/`, `wms-tags.env`, `out/`, and `logs/` next to the executable
+- The generated app image includes `WMS Pallet Tag System.exe`, plus `run.bat` and `wms-tags-gui.bat` wrappers for CLI and GUI entrypoints
+- The bundled runtime comes from the `jpackage` JDK unless you pass `-RuntimeImage`; use a Java 17 runtime image for release parity with the project baseline
+- The optional installer defaults to per-user install to avoid admin privileges when possible
+- Newer installer builds now use a stable Windows upgrade UUID so normal version-to-version upgrades can reuse the same install identity
+- Prerelease tags such as `v1.7.1-rc1` are supported in CI and publish GitHub Releases marked as prereleases automatically
+- The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
+- `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
+- GUI `Tools` / `Settings` now include `Check for Updates...` and `Uninstall / Clean Install Prep...` actions for packaged installs
+- When a newer GitHub Release is available, the `Tools` button shows an alert badge and the update check can open the latest download page
+- When the latest GitHub Release includes the packaged installer asset, the GUI can download it into `updates/` and launch the guided upgrade flow directly
+- Guided upgrade requires both the installer asset and its published `.sha256` checksum; if either is missing, the app falls back to the release page
+- Full silent auto-update is still out of scope because safe self-replacement on Windows needs a detached updater, signing, lock handling, and rollback support that are not implemented yet
+- `uninstall-wms-tags.ps1` now supports clean-install prep by removing the installed product and then wiping the install directory plus non-secret runtime settings
+- Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
+- The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
+
+### Update Paths
+
+- Portable/manual install:
+  download the latest portable ZIP or installer from GitHub Releases and replace/reinstall manually
+- Packaged install:
+  use `Tools -> Settings -> Check for Updates...` for release checks and guided installer download when the release includes both the `.exe` and `.sha256`
+- Clean reinstall:
+  use `Tools -> Settings -> Uninstall / Clean Install Prep...` or `uninstall-wms-tags.ps1`
+
+### Release Order
+
+- Merge the release-prep PR to `main`
+- Tag `v1.7.1-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
+- Validate portable ZIP, installer `.exe`, `.exe.sha256`, and updater behavior against that prerelease
+- Tag `v1.7.1` when the prerelease is accepted
 
 ## Configuration
 
@@ -152,6 +262,7 @@ Options:
 
 - `--shipment-id` (mutually exclusive with `--carrier-move-id`)
 - `--carrier-move-id` (mutually exclusive with `--shipment-id`)
+- `--labels <EXPR>` shipment-only subset selection using `all` or 1-based indexes/ranges like `1,3,5-7`
 - `--dry-run`
 - `--output-dir <DIR>` (default `./labels`)
 - `--printer <ID>`
@@ -245,8 +356,9 @@ Workflow:
 - Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
 - Railcar card preview panel (item lines + CAN/DOM/KEV + pass/fuel/BH fields)
 - Diagnostics panel (row counts and unresolved footprints)
+- Rail print target dropdown only shows printers marked with the `RAIL` capability, plus `System default printer` and `Print to file`.
 - Click `Generate PDF` to produce a letter-size multi-card PDF.
-- Click `Print` to generate PDF and send it to the host default printer.
+- Click `Print` to generate PDF and send it to the selected rail printer, or keep `Print to file` selected to save only.
 
 ## Excel VBA Macro Helpers
 
@@ -265,6 +377,7 @@ Workflow:
 - Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
 - Main window footer shows `Version <x.y.z>` and resolves from package metadata with Maven `pom.properties` fallback.
 - Enter ID, select printer, and click `Preview`.
+- Label-generation printer dropdown only shows printers marked with the `ZPL` capability, plus `Print to file`.
 - Shipment preview shows shipment summary, label plan, and SKU-level pallet math (full vs partial).
 - Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU
   breakdown.
@@ -274,10 +387,19 @@ Workflow:
 - Carrier mode prints all shipment labels in stop order, then per-stop info tags, then one final info tag.
 - Shipment mode prints shipment labels and one shipment info tag.
 - Select `Print to file` from the printer dropdown to save ZPL under `out/` without printer I/O.
+- Preview now supports per-label subset selection, starts with all labels selected, and keeps the label-selection panel collapsed by default to reduce noise on large jobs.
+- Preview includes an `Include info tags` toggle and shows `labels + info tags = total documents` in the selection status and math summary.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
 - Use `Tools -> Rail Labels...` for end-to-end rail merge generation from live WMS train data.
+- GUI printer scoping is driven by printer `capabilities` in `config/<site>/printers.yaml`.
+- Use `capabilities: [ ZPL ]` for pallet-label workflows and `capabilities: [ RAIL ]` for the rail labels tool.
 - Barcode dialog now defaults to an operator-focused layout and moves low-level controls under `Advanced Settings...`.
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
+- `Tools` shows an alert badge when an application update is available, and `Settings...` exposes manual update checks plus packaged-install uninstall / clean-wipe launchers.
+- If the latest release includes the packaged installer `.exe`, update checks can use a guided download-and-install path instead of only opening the release page.
+- `Settings...` also exposes `Advanced Settings...` for non-secret runtime config files under `config/`; `wms-tags.env` stays outside the GUI because it contains database/network secrets.
+- Runtime output cleanup now prunes stale `out/` artifacts older than 14 days by default, and the retention window is configurable from `Settings...`.
+- See [docs/update-security-evaluation.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
 
 ## Walmart SKU Behavior
 
@@ -322,6 +444,12 @@ Package-level documentation is maintained in every `package-info.java` under:
 - `db/src/main/java/com/tbg/wms/db`
 - `gui/src/main/java/com/tbg/wms/cli/gui/**`
 
+Recent documentation maintenance:
+
+- missing `package-info.java` coverage was filled for the newer `core` subpackages (`barcode`, `db`, `ems`, `label`, `labeling`, `location`, `sku`, `update`)
+- GUI settings/update/install maintenance responsibilities are now documented separately from the main frame through `MainSettingsDialog`
+- GUI print-task planning and artifact naming are now documented separately from workflow orchestration through `PrintTaskPlanner` and `ArtifactNameSupport`
+
 Documentation expectations for helper classes:
 
 - State why the helper was created.
@@ -348,15 +476,19 @@ Triggers on pushes to `main` and `dev`, plus manual dispatch.
 Triggers on:
 
 - PRs targeting `main` (builds and uploads a portable ZIP as a workflow artifact).
-- Tag pushes matching `v*.*.*` (creates a GitHub Release).
+- Tag pushes matching `v*.*.*` or `v*.*.*-*` (creates a GitHub Release).
 
 Behavior:
 
 - Builds the CLI JAR.
-- Builds the portable bundle using `dist/temurin11-jre.zip`.
+- Builds the portable bundle using `dist/temurin17-jre.zip`.
+- Builds the packaged Windows installer `.exe` through `build-jpackage-bundle.ps1 -InstallerType exe`.
+- Generates and publishes the installer SHA-256 sidecar `WMS Pallet Tag System-<version>.exe.sha256` for guided update verification.
 - PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from
   `cli/target/maven-archiver/pom.properties`.
-- Tags: attaches `dist/wms-pallet-tag-system-<version>-portable.zip` to the GitHub Release.
+- PRs: also upload the installer `.exe` and `.exe.sha256` as workflow artifacts.
+- Stable tags (`vX.Y.Z`): attach the portable ZIP, installer `.exe`, and matching `.exe.sha256` to a normal GitHub Release.
+- Prerelease tags (`vX.Y.Z-<suffix>` such as `v1.7.1-rc1`): attach the same artifacts to a GitHub Release marked as a prerelease.
 - Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
 ## Project Structure
@@ -371,6 +503,8 @@ wms-pallet-tag-system/
 |-- .env.example
 |-- config/
 |   |-- wms-tags.env.example
+|   |-- walmart-sku-matrix.csv
+|   |-- walm_loc_num_matrix.csv
 |   |-- templates/
 |   |   `-- walmart-canada-label.zpl
 |   `-- TBG3002/
@@ -382,6 +516,11 @@ wms-pallet-tag-system/
 |       |-- main/
 |       |   |-- java/com/tbg/wms/core/
 |       |   |   |-- AppConfig.java                  # env + runtime configuration loading
+|       |   |   |-- ConfigFileLocator.java          # runtime env file discovery and validation
+|       |   |   |-- EnvStyleConfigParser.java       # dotenv/env-style parsing
+|       |   |   |-- OutDirectoryRetentionService.java # stale out/ cleanup policy
+|       |   |   |-- RuntimePathResolver.java        # runtime-relative path resolution
+|       |   |   |-- RuntimeSettings.java            # non-secret user runtime preferences
 |       |   |   |-- barcode/                        # barcode ZPL builders and barcode logic
 |       |   |   |-- db/                             # DB-related core abstractions/models
 |       |   |   |-- exception/                      # typed app exceptions + exit code mapping
@@ -392,7 +531,8 @@ wms-pallet-tag-system/
 |       |   |   |-- print/                          # printer config, routing, network print
 |       |   |   |-- rail/                           # rail planners, CSV support, merge exporters
 |       |   |   |-- sku/                            # SKU matrix loading/mapping services
-|       |   |   `-- template/                       # template parsing/merge logic
+|       |   |   |-- template/                       # template parsing/merge logic
+|       |   |   `-- update/                         # release/version/update helpers
 |       |   `-- resources/
 |       `-- test/
 |           `-- java/com/tbg/wms/core/              # unit tests by package area
@@ -411,7 +551,11 @@ wms-pallet-tag-system/
 |       |   |-- LabelGuiFrame.java                  # desktop shell and tool entrypoints
 |       |   |-- LabelWorkflowService.java           # shipment preview/print orchestration
 |       |   |-- AdvancedPrintWorkflowService.java   # carrier move / queue / resume orchestration
+|       |   |-- MainSettingsDialog.java             # primary settings and maintenance dialog
+|       |   |-- AdvancedSettingsDialog.java         # non-secret runtime config editor
 |       |   |-- BarcodeDialogFactory.java           # barcode UI dialog wiring
+|       |   |-- PrintTaskPlanner.java               # shipment/carrier print task planning
+|       |   |-- ArtifactNameSupport.java            # shared artifact filename slugging
 |       |   |-- TextFieldClipboardController.java   # terminal-like right-click behavior
 |       |   `-- rail/                               # rail GUI workflow package
 |       |       |-- RailLabelsDialog.java           # rail workflow dialog
@@ -446,6 +590,10 @@ wms-pallet-tag-system/
 |-- scripts/                      # Build and launcher helpers
 |   |-- setup-wms-tags.ps1        # local install helper
 |   |-- build-portable-bundle.ps1 # portable package builder
+|   |-- build-jpackage-bundle.ps1 # app-image / installer builder + installer sha256
+|   |-- install-wms-installer.ps1 # logged installer runner / replace-existing helper
+|   |-- uninstall-wms-tags.ps1    # uninstall / clean-install prep helper
+|   |-- verify-wms-tags.ps1       # packaged smoke-test helper
 |   |-- run.bat                   # bundle launcher
 |   `-- wms-tags-gui.bat          # bundle GUI launcher
 |-- vba/                          # Excel macro helper modules (.bas)
@@ -458,9 +606,10 @@ wms-pallet-tag-system/
 |-- analysis/                     # Internal analysis notes and DB dumps
 |   |-- docs/
 |   `-- python-tools/
-|-- dist/                         # Generated portable bundles
+|-- docs/                         # Handoff notes, security notes, PR drafts
+|-- dist/                         # Generated portable/app-image/installer bundles
 |-- logs/                         # Runtime logs
-`-- walmart_sku_matrix.csv
+`-- out/                          # Generated print artifacts
 ```
 
 ## Troubleshooting

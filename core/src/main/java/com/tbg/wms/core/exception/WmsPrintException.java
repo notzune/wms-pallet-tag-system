@@ -8,6 +8,8 @@
 
 package com.tbg.wms.core.exception;
 
+import java.io.Serial;
+
 /**
  * Exception thrown when printing operations fail.
  * <p>
@@ -21,6 +23,7 @@ package com.tbg.wms.core.exception;
  */
 public class WmsPrintException extends WmsException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

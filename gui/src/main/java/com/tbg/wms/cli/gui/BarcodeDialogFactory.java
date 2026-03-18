@@ -19,9 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 /**
  * Factory that creates and displays the barcode generator dialog.
@@ -31,7 +29,6 @@ import java.util.regex.Pattern;
  */
 final class BarcodeDialogFactory {
 
-    private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
     private static final DateTimeFormatter OUTPUT_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final int MAX_SLUG_LENGTH = 40;
     private static final int BARCODE_DEFAULT_LABEL_WIDTH_DOTS = 812;
@@ -58,17 +55,6 @@ final class BarcodeDialogFactory {
         gbc.weightx = 1.0;
         form.add(field, gbc);
         return rowLabel;
-    }
-
-    private static String safeSlug(String value) {
-        if (value == null) {
-            return "data";
-        }
-        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
-        if (slug.isEmpty()) {
-            return "data";
-        }
-        return slug.length() > MAX_SLUG_LENGTH ? slug.substring(0, MAX_SLUG_LENGTH) : slug;
     }
 
     /**
@@ -333,7 +319,7 @@ final class BarcodeDialogFactory {
         Path outputPath = Paths.get(dir);
         String fileName = String.format("barcode-%s-%s.zpl",
                 OUTPUT_TS.format(LocalDateTime.now()),
-                safeSlug(data));
+                ArtifactNameSupport.safeSlug(data, "data", MAX_SLUG_LENGTH));
         return outputPath.resolve(fileName);
     }
 

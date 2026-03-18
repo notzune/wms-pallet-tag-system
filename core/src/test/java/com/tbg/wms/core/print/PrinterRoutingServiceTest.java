@@ -102,12 +102,38 @@ class PrinterRoutingServiceTest {
     }
 
     @Test
+    void load_shouldReadPrinterCapabilities(@TempDir Path tempDir) throws Exception {
+        Path siteDir = Files.createDirectories(tempDir.resolve("TBG3002"));
+
+        Files.writeString(siteDir.resolve("printers.yaml"), String.join("\n",
+                "siteCode: TBG3002",
+                "printers:",
+                "  - id: OFFICE",
+                "    name: Office_Test",
+                "    ip: 10.19.64.106",
+                "    capabilities: [ ZPL, QA ]",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        Files.writeString(siteDir.resolve("printer-routing.yaml"), String.join("\n",
+                "siteCode: TBG3002",
+                "defaultPrinterId: OFFICE",
+                "rules: []",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        PrinterRoutingService service = PrinterRoutingService.load("TBG3002", tempDir);
+
+        assertEquals(List.of("ZPL", "QA"), service.findPrinter("OFFICE").orElseThrow().getCapabilities());
+    }
+
+    @Test
     void selectPrinter_shouldRouteToDispatch_whenStagingLocationIsROSSI() {
         // Arrange
         PrinterConfig office = new PrinterConfig("OFFICE", "Office_Test", "10.19.64.106", 9100,
-                List.of("TEST", "QA"), "Admin office", true);
+                List.of("TEST", "QA"), List.of("ZPL"), "Admin office", true);
         PrinterConfig dispatch = new PrinterConfig("DISPATCH", "Dispatch_Prod", "10.19.64.53", 9100,
-                List.of("PROD", "DISPATCH"), "Dispatch office", true);
+                List.of("PROD", "DISPATCH"), List.of("ZPL"), "Dispatch office", true);
 
         Map<String, PrinterConfig> printers = Map.of(
                 "OFFICE", office,
@@ -134,9 +160,9 @@ class PrinterRoutingServiceTest {
     void selectPrinter_shouldRouteToDefault_whenNoRulesMatch() {
         // Arrange
         PrinterConfig office = new PrinterConfig("OFFICE", "Office_Test", "10.19.64.106", 9100,
-                List.of("TEST", "QA"), "Admin office", true);
+                List.of("TEST", "QA"), List.of("ZPL"), "Admin office", true);
         PrinterConfig dispatch = new PrinterConfig("DISPATCH", "Dispatch_Prod", "10.19.64.53", 9100,
-                List.of("PROD", "DISPATCH"), "Dispatch office", true);
+                List.of("PROD", "DISPATCH"), List.of("ZPL"), "Dispatch office", true);
 
         Map<String, PrinterConfig> printers = Map.of(
                 "OFFICE", office,
@@ -163,7 +189,7 @@ class PrinterRoutingServiceTest {
     void selectPrinter_shouldThrowException_whenSelectedPrinterNotFound() {
         // Arrange
         PrinterConfig office = new PrinterConfig("OFFICE", "Office_Test", "10.19.64.106", 9100,
-                List.of("TEST", "QA"), "Admin office", true);
+                List.of("TEST", "QA"), List.of("ZPL"), "Admin office", true);
 
         Map<String, PrinterConfig> printers = Map.of("OFFICE", office);
 
@@ -183,7 +209,7 @@ class PrinterRoutingServiceTest {
     void constructor_shouldThrowException_whenDefaultPrinterNotFound() {
         // Arrange
         PrinterConfig office = new PrinterConfig("OFFICE", "Office_Test", "10.19.64.106", 9100,
-                List.of("TEST", "QA"), "Admin office", true);
+                List.of("TEST", "QA"), List.of("ZPL"), "Admin office", true);
 
         Map<String, PrinterConfig> printers = Map.of("OFFICE", office);
         List<RoutingRule> rules = List.of();
@@ -197,7 +223,7 @@ class PrinterRoutingServiceTest {
     void findPrinter_shouldReturnPrinter_whenPrinterExistsAndEnabled() {
         // Arrange
         PrinterConfig office = new PrinterConfig("OFFICE", "Office_Test", "10.19.64.106", 9100,
-                List.of("TEST", "QA"), "Admin office", true);
+                List.of("TEST", "QA"), List.of("ZPL"), "Admin office", true);
 
         Map<String, PrinterConfig> printers = Map.of("OFFICE", office);
         List<RoutingRule> rules = List.of();
@@ -216,7 +242,7 @@ class PrinterRoutingServiceTest {
     void findPrinter_shouldReturnEmpty_whenPrinterNotFound() {
         // Arrange
         PrinterConfig office = new PrinterConfig("OFFICE", "Office_Test", "10.19.64.106", 9100,
-                List.of("TEST", "QA"), "Admin office", true);
+                List.of("TEST", "QA"), List.of("ZPL"), "Admin office", true);
 
         Map<String, PrinterConfig> printers = Map.of("OFFICE", office);
         List<RoutingRule> rules = List.of();
@@ -234,7 +260,7 @@ class PrinterRoutingServiceTest {
     void findPrinter_shouldReturnEmpty_whenPrinterDisabled() {
         // Arrange
         PrinterConfig office = new PrinterConfig("OFFICE", "Office_Test", "10.19.64.106", 9100,
-                List.of("TEST", "QA"), "Admin office", false);
+                List.of("TEST", "QA"), List.of("ZPL"), "Admin office", false);
 
         Map<String, PrinterConfig> printers = Map.of("OFFICE", office);
         List<RoutingRule> rules = List.of();

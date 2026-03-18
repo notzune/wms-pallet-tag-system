@@ -8,6 +8,8 @@
 
 package com.tbg.wms.core.exception;
 
+import java.io.Serial;
+
 /**
  * Base exception for WMS system errors.
  *
@@ -16,6 +18,7 @@ package com.tbg.wms.core.exception;
  */
 public abstract class WmsException extends RuntimeException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final int exitCode;

@@ -28,6 +28,7 @@ public final class PrinterConfig {
     private final String ip;
     private final int port;
     private final List<String> tags;
+    private final List<String> capabilities;
     private final String locationHint;
     private final boolean enabled;
 
@@ -39,16 +40,18 @@ public final class PrinterConfig {
      * @param ip           printer IP address
      * @param port         printer port (typically 9100 for Zebra RAW protocol)
      * @param tags         classification tags (PROD, TEST, DISPATCH, etc.)
+     * @param capabilities workflow capabilities (for example ZPL, RAIL)
      * @param locationHint human-readable physical location
      * @param enabled      whether printer is currently active
      */
     public PrinterConfig(String id, String name, String ip, int port,
-                         List<String> tags, String locationHint, boolean enabled) {
+                         List<String> tags, List<String> capabilities, String locationHint, boolean enabled) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
         this.name = Objects.requireNonNull(name, "name cannot be null");
         this.ip = Objects.requireNonNull(ip, "ip cannot be null");
         this.port = port;
         this.tags = tags != null ? List.copyOf(tags) : Collections.emptyList();
+        this.capabilities = capabilities != null ? List.copyOf(capabilities) : Collections.emptyList();
         this.locationHint = locationHint;
         this.enabled = enabled;
 
@@ -75,6 +78,10 @@ public final class PrinterConfig {
 
     public List<String> getTags() {
         return tags;
+    }
+
+    public List<String> getCapabilities() {
+        return capabilities;
     }
 
     public String getLocationHint() {

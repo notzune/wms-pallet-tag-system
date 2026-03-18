@@ -24,6 +24,7 @@
  *   <li>{@link com.tbg.wms.db.PrtmstDescriptionColumnResolver} - cached PRTMST description-column discovery,
  *       separated from repository SQL orchestration for SRP and predictable lookup performance.</li>
  *   <li>Shipment line-items are loaded in one shipment-scoped query and grouped by LPN to avoid N+1 database probes.</li>
+ *   <li>Shipment LPN rows are coalesced after the inventory-detail join so mixed-lot pallets cannot create duplicate labels.</li>
  * </ul>
  *
  * @since 1.5.0

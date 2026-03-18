@@ -1,18 +1,12 @@
 [CmdletBinding()]
 param(
-    [string]$InstallDir = "C:\WMS-Pallet-Tag",
+    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\WMS-Pallet-Tag-System",
     [string]$JarPath,
     [string]$SourceRoot,
     [string]$RuntimePath
 )
 
 $ErrorActionPreference = "Stop"
-
-function Test-IsAdministrator {
-    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
 
 function Get-JavaInfo {
     $cmd = Get-Command java -ErrorAction SilentlyContinue
@@ -49,28 +43,24 @@ function Get-JavaInfo {
     }
 }
 
-function Install-Java21 {
+function Install-Java17 {
     $winget = Get-Command winget -ErrorAction SilentlyContinue
     if (-not $winget) {
-        throw "winget is not available. Install Java 21 manually, then rerun this script."
+        throw "winget is not available. Install Java 17 manually, then rerun this script."
     }
 
-    Write-Host "Installing Temurin Java 21 runtime with winget..."
+    Write-Host "Installing Temurin Java 17 runtime with winget..."
     & winget install `
-        --id EclipseAdoptium.Temurin.21.JRE `
+        --id EclipseAdoptium.Temurin.17.JRE `
         --exact `
         --accept-package-agreements `
         --accept-source-agreements `
-        --scope machine `
+        --scope user `
         --silent
 
     if ($LASTEXITCODE -ne 0) {
-        throw "winget failed to install Java 21 runtime (exit code $LASTEXITCODE)."
+        throw "winget failed to install Java 17 runtime (exit code $LASTEXITCODE)."
     }
-}
-
-if (-not (Test-IsAdministrator)) {
-    throw "This setup script must be run as Administrator."
 }
 
 $scriptRoot = Split-Path -Parent $PSCommandPath
@@ -128,18 +118,18 @@ if ($RuntimePath) {
     Write-Host "Using bundled runtime from: $RuntimePath"
     Remove-Item -LiteralPath $targetRuntimeDir -Recurse -Force -ErrorAction SilentlyContinue
     Copy-Item -LiteralPath $RuntimePath -Destination $targetRuntimeDir -Recurse -Force
-    $javaInfo = [pscustomobject]@{ Version = "Bundled runtime"; Major = 21; Exists = $true }
+    $javaInfo = [pscustomobject]@{ Version = "Bundled runtime"; Major = 17; Exists = $true }
 } else {
     Write-Host "Checking Java runtime..."
     $javaInfo = Get-JavaInfo
-    if (-not $javaInfo.Exists -or -not $javaInfo.Major -or $javaInfo.Major -lt 21) {
-        Install-Java21
+    if (-not $javaInfo.Exists -or -not $javaInfo.Major -or $javaInfo.Major -lt 17) {
+        Install-Java17
         $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
         $javaInfo = Get-JavaInfo
     }
 
-    if (-not $javaInfo.Exists -or -not $javaInfo.Major -or $javaInfo.Major -lt 21) {
-        throw "Java 21+ is required but was not detected after install."
+    if (-not $javaInfo.Exists -or -not $javaInfo.Major -or $javaInfo.Major -lt 17) {
+        throw "Java 17+ is required but was not detected after install."
     }
 
     Write-Host "Java version detected: $($javaInfo.Version)"

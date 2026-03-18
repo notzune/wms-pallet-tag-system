@@ -3,7 +3,12 @@
  */
 package com.tbg.wms.cli.gui.rail;
 
+import com.tbg.wms.cli.gui.GuiPrinterTargetSupport;
+import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimePathResolver;
+import com.tbg.wms.core.print.PrinterConfig;
+import com.tbg.wms.core.print.PrinterRoutingService;
 import com.tbg.wms.core.rail.RailCarCard;
 import com.tbg.wms.core.rail.RailCardRenderer;
 import com.tbg.wms.core.rail.RailDbRepository;
@@ -16,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,9 +31,11 @@ import java.util.Objects;
 public final class RailWorkflowService {
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private final AppConfig config;
+    private final Path configBaseDir;
 
     public RailWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
+        this.configBaseDir = RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(RailWorkflowService.class, "config");
     }
 
     /**
@@ -46,15 +54,32 @@ public final class RailWorkflowService {
         }
     }
 
+    public List<LabelWorkflowService.PrinterOption> loadRailPrinters() throws Exception {
+        PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), configBaseDir);
+        List<LabelWorkflowService.PrinterOption> printers = new ArrayList<>();
+        for (PrinterConfig printer : routing.getPrinters().values()) {
+            if (printer.isEnabled()) {
+                printers.add(new LabelWorkflowService.PrinterOption(
+                        printer.getId(),
+                        printer.getName(),
+                        printer.getEndpoint(),
+                        printer.getCapabilities()
+                ));
+            }
+        }
+        printers.sort(java.util.Comparator.comparing(LabelWorkflowService.PrinterOption::getId));
+        return GuiPrinterTargetSupport.filterRailToolPrinters(printers);
+    }
+
     /**
      * Renders cards to PDF and optionally sends the result to printer.
      *
      * @param job       prepared job produced by {@link #prepareRailJob(String)}
      * @param outputDir optional output directory (null for timestamped default)
-     * @param printNow  true to invoke print after render
+     * @param printerId printer target ID, `SYSTEM_DEFAULT`, or null/blank/FILE to skip printing
      * @return generation result details
      */
-    public GenerationResult generatePdf(PreparedRailJob job, Path outputDir, boolean printNow) throws Exception {
+    public GenerationResult generatePdf(PreparedRailJob job, Path outputDir, String printerId) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         Path targetDir = outputDir == null
                 ? Path.of("out", "rail-gui-" + job.result.getTrainId() + "-" + TS.format(LocalDateTime.now()))
@@ -66,10 +91,19 @@ public final class RailWorkflowService {
                 (float) config.railLabelOffsetXInches(),
                 (float) config.railLabelOffsetYInches()
         ).renderPdf(job.result.getCards(), pdfPath);
-        if (printNow) {
-            new RailPrintService().print(pdfPath, config);
+        String targetPrinterId = printerId == null ? "" : printerId.trim();
+        if (GuiPrinterTargetSupport.SYSTEM_DEFAULT_PRINTER_ID.equals(targetPrinterId)) {
+            new RailPrintService().print(pdfPath);
+            return new GenerationResult(targetDir, pdfPath, true, "System default printer");
         }
-        return new GenerationResult(targetDir, pdfPath, printNow);
+        if (!targetPrinterId.isEmpty() && !GuiPrinterTargetSupport.FILE_PRINTER_ID.equals(targetPrinterId)) {
+            PrinterRoutingService routing = PrinterRoutingService.load(config.activeSiteCode(), configBaseDir);
+            PrinterConfig printer = routing.findPrinter(targetPrinterId)
+                    .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + targetPrinterId));
+            new RailPrintService().print(pdfPath, printer);
+            return new GenerationResult(targetDir, pdfPath, true, printer.getId());
+        }
+        return new GenerationResult(targetDir, pdfPath, false, GuiPrinterTargetSupport.FILE_PRINTER_ID);
     }
 
     /**
@@ -142,11 +176,13 @@ public final class RailWorkflowService {
         private final Path outputDirectory;
         private final Path pdfPath;
         private final boolean printed;
+        private final String printerId;
 
-        private GenerationResult(Path outputDirectory, Path pdfPath, boolean printed) {
+        private GenerationResult(Path outputDirectory, Path pdfPath, boolean printed, String printerId) {
             this.outputDirectory = outputDirectory;
             this.pdfPath = pdfPath;
             this.printed = printed;
+            this.printerId = printerId;
         }
 
         public Path getOutputDirectory() {
@@ -159,6 +195,10 @@ public final class RailWorkflowService {
 
         public boolean isPrinted() {
             return printed;
+        }
+
+        public String getPrinterId() {
+            return printerId;
         }
     }
 }

@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -306,12 +307,14 @@ class OracleDbQueryRepositoryTest {
 
         when(headerStatement.executeQuery()).thenReturn(headerResultSet);
         when(headerResultSet.next()).thenReturn(true, false);
+        lenient().when(headerResultSet.getString(anyString())).thenReturn(null);
         when(headerResultSet.getString("SHIP_ID")).thenReturn("SHIP123");
         when(headerResultSet.getString("ADRNAM")).thenReturn("Ship To");
         when(headerResultSet.getString("ADRLN1")).thenReturn("Address 1");
         when(headerResultSet.getString("ADRCTY")).thenReturn("City");
         when(headerResultSet.getString("ADRSTC")).thenReturn("ST");
         when(headerResultSet.getString("ADRPSZ")).thenReturn("12345");
+        when(headerResultSet.getString("CARCOD")).thenReturn("MDLE");
         when(headerResultSet.wasNull()).thenReturn(true);
 
         when(orderStatement.executeQuery()).thenReturn(orderResultSet);
@@ -321,6 +324,7 @@ class OracleDbQueryRepositoryTest {
         when(lpnsStatement.executeQuery()).thenReturn(lpnsResultSet);
         when(lpnsResultSet.next()).thenReturn(true, true, false);
         when(lpnsResultSet.getString("LODNUM")).thenReturn("LPN1", "LPN2");
+        when(lpnsResultSet.getString("LODUCC")).thenReturn("SSCC1", "SSCC2");
 
         when(lineItemsStatement.executeQuery()).thenReturn(lineItemsResultSet);
         when(lineItemsResultSet.next()).thenReturn(true, true, false);
@@ -340,6 +344,78 @@ class OracleDbQueryRepositoryTest {
         assertEquals(2, repo.findShipmentWithLpnsAndLineItems("SHIP123").getLpnCount());
         verify(lpnsConnection, times(1))
                 .prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM")));
+    }
+
+    @Test
+    void testFindShipmentCoalescesDuplicateLpnRowsFromInventoryDetailJoin() throws SQLException {
+        DataSource dataSource = mock(DataSource.class);
+        Connection headerConnection = mock(Connection.class);
+        Connection lpnsConnection = mock(Connection.class);
+        PreparedStatement headerStatement = mock(PreparedStatement.class);
+        PreparedStatement orderStatement = mock(PreparedStatement.class);
+        PreparedStatement lpnsStatement = mock(PreparedStatement.class);
+        PreparedStatement lineItemsStatement = mock(PreparedStatement.class);
+        ResultSet headerResultSet = mock(ResultSet.class);
+        ResultSet orderResultSet = mock(ResultSet.class);
+        ResultSet lpnsResultSet = mock(ResultSet.class);
+        ResultSet lineItemsResultSet = mock(ResultSet.class);
+
+        when(dataSource.getConnection()).thenReturn(headerConnection, lpnsConnection);
+        when(headerConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("FROM WMSP.SHIPMENT s"))))
+                .thenReturn(headerStatement);
+        when(headerConnection.prepareStatement(argThat(sql -> sql != null
+                && sql.contains("FROM WMSP.SHIPMENT_LINE sl WHERE sl.SHIP_ID = ? AND ROWNUM <= 1"))))
+                .thenReturn(orderStatement);
+        when(lpnsConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("SELECT DISTINCT "))))
+                .thenReturn(lpnsStatement);
+        when(lpnsConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM"))))
+                .thenReturn(lineItemsStatement);
+
+        when(headerStatement.executeQuery()).thenReturn(headerResultSet);
+        when(headerResultSet.next()).thenReturn(true, false);
+        lenient().when(headerResultSet.getString(anyString())).thenReturn(null);
+        when(headerResultSet.getString("SHIP_ID")).thenReturn("SHIP123");
+        when(headerResultSet.getString("ADRNAM")).thenReturn("Ship To");
+        when(headerResultSet.getString("ADRLN1")).thenReturn("Address 1");
+        when(headerResultSet.getString("ADRCTY")).thenReturn("City");
+        when(headerResultSet.getString("ADRSTC")).thenReturn("ST");
+        when(headerResultSet.getString("ADRPSZ")).thenReturn("12345");
+        when(headerResultSet.getString("CARCOD")).thenReturn("MDLE");
+        when(headerResultSet.wasNull()).thenReturn(true);
+
+        when(orderStatement.executeQuery()).thenReturn(orderResultSet);
+        when(orderResultSet.next()).thenReturn(true, false);
+        when(orderResultSet.getString("ORDNUM")).thenReturn("ORD1");
+
+        when(lpnsStatement.executeQuery()).thenReturn(lpnsResultSet);
+        when(lpnsResultSet.next()).thenReturn(true, true, false);
+        when(lpnsResultSet.getString("LODNUM")).thenReturn("LPN1", "LPN1");
+        when(lpnsResultSet.getString("LODUCC")).thenReturn("SSCC1", "SSCC1");
+        when(lpnsResultSet.getString("STOLOC")).thenReturn("ROSSI", "ROSSI");
+        when(lpnsResultSet.getString("LOTNUM")).thenReturn("", "LOT-B");
+        when(lpnsResultSet.getString("SUP_LOTNUM")).thenReturn("", "SUP-B");
+
+        when(lineItemsStatement.executeQuery()).thenReturn(lineItemsResultSet);
+        when(lineItemsResultSet.next()).thenReturn(true, false);
+        when(lineItemsResultSet.getString("LODNUM")).thenReturn("LPN1");
+        when(lineItemsResultSet.getString("ORDLIN")).thenReturn("1");
+        when(lineItemsResultSet.getString("ORDSLN")).thenReturn("0");
+        when(lineItemsResultSet.getString("PRTNUM")).thenReturn("SKU1");
+        when(lineItemsResultSet.getString("SRTDSC")).thenReturn("Desc1");
+        when(lineItemsResultSet.getString("CSTPRT")).thenReturn("CP1");
+        when(lineItemsResultSet.getString("ORDNUM")).thenReturn("ORD1");
+        when(lineItemsResultSet.getString("CONS_BATCH")).thenReturn("B1");
+        when(lineItemsResultSet.getString("SALES_ORDNUM")).thenReturn("SO1");
+        when(lineItemsResultSet.getInt("EFFECTIVE_QTY")).thenReturn(10);
+        when(lineItemsResultSet.getInt("UNTPAK")).thenReturn(1);
+
+        OracleDbQueryRepository repo = new OracleDbQueryRepository(dataSource);
+
+        var shipment = repo.findShipmentWithLpnsAndLineItems("SHIP123");
+
+        assertEquals(1, shipment.getLpnCount());
+        assertEquals("LOT-B", shipment.getLpns().get(0).getWarehouseLot());
+        assertEquals("SUP-B", shipment.getLpns().get(0).getCustomerLot());
     }
 
     @Test

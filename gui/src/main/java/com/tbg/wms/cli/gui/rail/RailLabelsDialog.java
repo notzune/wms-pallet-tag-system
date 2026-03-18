@@ -3,6 +3,8 @@
  */
 package com.tbg.wms.cli.gui.rail;
 
+import com.tbg.wms.cli.gui.GuiPrinterTargetSupport;
+import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.cli.gui.TextFieldClipboardController;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.rail.RailCarCard;
@@ -10,6 +12,7 @@ import com.tbg.wms.core.rail.RailCarCard;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -19,10 +22,12 @@ import java.util.Objects;
  * Rail labels screen with train load, railcar table preview, card preview, and print action.
  */
 public final class RailLabelsDialog extends JDialog {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final JTextField trainIdField = new JTextField(16);
     private final JTextField outputDirField = new JTextField(48);
+    private final JComboBox<LabelWorkflowService.PrinterOption> printerCombo = new JComboBox<>();
     private final JCheckBox printNowCheck = new JCheckBox("Print after PDF generation", false);
     private final JLabel statusLabel = new JLabel("Ready.");
     private final JButton loadButton = new JButton("Load Preview");
@@ -65,6 +70,7 @@ public final class RailLabelsDialog extends JDialog {
         clipboardController.install(trainIdField, outputDirField);
         wireActions();
         setButtonsEnabled(false);
+        loadPrintersAsync();
     }
 
     private JPanel buildTopPanel() {
@@ -94,6 +100,22 @@ public final class RailLabelsDialog extends JDialog {
 
         gbc.gridx = 0;
         gbc.gridy = 1;
+        panel.add(new JLabel("Printer:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(printerCombo, gbc);
+
+        gbc.gridx = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(printNowCheck, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
         panel.add(new JLabel("Output Directory:"), gbc);
 
         gbc.gridx = 1;
@@ -110,8 +132,8 @@ public final class RailLabelsDialog extends JDialog {
         panel.add(browseButton, gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 2;
-        panel.add(printNowCheck, gbc);
+        gbc.gridy = 3;
+        panel.add(new JLabel("Print to file keeps the generated PDF in the output directory."), gbc);
 
         return panel;
     }
@@ -150,6 +172,7 @@ public final class RailLabelsDialog extends JDialog {
         loadButton.addActionListener(e -> loadPreview());
         generatePdfButton.addActionListener(e -> generate(false));
         printButton.addActionListener(e -> generate(true));
+        printerCombo.addActionListener(e -> syncPrintTargetUi());
     }
 
     private void browseOutputDirectory() {
@@ -206,7 +229,9 @@ public final class RailLabelsDialog extends JDialog {
             return;
         }
 
-        boolean shouldPrint = forcePrint || printNowCheck.isSelected();
+        LabelWorkflowService.PrinterOption selectedPrinter = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
+        boolean printToFile = GuiPrinterTargetSupport.isPrintToFile(selectedPrinter);
+        boolean shouldPrint = !printToFile && (forcePrint || printNowCheck.isSelected());
         setBusy(shouldPrint ? "Generating PDF and printing..." : "Generating PDF...");
         loadButton.setEnabled(false);
         generatePdfButton.setEnabled(false);
@@ -216,7 +241,8 @@ public final class RailLabelsDialog extends JDialog {
             @Override
             protected RailWorkflowService.GenerationResult doInBackground() throws Exception {
                 Path outputDir = outputDirField.getText().trim().isEmpty() ? null : Paths.get(outputDirField.getText().trim());
-                return service.generatePdf(preparedJob, outputDir, shouldPrint);
+                String printerId = shouldPrint && selectedPrinter != null ? selectedPrinter.getId() : GuiPrinterTargetSupport.FILE_PRINTER_ID;
+                return service.generatePdf(preparedJob, outputDir, printerId);
             }
 
             @Override
@@ -227,7 +253,7 @@ public final class RailLabelsDialog extends JDialog {
                     RailWorkflowService.GenerationResult result = get();
                     String message = "PDF generated:\n" + result.getPdfPath() +
                             "\n\nOutput directory:\n" + result.getOutputDirectory() +
-                            (result.isPrinted() ? "\n\nPrint command sent to default printer." : "");
+                            (result.isPrinted() ? "\n\nPrint command sent to " + result.getPrinterId() + "." : "");
                     diagnosticsArea.append("\n\nGeneration Result\n-----------------\n" + message + '\n');
                     setReady(result.isPrinted() ? "PDF generated and print command sent." : "PDF generated.");
                 } catch (Exception ex) {
@@ -272,6 +298,56 @@ public final class RailLabelsDialog extends JDialog {
         tableModel.setRowCount(0);
         cardPreviewArea.setText("");
         diagnosticsArea.setText("");
+    }
+
+    private void loadPrintersAsync() {
+        statusLabel.setText("Loading rail printers...");
+        printerCombo.setEnabled(false);
+        SwingWorker<List<LabelWorkflowService.PrinterOption>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<LabelWorkflowService.PrinterOption> doInBackground() throws Exception {
+                return service.loadRailPrinters();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
+                    model.addElement(GuiPrinterTargetSupport.buildSystemDefaultPrinterOption());
+                    for (LabelWorkflowService.PrinterOption option : get()) {
+                        model.addElement(option);
+                    }
+                    model.addElement(GuiPrinterTargetSupport.buildPrintToFileOption(defaultOutputDir()));
+                    printerCombo.setModel(model);
+                    if (model.getSize() > 0) {
+                        printerCombo.setSelectedIndex(0);
+                    }
+                    printerCombo.setEnabled(true);
+                    syncPrintTargetUi();
+                    setReady("Ready.");
+                } catch (Exception ex) {
+                    setReady("Failed to load rail printers.");
+                    showError(rootMessage(ex));
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void syncPrintTargetUi() {
+        LabelWorkflowService.PrinterOption selectedPrinter = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
+        boolean printToFile = GuiPrinterTargetSupport.isPrintToFile(selectedPrinter);
+        if (printToFile) {
+            printNowCheck.setSelected(false);
+        }
+        printNowCheck.setEnabled(!printToFile);
+        printButton.setText(printToFile ? "Save PDF" : "Print");
+    }
+
+    private Path defaultOutputDir() {
+        return outputDirField.getText().trim().isEmpty()
+                ? Paths.get("out", "rail-gui").toAbsolutePath()
+                : Paths.get(outputDirField.getText().trim()).toAbsolutePath();
     }
 
     private void setButtonsEnabled(boolean enabled) {
