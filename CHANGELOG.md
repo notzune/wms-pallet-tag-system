@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.4] - 2026-03-19
+
+### Added
+
+- Shared `Ctrl+F` workflow hotkey support so the main label window triggers `Preview` and Rail Labels triggers `Load Preview` even while the primary input field is focused.
+
+### Changed
+
+- Public `config/wms-tags.env.example` now uses dummy-only database/site placeholders instead of production-like values.
+- Public bundle config seeding regression coverage now self-builds the CLI jar when needed so packaging checks remain runnable from a clean worktree.
+
+### Fixed
+
+- Public portable and app-image bundles no longer ship a production-like default `wms-tags.env` template.
+
 ## [1.7.3] - 2026-03-19
 
 ### Added

@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.7.3-blue)
+![Version](https://img.shields.io/badge/version-1.7.4-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.7.3` (2026-03-19).
+Current release: `1.7.4` (2026-03-19).
 
 ## Tracked Enhancements
 
@@ -65,7 +65,7 @@ Portable bundles include a JRE and do not require a separate Java install.
 
 Choose one of these paths:
 
-- Portable/manual install: extract the ZIP, copy your values into `wms-tags.env`, and run `run.bat` or `wms-tags-gui.bat`
+- Portable/manual install: extract the ZIP, replace the dummy `wms-tags.env` with your real values, and run `run.bat` or `wms-tags-gui.bat`
 - Packaged installer: run `WMS Pallet Tag System-<version>.exe` or `install-wms-installer.ps1`
 - Tropicana internal install: generate and distribute `WMS Pallet Tag System - Tropicana Setup.exe` from a trusted internal machine
 - Manual build from repo: build with Maven, then optionally package with `build-portable-bundle.ps1` or `build-jpackage-bundle.ps1`
@@ -253,7 +253,8 @@ Configuration file precedence:
 5. `.env`
 6. Built-in defaults
 
-Public release artifacts always ship with the template `config\wms-tags.env.example` copied into place as `wms-tags.env`; live DB credentials are intended to come from your local config source, not from public bundles.
+Public release artifacts always ship with the dummy template `config\wms-tags.env.example` copied into place as `wms-tags.env`; that file is intentionally non-functional until replaced with real credentials.
+Tropicana internal installs should get working credentials only through `WMS Pallet Tag System - Tropicana Setup.exe` or `Install-Tropicana-Config.ps1`.
 
 Key settings:
 
@@ -377,6 +378,7 @@ Workflow:
 
 - Open `gui`, then go to `Tools -> Rail Labels...`.
 - Enter train ID and click `Load Preview`.
+- Press `Ctrl+F` to trigger `Load Preview` from the keyboard while the workflow window is focused.
 - System pulls rail rows from WMS and resolves footprints by short code from WMS.
 - Preview includes:
 - Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
@@ -403,6 +405,7 @@ Workflow:
 - Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
 - Main window footer shows `Version <x.y.z>` and resolves from package metadata with Maven `pom.properties` fallback.
 - Enter ID, select printer, and click `Preview`.
+- Press `Ctrl+F` to trigger `Preview` from the keyboard while the workflow window is focused.
 - Label-generation printer dropdown only shows printers marked with the `ZPL` capability, plus `Print to file`.
 - Shipment preview shows shipment summary, label plan, and SKU-level pallet math (full vs partial).
 - Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU
