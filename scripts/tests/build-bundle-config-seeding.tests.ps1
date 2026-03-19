@@ -33,7 +33,18 @@ $jarPath = Get-ChildItem -Path (Join-Path $sourceRoot "cli\target") -Filter "cli
     Select-Object -First 1
 
 if (-not $jarPath) {
-    throw "No CLI jar found under cli\target. Build the project before running this test."
+    & (Join-Path $sourceRoot "mvnw.cmd") -q -pl cli -am -DskipTests package
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to build CLI jar required for bundle seeding test."
+    }
+    $jarPath = Get-ChildItem -Path (Join-Path $sourceRoot "cli\target") -Filter "cli-*.jar" -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notlike "*original*" -and $_.Name -notlike "*shaded*" } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+}
+
+if (-not $jarPath) {
+    throw "No CLI jar found under cli\target after building the project."
 }
 
 $expectedEnv = @"

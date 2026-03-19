@@ -161,6 +161,17 @@ class AppConfigTest {
     }
 
     @Test
+    void testExampleConfigUsesDummyDatabaseValues() throws Exception {
+        Path example = Path.of("..", "config", "wms-tags.env.example").normalize();
+        String text = Files.readString(example, StandardCharsets.UTF_8);
+
+        assertTrue(text.contains("ORACLE_USERNAME=CHANGE_ME"));
+        assertTrue(text.contains("ORACLE_PASSWORD=CHANGE_ME"));
+        assertTrue(text.contains("ORACLE_SERVICE=CHANGE_ME"));
+        assertTrue(text.contains("SITE_TBG3002_PROD_HOST=example-host"));
+    }
+
+    @Test
     void testPerUserLocalAppDataConfigWinsOverWorkingDirectoryConfig(@TempDir Path tempDir) throws Exception {
         Path localAppData = tempDir.resolve("LocalAppData");
         Path appDataConfig = localAppData
