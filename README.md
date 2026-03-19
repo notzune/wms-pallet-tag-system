@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.7.1-blue)
+![Version](https://img.shields.io/badge/version-1.7.3-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.7.1` (2026-03-17).
+Current release: `1.7.3` (2026-03-19).
 
 ## Tracked Enhancements
 
@@ -192,7 +192,7 @@ Notes:
 - The bundled runtime comes from the `jpackage` JDK unless you pass `-RuntimeImage`; use a Java 17 runtime image for release parity with the project baseline
 - The optional installer defaults to per-user install to avoid admin privileges when possible
 - Newer installer builds now use a stable Windows upgrade UUID so normal version-to-version upgrades can reuse the same install identity
-- Prerelease tags such as `v1.7.1-rc1` are supported in CI and publish GitHub Releases marked as prereleases automatically
+- Prerelease tags such as `v1.7.3-rc1` are supported in CI and publish GitHub Releases marked as prereleases automatically
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
 - GUI `Tools` / `Settings` now include `Check for Updates...` and `Uninstall / Clean Install Prep...` actions for packaged installs
@@ -238,9 +238,9 @@ Behavior:
 ### Release Order
 
 - Merge the release-prep PR to `main`
-- Tag `v1.7.1-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
+- Tag `v1.7.3-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
 - Validate portable ZIP, installer `.exe`, `.exe.sha256`, and updater behavior against that prerelease
-- Tag `v1.7.1` when the prerelease is accepted
+- Tag `v1.7.3` when the prerelease is accepted
 
 ## Configuration
 
@@ -514,7 +514,7 @@ Behavior:
   `cli/target/maven-archiver/pom.properties`.
 - PRs: also upload the installer `.exe` and `.exe.sha256` as workflow artifacts.
 - Stable tags (`vX.Y.Z`): attach the portable ZIP, installer `.exe`, and matching `.exe.sha256` to a normal GitHub Release.
-- Prerelease tags (`vX.Y.Z-<suffix>` such as `v1.7.1-rc1`): attach the same artifacts to a GitHub Release marked as a prerelease.
+- Prerelease tags (`vX.Y.Z-<suffix>` such as `v1.7.3-rc1`): attach the same artifacts to a GitHub Release marked as a prerelease.
 - Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
 ## Project Structure

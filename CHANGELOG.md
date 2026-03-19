@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-03-19
+
 ### Added
 
 - Added `build-tropicana-installer.ps1` to generate a local-only `WMS Pallet Tag System - Tropicana Setup.exe` plus a fallback `Install-Tropicana-Config.ps1` for internal Tropicana distribution.
