@@ -102,6 +102,7 @@ public final class LabelGuiFrame extends JFrame {
     public LabelGuiFrame() {
         super(buildWindowTitle());
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setIconImages(AppIconSupport.loadWindowIcons());
         setSize(1080, 720);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(8, 8));

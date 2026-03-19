@@ -65,8 +65,9 @@ Portable bundles include a JRE and do not require a separate Java install.
 
 Choose one of these paths:
 
-- Portable/manual install: extract the ZIP, edit `wms-tags.env`, and run `run.bat` or `wms-tags-gui.bat`
+- Portable/manual install: extract the ZIP, copy your values into `wms-tags.env`, and run `run.bat` or `wms-tags-gui.bat`
 - Packaged installer: run `WMS Pallet Tag System-<version>.exe` or `install-wms-installer.ps1`
+- Tropicana internal install: generate and distribute `WMS Pallet Tag System - Tropicana Setup.exe` from a trusted internal machine
 - Manual build from repo: build with Maven, then optionally package with `build-portable-bundle.ps1` or `build-jpackage-bundle.ps1`
 
 ### Manual Build From Repo
@@ -186,7 +187,7 @@ Use the `jpackage` builder when you want a native executable layout while keepin
 Notes:
 
 - Default app-image output is `dist/wms-pallet-tag-system-<version>-app`
-- The app image keeps `config/`, `wms-tags.env`, `out/`, and `logs/` next to the executable
+- The app image keeps `config/`, template `wms-tags.env`, `out/`, and `logs/` next to the executable
 - The generated app image includes `WMS Pallet Tag System.exe`, plus `run.bat` and `wms-tags-gui.bat` wrappers for CLI and GUI entrypoints
 - The bundled runtime comes from the `jpackage` JDK unless you pass `-RuntimeImage`; use a Java 17 runtime image for release parity with the project baseline
 - The optional installer defaults to per-user install to avoid admin privileges when possible
@@ -203,12 +204,34 @@ Notes:
 - Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
 - The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
 
+### Tropicana internal installer
+
+Use the local-only Tropicana packaging flow when you want a single EXE that installs the app and applies Tropicana config for the current Windows user.
+
+```powershell
+.\scripts\build-tropicana-installer.ps1 -ConfigSourcePath .\.env
+```
+
+Outputs:
+
+- `dist\WMS Pallet Tag System - Tropicana Setup.exe`
+- `dist\Install-Tropicana-Config.ps1`
+
+Behavior:
+
+- The Tropicana setup EXE installs the normal packaged app and then applies Tropicana config for the current user.
+- Tropicana config persists under `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env`, so normal app updates do not require rerunning setup.
+- `Install-Tropicana-Config.ps1` remains the fallback repair/credential-rotation path.
+- These Tropicana artifacts are for internal distribution only and should not be attached to public GitHub Releases.
+
 ### Update Paths
 
 - Portable/manual install:
   download the latest portable ZIP or installer from GitHub Releases and replace/reinstall manually
 - Packaged install:
   use `Tools -> Settings -> Check for Updates...` for release checks and guided installer download when the release includes both the `.exe` and `.sha256`
+- Tropicana internal install:
+  rerun `Install-Tropicana-Config.ps1` only when credentials rotate or per-user config needs repair
 - Clean reinstall:
   use `Tools -> Settings -> Uninstall / Clean Install Prep...` or `uninstall-wms-tags.ps1`
 
@@ -225,9 +248,12 @@ Configuration file precedence:
 
 1. Environment variables
 2. `WMS_CONFIG_FILE` path, if set
-3. `wms-tags.env` next to the JAR (or working directory)
-4. `.env`
-5. Built-in defaults
+3. `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env`
+4. `wms-tags.env` next to the JAR (or working directory)
+5. `.env`
+6. Built-in defaults
+
+Public release artifacts always ship with the template `config\wms-tags.env.example` copied into place as `wms-tags.env`; live DB credentials are intended to come from your local config source, not from public bundles.
 
 Key settings:
 

@@ -159,5 +159,28 @@ class AppConfigTest {
             Files.deleteIfExists(tempConfig);
         }
     }
+
+    @Test
+    void testPerUserLocalAppDataConfigWinsOverWorkingDirectoryConfig(@TempDir Path tempDir) throws Exception {
+        Path localAppData = tempDir.resolve("LocalAppData");
+        Path appDataConfig = localAppData
+                .resolve("Tropicana")
+                .resolve("WMS-Pallet-Tag-System")
+                .resolve("wms-tags.env");
+        Files.createDirectories(appDataConfig.getParent());
+        Files.writeString(appDataConfig, String.join("\n",
+                "ACTIVE_SITE=TBGLOCAL",
+                "SITE_TBGLOCAL_NAME=Local AppData Site",
+                "SITE_TBGLOCAL_PROD_HOST=127.0.0.1",
+                "ORACLE_USERNAME=local_appdata_user",
+                "ORACLE_PASSWORD=local_appdata_pass"
+        ), StandardCharsets.UTF_8);
+
+        AppConfig cfg = new AppConfig(Map.of("LOCALAPPDATA", localAppData.toString()), null);
+
+        assertEquals(appDataConfig.toAbsolutePath().toString(), cfg.loadedConfigFileOrNull());
+        assertEquals("local_appdata_user", cfg.oracleUsername());
+        assertEquals("local_appdata_pass", cfg.oraclePassword());
+    }
 }
 

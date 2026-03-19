@@ -99,6 +99,7 @@ $scriptRoot = Split-Path -Parent $PSCommandPath
 if (-not $SourceRoot) {
     $SourceRoot = Split-Path -Parent $scriptRoot
 }
+$iconPath = Join-Path $scriptRoot "assets\orange-slice.ico"
 
 if (-not $JarPath) {
     $jarCandidate = Get-ChildItem -Path (Join-Path $SourceRoot "cli\target") -Filter "cli-*.jar" -File -ErrorAction SilentlyContinue |
@@ -151,6 +152,9 @@ $jpackageArgs = @(
     '--vendor', 'Tropicana Brands Group',
     '--java-options', '-Dwms.app.home=$APPDIR\..'
 )
+if (Test-Path -LiteralPath $iconPath) {
+    $jpackageArgs += @('--icon', (Resolve-Path -LiteralPath $iconPath).Path)
+}
 if ($RuntimeImage) {
     $resolvedRuntimeImage = (Resolve-Path -LiteralPath $RuntimeImage).Path
     $jpackageArgs += @('--runtime-image', $resolvedRuntimeImage)
@@ -176,13 +180,8 @@ New-Item -ItemType Directory -Path (Join-Path $BundleDir "scripts") -Force | Out
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "out") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "logs") -Force | Out-Null
 
-$rootEnvPath = Join-Path $SourceRoot ".env"
 $bundleEnvPath = Join-Path $BundleDir "wms-tags.env"
-if (Test-Path -LiteralPath $rootEnvPath) {
-    Copy-Item -LiteralPath $rootEnvPath -Destination $bundleEnvPath -Force
-} else {
-    Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -Destination $bundleEnvPath -Force
-}
+Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -Destination $bundleEnvPath -Force
 
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printers.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printers.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printer-routing.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printer-routing.yaml") -Force

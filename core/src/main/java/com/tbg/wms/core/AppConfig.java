@@ -74,7 +74,9 @@ public final class AppConfig {
         Path explicitPath = explicitConfigFile != null
                 ? ConfigFileLocator.validateConfigFile(explicitConfigFile)
                 : ConfigFileLocator.resolveExplicitConfigPath(CONFIG_FILE_PROP, CONFIG_FILE_ENV);
-        Path selectedFile = explicitPath != null ? explicitPath : ConfigFileLocator.discoverConfigFile(DEFAULT_FILE_NAME, AppConfig.class);
+        Path selectedFile = explicitPath != null
+                ? explicitPath
+                : ConfigFileLocator.discoverConfigFile(DEFAULT_FILE_NAME, AppConfig.class, this.envVars);
         this.fileValues = selectedFile == null ? Map.of() : loadEnvStyleFile(selectedFile);
         this.loadedConfigFile = selectedFile == null ? null : selectedFile.toAbsolutePath().toString();
     }

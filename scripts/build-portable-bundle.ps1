@@ -147,15 +147,9 @@ New-Item -ItemType Directory -Path (Join-Path $BundleDir "config\templates") -Fo
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "scripts") -Force | Out-Null
 
 Copy-Item -LiteralPath $JarPath -Destination (Join-Path $BundleDir "wms-tags.jar") -Force
-$rootEnvPath = Join-Path $SourceRoot ".env"
 $bundleEnvPath = Join-Path $BundleDir "wms-tags.env"
-if (Test-Path -LiteralPath $rootEnvPath) {
-    Write-Host "Seeding bundle env from: $rootEnvPath"
-    Copy-Item -LiteralPath $rootEnvPath -Destination $bundleEnvPath -Force
-} else {
-    Write-Host "Root .env not found; using config\\wms-tags.env.example"
-    Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -Destination $bundleEnvPath -Force
-}
+Write-Host "Seeding bundle env from: config\\wms-tags.env.example"
+Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -Destination $bundleEnvPath -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printers.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printers.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printer-routing.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printer-routing.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walmart-sku-matrix.csv") -Destination (Join-Path $BundleDir "config\walmart-sku-matrix.csv") -Force

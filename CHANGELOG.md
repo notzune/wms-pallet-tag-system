@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-No unreleased changes documented yet.
+### Added
+
+- Added `build-tropicana-installer.ps1` to generate a local-only `WMS Pallet Tag System - Tropicana Setup.exe` plus a fallback `Install-Tropicana-Config.ps1` for internal Tropicana distribution.
+
+### Changed
+
+- Public portable and jpackage bundles now always seed `wms-tags.env` from the sanitized template instead of copying the build machine's root `.env`.
+- Runtime config discovery now prefers `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env` so per-user Tropicana config survives normal packaged app updates.
 
 ## [1.7.1] - 2026-03-17
 
