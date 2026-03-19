@@ -23,8 +23,6 @@ import com.tbg.wms.core.update.VersionSupport;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
 import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -284,15 +282,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void wireShortcuts() {
-        InputMap inputMap = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-        ActionMap actionMap = getRootPane().getActionMap();
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "preview");
-        actionMap.put("preview", new AbstractAction() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                previewJob();
-            }
-        });
+        WorkflowShortcutBinder.bindPreviewShortcut(getRootPane(), previewButton, "preview");
     }
 
     private void loadPrintersAsync() {

@@ -6,6 +6,7 @@ package com.tbg.wms.cli.gui.rail;
 import com.tbg.wms.cli.gui.GuiPrinterTargetSupport;
 import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.cli.gui.TextFieldClipboardController;
+import com.tbg.wms.cli.gui.WorkflowShortcutBinder;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.rail.RailCarCard;
 
@@ -69,6 +70,7 @@ public final class RailLabelsDialog extends JDialog {
         add(buildBottomPanel(), BorderLayout.SOUTH);
         clipboardController.install(trainIdField, outputDirField);
         wireActions();
+        WorkflowShortcutBinder.bindPreviewShortcut(getRootPane(), loadButton, "loadRailPreview");
         setButtonsEnabled(false);
         loadPrintersAsync();
     }
