@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.5] - 2026-03-19
+
+### Fixed
+
+- Fixed the Tropicana bootstrap/support installer path so the generated `Install-Tropicana-Config.ps1` now activates and writes its embedded config payload correctly.
+- Added an end-to-end regression test that executes the generated fallback support script without `-ConfigSourcePath` and verifies it writes the expected per-user Tropicana config.
+- Supersedes `1.7.4` for Tropicana internal installs; `1.7.4` shipped with a broken embedded-config handoff in the generated bootstrap/support installer path.
+
 ## [1.7.4] - 2026-03-19
 
 ### Added
