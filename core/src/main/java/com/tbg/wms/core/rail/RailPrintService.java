@@ -10,7 +10,9 @@ import com.tbg.wms.core.print.PrinterRoutingService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.printing.PDFPageable;
 
-import java.awt.*;
+import javax.print.PrintService;
+import java.awt.GraphicsEnvironment;
+import java.awt.HeadlessException;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.IOException;
@@ -27,25 +29,29 @@ import java.util.Objects;
 public final class RailPrintService {
     private static final int CONNECT_TIMEOUT_MS = 5000;
     private static final int WRITE_TIMEOUT_MS = 10000;
+    private final PdfDocumentLoader pdfDocumentLoader;
+    private final PrinterJobFactory printerJobFactory;
+
+    public RailPrintService() {
+        this(path -> PDDocument.load(path.toFile()), PrinterJob::getPrinterJob);
+    }
+
+    RailPrintService(PdfDocumentLoader pdfDocumentLoader, PrinterJobFactory printerJobFactory) {
+        this.pdfDocumentLoader = Objects.requireNonNull(pdfDocumentLoader, "pdfDocumentLoader cannot be null");
+        this.printerJobFactory = Objects.requireNonNull(printerJobFactory, "printerJobFactory cannot be null");
+    }
 
     /**
-     * Sends a rendered document to the host printer using Desktop integration.
+     * Sends a rendered rail PDF to the host default printer without depending on a shell file association.
      *
-     * @param documentPath rendered document path (PDF or DOCX)
+     * @param documentPath rendered PDF path
      */
     public void print(Path documentPath) throws IOException {
         Objects.requireNonNull(documentPath, "documentPath cannot be null");
         if (!Files.exists(documentPath)) {
             throw new IllegalArgumentException("Document file does not exist: " + documentPath);
         }
-        if (!Desktop.isDesktopSupported()) {
-            throw new IOException("Desktop print integration is not supported on this host.");
-        }
-        Desktop desktop = Desktop.getDesktop();
-        if (!desktop.isSupported(Desktop.Action.PRINT)) {
-            throw new IOException("Desktop PRINT action is not supported on this host.");
-        }
-        desktop.print(documentPath.toFile());
+        printPdfToDefaultPrinter(documentPath);
     }
 
     /**
@@ -139,5 +145,31 @@ public final class RailPrintService {
             ex.addSuppressed(originalFailure);
             throw ex;
         }
+    }
+
+    private void printPdfToDefaultPrinter(Path documentPath) throws IOException {
+        try (PDDocument document = pdfDocumentLoader.load(documentPath)) {
+            PrinterJob printerJob = printerJobFactory.create();
+            PrintService printService = printerJob.getPrintService();
+            if (printService == null) {
+                throw new IOException("No system default printer is configured on this host.");
+            }
+            printerJob.setPageable(new PDFPageable(document));
+            printerJob.print();
+        } catch (HeadlessException e) {
+            throw new IOException("System-default PDF printing is not available on a headless host.", e);
+        } catch (PrinterException e) {
+            throw new IOException("System-default PDF printing failed: " + e.getMessage(), e);
+        }
+    }
+
+    @FunctionalInterface
+    interface PdfDocumentLoader {
+        PDDocument load(Path documentPath) throws IOException;
+    }
+
+    @FunctionalInterface
+    interface PrinterJobFactory {
+        PrinterJob create();
     }
 }
