@@ -62,7 +62,7 @@ function New-EmbeddedSupportScript {
 
     $base64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($ConfigContent))
     $template = Get-Content -LiteralPath $TemplatePath -Raw
-    $rendered = $template.Replace('__EMBEDDED_CONFIG_BASE64__', $base64)
+    $rendered = $template.Replace('__EMBEDDED_CONFIG_BASE64_VALUE__', $base64)
     Set-Content -LiteralPath $DestinationPath -Value $rendered -Encoding ASCII
 }
 

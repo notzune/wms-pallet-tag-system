@@ -8,8 +8,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$embeddedConfigBase64 = '__EMBEDDED_CONFIG_BASE64__'
-if ([string]::IsNullOrWhiteSpace($ConfigContentBase64) -and $embeddedConfigBase64 -ne '__EMBEDDED_CONFIG_BASE64__') {
+$embeddedConfigBase64 = '__EMBEDDED_CONFIG_BASE64_VALUE__'
+if ([string]::IsNullOrWhiteSpace($ConfigContentBase64) -and $embeddedConfigBase64 -notlike '__EMBEDDED_CONFIG_BASE64_*__') {
     $ConfigContentBase64 = $embeddedConfigBase64
 }
 

@@ -25,15 +25,22 @@ $configSourcePath = Join-Path $tempRoot "tropicana.env"
 $outputDir = Join-Path $tempRoot "dist"
 $bootstrapperPath = Join-Path $outputDir "WMS Pallet Tag System - Tropicana Setup.exe"
 $supportScriptPath = Join-Path $outputDir "Install-Tropicana-Config.ps1"
+$installDir = Join-Path $tempRoot "InstallDir"
+$localAppDataRoot = Join-Path $tempRoot "LocalAppData"
+$targetPath = Join-Path $localAppDataRoot "Tropicana\WMS-Pallet-Tag-System\wms-tags.env"
+
+$configContent = @"
+ACTIVE_SITE=TBG3002
+ORACLE_USERNAME=trop_user
+ORACLE_PASSWORD=trop_pass
+"@
 
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
     Set-Content -LiteralPath $fakeInstallerPath -Value "fake-installer" -Encoding ASCII
-    Set-Content -LiteralPath $configSourcePath -Value @"
-ACTIVE_SITE=TBG3002
-ORACLE_USERNAME=trop_user
-ORACLE_PASSWORD=trop_pass
-"@ -Encoding ASCII
+    Set-Content -LiteralPath $configSourcePath -Value $configContent -Encoding ASCII
+    New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $installDir "run.bat") -Value "@echo off" -Encoding ASCII
 
     & $builderScript -InstallerPath $fakeInstallerPath -ConfigSourcePath $configSourcePath -OutputDir $outputDir
 
@@ -42,6 +49,11 @@ ORACLE_PASSWORD=trop_pass
 
     $supportScriptContent = Get-Content -LiteralPath $supportScriptPath -Raw
     Assert-True -Condition ($supportScriptContent.Contains("ConfigContentBase64")) -Message "Support script should embed config content for one-file redistribution"
+
+    & $supportScriptPath -LocalAppDataRoot $localAppDataRoot -InstallDir $installDir -SkipVerify
+
+    Assert-True -Condition (Test-Path -LiteralPath $targetPath) -Message "Generated support script should install embedded config without external .env"
+    Assert-True -Condition ((Get-Content -LiteralPath $targetPath -Raw).Trim() -eq $configContent.Trim()) -Message "Generated support script should write the embedded config content"
 
     Write-Host "PASS: build-tropicana-installer creates bootstrap and fallback support artifacts"
 } finally {
