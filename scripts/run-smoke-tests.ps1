@@ -8,7 +8,8 @@ param(
     [string]$ShipmentId,
     [string]$CarrierMoveId,
     [string]$TrainId,
-    [string]$OutputRoot
+    [string]$OutputRoot,
+    [switch]$IncludeInstallerScenarios
 )
 
 $ErrorActionPreference = "Stop"
@@ -116,7 +117,10 @@ function Invoke-ProcessCommand {
         [Parameter(Mandatory = $true)]
         [string]$FilePath,
         [Parameter(Mandatory = $true)]
-        [string[]]$Arguments
+        [AllowEmptyCollection()]
+        [string[]]$Arguments,
+        [hashtable]$EnvironmentOverrides,
+        [int]$TimeoutSeconds = 0
     )
 
     $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -131,17 +135,177 @@ function Invoke-ProcessCommand {
     $psi.UseShellExecute = $false
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
+    if ($EnvironmentOverrides) {
+        foreach ($key in $EnvironmentOverrides.Keys) {
+            $psi.EnvironmentVariables[$key] = [string]$EnvironmentOverrides[$key]
+        }
+    }
 
     $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $psi
     [void]$process.Start()
+    if ($TimeoutSeconds -gt 0) {
+        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+            try {
+                $process.Kill($true)
+            } catch {
+                $process.Kill()
+            }
+            return [pscustomobject]@{
+                ExitCode = 124
+                Output   = ("Process timed out after {0} seconds: {1}" -f $TimeoutSeconds, $FilePath)
+            }
+        }
+    } else {
+        $process.WaitForExit()
+    }
     $stdout = $process.StandardOutput.ReadToEnd()
     $stderr = $process.StandardError.ReadToEnd()
-    $process.WaitForExit()
 
     return [pscustomobject]@{
         ExitCode = $process.ExitCode
         Output   = ($stdout + [Environment]::NewLine + $stderr).Trim()
+    }
+}
+
+function Resolve-InstalledAppDir {
+    param([string]$InstallRoot)
+
+    if (Test-Path -LiteralPath (Join-Path $InstallRoot "run.bat")) {
+        return $InstallRoot
+    }
+
+    $candidate = Get-ChildItem -Path $InstallRoot -Directory -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "run.bat") } |
+        Select-Object -First 1
+    if ($candidate) {
+        return $candidate.FullName
+    }
+
+    throw "Installed app directory not found under: $InstallRoot"
+}
+
+function Invoke-BootstrapInstallScenario {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourceRoot,
+        [Parameter(Mandatory = $true)]
+        [string]$ScenarioOutputDir,
+        [Parameter(Mandatory = $true)]
+        [string]$ConfigPath,
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedConfigSourcePattern
+    )
+
+    $shortRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("wms-bootstrap-smoke-" + [guid]::NewGuid().ToString("N"))
+    $smokeAppName = "WMS Pallet Tag System Smoke"
+    $smokeInstallDirName = "WMS-Pallet-Tag-System-Smoke"
+    $bundleDir = Join-Path $shortRoot "app"
+    $bootstrapDir = Join-Path $shortRoot "bootstrap"
+    $installRoot = Join-Path $shortRoot ("install\{0}" -f $smokeInstallDirName)
+    $localAppDataRoot = Join-Path $shortRoot "localappdata"
+    $installerLogPath = Join-Path $ScenarioOutputDir "bootstrap-install.log"
+    $uniqueUpgradeUuid = [guid]::NewGuid().ToString()
+
+    New-Item -ItemType Directory -Path $ScenarioOutputDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $shortRoot -Force | Out-Null
+    New-Item -ItemType Directory -Path $localAppDataRoot -Force | Out-Null
+
+    & (Join-Path $SourceRoot "scripts\build-jpackage-bundle.ps1") `
+        -SourceRoot $SourceRoot `
+        -InstallerType msi `
+        -BundleDir $bundleDir `
+        -BundleVersionLabel "smoke-installer" `
+        -AppName $smokeAppName `
+        -InstallDirName $smokeInstallDirName `
+        -WinUpgradeUuid $uniqueUpgradeUuid | Out-Null
+
+    $msiPath = Get-ChildItem -Path $shortRoot -Filter '*.msi' -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+    if (-not $msiPath) {
+        return [pscustomobject]@{
+            ExitCode = 1
+            Output   = "Bootstrap installer scenario could not find the MSI installer artifact."
+        }
+    }
+
+    & (Join-Path $SourceRoot "scripts\build-tropicana-installer.ps1") `
+        -InstallerPath $msiPath.FullName `
+        -ConfigSourcePath $ConfigPath `
+        -OutputDir $bootstrapDir `
+        -SourceRoot $SourceRoot | Out-Null
+
+    $bootstrapExe = Join-Path $bootstrapDir "WMS Pallet Tag System - Tropicana Setup.exe"
+    $bootstrapScript = Join-Path $bootstrapDir "bootstrap-install.ps1"
+    if (-not (Test-Path -LiteralPath $bootstrapExe)) {
+        return [pscustomobject]@{
+            ExitCode = 1
+            Output   = "Bootstrap installer scenario could not find the Tropicana setup executable."
+        }
+    }
+    if (-not (Test-Path -LiteralPath $bootstrapScript)) {
+        return [pscustomobject]@{
+            ExitCode = 1
+            Output   = "Bootstrap installer scenario could not find the bootstrap install script."
+        }
+    }
+
+    $installResult = Invoke-ProcessCommand -FilePath "powershell.exe" -Arguments @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", $bootstrapScript,
+        "-InstallDir", $installRoot,
+        "-LocalAppDataRoot", $localAppDataRoot,
+        "-LogPath", $installerLogPath,
+        "-QuietInstall",
+        "-NoLaunch"
+    ) -TimeoutSeconds 900
+
+    if ($installResult.ExitCode -ne 0) {
+        return $installResult
+    }
+
+    $targetConfigPath = Join-Path $localAppDataRoot "Tropicana\WMS-Pallet-Tag-System\wms-tags.env"
+    if (-not (Test-Path -LiteralPath $targetConfigPath)) {
+        return [pscustomobject]@{
+            ExitCode = 1
+            Output   = "Bootstrap install did not create Tropicana config at $targetConfigPath"
+        }
+    }
+
+    $installedAppDir = Resolve-InstalledAppDir -InstallRoot (Split-Path -Parent $installRoot)
+    $configResult = Invoke-SmokeCommand -Mode "packaged" -ResolvedTargetPath $installedAppDir -CommandText "config" `
+        -ConfigPath $null -LocalAppDataRoot $localAppDataRoot
+    $dbTestResult = Invoke-SmokeCommand -Mode "packaged" -ResolvedTargetPath $installedAppDir -CommandText "db-test" `
+        -ConfigPath $null -LocalAppDataRoot $localAppDataRoot
+
+    $output = @(
+        "bootstrap-exe=$bootstrapExe"
+        "bootstrap-script=$bootstrapScript"
+        "bootstrap-exit=$($installResult.ExitCode)"
+        "install-dir=$installedAppDir"
+        "config-path=$targetConfigPath"
+        "config-output=$($configResult.Output)"
+        "db-test-output=$($dbTestResult.Output)"
+    ) -join [Environment]::NewLine
+
+    if ($configResult.ExitCode -ne 0 -or $dbTestResult.ExitCode -ne 0) {
+        return [pscustomobject]@{
+            ExitCode = 1
+            Output   = $output
+        }
+    }
+    if ($configResult.Output -notmatch [regex]::Escape($ExpectedConfigSourcePattern)) {
+        return [pscustomobject]@{
+            ExitCode = 1
+            Output   = ($output + [Environment]::NewLine + "Expected config source pattern missing: $ExpectedConfigSourcePattern")
+        }
+    }
+
+    return [pscustomobject]@{
+        ExitCode = 0
+        Output   = $output
     }
 }
 
@@ -264,6 +428,9 @@ foreach ($scenario in $manifest.scenarios) {
     if (-not ($scenario.modes -contains $Mode)) {
         continue
     }
+    if ($scenario.releaseOnly -and -not $IncludeInstallerScenarios) {
+        continue
+    }
 
     $scenarioOutputDir = Join-Path $OutputRoot $scenario.name
     New-Item -ItemType Directory -Path $scenarioOutputDir -Force | Out-Null
@@ -282,6 +449,23 @@ foreach ($scenario in $manifest.scenarios) {
         $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($scenario.expectedArtifacts) -ArtifactBaseDir $artifactBaseDir
         $results.Add((New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
             -ExitCode 0 -ExpectedExitCode $scenario.expectedExitCode -Output "asset-check" `
+            -ArtifactsPassed $artifactCheck.Passed -ArtifactDetails $artifactCheck.Details)) | Out-Null
+        continue
+    }
+
+    if ($scenario.kind -eq "bootstrap-install") {
+        if (-not $resolvedConfigPath) {
+            $results.Add((New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
+                -ExitCode 1 -ExpectedExitCode $scenario.expectedExitCode -Output "ConfigPath is required for bootstrap installer smoke." `
+                -ArtifactsPassed $false -ArtifactDetails "Bootstrap installer smoke requires a real config payload.")) | Out-Null
+            continue
+        }
+
+        $invokeResult = Invoke-BootstrapInstallScenario -SourceRoot $sourceRoot -ScenarioOutputDir $scenarioOutputDir `
+            -ConfigPath $resolvedConfigPath -ExpectedConfigSourcePattern $scenario.expectedConfigSourcePattern
+        $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($scenario.expectedArtifacts) -ArtifactBaseDir $scenarioOutputDir
+        $results.Add((New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
+            -ExitCode $invokeResult.ExitCode -ExpectedExitCode $scenario.expectedExitCode -Output $invokeResult.Output `
             -ArtifactsPassed $artifactCheck.Passed -ArtifactDetails $artifactCheck.Details)) | Out-Null
         continue
     }

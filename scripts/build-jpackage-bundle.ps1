@@ -8,6 +8,9 @@ param(
     [string]$SourceRoot,
     [string]$RuntimeImage,
     [string]$AppVersion,
+    [string]$AppName,
+    [string]$InstallDirName,
+    [string]$WinUpgradeUuid,
     [switch]$SystemWideInstall
 )
 
@@ -64,14 +67,15 @@ function Resolve-JpackageHome {
 function Write-LauncherScript {
     param(
         [string]$Path,
-        [string]$ExtraArgs
+        [string]$ExtraArgs,
+        [string]$AppExecutableName
     )
 
     $content = @(
         '@echo off'
         'setlocal'
         'set "APP_HOME=%~dp0"'
-        'set "APP_EXE=%APP_HOME%WMS Pallet Tag System.exe"'
+        ('set "APP_EXE=%APP_HOME%{0}"' -f $AppExecutableName)
         'set "JAVA_EXE=%APP_HOME%runtime\bin\java.exe"'
         'set "JAR_FILE=%APP_HOME%wms-tags.jar"'
         'if not exist "%JAR_FILE%" set "JAR_FILE=%APP_HOME%app\wms-tags.jar"'
@@ -121,9 +125,13 @@ if (-not $BundleVersionLabel) {
     $BundleVersionLabel = $resolvedVersion
 }
 $javaHome = Resolve-JpackageHome
-$appName = "WMS Pallet Tag System"
-$installDirName = "WMS-Pallet-Tag-System"
-$winUpgradeUuid = "0d6f4c87-1ec5-4f65-a9d3-4f7a0d4f4d4f"
+$appName = if ([string]::IsNullOrWhiteSpace($AppName)) { "WMS Pallet Tag System" } else { $AppName.Trim() }
+$installDirName = if ([string]::IsNullOrWhiteSpace($InstallDirName)) { "WMS-Pallet-Tag-System" } else { $InstallDirName.Trim() }
+$winUpgradeUuid = if ([string]::IsNullOrWhiteSpace($WinUpgradeUuid)) {
+    "0d6f4c87-1ec5-4f65-a9d3-4f7a0d4f4d4f"
+} else {
+    $WinUpgradeUuid.Trim()
+}
 
 if (-not $BundleDir) {
     $BundleDir = Join-Path $SourceRoot "dist\wms-pallet-tag-system-$BundleVersionLabel-app"
@@ -193,8 +201,8 @@ Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.bat") -De
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.ps1") -Destination (Join-Path $BundleDir "scripts\uninstall-wms-tags.ps1") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.bat") -Destination (Join-Path $BundleDir "scripts\uninstall-wms-tags.bat") -Force
 
-Write-LauncherScript -Path (Join-Path $BundleDir "run.bat") -ExtraArgs ''
-Write-LauncherScript -Path (Join-Path $BundleDir "wms-tags-gui.bat") -ExtraArgs 'gui'
+Write-LauncherScript -Path (Join-Path $BundleDir "run.bat") -ExtraArgs '' -AppExecutableName "$appName.exe"
+Write-LauncherScript -Path (Join-Path $BundleDir "wms-tags-gui.bat") -ExtraArgs 'gui' -AppExecutableName "$appName.exe"
 
 $jarPathResolved = Join-Path $BundleDir "app\wms-tags.jar"
 $jarHash = (Get-FileHash -LiteralPath $jarPathResolved -Algorithm SHA256).Hash

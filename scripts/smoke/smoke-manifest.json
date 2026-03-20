@@ -90,6 +90,17 @@
       "expectedConfigSourcePattern": "Tropicana"
     },
     {
+      "name": "tropicana-bootstrap-install",
+      "tier": 2,
+      "kind": "bootstrap-install",
+      "modes": ["packaged"],
+      "releaseOnly": true,
+      "command": "tropicana-bootstrap-install",
+      "expectedExitCode": 0,
+      "expectedArtifacts": [],
+      "expectedConfigSourcePattern": "Tropicana"
+    },
+    {
       "name": "rail-office-printer-reachability",
       "tier": 2,
       "kind": "printer-reachability",

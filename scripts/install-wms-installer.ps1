@@ -2,7 +2,9 @@
 param(
     [string]$InstallerPath,
     [string]$LogPath,
-    [switch]$ReplaceExisting
+    [string]$InstallDir,
+    [switch]$ReplaceExisting,
+    [switch]$QuietInstall
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,6 +31,17 @@ function Get-InstallerVersion {
     return $null
 }
 
+function Get-InstallerType {
+    param([string]$Path)
+
+    $extension = [System.IO.Path]::GetExtension($Path)
+    switch -Regex ($extension) {
+        '^\.msi$' { return 'msi' }
+        '^\.exe$' { return 'exe' }
+        default { throw "Unsupported installer type: $extension" }
+    }
+}
+
 function Invoke-Uninstall {
     param(
         [Parameter(Mandatory = $true)]
@@ -49,10 +62,58 @@ function Invoke-Uninstall {
     }
 
     Write-Host "Uninstalling existing WMS Pallet Tag System ($($InstalledProduct.DisplayVersion))..."
-    $arguments = @('/x', $productCode, '/passive', '/norestart', '/log', $LogPath)
-    $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arguments -Wait -PassThru
+    $argumentString = '/x "{0}" /passive /norestart /l*v "{1}"' -f $productCode, $LogPath
+    $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $argumentString -Wait -PassThru
     if ($process.ExitCode -ne 0) {
         throw "Uninstall failed with exit code $($process.ExitCode). See log: $LogPath"
+    }
+}
+
+function Invoke-MsiInstall {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallerPath,
+        [Parameter(Mandatory = $true)]
+        [string]$LogPath,
+        [string]$InstallDir,
+        [switch]$QuietInstall
+    )
+
+    $argumentParts = @('/i "{0}"' -f $InstallerPath)
+    if ($QuietInstall) {
+        $argumentParts += '/passive /norestart'
+    }
+    if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
+        $argumentParts += ('INSTALLDIR="{0}"' -f $InstallDir)
+    }
+    $argumentParts += ('/l*v "{0}"' -f $LogPath)
+
+    $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList ($argumentParts -join ' ') -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "MSI installer failed with exit code $($process.ExitCode). See log: $LogPath"
+    }
+}
+
+function Invoke-ExeInstall {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallerPath,
+        [Parameter(Mandatory = $true)]
+        [string]$LogPath,
+        [string]$InstallDir,
+        [switch]$QuietInstall
+    )
+
+    if ($QuietInstall) {
+        throw "QuietInstall is not supported for EXE installers in this script. Use an MSI-backed installer path for smoke automation."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
+        throw "InstallDir overrides are not supported for EXE installers in this script. Use an MSI-backed installer path for smoke automation."
+    }
+
+    $process = Start-Process -FilePath $InstallerPath -ArgumentList @('/log', $LogPath) -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "Installer failed with exit code $($process.ExitCode). See log: $LogPath"
     }
 }
 
@@ -71,6 +132,7 @@ if (-not $InstallerPath -or -not (Test-Path -LiteralPath $InstallerPath)) {
 }
 
 $resolvedInstallerPath = (Resolve-Path -LiteralPath $InstallerPath).Path
+$installerType = Get-InstallerType -Path $resolvedInstallerPath
 $installerVersion = Get-InstallerVersion -Path $resolvedInstallerPath
 if (-not $LogPath) {
     $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -89,9 +151,10 @@ if ($installed) {
 
 Write-Host "Launching installer: $resolvedInstallerPath"
 Write-Host "Installer log: $LogPath"
-$process = Start-Process -FilePath $resolvedInstallerPath -ArgumentList @('/log', $LogPath) -Wait -PassThru
-if ($process.ExitCode -ne 0) {
-    throw "Installer failed with exit code $($process.ExitCode). See log: $LogPath"
+if ($installerType -eq 'msi') {
+    Invoke-MsiInstall -InstallerPath $resolvedInstallerPath -LogPath $LogPath -InstallDir $InstallDir -QuietInstall:$QuietInstall
+} else {
+    Invoke-ExeInstall -InstallerPath $resolvedInstallerPath -LogPath $LogPath -InstallDir $InstallDir -QuietInstall:$QuietInstall
 }
 
 Write-Host "Installation complete."

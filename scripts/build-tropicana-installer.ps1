@@ -73,9 +73,57 @@ function New-BootstrapScript {
     )
 
     $content = @"
+param(
+    [string]`$InstallDir,
+    [string]`$LocalAppDataRoot,
+    [string]`$LogPath,
+    [switch]`$QuietInstall,
+    [switch]`$ReplaceExisting,
+    [switch]`$NoLaunch
+)
+
 `$ErrorActionPreference = 'Stop'
 
+if ([string]::IsNullOrWhiteSpace(`$InstallDir) -and -not [string]::IsNullOrWhiteSpace(`$env:WMS_BOOTSTRAP_INSTALL_DIR)) {
+    `$InstallDir = `$env:WMS_BOOTSTRAP_INSTALL_DIR
+}
+if ([string]::IsNullOrWhiteSpace(`$LocalAppDataRoot) -and -not [string]::IsNullOrWhiteSpace(`$env:WMS_BOOTSTRAP_LOCALAPPDATA)) {
+    `$LocalAppDataRoot = `$env:WMS_BOOTSTRAP_LOCALAPPDATA
+}
+if ([string]::IsNullOrWhiteSpace(`$LogPath) -and -not [string]::IsNullOrWhiteSpace(`$env:WMS_BOOTSTRAP_INSTALL_LOG)) {
+    `$LogPath = `$env:WMS_BOOTSTRAP_INSTALL_LOG
+}
+if (-not `$QuietInstall -and `$env:WMS_BOOTSTRAP_QUIET -eq '1') {
+    `$QuietInstall = `$true
+}
+if (-not `$ReplaceExisting -and `$env:WMS_BOOTSTRAP_REPLACE_EXISTING -eq '1') {
+    `$ReplaceExisting = `$true
+}
+if (-not `$NoLaunch -and `$env:WMS_BOOTSTRAP_NO_LAUNCH -eq '1') {
+    `$NoLaunch = `$true
+}
+
+function Invoke-ExternalOrThrow {
+    param(
+        [Parameter(Mandatory = `$true)]
+        [string]`$FilePath,
+        [Parameter(Mandatory = `$true)]
+        [string[]]`$Arguments,
+        [Parameter(Mandatory = `$true)]
+        [string]`$FailureMessage
+    )
+
+    & `$FilePath @Arguments
+    if (`$LASTEXITCODE -ne 0) {
+        throw ('{0} ExitCode={1}' -f `$FailureMessage, `$LASTEXITCODE)
+    }
+}
+
 function Get-InstalledWmsLocation {
+    if (-not [string]::IsNullOrWhiteSpace(`$InstallDir)) {
+        return `$InstallDir
+    }
+
     `$entries = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
         'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
         Where-Object { `$_.DisplayName -eq 'WMS Pallet Tag System' } |
@@ -94,12 +142,45 @@ function Get-InstalledWmsLocation {
 `$scriptDir = Split-Path -Parent `$PSCommandPath
 `$installerPath = Join-Path `$scriptDir '$InstallerFileName'
 `$configInstaller = Join-Path `$scriptDir 'Install-Tropicana-Config.ps1'
-`$logPath = Join-Path `$env:TEMP ('install-wms-tags-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log')
+`$installHelper = Join-Path `$scriptDir 'install-wms-installer.ps1'
+`$resolvedLogPath = if ([string]::IsNullOrWhiteSpace(`$LogPath)) {
+    Join-Path `$env:TEMP ('install-wms-tags-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log')
+} else {
+    `$LogPath
+}
 
-Start-Process -FilePath `$installerPath -ArgumentList @('/log', `$logPath) -Wait
+`$installArgs = @(
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-File', `$installHelper,
+    '-InstallerPath', `$installerPath,
+    '-LogPath', `$resolvedLogPath
+)
+if (-not [string]::IsNullOrWhiteSpace(`$InstallDir)) {
+    `$installArgs += @('-InstallDir', `$InstallDir)
+}
+if (`$QuietInstall) {
+    `$installArgs += '-QuietInstall'
+}
+if (`$ReplaceExisting) {
+    `$installArgs += '-ReplaceExisting'
+}
+Invoke-ExternalOrThrow -FilePath 'powershell.exe' -Arguments `$installArgs -FailureMessage 'Installer helper failed.'
 `$installDir = Get-InstalledWmsLocation
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File `$configInstaller -InstallDir `$installDir -SkipVerify
-Start-Process -FilePath (Join-Path `$installDir 'WMS Pallet Tag System.exe') -ErrorAction SilentlyContinue | Out-Null
+`$configArgs = @(
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-File', `$configInstaller,
+    '-InstallDir', `$installDir,
+    '-SkipVerify'
+)
+if (-not [string]::IsNullOrWhiteSpace(`$LocalAppDataRoot)) {
+    `$configArgs += @('-LocalAppDataRoot', `$LocalAppDataRoot)
+}
+Invoke-ExternalOrThrow -FilePath 'powershell.exe' -Arguments `$configArgs -FailureMessage 'Tropicana config install failed.'
+if (-not `$NoLaunch) {
+    Start-Process -FilePath (Join-Path `$installDir 'WMS Pallet Tag System.exe') -ErrorAction SilentlyContinue | Out-Null
+}
 "@
     Set-Content -LiteralPath $DestinationPath -Value $content -Encoding ASCII
 }
@@ -188,14 +269,20 @@ New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 
 $installerFileName = Split-Path -Leaf $resolvedInstallerPath
 Copy-Item -LiteralPath $resolvedInstallerPath -Destination (Join-Path $stageDir $installerFileName) -Force
+Copy-Item -LiteralPath $resolvedInstallerPath -Destination (Join-Path $OutputDir $installerFileName) -Force
 
 $supportScriptPath = Join-Path $OutputDir "Install-Tropicana-Config.ps1"
+$installHelperPath = Join-Path $OutputDir "install-wms-installer.ps1"
+$bootstrapInstallScriptPath = Join-Path $OutputDir "bootstrap-install.ps1"
 New-EmbeddedSupportScript -TemplatePath (Join-Path $SourceRoot "scripts\Install-Tropicana-Config.ps1") `
     -DestinationPath $supportScriptPath `
     -ConfigContent $configContent
+Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\install-wms-installer.ps1") -Destination $installHelperPath -Force
+New-BootstrapScript -DestinationPath $bootstrapInstallScriptPath -InstallerFileName $installerFileName
 Copy-Item -LiteralPath $supportScriptPath -Destination (Join-Path $stageDir "Install-Tropicana-Config.ps1") -Force
+Copy-Item -LiteralPath $installHelperPath -Destination (Join-Path $stageDir "install-wms-installer.ps1") -Force
 
-New-BootstrapScript -DestinationPath (Join-Path $stageDir "bootstrap-install.ps1") -InstallerFileName $installerFileName
+Copy-Item -LiteralPath $bootstrapInstallScriptPath -Destination (Join-Path $stageDir "bootstrap-install.ps1") -Force
 New-BootstrapCmd -DestinationPath (Join-Path $stageDir "bootstrap.cmd")
 
 $targetName = Join-Path $OutputDir "WMS Pallet Tag System - Tropicana Setup.exe"
@@ -204,6 +291,7 @@ $sedPath = Join-Path $stageDir "tropicana-bootstrap.sed"
 $files = @(
     $installerFileName,
     'Install-Tropicana-Config.ps1',
+    'install-wms-installer.ps1',
     'bootstrap-install.ps1',
     'bootstrap.cmd'
 )

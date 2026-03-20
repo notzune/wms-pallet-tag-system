@@ -251,16 +251,19 @@ Primary smoke entrypoints:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode repo -ConfigPath .\.env
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode packaged -ConfigPath .\.env
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode packaged -ConfigPath .\.env -IncludeInstallerScenarios
 ```
 
 Smoke policy:
 
 - `repo` mode is the fast developer gate against the built CLI jar and shared workflow services
 - `packaged` mode is the release gate against the actual packaged app layout
+- `-IncludeInstallerScenarios` adds the slower release-only Tropicana bootstrap install check
 - smoke printing must avoid live printer output by default
 - printer validation should use reachability checks unless a live print run is explicitly requested
 - current smoke defaults are intended for bounded production-safe IDs and can be overridden by explicit parameters
 - GUI workflows are validated through shared backend paths first; remaining GUI-only gaps must stay documented in the release coverage matrix
+- the installer scenario performs a real isolated local install, then verifies Tropicana `%LOCALAPPDATA%` config precedence and post-install `db-test`
 
 See [docs/release-smoke-coverage-matrix.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/.worktrees/v1.7.5-tropicana-bootstrap-fix/docs/release-smoke-coverage-matrix.md) for the current coverage contract.
 See [docs/release-checklist.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/.worktrees/v1.7.5-tropicana-bootstrap-fix/docs/release-checklist.md) for the release gate.

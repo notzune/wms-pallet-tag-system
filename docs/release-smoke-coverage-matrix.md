@@ -25,7 +25,7 @@ Status values:
 | Packaged location matrix resolution | `LabelDataBuilder` location mapping load | packaged shipment smoke | covered | Verified through packaged label generation path |
 | Packaged printer YAML resolution | `PrinterRoutingService.load` | packaged `config`, `run`, and rail smoke | covered | Guards app-home config discovery |
 | Tropicana per-user config precedence | `ConfigFileLocator`, `AppConfig` | packaged `config` smoke with `%LOCALAPPDATA%` config | covered | Verifies persistent per-user config precedence |
-| Tropicana bootstrap installer flow | installer scripts and bootstrapper | packaged install/repair smoke path | partial | Smoke should verify install/config result, not only build |
+| Tropicana bootstrap installer flow | installer scripts and bootstrapper | packaged smoke with `-IncludeInstallerScenarios` | covered | Builds an isolated Tropicana bootstrap, performs a real local install, writes per-user config, and verifies installed `config` plus `db-test` |
 | Queue / resume GUI actions | `AdvancedPrintWorkflowService` queue APIs | targeted service-level verification | gap | No release smoke runner path yet |
 | Barcode Generator GUI | `BarcodeCommand`, barcode services | CLI barcode smoke path | gap | Not yet included in Tier 1 release smoke |
 | Swing-specific selection UX (`Ctrl+F`, table selection, dialogs) | Swing dialog classes | manual verification only | gap | Outside first-line backend smoke boundary |
