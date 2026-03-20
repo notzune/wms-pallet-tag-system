@@ -87,29 +87,16 @@ function Invoke-SmokeCommand {
             $env:LOCALAPPDATA = $LocalAppDataRoot
         }
 
+        $parts = @($CommandText -split ' ')
         if ($Mode -eq "repo") {
-            $command = @(
-                "java",
-                "-jar",
-                ('"{0}"' -f $ResolvedTargetPath),
-                $CommandText
-            ) -join " "
-            $output = & powershell -NoProfile -Command $command 2>&1 | Out-String
-            return [pscustomobject]@{
-                ExitCode = $LASTEXITCODE
-                Output   = $output.Trim()
-            }
+            return Invoke-ProcessCommand -FilePath "java" -Arguments (@("-jar", $ResolvedTargetPath) + $parts)
         }
 
         $runner = Join-Path $ResolvedTargetPath "run.bat"
         if (-not (Test-Path -LiteralPath $runner)) {
             throw "Packaged target run.bat not found: $runner"
         }
-        $output = & $runner @($CommandText -split ' ') 2>&1 | Out-String
-        return [pscustomobject]@{
-            ExitCode = $LASTEXITCODE
-            Output   = $output.Trim()
-        }
+        return Invoke-ProcessCommand -FilePath $runner -Arguments $parts
     } finally {
         if ($null -eq $oldConfig) {
             Remove-Item Env:WMS_CONFIG_FILE -ErrorAction SilentlyContinue
@@ -124,9 +111,44 @@ function Invoke-SmokeCommand {
     }
 }
 
+function Invoke-ProcessCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $FilePath
+    $psi.Arguments = (($Arguments | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object {
+        if ($_ -match '\s|"') {
+            '"' + ($_ -replace '"', '\"') + '"'
+        } else {
+            $_
+        }
+    }) -join ' ')
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $psi
+    [void]$process.Start()
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+
+    return [pscustomobject]@{
+        ExitCode = $process.ExitCode
+        Output   = ($stdout + [Environment]::NewLine + $stderr).Trim()
+    }
+}
+
 function Test-ExpectedArtifacts {
     param(
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [string[]]$ExpectedArtifacts,
         [Parameter(Mandatory = $true)]
         [string]$ArtifactBaseDir
@@ -268,7 +290,7 @@ foreach ($scenario in $manifest.scenarios) {
     $commandText = $commandText.Replace("{shipmentId}", $effectiveShipmentId)
     $commandText = $commandText.Replace("{carrierMoveId}", $effectiveCarrierMoveId)
     $commandText = $commandText.Replace("{trainId}", $effectiveTrainId)
-    $commandText = $commandText.Replace("{outputDir}", ('"{0}"' -f $scenarioOutputDir))
+    $commandText = $commandText.Replace("{outputDir}", $scenarioOutputDir)
 
     $scenarioConfigPath = $resolvedConfigPath
     $scenarioLocalAppDataRoot = $null
@@ -280,7 +302,16 @@ foreach ($scenario in $manifest.scenarios) {
     $invokeResult = Invoke-SmokeCommand -Mode $Mode -ResolvedTargetPath $resolvedTargetPath `
         -CommandText $commandText -ConfigPath $scenarioConfigPath -LocalAppDataRoot $scenarioLocalAppDataRoot
 
-    $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($scenario.expectedArtifacts) -ArtifactBaseDir $scenarioOutputDir
+    $artifactBaseDir = $scenarioOutputDir
+    if ($commandText.Contains("--print-to-file")) {
+        if ($Mode -eq "repo") {
+            $artifactBaseDir = Join-Path (Split-Path -Parent $resolvedTargetPath) "out"
+        } else {
+            $artifactBaseDir = Join-Path $resolvedTargetPath "out"
+        }
+    }
+
+    $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($scenario.expectedArtifacts) -ArtifactBaseDir $artifactBaseDir
     $result = New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
         -ExitCode $invokeResult.ExitCode -ExpectedExitCode $scenario.expectedExitCode -Output $invokeResult.Output `
         -ArtifactsPassed $artifactCheck.Passed -ArtifactDetails $artifactCheck.Details
