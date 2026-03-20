@@ -19,6 +19,7 @@ function Assert-True {
 $scriptRoot = Split-Path -Parent $PSCommandPath
 $sourceRoot = Split-Path -Parent (Split-Path -Parent $scriptRoot)
 $manifestPath = Join-Path $sourceRoot "scripts\smoke\smoke-manifest.json"
+$runnerPath = Join-Path $sourceRoot "scripts\run-smoke-tests.ps1"
 
 $manifestJson = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 
@@ -33,4 +34,11 @@ Assert-True -Condition ($scenario.modes -contains "packaged") -Message "Smoke sc
 Assert-True -Condition (-not [string]::IsNullOrWhiteSpace($scenario.command)) -Message "Smoke scenario should declare a command"
 Assert-True -Condition ($null -ne $scenario.expectedExitCode) -Message "Smoke scenario should declare an expected exit code"
 
-Write-Host "PASS: run-smoke-tests manifest contains required schema"
+Assert-True -Condition (Test-Path -LiteralPath $runnerPath) -Message "Smoke runner script should exist"
+
+$runnerContent = Get-Content -LiteralPath $runnerPath -Raw
+Assert-True -Condition ($runnerContent.Contains("ValidateSet(""repo"", ""packaged"")")) -Message "Smoke runner should declare repo and packaged modes"
+Assert-True -Condition ($runnerContent.Contains("smoke-report.json")) -Message "Smoke runner should emit machine-readable smoke report"
+Assert-True -Condition ($runnerContent.Contains("smoke-report.txt")) -Message "Smoke runner should emit text smoke report"
+
+Write-Host "PASS: run-smoke-tests manifest and runner contain required smoke schema"

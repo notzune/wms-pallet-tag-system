@@ -5,6 +5,7 @@
     {
       "name": "config",
       "tier": 1,
+      "kind": "command",
       "modes": ["repo", "packaged"],
       "command": "config",
       "expectedExitCode": 0,
@@ -13,6 +14,7 @@
     {
       "name": "db-test",
       "tier": 1,
+      "kind": "command",
       "modes": ["repo", "packaged"],
       "command": "db-test",
       "expectedExitCode": 0,
@@ -21,6 +23,7 @@
     {
       "name": "shipment-print-to-file",
       "tier": 1,
+      "kind": "command",
       "modes": ["repo", "packaged"],
       "command": "run --shipment-id {shipmentId} --print-to-file --output-dir {outputDir}",
       "expectedExitCode": 0,
@@ -29,6 +32,7 @@
     {
       "name": "carrier-move-print-to-file",
       "tier": 1,
+      "kind": "command",
       "modes": ["repo", "packaged"],
       "command": "run --carrier-move-id {carrierMoveId} --print-to-file --output-dir {outputDir}",
       "expectedExitCode": 0,
@@ -37,6 +41,7 @@
     {
       "name": "rail-template",
       "tier": 1,
+      "kind": "command",
       "modes": ["repo", "packaged"],
       "command": "rail-print --template --output-dir {outputDir}",
       "expectedExitCode": 0,
@@ -45,6 +50,7 @@
     {
       "name": "rail-render",
       "tier": 1,
+      "kind": "command",
       "modes": ["repo", "packaged"],
       "command": "rail-print --train {trainId} --yes --output-dir {outputDir}",
       "expectedExitCode": 0,
@@ -53,6 +59,7 @@
     {
       "name": "packaged-config-assets",
       "tier": 1,
+      "kind": "asset-check",
       "modes": ["packaged"],
       "command": "config",
       "expectedExitCode": 0,
@@ -66,18 +73,34 @@
     {
       "name": "tropicana-config-precedence",
       "tier": 2,
+      "kind": "config-source",
       "modes": ["packaged"],
       "command": "config",
       "expectedExitCode": 0,
-      "expectedArtifacts": []
+      "expectedArtifacts": [],
+      "expectedConfigSourcePattern": "Tropicana"
     },
     {
       "name": "rail-office-printer-reachability",
       "tier": 2,
+      "kind": "printer-reachability",
       "modes": ["repo", "packaged"],
       "command": "printer-reachability",
       "expectedExitCode": 0,
-      "expectedArtifacts": []
+      "expectedArtifacts": [],
+      "host": "10.19.64.16",
+      "port": 9100
+    },
+    {
+      "name": "order-pick-printer-reachability",
+      "tier": 2,
+      "kind": "printer-reachability",
+      "modes": ["repo", "packaged"],
+      "command": "printer-reachability",
+      "expectedExitCode": 0,
+      "expectedArtifacts": [],
+      "host": "10.19.64.52",
+      "port": 9100
     }
   ]
 }

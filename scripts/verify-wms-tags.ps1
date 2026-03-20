@@ -4,10 +4,34 @@ param(
     [string]$ExpectedJarSha256,
     [string]$ShipmentId,
     [switch]$SkipDbTest,
-    [switch]$SkipDryRun
+    [switch]$SkipDryRun,
+    [switch]$UseReleaseSmoke,
+    [string]$ConfigPath
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($UseReleaseSmoke) {
+    $scriptRoot = Split-Path -Parent $PSCommandPath
+    $smokeScript = Join-Path $scriptRoot "run-smoke-tests.ps1"
+    if (-not (Test-Path -LiteralPath $smokeScript)) {
+        throw "Release smoke runner not found: $smokeScript"
+    }
+
+    $smokeArgs = @{
+        Mode       = "packaged"
+        TargetPath = $InstallDir
+    }
+    if ($ConfigPath) {
+        $smokeArgs["ConfigPath"] = $ConfigPath
+    }
+    if ($ShipmentId) {
+        $smokeArgs["ShipmentId"] = $ShipmentId
+    }
+
+    & $smokeScript @smokeArgs
+    exit $LASTEXITCODE
+}
 
 function Add-Result {
     param(
