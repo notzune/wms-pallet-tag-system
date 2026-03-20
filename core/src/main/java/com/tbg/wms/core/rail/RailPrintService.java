@@ -55,6 +55,23 @@ public final class RailPrintService {
     }
 
     /**
+     * Validates that the host exposes a usable system default printer for rail PDF printing
+     * without submitting a live print job.
+     */
+    public String validateSystemDefaultPrinter() throws IOException {
+        try {
+            PrinterJob printerJob = printerJobFactory.create();
+            PrintService printService = printerJob.getPrintService();
+            if (printService == null) {
+                throw new IOException("No system default printer is configured on this host.");
+            }
+            return "System default printer: " + printService.getName();
+        } catch (HeadlessException e) {
+            throw new IOException("System-default PDF printing is not available on a headless host.", e);
+        }
+    }
+
+    /**
      * Sends a rendered rail PDF to the configured rail printer first, then falls back to system print dialog.
      *
      * @param documentPath rendered PDF path
@@ -149,11 +166,7 @@ public final class RailPrintService {
 
     private void printPdfToDefaultPrinter(Path documentPath) throws IOException {
         try (PDDocument document = pdfDocumentLoader.load(documentPath)) {
-            PrinterJob printerJob = printerJobFactory.create();
-            PrintService printService = printerJob.getPrintService();
-            if (printService == null) {
-                throw new IOException("No system default printer is configured on this host.");
-            }
+            PrinterJob printerJob = requireSystemDefaultPrinterJob();
             printerJob.setPageable(new PDFPageable(document));
             printerJob.print();
         } catch (HeadlessException e) {
@@ -161,6 +174,15 @@ public final class RailPrintService {
         } catch (PrinterException e) {
             throw new IOException("System-default PDF printing failed: " + e.getMessage(), e);
         }
+    }
+
+    private PrinterJob requireSystemDefaultPrinterJob() throws IOException {
+        PrinterJob printerJob = printerJobFactory.create();
+        PrintService printService = printerJob.getPrintService();
+        if (printService == null) {
+            throw new IOException("No system default printer is configured on this host.");
+        }
+        return printerJob;
     }
 
     @FunctionalInterface

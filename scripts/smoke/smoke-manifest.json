@@ -57,6 +57,15 @@
       "expectedArtifacts": ["*.pdf"]
     },
     {
+      "name": "rail-system-default-validation",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "rail-print --validate-system-default-print",
+      "expectedExitCode": 0,
+      "expectedArtifacts": []
+    },
+    {
       "name": "packaged-config-assets",
       "tier": 1,
       "kind": "asset-check",

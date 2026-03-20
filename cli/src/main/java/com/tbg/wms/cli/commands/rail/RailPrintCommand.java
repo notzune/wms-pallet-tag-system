@@ -31,6 +31,15 @@ import java.util.concurrent.Callable;
 public final class RailPrintCommand implements Callable<Integer> {
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final BufferedReader CONSOLE_IN = new BufferedReader(new InputStreamReader(System.in));
+    private final SystemDefaultPrinterValidator systemDefaultPrinterValidator;
+
+    public RailPrintCommand() {
+        this(() -> new RailPrintService().validateSystemDefaultPrinter());
+    }
+
+    RailPrintCommand(SystemDefaultPrinterValidator systemDefaultPrinterValidator) {
+        this.systemDefaultPrinterValidator = systemDefaultPrinterValidator;
+    }
 
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help message and exit")
     private boolean helpRequested;
@@ -43,6 +52,10 @@ public final class RailPrintCommand implements Callable<Integer> {
 
     @Option(names = {"--print"}, defaultValue = "false", description = "Send rendered PDF to the default printer")
     private boolean print;
+
+    @Option(names = {"--validate-system-default-print"}, defaultValue = "false",
+            description = "Validate system-default rail printer availability without sending a print job")
+    private boolean validateSystemDefaultPrint;
 
     @Option(names = {"--template"}, defaultValue = "false",
             description = "Generate a 10-position rail label alignment template PDF and exit")
@@ -58,6 +71,15 @@ public final class RailPrintCommand implements Callable<Integer> {
      */
     @Override
     public Integer call() throws Exception {
+        if (validateSystemDefaultPrint) {
+            if (template || (trainId != null && !trainId.isBlank()) || print) {
+                System.err.println("Error: --validate-system-default-print cannot be combined with train/template print options.");
+                return 2;
+            }
+            System.out.println(systemDefaultPrinterValidator.validate());
+            return 0;
+        }
+
         AppConfig config = new AppConfig();
 
         if (template) {
@@ -149,5 +171,10 @@ public final class RailPrintCommand implements Callable<Integer> {
                 (float) config.railLabelOffsetXInches(),
                 (float) config.railLabelOffsetYInches()
         );
+    }
+
+    @FunctionalInterface
+    interface SystemDefaultPrinterValidator {
+        String validate() throws Exception;
     }
 }

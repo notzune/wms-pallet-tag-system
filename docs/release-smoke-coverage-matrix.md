@@ -18,7 +18,7 @@ Status values:
 | GUI carrier move preview math | `AdvancedPrintWorkflowService.prepareCarrierMoveJob` | carrier move print-to-file smoke plus targeted service/unit tests | partial | CLI path covers orchestration, not Swing presentation |
 | Rail preview and PDF generation | `RailWorkflowService`, `RailPrintCommand` | `rail-print --train ... --yes` | covered | Verifies WMS-backed rail aggregation and PDF generation |
 | Rail alignment template generation | `RailPrintCommand`, `RailCardRenderer` | `rail-print --template` | covered | Verifies deterministic template output |
-| Rail `System default printer` path | `RailWorkflowService.generatePdf`, `RailPrintService.print(Path)` | targeted unit tests plus smoke validation path | covered | Must not depend on Windows PDF shell association |
+| Rail `System default printer` path | `RailWorkflowService.generatePdf`, `RailPrintService.print(Path)`, `RailPrintCommand` | `rail-print --validate-system-default-print` plus targeted unit tests | covered | Must not depend on Windows PDF shell association or send a live print job during smoke |
 | Rail explicit printer route | `RailWorkflowService.generatePdf`, `RailPrintService.print(Path, PrinterConfig)` | reachability checks plus unit/service coverage | partial | Default smoke avoids live print jobs |
 | Shipment routed printer selection | `RunCommand.resolvePrinterId`, `PrinterRoutingService` | print-to-file path plus routing/service tests | partial | Default smoke does not send ZPL |
 | Packaged SKU matrix resolution | `LabelingSupport.resolveSkuMatrixCsv`, `LabelWorkflowService.loadSkuMapping` | packaged shipment smoke | covered | Guards packaged app-home config resolution |
