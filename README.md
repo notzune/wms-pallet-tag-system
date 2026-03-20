@@ -238,9 +238,9 @@ Behavior:
 ### Release Order
 
 - Merge the release-prep PR to `main`
-- Tag `v1.7.3-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
+- Tag `vX.Y.Z-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
 - Validate portable ZIP, installer `.exe`, `.exe.sha256`, and updater behavior against that prerelease
-- Tag `v1.7.3` when the prerelease is accepted
+- Tag `vX.Y.Z` when the prerelease is accepted
 
 ### Release Smoke
 
@@ -259,9 +259,11 @@ Smoke policy:
 - `packaged` mode is the release gate against the actual packaged app layout
 - smoke printing must avoid live printer output by default
 - printer validation should use reachability checks unless a live print run is explicitly requested
+- current smoke defaults are intended for bounded production-safe IDs and can be overridden by explicit parameters
 - GUI workflows are validated through shared backend paths first; remaining GUI-only gaps must stay documented in the release coverage matrix
 
 See [docs/release-smoke-coverage-matrix.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/.worktrees/v1.7.5-tropicana-bootstrap-fix/docs/release-smoke-coverage-matrix.md) for the current coverage contract.
+See [docs/release-checklist.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/.worktrees/v1.7.5-tropicana-bootstrap-fix/docs/release-checklist.md) for the release gate.
 
 ## Configuration
 
