@@ -242,6 +242,27 @@ Behavior:
 - Validate portable ZIP, installer `.exe`, `.exe.sha256`, and updater behavior against that prerelease
 - Tag `v1.7.3` when the prerelease is accepted
 
+### Release Smoke
+
+Release tagging should be blocked until smoke evidence exists for both repo and packaged targets.
+
+Primary smoke entrypoints:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode repo -ConfigPath .\.env
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode packaged -ConfigPath .\.env
+```
+
+Smoke policy:
+
+- `repo` mode is the fast developer gate against the built CLI jar and shared workflow services
+- `packaged` mode is the release gate against the actual packaged app layout
+- smoke printing must avoid live printer output by default
+- printer validation should use reachability checks unless a live print run is explicitly requested
+- GUI workflows are validated through shared backend paths first; remaining GUI-only gaps must stay documented in the release coverage matrix
+
+See [docs/release-smoke-coverage-matrix.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/.worktrees/v1.7.5-tropicana-bootstrap-fix/docs/release-smoke-coverage-matrix.md) for the current coverage contract.
+
 ## Configuration
 
 Configuration file precedence:
