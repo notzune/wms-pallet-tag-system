@@ -265,8 +265,8 @@ Smoke policy:
 - GUI workflows are validated through shared backend paths first; remaining GUI-only gaps must stay documented in the release coverage matrix
 - the installer scenario performs a real isolated local install, then verifies Tropicana `%LOCALAPPDATA%` config precedence and post-install `db-test`
 
-See [docs/release-smoke-coverage-matrix.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/.worktrees/v1.7.5-tropicana-bootstrap-fix/docs/release-smoke-coverage-matrix.md) for the current coverage contract.
-See [docs/release-checklist.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/.worktrees/v1.7.5-tropicana-bootstrap-fix/docs/release-checklist.md) for the release gate.
+See [docs/release-smoke-coverage-matrix.md](docs/release-smoke-coverage-matrix.md) for the current coverage contract.
+See [docs/release-checklist.md](docs/release-checklist.md) for the release gate.
 
 ## Configuration
 
@@ -454,7 +454,7 @@ Workflow:
 - If the latest release includes the packaged installer `.exe`, update checks can use a guided download-and-install path instead of only opening the release page.
 - `Settings...` also exposes `Advanced Settings...` for non-secret runtime config files under `config/`; `wms-tags.env` stays outside the GUI because it contains database/network secrets.
 - Runtime output cleanup now prunes stale `out/` artifacts older than 14 days by default, and the retention window is configurable from `Settings...`.
-- See [docs/update-security-evaluation.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
+- See [docs/update-security-evaluation.md](docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
 
 ## Walmart SKU Behavior
 

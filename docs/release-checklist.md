@@ -70,6 +70,6 @@ Do not create or push a release tag unless:
 - repo smoke passes
 - packaged smoke passes
 - packaged smoke with `-IncludeInstallerScenarios` passes
-- no Tier 1 scenario remains uncovered in [release-smoke-coverage-matrix.md](/C:/Users/zrash/OneDrive/Documents/GitHub/wms-pallet-tag-system/docs/release-smoke-coverage-matrix.md)
-- remaining GUI-only/manual surface is documented in [gui-backend-coverage-inventory.md](/C:/Users/zrash/OneDrive/Documents/GitHub/wms-pallet-tag-system/docs/gui-backend-coverage-inventory.md)
+- no Tier 1 scenario remains uncovered in [release-smoke-coverage-matrix.md](release-smoke-coverage-matrix.md)
+- remaining GUI-only/manual surface is documented in [gui-backend-coverage-inventory.md](gui-backend-coverage-inventory.md)
 - generated reports are available for review
