@@ -9,3 +9,14 @@
 2026-03-10 14:08:58.805 [INFO ] [ed26be83] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
 2026-03-10 14:08:58.809 [INFO ] [ed26be83] [TBG3002:PROD] com.tbg.wms.cli.commands.DbTestCommand   - Database connectivity test succeeded: durationMs=0, dbVersion=Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
 Version 19.3.0.0.0
+2026-03-19 17:27:27.160 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.tbg.wms.cli.commands.DbTestCommand   - Starting database connectivity test
+2026-03-19 17:27:27.191 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-03-19 17:27:27.468 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-03-19 17:27:28.141 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
+2026-03-19 17:27:28.141 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.tbg.wms.db.DbConnectionPool          - Testing database connectivity: site=TBG3002, env=PROD, host=10.19.68.61
+2026-03-19 17:27:28.147 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.tbg.wms.db.DbConnectionPool          - Database connectivity verified: durationMs=0, poolActive=1, poolIdle=0
+2026-03-19 17:27:28.147 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-03-19 17:27:28.148 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-03-19 17:27:28.163 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-03-19 17:27:28.167 [INFO ] [9b3a7fd0] [TBG3002:PROD] com.tbg.wms.cli.commands.DbTestCommand   - Database connectivity test succeeded: durationMs=0, dbVersion=Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
+Version 19.3.0.0.0
