@@ -1,5 +1,28 @@
 # Next Agent Notes
 
+## 2026-03-21 Handoff
+
+- Local worktree dependency has been removed. Cross-workstation continuity should now rely on GitHub branches plus `git fetch --all --prune` and `git switch <branch>`.
+- Verified GitHub-backed branches relevant to recent work:
+  - `main`
+  - `patch/tropicana-installer-config`
+  - `patch/v1.7.4-public-config-hotkeys`
+  - `patch/v1.7.5-tropicana-bootstrap-fix`
+  - `v1.7.1-prerelease-audit`
+  - `v1.7.2-update-manager`
+  - `dev-pre-2026-02-26`
+  - `archive/patch-tropicana-installer-config-log-2026-03-21`
+- Important status note for `1.7.5`:
+  - all known `1.7.5` implementation/history is backed up on GitHub at `origin/patch/v1.7.5-tropicana-bootstrap-fix`
+  - that work is not merged into `main`
+  - the preserved local log-only snapshot from the removed Tropicana worktree is backed up separately on `origin/archive/patch-tropicana-installer-config-log-2026-03-21`
+- `main` also now tracks the previously untracked planning/design notes under `docs/`.
+- Current expected local state after fetch:
+  - `main` should be the default entry point
+  - `release-v1.7.2-readme` is obsolete because its content is already on `main`
+  - there should be no attached worktrees besides the primary repo checkout
+- If future cleanup is desired, the next low-value local branches to evaluate for deletion are branches that simply mirror remote state without active use, not branches containing unique work.
+
 - Active feature branch work is now on `v1.7.2-update-manager`, not `dev`.
 - Project baseline remains Java 17 for local builds, CI, Javadoc, and bundled runtime packaging. Keep future dependency/runtime updates aligned to the current LTS target.
 - Project/module version has been bumped to `1.7.2`.
