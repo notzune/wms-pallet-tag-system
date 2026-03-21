@@ -39,6 +39,15 @@
       "expectedArtifacts": ["*.zpl"]
     },
     {
+      "name": "barcode-generate-to-file",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "barcode --data GUI-BARCODE-123 --dry-run --output-dir {outputDir}",
+      "expectedExitCode": 0,
+      "expectedArtifacts": ["*.zpl"]
+    },
+    {
       "name": "rail-template",
       "tier": 1,
       "kind": "command",

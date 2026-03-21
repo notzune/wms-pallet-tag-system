@@ -27,6 +27,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps
   - `smoke-report.txt`
   - `smoke-report.json`
 
+Latest validated reports on `patch/v1.7.5-tropicana-bootstrap-fix`:
+
+- repo: `out/smoke-repo-20260321-122513/smoke-report.txt`
+- packaged + installer: `out/smoke-packaged-20260321-123051/smoke-report.txt`
+
 ## Required Production-Safe Inputs
 
 - Use bounded smoke identifiers only.
@@ -65,5 +70,6 @@ Do not create or push a release tag unless:
 - repo smoke passes
 - packaged smoke passes
 - packaged smoke with `-IncludeInstallerScenarios` passes
-- no Tier 1 scenario remains uncovered in [release-smoke-coverage-matrix.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/.worktrees/v1.7.5-tropicana-bootstrap-fix/docs/release-smoke-coverage-matrix.md)
+- no Tier 1 scenario remains uncovered in [release-smoke-coverage-matrix.md](/C:/Users/zrash/OneDrive/Documents/GitHub/wms-pallet-tag-system/docs/release-smoke-coverage-matrix.md)
+- remaining GUI-only/manual surface is documented in [gui-backend-coverage-inventory.md](/C:/Users/zrash/OneDrive/Documents/GitHub/wms-pallet-tag-system/docs/gui-backend-coverage-inventory.md)
 - generated reports are available for review

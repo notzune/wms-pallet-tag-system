@@ -3,6 +3,7 @@ param(
     [string]$InstallerPath,
     [string]$LogPath,
     [string]$InstallDir,
+    [string]$ProductDisplayName = 'WMS Pallet Tag System',
     [switch]$ReplaceExisting,
     [switch]$QuietInstall
 )
@@ -10,9 +11,14 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Get-InstalledWmsProduct {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProductDisplayName
+    )
+
     $entries = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
         'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
-        Where-Object { $_.DisplayName -eq 'WMS Pallet Tag System' }
+        Where-Object { $_.DisplayName -eq $ProductDisplayName }
 
     if (-not $entries) {
         return $null
@@ -139,7 +145,7 @@ if (-not $LogPath) {
     $LogPath = Join-Path (Split-Path -Parent $resolvedInstallerPath) "install-wms-tags-$timestamp.log"
 }
 
-$installed = Get-InstalledWmsProduct
+$installed = Get-InstalledWmsProduct -ProductDisplayName $ProductDisplayName
 if ($installed) {
     $installedVersion = [string]$installed.DisplayVersion
     Write-Host "Detected installed version: $installedVersion"

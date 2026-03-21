@@ -27,5 +27,5 @@ Status values:
 | Tropicana per-user config precedence | `ConfigFileLocator`, `AppConfig` | packaged `config` smoke with `%LOCALAPPDATA%` config | covered | Verifies persistent per-user config precedence |
 | Tropicana bootstrap installer flow | installer scripts and bootstrapper | packaged smoke with `-IncludeInstallerScenarios` | covered | Builds an isolated Tropicana bootstrap, performs a real local install, writes per-user config, and verifies installed `config` plus `db-test` |
 | Queue / resume GUI actions | `AdvancedPrintWorkflowService` queue APIs | targeted service-level verification | gap | No release smoke runner path yet |
-| Barcode Generator GUI | `BarcodeCommand`, barcode services | CLI barcode smoke path | gap | Not yet included in Tier 1 release smoke |
+| Barcode Generator GUI | `BarcodeCommand`, barcode services | `barcode --data ... --dry-run --output-dir ...` in repo and packaged modes | covered | Verifies deterministic ZPL generation and file artifact output without printer I/O |
 | Swing-specific selection UX (`Ctrl+F`, table selection, dialogs) | Swing dialog classes | manual verification only | gap | Outside first-line backend smoke boundary |

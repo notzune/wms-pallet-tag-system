@@ -3,7 +3,8 @@ param(
     [string]$InstallerPath,
     [string]$ConfigSourcePath,
     [string]$OutputDir,
-    [string]$SourceRoot
+    [string]$SourceRoot,
+    [string]$ProductDisplayName
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,7 +70,8 @@ function New-EmbeddedSupportScript {
 function New-BootstrapScript {
     param(
         [string]$DestinationPath,
-        [string]$InstallerFileName
+        [string]$InstallerFileName,
+        [string]$ProductDisplayName
     )
 
     $content = @"
@@ -154,7 +156,8 @@ function Get-InstalledWmsLocation {
     '-ExecutionPolicy', 'Bypass',
     '-File', `$installHelper,
     '-InstallerPath', `$installerPath,
-    '-LogPath', `$resolvedLogPath
+    '-LogPath', `$resolvedLogPath,
+    '-ProductDisplayName', '$ProductDisplayName'
 )
 if (-not [string]::IsNullOrWhiteSpace(`$InstallDir)) {
     `$installArgs += @('-InstallDir', `$InstallDir)
@@ -268,6 +271,11 @@ Remove-Item -LiteralPath $stageDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 
 $installerFileName = Split-Path -Leaf $resolvedInstallerPath
+$resolvedProductDisplayName = if ([string]::IsNullOrWhiteSpace($ProductDisplayName)) {
+    ([System.IO.Path]::GetFileNameWithoutExtension($installerFileName) -replace '-\d+\.\d+\.\d+$', '')
+} else {
+    $ProductDisplayName.Trim()
+}
 Copy-Item -LiteralPath $resolvedInstallerPath -Destination (Join-Path $stageDir $installerFileName) -Force
 Copy-Item -LiteralPath $resolvedInstallerPath -Destination (Join-Path $OutputDir $installerFileName) -Force
 
@@ -278,7 +286,7 @@ New-EmbeddedSupportScript -TemplatePath (Join-Path $SourceRoot "scripts\Install-
     -DestinationPath $supportScriptPath `
     -ConfigContent $configContent
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\install-wms-installer.ps1") -Destination $installHelperPath -Force
-New-BootstrapScript -DestinationPath $bootstrapInstallScriptPath -InstallerFileName $installerFileName
+New-BootstrapScript -DestinationPath $bootstrapInstallScriptPath -InstallerFileName $installerFileName -ProductDisplayName $resolvedProductDisplayName
 Copy-Item -LiteralPath $supportScriptPath -Destination (Join-Path $stageDir "Install-Tropicana-Config.ps1") -Force
 Copy-Item -LiteralPath $installHelperPath -Destination (Join-Path $stageDir "install-wms-installer.ps1") -Force
 

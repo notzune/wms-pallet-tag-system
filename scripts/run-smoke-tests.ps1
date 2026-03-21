@@ -234,6 +234,7 @@ function Invoke-BootstrapInstallScenario {
         -InstallerPath $msiPath.FullName `
         -ConfigSourcePath $ConfigPath `
         -OutputDir $bootstrapDir `
+        -ProductDisplayName $smokeAppName `
         -SourceRoot $SourceRoot | Out-Null
 
     $bootstrapExe = Join-Path $bootstrapDir "WMS Pallet Tag System - Tropicana Setup.exe"
@@ -259,6 +260,7 @@ function Invoke-BootstrapInstallScenario {
         "-LocalAppDataRoot", $localAppDataRoot,
         "-LogPath", $installerLogPath,
         "-QuietInstall",
+        "-ReplaceExisting",
         "-NoLaunch"
     ) -TimeoutSeconds 900
 

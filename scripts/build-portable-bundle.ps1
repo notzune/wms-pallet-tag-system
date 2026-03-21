@@ -10,9 +10,27 @@ $ErrorActionPreference = "Stop"
 
 function Get-JavaInfo {
     $javaCandidates = New-Object System.Collections.Generic.List[string]
+    $javaHomeCandidates = New-Object System.Collections.Generic.List[string]
 
     if ($env:JAVA_HOME) {
-        $javaFromEnv = Join-Path $env:JAVA_HOME "bin\java.exe"
+        [void]$javaHomeCandidates.Add($env:JAVA_HOME)
+    }
+
+    $userJavaHome = [Environment]::GetEnvironmentVariable('JAVA_HOME', 'User')
+    if (-not [string]::IsNullOrWhiteSpace($userJavaHome)) {
+        [void]$javaHomeCandidates.Add($userJavaHome)
+    }
+
+    $machineJavaHome = [Environment]::GetEnvironmentVariable('JAVA_HOME', 'Machine')
+    if (-not [string]::IsNullOrWhiteSpace($machineJavaHome)) {
+        [void]$javaHomeCandidates.Add($machineJavaHome)
+    }
+
+    foreach ($candidateHome in ($javaHomeCandidates | Select-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($candidateHome)) {
+            continue
+        }
+        $javaFromEnv = Join-Path $candidateHome "bin\java.exe"
         if (Test-Path -LiteralPath $javaFromEnv) {
             [void]$javaCandidates.Add($javaFromEnv)
         }
@@ -26,7 +44,7 @@ function Get-JavaInfo {
     $whereJava = (& where.exe java 2>$null)
     if ($whereJava) {
         foreach ($candidate in $whereJava) {
-            if (Test-Path -LiteralPath $candidate) {
+            if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate)) {
                 [void]$javaCandidates.Add($candidate)
             }
         }
