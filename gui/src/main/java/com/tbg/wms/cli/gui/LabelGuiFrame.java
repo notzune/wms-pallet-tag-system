@@ -96,7 +96,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient GuiPreviewSelectionUiSupport previewSelectionUiSupport = new GuiPreviewSelectionUiSupport();
     private final transient LabelGuiFramePreviewShellSupport previewShellSupport = new LabelGuiFramePreviewShellSupport();
     private final transient LabelGuiFrameToolMenuSupport toolMenuSupport = new LabelGuiFrameToolMenuSupport();
-    private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
+    private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(buildBarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
             new QueueResumeDialogSupport(buildQueueResumeDependencies(), MAX_QUEUE_ITEMS);
     private final transient GuiSettingsDialogSupport settingsDialogSupport =
@@ -884,41 +884,16 @@ public final class LabelGuiFrame extends JFrame {
         clipboardController.install(fields);
     }
 
-    private final class BarcodeDependencies implements BarcodeDialogFactory.Dependencies {
-        @Override
-        public DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption) {
-            return LabelGuiFrame.this.buildPrintTargetModel(includeFileOption);
-        }
-
-        @Override
-        public boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
-            return LabelGuiFrame.isPrintToFileSelected(selected);
-        }
-
-        @Override
-        public Path defaultPrintToFileOutputDir() {
-            return LabelGuiFrame.this.defaultPrintToFileOutputDir();
-        }
-
-        @Override
-        public void installClipboardBehavior(JTextComponent... fields) {
-            LabelGuiFrame.this.installTerminalLikeMouseClipboardBehavior(fields);
-        }
-
-        @Override
-        public void showError(String message) {
-            LabelGuiFrame.this.showError(message);
-        }
-
-        @Override
-        public String rootMessage(Throwable throwable) {
-            return LabelGuiFrame.this.rootMessage(throwable);
-        }
-
-        @Override
-        public PrinterConfig resolvePrinter(String printerId) throws Exception {
-            return service.resolvePrinter(printerId);
-        }
+    private BarcodeDialogFactory.Dependencies buildBarcodeDependencies() {
+        return new LabelGuiFrameBarcodeDependencies(
+                this::buildPrintTargetModel,
+                LabelGuiFrame::isPrintToFileSelected,
+                this::defaultPrintToFileOutputDir,
+                this::installTerminalLikeMouseClipboardBehavior,
+                this::showError,
+                this::rootMessage,
+                service::resolvePrinter
+        );
     }
 
     private final class ToolMenuActions implements LabelGuiFrameToolMenuSupport.MenuActions {
