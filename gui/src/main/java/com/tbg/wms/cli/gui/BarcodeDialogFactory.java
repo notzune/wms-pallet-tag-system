@@ -38,6 +38,7 @@ final class BarcodeDialogFactory {
     private static final int BARCODE_DEFAULT_HEIGHT = 220;
     private final Dependencies dependencies;
     private final BarcodeDialogExecutionSupport executionSupport;
+    private final BarcodeDialogFormSupport formSupport = new BarcodeDialogFormSupport();
 
     BarcodeDialogFactory(Dependencies dependencies) {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies cannot be null");
@@ -107,13 +108,11 @@ final class BarcodeDialogFactory {
         addFormRow(form, gbc, row++, "Scanner Profile", scannerProfile);
         addFormRow(form, gbc, row, "Printer", printerSelect);
 
-        Runnable syncOutputState = () -> {
-            LabelWorkflowService.PrinterOption selected =
-                    (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-            boolean printToFile = dependencies.isPrintToFileSelected(selected);
-            outputDir.setEnabled(printToFile);
-            outputDir.setEditable(printToFile);
-        };
+        Runnable syncOutputState = () -> formSupport.syncOutputState(
+                outputDir,
+                null,
+                dependencies.isPrintToFileSelected((LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem())
+        );
         printerSelect.addActionListener(e -> syncOutputState.run());
         syncOutputState.run();
 
@@ -205,13 +204,11 @@ final class BarcodeDialogFactory {
         advancedGbc.gridwidth = 2;
         advancedForm.add(humanReadable, advancedGbc);
 
-        Runnable syncAdvancedOutputState = () -> {
-            LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-            boolean printToFile = dependencies.isPrintToFileSelected(selected);
-            outputDir.setEnabled(printToFile);
-            outputDir.setEditable(printToFile);
-            outputDirLabel.setEnabled(printToFile);
-        };
+        Runnable syncAdvancedOutputState = () -> formSupport.syncOutputState(
+                outputDir,
+                outputDirLabel,
+                dependencies.isPrintToFileSelected((LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem())
+        );
         syncAdvancedOutputState.run();
 
         JPanel advancedButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -249,19 +246,19 @@ final class BarcodeDialogFactory {
             return;
         }
 
-        BarcodeRequest request = new BarcodeRequest(
+        BarcodeRequest request = formSupport.buildRequest(
                 data,
-                (Symbology) typeCombo.getSelectedItem(),
-                (Orientation) orientationCombo.getSelectedItem(),
-                (int) labelWidth.getValue(),
-                (int) labelHeight.getValue(),
-                (int) originX.getValue(),
-                (int) originY.getValue(),
-                (int) moduleWidth.getValue(),
-                (int) moduleRatio.getValue(),
-                (int) barcodeHeight.getValue(),
-                humanReadable.isSelected(),
-                (int) copies.getValue()
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
         );
 
         String zpl = executionSupport.buildZpl(request);
