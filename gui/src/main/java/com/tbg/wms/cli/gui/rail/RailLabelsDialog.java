@@ -53,6 +53,7 @@ public final class RailLabelsDialog extends JDialog {
     private final transient RailDialogExecutionSupport executionSupport = new RailDialogExecutionSupport();
     private final transient RailDialogActionSupport actionSupport =
             new RailDialogActionSupport(dialogSupport, executionSupport);
+    private final transient RailDialogUiStateSupport uiStateSupport = new RailDialogUiStateSupport();
     private transient RailWorkflowService.PreparedRailJob preparedJob;
 
     public RailLabelsDialog(JFrame owner, AppConfig config) {
@@ -76,7 +77,7 @@ public final class RailLabelsDialog extends JDialog {
         clipboardController.install(trainIdField, outputDirField);
         wireActions();
         WorkflowShortcutBinder.bindPreviewShortcut(getRootPane(), loadButton, "loadRailPreview");
-        setButtonsEnabled(false);
+        applyUiState(uiStateSupport.initial());
         loadPrintersAsync();
     }
 
@@ -202,9 +203,8 @@ public final class RailLabelsDialog extends JDialog {
             return;
         }
 
-        setBusy("Loading WMS rail rows...");
+        applyUiState(uiStateSupport.previewLoading());
         clearPreview();
-        setButtonsEnabled(false);
 
         SwingWorker<RailWorkflowService.PreparedRailJob, Void> worker = new SwingWorker<>() {
             @Override
@@ -223,10 +223,9 @@ public final class RailLabelsDialog extends JDialog {
                     if (outcome.shouldSelectFirstRow()) {
                         previewTable.setRowSelectionInterval(0, 0);
                     }
-                    setButtonsEnabled(true);
-                    setReady(outcome.readyMessage());
+                    applyUiState(uiStateSupport.previewReady(outcome.readyMessage()));
                 } catch (Exception ex) {
-                    setReady(executionSupport.previewFailedMessage());
+                    applyUiState(uiStateSupport.previewFailed(executionSupport.previewFailedMessage()));
                     showError(executionSupport.rootMessage(ex));
                 }
             }
@@ -247,10 +246,7 @@ public final class RailLabelsDialog extends JDialog {
                 forcePrint,
                 printNowCheck.isSelected()
         );
-        setBusy(executionSupport.generationBusyMessage(request.shouldPrint()));
-        loadButton.setEnabled(false);
-        generatePdfButton.setEnabled(false);
-        printButton.setEnabled(false);
+        applyUiState(uiStateSupport.generationBusy(executionSupport.generationBusyMessage(request.shouldPrint())));
 
         SwingWorker<RailWorkflowService.GenerationResult, Void> worker = new SwingWorker<>() {
             @Override
@@ -260,15 +256,13 @@ public final class RailLabelsDialog extends JDialog {
 
             @Override
             protected void done() {
-                loadButton.setEnabled(true);
-                setButtonsEnabled(preparedJob != null);
                 try {
                     RailWorkflowService.GenerationResult result = get();
                     RailDialogActionSupport.GenerationOutcome outcome = actionSupport.buildGenerationOutcome(result);
                     diagnosticsArea.append(outcome.diagnosticsAppend());
-                    setReady(outcome.readyMessage());
+                    applyUiState(uiStateSupport.generationComplete(outcome.readyMessage(), preparedJob != null));
                 } catch (Exception ex) {
-                    setReady(executionSupport.generationFailedMessage());
+                    applyUiState(uiStateSupport.generationComplete(executionSupport.generationFailedMessage(), preparedJob != null));
                     showError(executionSupport.rootMessage(ex));
                 }
             }
@@ -312,8 +306,7 @@ public final class RailLabelsDialog extends JDialog {
     }
 
     private void loadPrintersAsync() {
-        statusLabel.setText("Loading rail printers...");
-        printerCombo.setEnabled(false);
+        applyUiState(uiStateSupport.loadingPrinters());
         SwingWorker<List<LabelWorkflowService.PrinterOption>, Void> worker = new SwingWorker<>() {
             @Override
             protected List<LabelWorkflowService.PrinterOption> doInBackground() throws Exception {
@@ -330,11 +323,10 @@ public final class RailLabelsDialog extends JDialog {
                     if (outcome.shouldSelectFirst()) {
                         printerCombo.setSelectedIndex(0);
                     }
-                    printerCombo.setEnabled(true);
                     syncPrintTargetUi();
-                    setReady(outcome.readyMessage());
+                    applyUiState(uiStateSupport.printersReady(outcome.readyMessage()));
                 } catch (Exception ex) {
-                    setReady("Failed to load rail printers.");
+                    applyUiState(uiStateSupport.printersReady("Failed to load rail printers."));
                     showError(rootMessage(ex));
                 }
             }
@@ -355,19 +347,12 @@ public final class RailLabelsDialog extends JDialog {
         return dialogSupport.resolveDefaultOutputDir(outputDirField.getText());
     }
 
-    private void setButtonsEnabled(boolean enabled) {
-        generatePdfButton.setEnabled(enabled);
-        printButton.setEnabled(enabled);
-    }
-
-    private void setBusy(String message) {
-        statusLabel.setText(message);
-        loadButton.setEnabled(false);
-    }
-
-    private void setReady(String message) {
-        statusLabel.setText(message);
-        loadButton.setEnabled(true);
+    private void applyUiState(RailDialogUiStateSupport.UiState state) {
+        statusLabel.setText(state.statusMessage());
+        loadButton.setEnabled(state.loadEnabled());
+        generatePdfButton.setEnabled(state.generateEnabled());
+        printButton.setEnabled(state.printEnabled());
+        printerCombo.setEnabled(state.printerEnabled());
     }
 
     private String rootMessage(Throwable throwable) {
