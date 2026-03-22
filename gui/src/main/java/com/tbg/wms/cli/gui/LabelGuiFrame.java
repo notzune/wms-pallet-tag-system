@@ -98,7 +98,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient LabelGuiFrameToolMenuSupport toolMenuSupport = new LabelGuiFrameToolMenuSupport();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
-            new QueueResumeDialogSupport(new QueueResumeDependencies(), MAX_QUEUE_ITEMS);
+            new QueueResumeDialogSupport(buildQueueResumeDependencies(), MAX_QUEUE_ITEMS);
     private final transient GuiSettingsDialogSupport settingsDialogSupport =
             new GuiSettingsDialogSupport(buildSettingsDependencies(), PREF_PRINT_TO_FILE_DIR, LabelGuiFrame.class);
     private final transient GuiUpdateFlowSupport updateFlowSupport = new GuiUpdateFlowSupport();
@@ -948,51 +948,18 @@ public final class LabelGuiFrame extends JFrame {
         }
     }
 
-    private final class QueueResumeDependencies implements QueueResumeDialogSupport.Dependencies {
-        @Override
-        public JFrame ownerFrame() {
-            return LabelGuiFrame.this;
-        }
-
-        @Override
-        public AdvancedPrintWorkflowService workflow() {
-            return advancedService;
-        }
-
-        @Override
-        public LabelPreviewFormatter previewFormatter() {
-            return previewFormatter;
-        }
-
-        @Override
-        public LabelWorkflowService.PrinterOption selectedPrinterOption() {
-            return (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        }
-
-        @Override
-        public boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
-            return LabelGuiFrame.isPrintToFileSelected(selected);
-        }
-
-        @Override
-        public void installClipboardBehavior(JTextComponent... fields) {
-            LabelGuiFrame.this.installTerminalLikeMouseClipboardBehavior(fields);
-        }
-
-        @Override
-        public void showError(String message) {
-            LabelGuiFrame.this.showError(message);
-        }
-
-        @Override
-        public String rootMessage(Throwable throwable) {
-            return LabelGuiFrame.this.rootMessage(throwable);
-        }
-
-        @Override
-        public void setReady(String message) {
-            LabelGuiFrame.this.setReady(message);
-        }
+    private QueueResumeDialogSupport.Dependencies buildQueueResumeDependencies() {
+        return new LabelGuiFrameQueueResumeDependencies(
+                this,
+                advancedService,
+                previewFormatter,
+                () -> (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem(),
+                LabelGuiFrame::isPrintToFileSelected,
+                this::installTerminalLikeMouseClipboardBehavior,
+                this::showError,
+                this::rootMessage,
+                this::setReady
+        );
     }
 
     private GuiSettingsDialogSupport.Dependencies buildSettingsDependencies() {
