@@ -10,6 +10,7 @@ final class LabelGuiFrameToolMenuActions implements LabelGuiFrameToolMenuSupport
     private final Runnable openRailLabelsDialog;
     private final Runnable openQueueDialog;
     private final Runnable openBarcodeDialog;
+    private final Runnable openZplPreviewDialog;
     private final Runnable openResumeDialog;
     private final Runnable openSettingsDialog;
 
@@ -17,12 +18,14 @@ final class LabelGuiFrameToolMenuActions implements LabelGuiFrameToolMenuSupport
             Runnable openRailLabelsDialog,
             Runnable openQueueDialog,
             Runnable openBarcodeDialog,
+            Runnable openZplPreviewDialog,
             Runnable openResumeDialog,
             Runnable openSettingsDialog
     ) {
         this.openRailLabelsDialog = Objects.requireNonNull(openRailLabelsDialog, "openRailLabelsDialog cannot be null");
         this.openQueueDialog = Objects.requireNonNull(openQueueDialog, "openQueueDialog cannot be null");
         this.openBarcodeDialog = Objects.requireNonNull(openBarcodeDialog, "openBarcodeDialog cannot be null");
+        this.openZplPreviewDialog = Objects.requireNonNull(openZplPreviewDialog, "openZplPreviewDialog cannot be null");
         this.openResumeDialog = Objects.requireNonNull(openResumeDialog, "openResumeDialog cannot be null");
         this.openSettingsDialog = Objects.requireNonNull(openSettingsDialog, "openSettingsDialog cannot be null");
     }
@@ -40,6 +43,11 @@ final class LabelGuiFrameToolMenuActions implements LabelGuiFrameToolMenuSupport
     @Override
     public void openBarcodeDialog() {
         openBarcodeDialog.run();
+    }
+
+    @Override
+    public void openZplPreviewDialog() {
+        openZplPreviewDialog.run();
     }
 
     @Override

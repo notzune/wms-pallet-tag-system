@@ -39,6 +39,7 @@ final class BarcodeDialogFactory {
     private final Dependencies dependencies;
     private final BarcodeDialogExecutionSupport executionSupport;
     private final BarcodeDialogFormSupport formSupport = new BarcodeDialogFormSupport();
+    private final UtilityKeyboardPalette utilityKeyboardPalette;
 
     BarcodeDialogFactory(Dependencies dependencies) {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies cannot be null");
@@ -47,6 +48,7 @@ final class BarcodeDialogFactory {
                 OUTPUT_TS,
                 MAX_SLUG_LENGTH
         );
+        this.utilityKeyboardPalette = new UtilityKeyboardPalette(dependencies::showError);
     }
 
     private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
@@ -116,14 +118,18 @@ final class BarcodeDialogFactory {
         printerSelect.addActionListener(e -> syncOutputState.run());
         syncOutputState.run();
 
+        JButton keyboardButton = new JButton("Utility Keyboard...");
         JButton advancedButton = new JButton("Advanced Settings...");
         JButton generateButton = new JButton("Generate");
         JButton closeButton = new JButton("Close");
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttons.add(keyboardButton);
         buttons.add(advancedButton);
         buttons.add(generateButton);
         buttons.add(closeButton);
+
+        keyboardButton.addActionListener(e -> utilityKeyboardPalette.toggle(owner));
 
         advancedButton.addActionListener(e -> openAdvancedSettingsDialog(
                 dialog,

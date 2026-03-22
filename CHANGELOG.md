@@ -9,6 +9,16 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ## [Unreleased]
 
+### Added
+
+- Added a modeless `Tools -> ZPL Preview...` utility that accepts pasted/opened ZPL and renders a live image preview with configurable label size, density, and label index.
+- Added a toggleable utility keyboard to the GUI barcode generator with function keys, edit actions, navigation keys, and common operator shortcuts for system-wide key injection.
+
+### Changed
+
+- Shared CLI output/validation formatting was tightened across `rail-print` and `barcode` so command policy is tested separately from execution paths.
+- Rail helper CSV loading, rail print CLI formatting, and barcode command validation now live behind focused helpers to reduce regression risk in future feature work.
+
 ## [1.7.5] - 2026-03-19
 
 ### Fixed

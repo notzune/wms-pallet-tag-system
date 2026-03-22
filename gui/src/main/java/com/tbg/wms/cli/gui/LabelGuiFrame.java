@@ -860,6 +860,11 @@ public final class LabelGuiFrame extends JFrame {
         barcodeDialogFactory.open(this);
     }
 
+    private void openZplPreviewDialog() {
+        ZplPreviewToolDialog dialog = new ZplPreviewToolDialog(this);
+        dialog.setVisible(true);
+    }
+
     private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildMainPrintTargetModel(boolean includeFileOption) {
         return settingsDialogSupport.buildMainPrintTargetModel(includeFileOption);
     }
@@ -901,6 +906,7 @@ public final class LabelGuiFrame extends JFrame {
                 this::openRailLabelsDialog,
                 this::openQueueDialog,
                 this::openBarcodeDialog,
+                this::openZplPreviewDialog,
                 this::openResumeDialog,
                 this::openSettingsDialog
         );

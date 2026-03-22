@@ -34,6 +34,7 @@ final class LabelGuiFrameToolMenuSupport {
         addMenuItem(toolsMenu, "Rail Labels...", actions::openRailLabelsDialog);
         addMenuItem(toolsMenu, "Queue Print...", actions::openQueueDialog);
         addMenuItem(toolsMenu, "Barcode Generator...", actions::openBarcodeDialog);
+        addMenuItem(toolsMenu, "ZPL Preview...", actions::openZplPreviewDialog);
         toolsMenu.addSeparator();
         addMenuItem(toolsMenu, "Resume Incomplete Job...", actions::openResumeDialog);
         addMenuItem(toolsMenu, "Settings...", actions::openSettingsDialog);
@@ -52,6 +53,8 @@ final class LabelGuiFrameToolMenuSupport {
         void openQueueDialog();
 
         void openBarcodeDialog();
+
+        void openZplPreviewDialog();
 
         void openResumeDialog();
 

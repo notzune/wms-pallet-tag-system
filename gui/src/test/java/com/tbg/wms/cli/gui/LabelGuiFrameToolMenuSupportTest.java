@@ -31,6 +31,7 @@ class LabelGuiFrameToolMenuSupportTest {
                 "Rail Labels...",
                 "Queue Print...",
                 "Barcode Generator...",
+                "ZPL Preview...",
                 "Resume Incomplete Job...",
                 "Settings..."
         ), labels);
@@ -58,6 +59,10 @@ class LabelGuiFrameToolMenuSupportTest {
 
         @Override
         public void openBarcodeDialog() {
+        }
+
+        @Override
+        public void openZplPreviewDialog() {
         }
 
         @Override

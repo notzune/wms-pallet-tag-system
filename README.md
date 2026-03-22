@@ -445,6 +445,8 @@ Workflow:
 - Preview now supports per-label subset selection, starts with all labels selected, and keeps the label-selection panel collapsed by default to reduce noise on large jobs.
 - Preview includes an `Include info tags` toggle and shows `labels + info tags = total documents` in the selection status and math summary.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
+- Barcode Generator now includes a toggleable `Utility Keyboard...` pop-out with function keys (`F1`-`F12`), Enter/Tab/Esc, clear/edit actions, and navigation keys that can be sent to the currently focused system field.
+- Use `Tools -> ZPL Preview...` to paste or open raw ZPL and render a live label preview with configurable density, label size, and label index.
 - Use `Tools -> Rail Labels...` for end-to-end rail merge generation from live WMS train data.
 - GUI printer scoping is driven by printer `capabilities` in `config/<site>/printers.yaml`.
 - Use `capabilities: [ ZPL ]` for pallet-label workflows and `capabilities: [ RAIL ]` for the rail labels tool.
