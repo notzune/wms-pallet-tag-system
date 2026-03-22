@@ -9,6 +9,7 @@ package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.labeling.LabelingSupport;
 import com.tbg.wms.core.model.Lpn;
+import com.tbg.wms.core.model.PalletMathSupport;
 import com.tbg.wms.core.model.Shipment;
 import com.tbg.wms.core.model.ShipmentSkuFootprint;
 import com.tbg.wms.core.model.WalmartSkuMapping;
@@ -38,16 +39,9 @@ final class LabelWorkflowPlanningSupport {
                 continue;
             }
 
-            int units = Math.max(0, row.getTotalUnits());
             Integer upp = row.getUnitsPerPallet();
-            int fullPallets = 0;
-            int partialPallets = 0;
-            int estimatedPallets = 0;
-            if (upp != null && upp > 0) {
-                fullPallets = units / upp;
-                partialPallets = units % upp > 0 ? 1 : 0;
-                estimatedPallets = fullPallets + partialPallets;
-            }
+            PalletMathSupport.PalletCounts counts =
+                    PalletMathSupport.calculate(row.getTotalUnits(), upp);
 
             String description = row.getItemDescription();
             if (!LabelingSupport.isHumanReadable(description)) {
@@ -60,11 +54,11 @@ final class LabelWorkflowPlanningSupport {
             mathRows.add(new LabelWorkflowService.SkuMathRow(
                     sku,
                     description == null ? "" : description,
-                    units,
+                    counts.units(),
                     upp,
-                    fullPallets,
-                    partialPallets,
-                    estimatedPallets
+                    counts.fullPallets(),
+                    counts.partialPallets(),
+                    counts.estimatedPallets()
             ));
         }
         return mathRows;
