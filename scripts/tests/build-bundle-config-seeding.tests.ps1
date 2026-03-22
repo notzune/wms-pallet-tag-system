@@ -88,6 +88,19 @@ ORACLE_PASSWORD=live_pass
     $portableEnv = Get-Content -LiteralPath (Join-Path $portableBundleDir "wms-tags.env") -Raw
     Assert-Equal -Expected $expectedEnv -Actual $portableEnv -Message "Portable bundle should seed template env"
 
+    $portableZip = Join-Path $tempRoot "portable.zip"
+    if (-not (Test-Path -LiteralPath $portableZip)) {
+        throw "Portable bundle should regenerate the canonical zip archive."
+    }
+
+    $guiWrapper = Get-Content -LiteralPath (Join-Path $portableBundleDir "wms-tags-gui.bat") -Raw
+    if ($guiWrapper -notmatch 'pushd "%APP_HOME%"') {
+        throw "Portable GUI wrapper should launch from APP_HOME."
+    }
+    if ($guiWrapper -notmatch '-Dwms\.app\.home="%APP_HOME%"') {
+        throw "Portable GUI wrapper should pass wms.app.home to the JVM fallback path."
+    }
+
     $jpackageCommand = Get-Command jpackage -ErrorAction SilentlyContinue
     if ($jpackageCommand) {
         & (Join-Path $sourceRoot "scripts\build-jpackage-bundle.ps1") `

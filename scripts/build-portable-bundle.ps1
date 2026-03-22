@@ -223,9 +223,23 @@ $manifest = [pscustomobject]@{
 }
 $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $BundleDir "bundle-manifest.json") -Encoding UTF8
 
+$bundleParent = Split-Path -Parent $BundleDir
+$bundleLeaf = Split-Path -Leaf $BundleDir
+$canonicalZip = Join-Path $bundleParent "$bundleLeaf.zip"
+if (Test-Path -LiteralPath $canonicalZip) {
+    Remove-Item -LiteralPath $canonicalZip -Force
+}
+Push-Location $bundleParent
+try {
+    Compress-Archive -LiteralPath $bundleLeaf -DestinationPath $canonicalZip -Force
+} finally {
+    Pop-Location
+}
+
 Write-Host ""
 Write-Host "Portable bundle ready."
 Write-Host "Bundle folder : $BundleDir"
+Write-Host "Bundle zip    : $canonicalZip"
 Write-Host "Jar SHA256    : $jarHash"
 Write-Host "Run CLI       : $BundleDir\run.bat"
 Write-Host "Launch GUI    : $BundleDir\wms-tags-gui.bat"

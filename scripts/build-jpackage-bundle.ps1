@@ -75,6 +75,7 @@ function Write-LauncherScript {
         '@echo off'
         'setlocal'
         'set "APP_HOME=%~dp0"'
+        'pushd "%APP_HOME%" >nul'
         ('set "APP_EXE=%APP_HOME%{0}"' -f $AppExecutableName)
         'set "JAVA_EXE=%APP_HOME%runtime\bin\java.exe"'
         'set "JAR_FILE=%APP_HOME%wms-tags.jar"'
@@ -82,18 +83,22 @@ function Write-LauncherScript {
         'if exist "%APP_EXE%" ('
         ('  "%APP_EXE%" ' + $ExtraArgs + ' %*').Trim()
         '  set EXITCODE=%ERRORLEVEL%'
+        '  popd >nul'
         '  endlocal & exit /b %EXITCODE%'
         ')'
         'if not exist "%JAVA_EXE%" ('
         '  echo ERROR: Bundled launcher not found at "%APP_EXE%" and runtime not found at "%JAVA_EXE%".'
+        '  popd >nul'
         '  exit /b 1'
         ')'
         'if not exist "%JAR_FILE%" ('
         '  echo ERROR: Jar not found at "%JAR_FILE%".'
+        '  popd >nul'
         '  exit /b 1'
         ')'
         ('"%JAVA_EXE%" -Dwms.app.home="%APP_HOME%" -jar "%JAR_FILE%" ' + $ExtraArgs + ' %*').Trim()
         'set EXITCODE=%ERRORLEVEL%'
+        'popd >nul'
         'endlocal & exit /b %EXITCODE%'
     ) -join "`r`n"
     Set-Content -LiteralPath $Path -Value $content -Encoding ASCII
@@ -202,7 +207,7 @@ Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.ps1") 
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.bat") -Destination (Join-Path $BundleDir "scripts\uninstall-wms-tags.bat") -Force
 
 Write-LauncherScript -Path (Join-Path $BundleDir "run.bat") -ExtraArgs '' -AppExecutableName "$appName.exe"
-Write-LauncherScript -Path (Join-Path $BundleDir "wms-tags-gui.bat") -ExtraArgs 'gui' -AppExecutableName "$appName.exe"
+Write-LauncherScript -Path (Join-Path $BundleDir "wms-tags-gui.bat") -ExtraArgs '' -AppExecutableName "$appName.exe"
 
 $jarPathResolved = Join-Path $BundleDir "app\wms-tags.jar"
 $jarHash = (Get-FileHash -LiteralPath $jarPathResolved -Algorithm SHA256).Hash
