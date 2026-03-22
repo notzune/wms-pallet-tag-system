@@ -57,21 +57,30 @@ final class CarrierMovePreviewSupport {
     String buildQueuePreview(AdvancedPrintWorkflowService.PreparedQueueJob queueJob) {
         Objects.requireNonNull(queueJob, "queueJob cannot be null");
         StringBuilder preview = new StringBuilder();
+        int shipmentItems = 0;
+        int carrierMoveItems = 0;
+        int carrierStops = 0;
+        int carrierShipments = 0;
         int totalLabels = 0;
         int totalInfoTags = 0;
         preview.append("Queue Items: ").append(queueJob.getItems().size()).append('\n');
         for (AdvancedPrintWorkflowService.PreparedQueueItem item : queueJob.getItems()) {
             if (item.getType() == AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE) {
+                carrierMoveItems++;
                 WorkflowPrintPlanSupport.CarrierMovePlanSummary plan =
                         WorkflowPrintPlanSupport.buildCarrierMovePlan(item.getCarrierMoveJob());
+                carrierStops += plan.getTotalStops();
+                carrierShipments += countCarrierMoveShipments(item.getCarrierMoveJob());
                 totalLabels += plan.getTotalLabels();
                 totalInfoTags += plan.getInfoTagCount();
                 preview.append(" - C:").append(item.getSourceId())
                         .append(" | stops=").append(plan.getTotalStops())
+                        .append(" | shipments=").append(countCarrierMoveShipments(item.getCarrierMoveJob()))
                         .append(" | labels=").append(plan.getTotalLabels())
                         .append(" | infoTags=").append(plan.getInfoTagCount())
                         .append('\n');
             } else {
+                shipmentItems++;
                 WorkflowPrintPlanSupport.ShipmentPlanSummary plan =
                         WorkflowPrintPlanSupport.buildShipmentPlan(
                                 item.getShipmentJob(),
@@ -87,9 +96,23 @@ final class CarrierMovePreviewSupport {
             }
         }
         preview.append('\n')
+                .append("Shipments: ").append(shipmentItems).append('\n')
+                .append("Carrier Moves: ").append(carrierMoveItems).append('\n')
+                .append("Carrier Stops: ").append(carrierStops).append('\n')
+                .append("Carrier-Move Shipments: ").append(carrierShipments).append('\n')
+                .append("Total Shipments Covered: ").append(shipmentItems + carrierShipments).append('\n')
                 .append("Total labels: ").append(totalLabels).append('\n')
-                .append("Total info tags: ").append(totalInfoTags).append('\n');
+                .append("Total info tags: ").append(totalInfoTags).append('\n')
+                .append("Total documents: ").append(totalLabels + totalInfoTags).append('\n');
         return preview.toString();
+    }
+
+    private int countCarrierMoveShipments(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
+        int total = 0;
+        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
+            total += stop.getShipmentJobs().size();
+        }
+        return total;
     }
 
     private void appendCarrierMoveMathRows(

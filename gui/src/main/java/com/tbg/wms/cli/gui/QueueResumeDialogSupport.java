@@ -35,7 +35,7 @@ final class QueueResumeDialogSupport {
         dependencies.installClipboardBehavior(inputArea);
 
         JComboBox<String> defaultType = new JComboBox<>(new String[]{"Carrier Move ID", "Shipment ID"});
-        JLabel hint = new JLabel("Use prefixes for mixed queue: C:<cmid> or S:<shipment>. One item per line.");
+        JLabel hint = new JLabel("Paste IDs separated by new lines or ';'. Prefix mixed items with C: or S: when needed.");
 
         JTextArea previewArea = new JTextArea(14, 72);
         previewArea.setEditable(false);
@@ -43,7 +43,7 @@ final class QueueResumeDialogSupport {
 
         JPanel top = new JPanel(new BorderLayout(4, 4));
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        controls.add(new JLabel("Default Type:"));
+        controls.add(new JLabel("Default Type (fallback):"));
         controls.add(defaultType);
         top.add(controls, BorderLayout.NORTH);
         top.add(new JScrollPane(inputArea), BorderLayout.CENTER);

@@ -15,6 +15,7 @@ import java.util.Objects;
  * Parses queue dialog input into strongly-typed queue request items.
  */
 final class QueueInputParser {
+    private static final String SHIPMENT_ID_PREFIX = "800";
 
     private QueueInputParser() {
     }
@@ -43,7 +44,7 @@ final class QueueInputParser {
         int lineStart = 0;
         for (int i = 0; i < payload.length(); i++) {
             char ch = payload.charAt(i);
-            if (ch == '\n' || ch == '\r') {
+            if (ch == '\n' || ch == '\r' || ch == ';') {
                 appendLine(payload.substring(lineStart, i), defaultType, maxItems, requests);
                 if (ch == '\r' && i + 1 < payload.length() && payload.charAt(i + 1) == '\n') {
                     i++;
@@ -78,6 +79,8 @@ final class QueueInputParser {
                 type = AdvancedPrintWorkflowService.QueueItemType.SHIPMENT;
                 id = line.substring(2).trim();
             }
+        } else {
+            type = classifyUnprefixedId(line, defaultType);
         }
         if (!id.isBlank()) {
             if (requests.size() >= maxItems) {
@@ -85,5 +88,46 @@ final class QueueInputParser {
             }
             requests.add(new AdvancedPrintWorkflowService.QueueRequestItem(type, id));
         }
+    }
+
+    private static AdvancedPrintWorkflowService.QueueItemType classifyUnprefixedId(
+            String id,
+            AdvancedPrintWorkflowService.QueueItemType defaultType
+    ) {
+        if (looksLikeShipmentId(id)) {
+            return AdvancedPrintWorkflowService.QueueItemType.SHIPMENT;
+        }
+        if (looksLikeCarrierMoveId(id)) {
+            return AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE;
+        }
+        return defaultType;
+    }
+
+    private static boolean looksLikeShipmentId(String id) {
+        if (id.length() < 4 || !id.startsWith(SHIPMENT_ID_PREFIX)) {
+            return false;
+        }
+        for (int i = 0; i < id.length(); i++) {
+            if (!Character.isDigit(id.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean looksLikeCarrierMoveId(String id) {
+        boolean hasLetter = false;
+        boolean hasDigit = false;
+        for (int i = 0; i < id.length(); i++) {
+            char ch = id.charAt(i);
+            if (Character.isLetter(ch)) {
+                hasLetter = true;
+            } else if (Character.isDigit(ch)) {
+                hasDigit = true;
+            } else {
+                return false;
+            }
+        }
+        return hasLetter && hasDigit;
     }
 }

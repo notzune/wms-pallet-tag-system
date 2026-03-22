@@ -59,7 +59,13 @@ class CarrierMovePreviewSupportTest {
         String preview = support.buildQueuePreview(queueJob);
 
         assertTrue(preview.contains("Queue Items: 2"));
+        assertTrue(preview.contains("Shipments: 1"));
+        assertTrue(preview.contains("Carrier Moves: 1"));
+        assertTrue(preview.contains("Carrier Stops: 1"));
+        assertTrue(preview.contains("Carrier-Move Shipments: 1"));
+        assertTrue(preview.contains("Total Shipments Covered: 2"));
         assertTrue(preview.contains(" - S:S1 | labels=1"));
-        assertTrue(preview.contains(" - C:CM1 | stops=1"));
+        assertTrue(preview.contains(" - C:CM1 | stops=1 | shipments=1"));
+        assertTrue(preview.contains("Total documents: 5"));
     }
 }
