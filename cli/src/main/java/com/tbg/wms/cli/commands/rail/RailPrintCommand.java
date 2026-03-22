@@ -32,13 +32,19 @@ public final class RailPrintCommand implements Callable<Integer> {
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final BufferedReader CONSOLE_IN = new BufferedReader(new InputStreamReader(System.in));
     private final SystemDefaultPrinterValidator systemDefaultPrinterValidator;
+    private final RailPrintCliSupport cliSupport;
 
     public RailPrintCommand() {
-        this(() -> new RailPrintService().validateSystemDefaultPrinter());
+        this(() -> new RailPrintService().validateSystemDefaultPrinter(), new RailPrintCliSupport());
     }
 
     RailPrintCommand(SystemDefaultPrinterValidator systemDefaultPrinterValidator) {
+        this(systemDefaultPrinterValidator, new RailPrintCliSupport());
+    }
+
+    RailPrintCommand(SystemDefaultPrinterValidator systemDefaultPrinterValidator, RailPrintCliSupport cliSupport) {
         this.systemDefaultPrinterValidator = systemDefaultPrinterValidator;
+        this.cliSupport = cliSupport;
     }
 
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help message and exit")
@@ -71,11 +77,13 @@ public final class RailPrintCommand implements Callable<Integer> {
      */
     @Override
     public Integer call() throws Exception {
+        String optionError = cliSupport.validateOptions(validateSystemDefaultPrint, template, trainId, print);
+        if (optionError != null) {
+            System.err.println(optionError);
+            return 2;
+        }
+
         if (validateSystemDefaultPrint) {
-            if (template || (trainId != null && !trainId.isBlank()) || print) {
-                System.err.println("Error: --validate-system-default-print cannot be combined with train/template print options.");
-                return 2;
-            }
             System.out.println(systemDefaultPrinterValidator.validate());
             return 0;
         }
@@ -85,13 +93,9 @@ public final class RailPrintCommand implements Callable<Integer> {
         if (template) {
             Files.createDirectories(outputDir);
             Path templatePdf = outputDir.resolve("rail-label-alignment-template-" + TS.format(LocalDateTime.now()) + ".pdf");
-            railRenderer(config).renderAlignmentTemplate(templatePdf);
+            cliSupport.railRenderer(config).renderAlignmentTemplate(templatePdf);
             System.out.println("Alignment template generated: " + templatePdf.toAbsolutePath());
             return 0;
-        }
-        if (trainId == null || trainId.isBlank()) {
-            System.err.println("Error: --train is required unless --template is used.");
-            return 2;
         }
 
         RailWorkflowService.RailWorkflowResult result;
@@ -102,7 +106,7 @@ public final class RailPrintCommand implements Callable<Integer> {
             result = workflowService.prepare(trainId);
         }
 
-        printPreview(result);
+        System.out.print(cliSupport.buildPreviewText(result));
 
         if (!yes && !confirm("Continue and generate rail cards PDF? [y/N]: ")) {
             System.out.println("Cancelled.");
@@ -113,7 +117,7 @@ public final class RailPrintCommand implements Callable<Integer> {
         String fileName = "rail-cards-" + result.getTrainId() + "-" + TS.format(LocalDateTime.now()) + ".pdf";
         Path pdfPath = outputDir.resolve(fileName);
 
-        RailCardRenderer renderer = railRenderer(config);
+        RailCardRenderer renderer = cliSupport.railRenderer(config);
         renderer.renderPdf(result.getCards(), pdfPath);
         System.out.println("PDF generated: " + pdfPath.toAbsolutePath());
 
@@ -128,29 +132,6 @@ public final class RailPrintCommand implements Callable<Integer> {
         return 0;
     }
 
-    private void printPreview(RailWorkflowService.RailWorkflowResult result) {
-        List<RailCarCard> cards = result.getCards();
-        System.out.println();
-        System.out.println("SEQ   VEHICLE      CAN   DOM   KEV");
-        for (RailCarCard card : cards) {
-            System.out.printf("%-5s %-12s %4d %4d %4d%n",
-                    card.getSequence(),
-                    card.getVehicleId(),
-                    card.getCanPallets(),
-                    card.getDomPallets(),
-                    card.getKevPallets());
-        }
-        System.out.println();
-        System.out.println("Railcars: " + cards.size());
-        System.out.println("WMS rows: " + result.getRawRows().size());
-        System.out.println("Resolved footprints: " + result.getResolvedFootprints().size());
-        System.out.println("Unresolved short codes: " + result.getUnresolvedShortCodes().size());
-        if (!result.getMissingItemsInCards().isEmpty()) {
-            System.out.println("Missing in card math: " + String.join(", ", result.getMissingItemsInCards()));
-        }
-        System.out.println();
-    }
-
     private boolean confirm(String prompt) {
         System.out.print(prompt);
         try {
@@ -163,14 +144,6 @@ public final class RailPrintCommand implements Callable<Integer> {
         } catch (Exception ex) {
             return false;
         }
-    }
-
-    private RailCardRenderer railRenderer(AppConfig config) {
-        return new RailCardRenderer(
-                (float) config.railLabelCenterGapInches(),
-                (float) config.railLabelOffsetXInches(),
-                (float) config.railLabelOffsetYInches()
-        );
     }
 
     @FunctionalInterface
