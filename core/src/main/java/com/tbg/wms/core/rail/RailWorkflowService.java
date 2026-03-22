@@ -12,29 +12,25 @@ import java.util.*;
 public final class RailWorkflowService {
     private final RailDbRepository repository;
     private final RailAggregationService aggregationService;
-    private final RailPalletCalculator palletCalculator;
-    private final RailLabelPlanner labelPlanner;
+    private final RailCardPlanningSupport cardPlanningSupport;
     private final RailFootprintResolver footprintResolver;
 
     public RailWorkflowService(RailDbRepository repository) {
         this(
                 repository,
                 new RailAggregationService(),
-                new RailPalletCalculator(),
-                new RailLabelPlanner(),
+                new RailCardPlanningSupport(),
                 new RailFootprintResolver()
         );
     }
 
     RailWorkflowService(RailDbRepository repository,
                         RailAggregationService aggregationService,
-                        RailPalletCalculator palletCalculator,
-                        RailLabelPlanner labelPlanner,
+                        RailCardPlanningSupport cardPlanningSupport,
                         RailFootprintResolver footprintResolver) {
         this.repository = Objects.requireNonNull(repository, "repository cannot be null");
         this.aggregationService = Objects.requireNonNull(aggregationService, "aggregationService cannot be null");
-        this.palletCalculator = Objects.requireNonNull(palletCalculator, "palletCalculator cannot be null");
-        this.labelPlanner = Objects.requireNonNull(labelPlanner, "labelPlanner cannot be null");
+        this.cardPlanningSupport = Objects.requireNonNull(cardPlanningSupport, "cardPlanningSupport cannot be null");
         this.footprintResolver = Objects.requireNonNull(footprintResolver, "footprintResolver cannot be null");
     }
 
@@ -82,24 +78,9 @@ public final class RailWorkflowService {
                                   RailCarAggregate aggregate,
                                   Map<String, RailFamilyFootprint> footprints,
                                   Set<String> missingFromPlanner) {
-        RailPalletCalculator.RailPalletResult palletResult = palletCalculator.calculate(aggregate, footprints);
-        missingFromPlanner.addAll(palletResult.getMissingItems());
+        RailCardPlanningSupport.RailCardPlan cardPlan = cardPlanningSupport.plan(aggregate, footprints);
+        missingFromPlanner.addAll(cardPlan.missingItems());
         List<RailStopRecord.ItemQuantity> sortedItems = aggregate.getSortedItemsByCasesDesc();
-
-        RailStopRecord flattened = new RailStopRecord(
-                aggregate.getDate(),
-                aggregate.getSequence(),
-                aggregate.getTrainNumber(),
-                aggregate.getVehicleId(),
-                aggregate.getWarehouse(),
-                aggregate.getLoadNumberDisplay(),
-                sortedItems
-        );
-        RailLabelPlanner.PlannedRailLabel planned = labelPlanner.planOne(flattened, footprints);
-        List<String> families = new ArrayList<>(planned.getTopFamilies().size());
-        for (RailLabelPlanner.FamilyShare family : planned.getTopFamilies()) {
-            families.add(family.getFamilyCode() + ":" + family.getPercent());
-        }
 
         return new RailCarCard(
                 trainId,
@@ -107,11 +88,11 @@ public final class RailWorkflowService {
                 aggregate.getVehicleId(),
                 aggregate.getLoadNumberDisplay(),
                 sortedItems,
-                palletResult.getCanPallets(),
-                palletResult.getDomPallets(),
-                palletResult.getKevPallets(),
-                families,
-                palletResult.getMissingItems()
+                cardPlan.canPallets(),
+                cardPlan.domPallets(),
+                cardPlan.kevPallets(),
+                cardPlan.topFamilies(),
+                cardPlan.missingItems()
         );
     }
 
