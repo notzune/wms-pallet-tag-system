@@ -1,6 +1,7 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.print.PrinterConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -56,5 +57,35 @@ class LabelWorkflowServiceTest {
                 printers.stream().map(LabelWorkflowService.PrinterOption::getId).collect(Collectors.toList()));
         assertTrue(printers.stream().anyMatch(option -> option.toString().contains("Office_Test")));
         assertTrue(printers.stream().noneMatch(option -> option.getId().equals("ORDER_PICK")));
+    }
+
+    @Test
+    void resolvePrinter_shouldReturnNullForBlankIdAndConfiguredPrinterForKnownId(@TempDir Path tempDir) throws Exception {
+        Path siteDir = Files.createDirectories(tempDir.resolve("TBG3002"));
+
+        Files.writeString(siteDir.resolve("printers.yaml"), String.join("\n",
+                "version: 1",
+                "siteCode: TBG3002",
+                "printers:",
+                "  - id: OFFICE",
+                "    name: Office_Test",
+                "    ip: 10.19.64.106",
+                "    port: 9100",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        Files.writeString(siteDir.resolve("printer-routing.yaml"), String.join("\n",
+                "version: 1",
+                "siteCode: TBG3002",
+                "defaultPrinterId: OFFICE",
+                "rules: []",
+                ""
+        ), StandardCharsets.UTF_8);
+
+        LabelWorkflowService service = new LabelWorkflowService(new AppConfig(), tempDir);
+
+        assertEquals(null, service.resolvePrinter("   "));
+        PrinterConfig printer = service.resolvePrinter("OFFICE");
+        assertEquals("OFFICE", printer.getId());
     }
 }

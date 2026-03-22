@@ -40,6 +40,7 @@ public final class LabelWorkflowService {
     private final LabelWorkflowAssetSupport assetSupport;
     private final LabelWorkflowPlanningSupport planningSupport = new LabelWorkflowPlanningSupport();
     private final LabelWorkflowPrintSupport printSupport = new LabelWorkflowPrintSupport();
+    private final LabelWorkflowRoutingSupport routingSupport = new LabelWorkflowRoutingSupport();
 
     public LabelWorkflowService(AppConfig config) {
         this(config, RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(LabelWorkflowService.class, "config"));
@@ -58,20 +59,7 @@ public final class LabelWorkflowService {
      */
     public List<PrinterOption> loadPrinters() throws Exception {
         String siteCode = config.activeSiteCode();
-        PrinterRoutingService routing = assetSupport.loadRouting(siteCode);
-        List<PrinterOption> options = new ArrayList<>();
-        for (PrinterConfig printer : routing.getPrinters().values()) {
-            if (printer.isEnabled()) {
-                options.add(new PrinterOption(
-                        printer.getId(),
-                        printer.getName(),
-                        printer.getEndpoint(),
-                        printer.getCapabilities()
-                ));
-            }
-        }
-        options.sort(Comparator.comparing(PrinterOption::getId));
-        return options;
+        return routingSupport.loadPrinters(siteCode, assetSupport);
     }
 
     public void clearCaches() {
@@ -82,11 +70,8 @@ public final class LabelWorkflowService {
      * Resolves a printer config by ID using cached routing data.
      */
     public PrinterConfig resolvePrinter(String printerId) throws Exception {
-        if (printerId == null || printerId.isBlank()) {
-            return null;
-        }
         String siteCode = config.activeSiteCode();
-        return assetSupport.resolvePrinter(siteCode, printerId);
+        return routingSupport.resolvePrinter(siteCode, printerId, assetSupport);
     }
 
     /**
