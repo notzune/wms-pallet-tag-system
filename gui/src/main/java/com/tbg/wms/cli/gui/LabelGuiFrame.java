@@ -74,6 +74,8 @@ public final class LabelGuiFrame extends JFrame {
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
     private final JLabel labelSelectionStatusLabel = new JLabel(" ");
+    private final JLabel dbStatusLedLabel = new JLabel();
+    private final JLabel dbStatusLabel = new JLabel();
     private final JLabel versionLabel = new JLabel();
     private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
@@ -104,6 +106,7 @@ public final class LabelGuiFrame extends JFrame {
             new GuiSettingsDialogSupport(buildSettingsDependencies(), PREF_PRINT_TO_FILE_DIR, LabelGuiFrame.class);
     private final transient GuiUpdateFlowSupport updateFlowSupport = new GuiUpdateFlowSupport();
     private final transient GuiUpdateExecutionSupport updateExecutionSupport = new GuiUpdateExecutionSupport(updateFlowSupport);
+    private final transient GuiDbStatusSupport dbStatusSupport = new GuiDbStatusSupport();
     private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
     private final transient InstallMaintenanceService installMaintenanceService = new InstallMaintenanceService();
     private final transient GuidedUpdateService guidedUpdateService = new GuidedUpdateService();
@@ -140,6 +143,7 @@ public final class LabelGuiFrame extends JFrame {
         loadPrintersAsync();
         new OutDirectoryRetentionService().pruneDefaultOutDirectory(LabelGuiFrame.class);
         checkForUpdatesAsync(false);
+        refreshDbStatusAsync();
         printButton.setEnabled(false);
     }
 
@@ -254,9 +258,21 @@ public final class LabelGuiFrame extends JFrame {
     private JComponent buildBottomPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 6, 8));
+        dbStatusLabel.setFont(dbStatusLabel.getFont().deriveFont(dbStatusLabel.getFont().getSize2D() - 1f));
+        versionLabel.setFont(versionLabel.getFont().deriveFont(versionLabel.getFont().getSize2D() - 1f));
+        JPanel dbPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        dbPanel.setOpaque(false);
+        dbStatusLedLabel.setVerticalAlignment(SwingConstants.CENTER);
+        dbPanel.add(dbStatusLedLabel);
+        dbPanel.add(dbStatusLabel);
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        rightPanel.setOpaque(false);
+        rightPanel.add(dbPanel);
         versionLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 6, 12));
+        rightPanel.add(versionLabel);
         panel.add(statusLabel, BorderLayout.CENTER);
-        panel.add(versionLabel, BorderLayout.EAST);
+        panel.add(rightPanel, BorderLayout.EAST);
+        applyDbStatus(dbStatusSupport.checking(config.oracleService()));
         return panel;
     }
 
@@ -350,8 +366,10 @@ public final class LabelGuiFrame extends JFrame {
                         preparedJob = prepared.shipmentJob();
                         renderPreview(preparedJob);
                     }
+                    applyDbStatus(dbStatusSupport.connected(config.oracleService()));
                     setReady(previewExecutionSupport.buildSuccessOutcome().statusMessage());
                 } catch (Exception ex) {
+                    dbStatusSupport.failure(config.oracleService(), ex).ifPresent(LabelGuiFrame.this::applyDbStatus);
                     GuiPreviewExecutionSupport.FailureOutcome outcome = previewExecutionSupport.buildFailureOutcome(ex);
                     setReady(outcome.statusMessage());
                     showError(outcome.errorMessage());
@@ -565,6 +583,7 @@ public final class LabelGuiFrame extends JFrame {
                 clearButton.setEnabled(true);
                 try {
                     AdvancedPrintWorkflowService.PrintResult result = get();
+                    applyDbStatus(dbStatusSupport.connected(config.oracleService()));
                     GuiPrintExecutionSupport.CompletionOutcome outcome = printExecutionSupport.buildCompletionOutcome(result);
                     setReady(outcome.statusMessage());
                     JOptionPane.showMessageDialog(
@@ -574,6 +593,7 @@ public final class LabelGuiFrame extends JFrame {
                             JOptionPane.INFORMATION_MESSAGE
                     );
                 } catch (Exception ex) {
+                    dbStatusSupport.failure(config.oracleService(), ex).ifPresent(LabelGuiFrame.this::applyDbStatus);
                     GuiPrintExecutionSupport.FailureOutcome outcome = printExecutionSupport.buildFailureOutcome(ex);
                     setReady(outcome.statusMessage());
                     showError(outcome.errorMessage());
@@ -581,6 +601,37 @@ public final class LabelGuiFrame extends JFrame {
             }
         };
         worker.execute();
+    }
+
+    private void refreshDbStatusAsync() {
+        applyDbStatus(dbStatusSupport.checking(config.oracleService()));
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try (com.tbg.wms.db.DbConnectionPool pool = new com.tbg.wms.db.DbConnectionPool(config)) {
+                    pool.testConnectivity();
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    applyDbStatus(dbStatusSupport.connected(config.oracleService()));
+                } catch (Exception ex) {
+                    dbStatusSupport.failure(config.oracleService(), ex).ifPresent(LabelGuiFrame.this::applyDbStatus);
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void applyDbStatus(GuiDbStatusSupport.StatusState state) {
+        dbStatusLedLabel.setIcon(state.icon());
+        dbStatusLedLabel.setToolTipText(state.tooltip());
+        dbStatusLabel.setText(state.text());
+        dbStatusLabel.setToolTipText(state.tooltip());
     }
 
     private void setBusy(String message) {
