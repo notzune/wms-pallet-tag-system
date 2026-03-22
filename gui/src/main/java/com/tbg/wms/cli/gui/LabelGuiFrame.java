@@ -93,6 +93,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient GuiPrintExecutionSupport printExecutionSupport = new GuiPrintExecutionSupport(printFlowSupport);
     private final transient GuiPrinterSelectionSupport printerSelectionSupport = new GuiPrinterSelectionSupport();
     private final transient GuiPreviewSelectionUiSupport previewSelectionUiSupport = new GuiPreviewSelectionUiSupport();
+    private final transient LabelGuiFramePreviewShellSupport previewShellSupport = new LabelGuiFramePreviewShellSupport();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
             new QueueResumeDialogSupport(new QueueResumeDependencies(), MAX_QUEUE_ITEMS);
@@ -798,33 +799,32 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void clearForm() {
-        shipmentField.setText("");
-        shipmentArea.setText("");
         resetPreviewLabelSelection();
-        shipmentPreviewPanel.removeAll();
-        shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.revalidate();
-        shipmentPreviewPanel.repaint();
-        mathArea.setText("");
         preparedJob = null;
         preparedCarrierJob = null;
-        printButton.setEnabled(false);
-        shipmentField.requestFocusInWindow();
-        setReady("Cleared. Enter the next " + (isCarrierMoveMode() ? "Carrier Move ID." : "Shipment ID."));
+        previewShellSupport.applyClearedState(
+                shipmentField,
+                shipmentPreviewPanel,
+                shipmentArea,
+                mathArea,
+                printButton,
+                isCarrierMoveMode(),
+                this::setReady
+        );
     }
 
     private void updateInputModeUi() {
-        inputLabel.setText(isCarrierMoveMode() ? "Carrier Move ID:" : "Shipment ID:");
         preparedJob = null;
         preparedCarrierJob = null;
         resetPreviewLabelSelection();
-        shipmentArea.setText("");
-        shipmentPreviewPanel.removeAll();
-        shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.revalidate();
-        shipmentPreviewPanel.repaint();
-        mathArea.setText("");
-        printButton.setEnabled(false);
+        previewShellSupport.applyInputModeUi(
+                inputLabel,
+                isCarrierMoveMode(),
+                shipmentPreviewPanel,
+                shipmentArea,
+                mathArea,
+                printButton
+        );
     }
 
     private boolean isCarrierMoveMode() {
