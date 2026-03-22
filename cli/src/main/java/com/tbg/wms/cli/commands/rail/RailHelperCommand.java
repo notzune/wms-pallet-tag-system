@@ -46,6 +46,7 @@ public final class RailHelperCommand implements Callable<Integer> {
     @Option(names = {"--train-id"}, description = "Optional train ID filter")
     private String trainIdFilter;
     private final RailHelperDataSupport dataSupport = new RailHelperDataSupport();
+    private final RailHelperOutputSupport outputSupport = new RailHelperOutputSupport();
 
     /**
      * Builds merge-ready rail output from input and footprint CSVs.
@@ -77,20 +78,17 @@ public final class RailHelperCommand implements Callable<Integer> {
         Path trainDetailCsv = outputDir.resolve("_TrainDetail.csv");
         new RailTrainDetailExporter().exportTrainDetailCsv(plannedRows, trainDetailCsv);
         Path summary = outputDir.resolve("rail-helper-summary.txt");
-        Files.writeString(summary, buildSummary(plannedRows, footprintByItem.size()));
+        Files.writeString(summary, outputSupport.buildSummary(plannedRows, footprintByItem.size()));
 
+        Path copiedTemplate = null;
         if (templateDocx != null) {
-            Path copied = outputDir.resolve(templateDocx.getFileName());
-            Files.copy(templateDocx, copied, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            copiedTemplate = outputDir.resolve(templateDocx.getFileName());
+            Files.copy(templateDocx, copiedTemplate, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         }
 
-        System.out.println("Rail helper output generated:");
-        System.out.println(" - Merge CSV: " + trainDetailCsv.toAbsolutePath());
-        System.out.println(" - Summary: " + summary.toAbsolutePath());
-        if (templateDocx != null) {
-            System.out.println(" - Copied template: " + outputDir.resolve(templateDocx.getFileName()).toAbsolutePath());
+        for (String line : outputSupport.buildSuccessLines(trainDetailCsv, summary, copiedTemplate)) {
+            System.out.println(line);
         }
-        System.out.println("Word template merge fields expected: DATE, SEQ, TRAIN_NBR, VEHICLE_ID, DCS_WHSE, LOAD_NBR, ITEM_NBR_1..13, TOTAL_CS_ITM_1..13, Item_1..3");
         return 0;
     }
 
@@ -100,37 +98,4 @@ public final class RailHelperCommand implements Callable<Integer> {
             throw new IllegalArgumentException("Invalid " + optionName + ": " + path);
         }
     }
-
-    private String buildSummary(List<RailLabelPlanner.PlannedRailLabel> plannedRows, int footprintCount) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Rail Helper Summary\n");
-        sb.append("===================\n");
-        sb.append("Rows exported: ").append(plannedRows.size()).append('\n');
-        sb.append("Footprint items loaded: ").append(footprintCount).append('\n');
-
-        int totalMissingRows = 0;
-        int totalOverflowRows = 0;
-        TreeSet<String> missingItems = new TreeSet<>();
-        for (RailLabelPlanner.PlannedRailLabel row : plannedRows) {
-            if (!row.getMissingFootprintItems().isEmpty()) {
-                totalMissingRows++;
-                missingItems.addAll(row.getMissingFootprintItems());
-            }
-            if (!row.getOverflowItems().isEmpty()) {
-                totalOverflowRows++;
-            }
-        }
-
-        sb.append("Rows with missing footprint: ").append(totalMissingRows).append('\n');
-        sb.append("Rows exceeding item slot limit: ").append(totalOverflowRows).append('\n');
-        if (!missingItems.isEmpty()) {
-            sb.append("Missing items: ").append(String.join(", ", missingItems)).append('\n');
-        }
-
-        sb.append('\n');
-        sb.append("Template merge fields used:\n");
-        sb.append("DATE, SEQ, TRAIN_NBR, VEHICLE_ID, DCS_WHSE, LOAD_NBR, ITEM_NBR_1..13, TOTAL_CS_ITM_1..13, Item_1..3\n");
-        return sb.toString();
-    }
-
 }
