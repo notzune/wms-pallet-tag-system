@@ -36,6 +36,7 @@ public class BarcodeZplBuilderTest {
 
         String zpl = BarcodeZplBuilder.build(request);
         assertTrue(zpl.contains("^PON"));
+        assertTrue(zpl.contains("^FO285,489"));
         assertTrue(zpl.contains("^BCN"));
         assertTrue(zpl.contains("^FDABC123^FS"));
     }
@@ -60,6 +61,7 @@ public class BarcodeZplBuilderTest {
         String zpl = BarcodeZplBuilder.build(request);
         assertTrue(zpl.contains("^PON"));
         assertTrue(zpl.contains("^FWR"));
+        assertTrue(zpl.contains("^FO346,452"));
         assertTrue(zpl.contains("^BCR"));
     }
 
@@ -103,5 +105,26 @@ public class BarcodeZplBuilderTest {
 
         String zpl = BarcodeZplBuilder.build(request);
         assertTrue(zpl.contains("^FDA~~^B~~C^FS"));
+    }
+
+    @Test
+    public void testBuildRespectsMinimumSafeMarginsWhenCentering() {
+        BarcodeZplBuilder.BarcodeRequest request = new BarcodeZplBuilder.BarcodeRequest(
+                "A",
+                BarcodeZplBuilder.Symbology.CODE128,
+                BarcodeZplBuilder.Orientation.PORTRAIT,
+                200,
+                300,
+                80,
+                90,
+                2,
+                3,
+                80,
+                false,
+                1
+        );
+
+        String zpl = BarcodeZplBuilder.build(request);
+        assertTrue(zpl.contains("^FO80,90"));
     }
 }
