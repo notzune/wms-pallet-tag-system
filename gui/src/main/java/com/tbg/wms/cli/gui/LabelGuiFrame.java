@@ -92,6 +92,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient GuiPrintFlowSupport printFlowSupport = new GuiPrintFlowSupport();
     private final transient GuiPrintExecutionSupport printExecutionSupport = new GuiPrintExecutionSupport(printFlowSupport);
     private final transient GuiPrinterSelectionSupport printerSelectionSupport = new GuiPrinterSelectionSupport();
+    private final transient FramePrinterSelectionSupport framePrinterSelectionSupport = new FramePrinterSelectionSupport();
     private final transient GuiPreviewSelectionUiSupport previewSelectionUiSupport = new GuiPreviewSelectionUiSupport();
     private final transient LabelGuiFramePreviewShellSupport previewShellSupport = new LabelGuiFramePreviewShellSupport();
     private final transient LabelGuiFrameToolMenuSupport toolMenuSupport = new LabelGuiFrameToolMenuSupport();
@@ -290,7 +291,10 @@ public final class LabelGuiFrame extends JFrame {
                     int printerCount = printers.size();
                     printerCombo.setModel(model);
                     applyTopRowSizing();
-                    int selectionIndex = printerSelectionSupport.resolveSelectionIndex(null, comboItems(model));
+                    int selectionIndex = printerSelectionSupport.resolveSelectionIndex(
+                            null,
+                            framePrinterSelectionSupport.comboItems(model)
+                    );
                     if (selectionIndex >= 0) {
                         printerCombo.setSelectedIndex(selectionIndex);
                     }
@@ -873,18 +877,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void restoreSelection(LabelWorkflowService.PrinterOption previousSelection) {
-        int selectionIndex = printerSelectionSupport.resolveSelectionIndex(previousSelection, comboItems(printerCombo.getModel()));
-        if (selectionIndex >= 0) {
-            printerCombo.setSelectedIndex(selectionIndex);
-        }
-    }
-
-    private List<LabelWorkflowService.PrinterOption> comboItems(ComboBoxModel<LabelWorkflowService.PrinterOption> model) {
-        List<LabelWorkflowService.PrinterOption> items = new ArrayList<>(model.getSize());
-        for (int i = 0; i < model.getSize(); i++) {
-            items.add(model.getElementAt(i));
-        }
-        return items;
+        framePrinterSelectionSupport.restoreSelection(printerCombo, previousSelection, printerSelectionSupport);
     }
 
     private void installTerminalLikeMouseClipboardBehavior(JTextComponent... fields) {
