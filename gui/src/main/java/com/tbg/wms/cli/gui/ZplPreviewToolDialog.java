@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.gui;
 
 import javax.swing.*;
@@ -12,6 +19,9 @@ import java.nio.file.Path;
 
 /**
  * Live ZPL preview tool using a real rendered image.
+ *
+ * <p>The dialog intentionally separates live-edit debounce/throttle behavior from remote render
+ * transport so the preview remains operator-friendly without overrunning the external render API.</p>
  */
 final class ZplPreviewToolDialog extends JDialog {
     private static final long serialVersionUID = 1L;

@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.gui;
 
 import javax.swing.ComboBoxModel;
@@ -8,6 +15,9 @@ import java.util.Objects;
 
 /**
  * Small frame-shell helpers for printer combo models and selection restoration.
+ *
+ * <p>This helper exists so combo-box selection preservation stays consistent when printer models
+ * are rebuilt after preview mode or routing changes.</p>
  */
 final class FramePrinterSelectionSupport {
 

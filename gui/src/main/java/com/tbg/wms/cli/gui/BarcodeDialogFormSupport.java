@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.BarcodeRequest;
@@ -13,6 +20,9 @@ import java.util.Objects;
 
 /**
  * Form-state helpers for the barcode dialog.
+ *
+ * <p>This helper keeps widget-to-request mapping separate from dialog event wiring so barcode
+ * field changes remain easier to test and safer to evolve.</p>
  */
 final class BarcodeDialogFormSupport {
 
