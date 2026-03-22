@@ -20,7 +20,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Manages the Oracle database connection pool using HikariCP.
@@ -56,6 +55,7 @@ public final class DbConnectionPool implements AutoCloseable {
     private final AppConfig config;
     private final HikariDataSource dataSource;
     private final String activeJdbcUrl;
+    private final DbConnectivityErrorSupport errorSupport;
 
     /**
      * Creates a new connection pool with the given configuration.
@@ -68,6 +68,7 @@ public final class DbConnectionPool implements AutoCloseable {
      */
     public DbConnectionPool(AppConfig config) {
         this.config = config;
+        this.errorSupport = new DbConnectivityErrorSupport();
         List<String> errors = new ArrayList<>();
 
         HikariDataSource selectedDataSource = null;
@@ -85,9 +86,9 @@ public final class DbConnectionPool implements AutoCloseable {
                 selectedJdbcUrl = jdbcUrlCandidate;
                 break;
             } catch (Exception e) {
-                errors.add(summarizeAttemptFailure(jdbcUrlCandidate, e));
+                errors.add(errorSupport.summarizeAttemptFailure(jdbcUrlCandidate, e));
                 log.warn("Database connection attempt failed for JDBC URL candidate: {}", jdbcUrlCandidate);
-                if (isAuthenticationFailure(e)) {
+                if (errorSupport.isAuthenticationFailure(e)) {
                     // Prevent account lockout amplification by stopping URL fallbacks on auth failures.
                     break;
                 }
@@ -145,32 +146,6 @@ public final class DbConnectionPool implements AutoCloseable {
         return new HikariDataSource(hc);
     }
 
-    private String summarizeAttemptFailure(String jdbcUrl, Exception exception) {
-        Throwable root = exception;
-        while (root.getCause() != null) {
-            root = root.getCause();
-        }
-        return jdbcUrl + " -> " + root.getClass().getSimpleName() + ": " + root.getMessage();
-    }
-
-    private boolean isAuthenticationFailure(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null) {
-            String message = current.getMessage();
-            if (message != null) {
-                String lowered = message.toLowerCase(Locale.ROOT);
-                if (lowered.contains("ora-01017")
-                        || lowered.contains("invalid username/password")
-                        || lowered.contains("ora-28000")
-                        || lowered.contains("account is locked")) {
-                    return true;
-                }
-            }
-            current = current.getCause();
-        }
-        return false;
-    }
-
     /**
      * Returns the underlying DataSource.
      *
@@ -220,7 +195,7 @@ public final class DbConnectionPool implements AutoCloseable {
             long durationMs = System.currentTimeMillis() - startMs;
             String error = e.getSQLState() + ": " + e.getMessage();
 
-            String remediation = mapSqlErrorToRemediationHint(e);
+            String remediation = errorSupport.remediationHint(e, config);
 
             log.error("Database connectivity test failed: durationMs={}, sqlState={}, message={}",
                     durationMs, e.getSQLState(), e.getMessage());
@@ -239,44 +214,6 @@ public final class DbConnectionPool implements AutoCloseable {
      * @param e the SQLException
      * @return a remediation hint string
      */
-    private String mapSqlErrorToRemediationHint(SQLException e) {
-        String sqlState = e.getSQLState();
-        String message = e.getMessage() == null ? "" : e.getMessage();
-        String lowerMessage = message.toLowerCase(Locale.ROOT);
-
-        if (sqlState == null) {
-            return "Check network connectivity, firewall, and VPN settings.";
-        }
-
-        // Oracle-specific SQL states
-        if ("17002".equals(sqlState) || lowerMessage.contains("connection refused")) {
-            return "Connection refused: check DB_HOST, ORACLE_PORT, and firewall. " +
-                    "Verify VPN is connected and database service is running.";
-        }
-        if ("17004".equals(sqlState) || lowerMessage.contains("cannot create jdbc driver")) {
-            return "Cannot load Oracle JDBC driver: check ojdbc11 is on classpath and version matches DB.";
-        }
-        if ("12514".equals(sqlState) || lowerMessage.contains("listener does not currently know")) {
-            return "Service not found: verify ORACLE_SERVICE=" + config.oracleService() + " is correct. " +
-                    "Query DB admin for available services.";
-        }
-        if (lowerMessage.contains("invalid username/password") || lowerMessage.contains("ora-01017")) {
-            return "Authentication failed: verify ORACLE_USERNAME and ORACLE_PASSWORD are correct.";
-        }
-        if (lowerMessage.contains("ora-28000") || lowerMessage.contains("account is locked")) {
-            return "Oracle account is locked (ORA-28000). " +
-                    "Avoid repeated retries, validate DSN/TNS endpoint, then ask DB admin to unlock the account.";
-        }
-        if (e.getCause() != null
-                && e.getCause().getMessage() != null
-                && e.getCause().getMessage().contains("connection timed out")) {
-            return "Connection timed out: check DB_HOST is reachable (ping), port " + config.oraclePort() +
-                    " is open, and firewall allows traffic. Increase DB_POOL_CONN_TIMEOUT_MS if needed.";
-        }
-
-        return "Check database host, port, service name, and credentials. See INSTRUCTIONS.md for troubleshooting.";
-    }
-
     /**
      * Closes the connection pool and releases all resources.
      * Should be called on application shutdown.
