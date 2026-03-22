@@ -19,13 +19,6 @@ Current release: `1.7.5` (2026-03-19).
 - Git commit messages should follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 - New release notes should be staged under `## [Unreleased]` before version cut/tagging.
 
-## Tracked Enhancements
-
-- [Issue #6: Add per-label printing from GUI preview](https://github.com/notzune/wms-pallet-tag-system/issues/6)
-- [Issue #8: Scope GUI printer menus by workflow](https://github.com/notzune/wms-pallet-tag-system/issues/8)
-- [Issue #5: Clean up GUI menu and tool options](https://github.com/notzune/wms-pallet-tag-system/issues/5)
-- [Issue #7: Add cleanup for stale files in out directory](https://github.com/notzune/wms-pallet-tag-system/issues/7)
-
 ## Current Scope
 
 Implemented and supported:
