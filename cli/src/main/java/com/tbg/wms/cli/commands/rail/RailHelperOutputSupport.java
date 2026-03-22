@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.commands.rail;
 
 import com.tbg.wms.core.rail.RailLabelPlanner;
@@ -8,6 +15,9 @@ import java.util.TreeSet;
 
 /**
  * Builds rail-helper summary text and console output lines.
+ *
+ * <p>This keeps report wording and merge-field guidance separate from CSV loading/planning so
+ * operator-facing rail-helper output can evolve without touching the data path.</p>
  */
 final class RailHelperOutputSupport {
 

@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.cli.gui.AdvancedPrintWorkflowService;
@@ -12,6 +19,9 @@ import java.util.Set;
 
 /**
  * Builds operator-facing CLI summaries for run command workflows.
+ *
+ * <p>This keeps plan/completion text deterministic and separate from command execution so output
+ * regressions can be tested without invoking live DB or printer code.</p>
  */
 final class RunCommandOutputSupport {
 

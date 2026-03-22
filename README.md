@@ -452,6 +452,8 @@ Workflow:
 - Use `capabilities: [ ZPL ]` for pallet-label workflows and `capabilities: [ RAIL ]` for the rail labels tool.
 - Barcode dialog now defaults to an operator-focused layout and moves low-level controls under `Advanced Settings...`.
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
+- Queue input accepts new lines or semicolons, ignores surrounding whitespace, and auto-detects unprefixed numeric IDs as shipment (`800...`) versus carrier move (other numeric values); explicit `S:` / `C:` prefixes still override.
+- The main window footer shows a compact Oracle status LED in the bottom-right corner (`Checking`, `Connected`, or `Not connected - ORA-xxxxx`), with the full Oracle error/remediation detail available on hover.
 - `Tools` shows an alert badge when an application update is available, and `Settings...` exposes manual update checks plus packaged-install uninstall / clean-wipe launchers.
 - If the latest release includes the packaged installer `.exe`, update checks can use a guided download-and-install path instead of only opening the release page.
 - `Settings...` also exposes `Advanced Settings...` for non-secret runtime config files under `config/`; `wms-tags.env` stays outside the GUI because it contains database/network secrets.

@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.cli.gui.LabelWorkflowService;
@@ -17,6 +24,9 @@ import java.util.Objects;
 
 /**
  * Shared execution helpers for the run command.
+ *
+ * <p>This helper isolates input validation, print-mode resolution, output-path preparation,
+ * and routed printer lookup from the command class so CLI workflow changes stay easier to test.</p>
  */
 final class RunCommandExecutionSupport {
 

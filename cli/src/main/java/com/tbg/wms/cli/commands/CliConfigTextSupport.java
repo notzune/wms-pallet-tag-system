@@ -1,9 +1,19 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.commands;
 
 import com.tbg.wms.core.AppConfig;
 
 /**
  * Shared text rendering for CLI commands that display resolved runtime configuration.
+ *
+ * <p>This keeps configuration-report formatting consistent between {@code config} and
+ * {@code db-test} so future config-surface changes only need one documentation/output update.</p>
  */
 final class CliConfigTextSupport {
 

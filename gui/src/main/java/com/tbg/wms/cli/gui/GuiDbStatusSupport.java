@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.exception.WmsException;
@@ -10,6 +17,9 @@ import java.util.regex.Pattern;
 
 /**
  * Maps DB connectivity state to footer-ready GUI text, tooltip, and LED color.
+ *
+ * <p>This helper owns the compact footer representation so connectivity wording, Oracle-code
+ * extraction, and tooltip detail stay consistent across startup and workflow failures.</p>
  */
 final class GuiDbStatusSupport {
     private static final Pattern ORACLE_CODE_PATTERN = Pattern.compile("(ORA-\\d{5})", Pattern.CASE_INSENSITIVE);

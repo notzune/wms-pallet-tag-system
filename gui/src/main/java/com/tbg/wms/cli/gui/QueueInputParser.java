@@ -13,6 +13,10 @@ import java.util.Objects;
 
 /**
  * Parses queue dialog input into strongly-typed queue request items.
+ *
+ * <p>Operator input may contain new lines or semicolons, optional {@code S:}/{@code C:} prefixes,
+ * and mixed numeric IDs. Unprefixed numeric IDs starting with {@code 800} are treated as shipments;
+ * other numeric IDs are treated as carrier moves to match the live operator-facing WMS patterns.</p>
  */
 final class QueueInputParser {
     private static final String SHIPMENT_ID_PREFIX = "800";
