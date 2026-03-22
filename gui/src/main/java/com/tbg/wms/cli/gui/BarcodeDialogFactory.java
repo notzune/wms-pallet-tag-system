@@ -16,8 +16,6 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
@@ -39,9 +37,15 @@ final class BarcodeDialogFactory {
     private static final int BARCODE_DEFAULT_MODULE_RATIO = 3;
     private static final int BARCODE_DEFAULT_HEIGHT = 220;
     private final Dependencies dependencies;
+    private final BarcodeDialogExecutionSupport executionSupport;
 
     BarcodeDialogFactory(Dependencies dependencies) {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies cannot be null");
+        this.executionSupport = new BarcodeDialogExecutionSupport(
+                dependencies.defaultPrintToFileOutputDir(),
+                OUTPUT_TS,
+                MAX_SLUG_LENGTH
+        );
     }
 
     private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
@@ -237,9 +241,11 @@ final class BarcodeDialogFactory {
                                  JSpinner copies,
                                  JComboBox<LabelWorkflowService.PrinterOption> printerSelect,
                                  JTextField outputDir) {
-        String data = dataField.getText().trim();
-        if (data.isEmpty()) {
-            dependencies.showError("Barcode data is required.");
+        String data;
+        try {
+            data = executionSupport.requireBarcodeData(dataField.getText());
+        } catch (IllegalArgumentException ex) {
+            dependencies.showError(ex.getMessage());
             return;
         }
 
@@ -258,10 +264,10 @@ final class BarcodeDialogFactory {
                 (int) copies.getValue()
         );
 
-        String zpl = BarcodeZplBuilder.build(request);
+        String zpl = executionSupport.buildZpl(request);
         LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
         boolean printToFile = dependencies.isPrintToFileSelected(printer);
-        Path outputPath = resolveOutputPath(outputDir.getText(), data, printToFile);
+        Path outputPath = executionSupport.resolveOutputPath(outputDir.getText(), data, printToFile);
         try {
             Path parent = outputPath.getParent();
             if (parent != null) {
@@ -269,14 +275,14 @@ final class BarcodeDialogFactory {
             }
             Files.writeString(outputPath, zpl);
         } catch (Exception ex) {
-            dependencies.showError("Failed to write ZPL file: " + ex.getMessage());
+            dependencies.showError(executionSupport.buildWriteFailureMessage(ex));
             return;
         }
 
         if (printToFile) {
             JOptionPane.showMessageDialog(
                     dialog,
-                    "ZPL saved to " + outputPath,
+                    executionSupport.buildGeneratedMessage(outputPath),
                     "Barcode Generated",
                     JOptionPane.INFORMATION_MESSAGE
             );
@@ -295,32 +301,16 @@ final class BarcodeDialogFactory {
             }
             new NetworkPrintService().print(printerConfig, zpl, "barcode");
         } catch (Exception ex) {
-            dependencies.showError("Failed to print barcode: " + dependencies.rootMessage(ex));
+            dependencies.showError(executionSupport.buildPrintFailureMessage(ex));
             return;
         }
 
         JOptionPane.showMessageDialog(
                 dialog,
-                "Printed barcode label.\nZPL saved to " + outputPath,
+                executionSupport.buildPrintedMessage(outputPath),
                 "Barcode Printed",
                 JOptionPane.INFORMATION_MESSAGE
         );
-    }
-
-    private Path resolveOutputPath(String outputDir, String data, boolean printToFileSelected) {
-        String dir;
-        if (printToFileSelected) {
-            dir = (outputDir == null || outputDir.isBlank())
-                    ? dependencies.defaultPrintToFileOutputDir().toString()
-                    : outputDir.trim();
-        } else {
-            dir = dependencies.defaultPrintToFileOutputDir().toString();
-        }
-        Path outputPath = Paths.get(dir);
-        String fileName = String.format("barcode-%s-%s.zpl",
-                OUTPUT_TS.format(LocalDateTime.now()),
-                ArtifactNameSupport.safeSlug(data, "data", MAX_SLUG_LENGTH));
-        return outputPath.resolve(fileName);
     }
 
     /**
