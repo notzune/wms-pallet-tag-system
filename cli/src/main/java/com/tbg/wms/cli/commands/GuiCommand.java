@@ -8,11 +8,13 @@
 
 package com.tbg.wms.cli.commands;
 
+import com.tbg.wms.cli.GuiLauncher;
 import com.tbg.wms.cli.gui.LabelGuiFrame;
 import picocli.CommandLine.Command;
 
-import javax.swing.*;
+import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.function.IntSupplier;
 
 /**
  * Launches the Swing desktop workflow.
@@ -26,6 +28,18 @@ import java.util.concurrent.Callable;
         description = "Launch the desktop GUI workflow for preview and confirmed printing"
 )
 public final class GuiCommand implements Callable<Integer> {
+    private final IntSupplier launcher;
+
+    public GuiCommand() {
+        this(() -> {
+            GuiLauncher.launchAndWait(LabelGuiFrame::new);
+            return 0;
+        });
+    }
+
+    GuiCommand(IntSupplier launcher) {
+        this.launcher = Objects.requireNonNull(launcher, "launcher cannot be null");
+    }
 
     /**
      * Schedules GUI launch on the Swing event thread.
@@ -34,10 +48,6 @@ public final class GuiCommand implements Callable<Integer> {
      */
     @Override
     public Integer call() {
-        SwingUtilities.invokeLater(() -> {
-            LabelGuiFrame frame = new LabelGuiFrame();
-            frame.setVisible(true);
-        });
-        return 0;
+        return launcher.getAsInt();
     }
 }
