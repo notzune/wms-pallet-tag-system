@@ -94,6 +94,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient GuiPrinterSelectionSupport printerSelectionSupport = new GuiPrinterSelectionSupport();
     private final transient GuiPreviewSelectionUiSupport previewSelectionUiSupport = new GuiPreviewSelectionUiSupport();
     private final transient LabelGuiFramePreviewShellSupport previewShellSupport = new LabelGuiFramePreviewShellSupport();
+    private final transient LabelGuiFrameToolMenuSupport toolMenuSupport = new LabelGuiFrameToolMenuSupport();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
             new QueueResumeDialogSupport(new QueueResumeDependencies(), MAX_QUEUE_ITEMS);
@@ -180,35 +181,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private JComponent buildToolBar() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
-
-        toolsButton.setFocusable(false);
-        toolsButton.setHorizontalTextPosition(SwingConstants.LEFT);
-        toolBar.add(toolsButton);
-
-        JPopupMenu toolsMenu = new JPopupMenu();
-        JMenuItem railLabelsItem = new JMenuItem("Rail Labels...");
-        railLabelsItem.addActionListener(e -> openRailLabelsDialog());
-        toolsMenu.add(railLabelsItem);
-        JMenuItem queueItem = new JMenuItem("Queue Print...");
-        queueItem.addActionListener(e -> openQueueDialog());
-        toolsMenu.add(queueItem);
-        JMenuItem barcodeItem = new JMenuItem("Barcode Generator...");
-        barcodeItem.addActionListener(e -> openBarcodeDialog());
-        toolsMenu.add(barcodeItem);
-        toolsMenu.addSeparator();
-        JMenuItem resumeItem = new JMenuItem("Resume Incomplete Job...");
-        resumeItem.addActionListener(e -> openResumeDialog());
-        toolsMenu.add(resumeItem);
-        JMenuItem settingsItem = new JMenuItem("Settings...");
-        settingsItem.addActionListener(e -> openSettingsDialog());
-        toolsMenu.add(settingsItem);
-
-        toolsButton.addActionListener(e ->
-                toolsMenu.show(toolsButton, 0, toolsButton.getHeight()));
-
-        return toolBar;
+        return toolMenuSupport.buildToolBar(toolsButton, new ToolMenuActions());
     }
 
     private JComponent buildTopPanel() {
@@ -952,6 +925,33 @@ public final class LabelGuiFrame extends JFrame {
         @Override
         public PrinterConfig resolvePrinter(String printerId) throws Exception {
             return service.resolvePrinter(printerId);
+        }
+    }
+
+    private final class ToolMenuActions implements LabelGuiFrameToolMenuSupport.MenuActions {
+        @Override
+        public void openRailLabelsDialog() {
+            LabelGuiFrame.this.openRailLabelsDialog();
+        }
+
+        @Override
+        public void openQueueDialog() {
+            LabelGuiFrame.this.openQueueDialog();
+        }
+
+        @Override
+        public void openBarcodeDialog() {
+            LabelGuiFrame.this.openBarcodeDialog();
+        }
+
+        @Override
+        public void openResumeDialog() {
+            LabelGuiFrame.this.openResumeDialog();
+        }
+
+        @Override
+        public void openSettingsDialog() {
+            LabelGuiFrame.this.openSettingsDialog();
         }
     }
 
