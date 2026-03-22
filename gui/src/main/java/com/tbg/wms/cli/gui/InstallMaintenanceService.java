@@ -72,6 +72,8 @@ public final class InstallMaintenanceService {
     }
 
     public void launchInstaller(Path scriptPath, Path installerPath) throws IOException {
+        Path appHome = RuntimePathResolver.resolveAppHome(InstallMaintenanceService.class);
+        Path relaunchPath = resolveRelaunchPath(appHome);
         List<String> command = new ArrayList<>();
         command.add("powershell");
         command.add("-ExecutionPolicy");
@@ -80,8 +82,32 @@ public final class InstallMaintenanceService {
         command.add(scriptPath.toString());
         command.add("-InstallerPath");
         command.add(installerPath.toString());
+        command.add("-WaitForProcessId");
+        command.add(Long.toString(currentProcessId()));
+        if (relaunchPath != null) {
+            command.add("-RelaunchPath");
+            command.add(relaunchPath.toString());
+        }
         new ProcessBuilder(command)
                 .directory(scriptPath.getParent().toFile())
                 .start();
+    }
+
+    private static long currentProcessId() {
+        return ProcessHandle.current().pid();
+    }
+
+    private static Path resolveRelaunchPath(Path appHome) {
+        List<Path> candidates = List.of(
+                appHome.resolve("run.bat"),
+                appHome.resolve("WMS Pallet Tag System.exe"),
+                appHome.resolve("app").resolve("WMS Pallet Tag System.exe")
+        );
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate) && Files.isRegularFile(candidate)) {
+                return candidate.toAbsolutePath().normalize();
+            }
+        }
+        return null;
     }
 }

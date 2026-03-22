@@ -3,6 +3,8 @@ param(
     [string]$InstallerPath,
     [string]$LogPath,
     [string]$InstallDir,
+    [long]$WaitForProcessId,
+    [string]$RelaunchPath,
     [string]$ProductDisplayName = 'WMS Pallet Tag System',
     [switch]$ReplaceExisting,
     [switch]$QuietInstall
@@ -123,6 +125,77 @@ function Invoke-ExeInstall {
     }
 }
 
+function Wait-ForProcessExit {
+    param(
+        [long]$ProcessId,
+        [int]$TimeoutSeconds = 60
+    )
+
+    if ($ProcessId -le 0) {
+        return
+    }
+
+    try {
+        $process = Get-Process -Id $ProcessId -ErrorAction Stop
+        Write-Host "Waiting for process $ProcessId to exit before installing..."
+        $process | Wait-Process -Timeout $TimeoutSeconds -ErrorAction Stop
+    } catch [Microsoft.PowerShell.Commands.ProcessCommandException] {
+        return
+    } catch {
+        throw "Timed out waiting for process $ProcessId to exit."
+    }
+}
+
+function Resolve-RelaunchPath {
+    param(
+        [string]$RequestedPath,
+        [string]$InstallDir,
+        [string]$ScriptRoot
+    )
+
+    $candidates = @()
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+        $candidates += $RequestedPath
+    }
+    if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
+        $candidates += (Join-Path $InstallDir 'run.bat')
+        $candidates += (Join-Path $InstallDir 'WMS Pallet Tag System.exe')
+        $candidates += (Join-Path $InstallDir 'app\WMS Pallet Tag System.exe')
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ScriptRoot)) {
+        $scriptInstallRoot = Split-Path -Parent $ScriptRoot
+        $candidates += (Join-Path $scriptInstallRoot 'run.bat')
+        $candidates += (Join-Path $scriptInstallRoot 'WMS Pallet Tag System.exe')
+        $candidates += (Join-Path $scriptInstallRoot 'app\WMS Pallet Tag System.exe')
+    }
+
+    foreach ($candidate in $candidates) {
+        if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate)) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+
+    return $null
+}
+
+function Invoke-Relaunch {
+    param(
+        [string]$Path
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return
+    }
+
+    $extension = [System.IO.Path]::GetExtension($Path)
+    if ($extension -ieq '.bat' -or $extension -ieq '.cmd') {
+        Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "`"$Path`"" | Out-Null
+        return
+    }
+
+    Start-Process -FilePath $Path | Out-Null
+}
+
 if (-not $InstallerPath) {
     $scriptRoot = Split-Path -Parent $PSCommandPath
     $candidate = Get-ChildItem -Path $scriptRoot -Filter 'WMS Pallet Tag System-*.exe' -File -ErrorAction SilentlyContinue |
@@ -140,10 +213,13 @@ if (-not $InstallerPath -or -not (Test-Path -LiteralPath $InstallerPath)) {
 $resolvedInstallerPath = (Resolve-Path -LiteralPath $InstallerPath).Path
 $installerType = Get-InstallerType -Path $resolvedInstallerPath
 $installerVersion = Get-InstallerVersion -Path $resolvedInstallerPath
+$scriptRoot = Split-Path -Parent $PSCommandPath
 if (-not $LogPath) {
     $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $LogPath = Join-Path (Split-Path -Parent $resolvedInstallerPath) "install-wms-tags-$timestamp.log"
 }
+
+Wait-ForProcessExit -ProcessId $WaitForProcessId
 
 $installed = Get-InstalledWmsProduct -ProductDisplayName $ProductDisplayName
 if ($installed) {
@@ -164,3 +240,8 @@ if ($installerType -eq 'msi') {
 }
 
 Write-Host "Installation complete."
+$resolvedRelaunchPath = Resolve-RelaunchPath -RequestedPath $RelaunchPath -InstallDir $InstallDir -ScriptRoot $scriptRoot
+if ($resolvedRelaunchPath) {
+    Write-Host "Relaunching application: $resolvedRelaunchPath"
+    Invoke-Relaunch -Path $resolvedRelaunchPath
+}

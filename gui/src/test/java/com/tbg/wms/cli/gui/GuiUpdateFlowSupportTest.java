@@ -32,7 +32,7 @@ class GuiUpdateFlowSupportTest {
         ReleaseCheckService.ReleaseInfo guided = releaseInfo(true, List.of(installerAsset(), checksumAsset()));
 
         assertArrayEquals(new Object[]{"Open Download Page", "Close"}, support.updatePromptOptions(browserOnly));
-        assertArrayEquals(new Object[]{"Download and Install", "Open Download Page", "Close"}, support.updatePromptOptions(guided));
+        assertArrayEquals(new Object[]{"Download and Install 1.7.6", "Open Download Page", "Close"}, support.updatePromptOptions(guided));
 
         assertFalse(support.shouldLaunchGuidedUpgrade(browserOnly, 0));
         assertTrue(support.shouldOpenReleasePage(browserOnly, 0));
@@ -51,6 +51,8 @@ class GuiUpdateFlowSupportTest {
         assertEquals("Update available: 1.7.6", support.updateTooltip(guided));
         assertTrue(support.updatePromptMessage(upToDate).contains("up to date on version 1.7.5"));
         assertTrue(support.updatePromptMessage(guided).contains("verified packaged installer is available"));
+        assertTrue(support.updatePromptMessage(guided).contains("install version 1.7.6"));
+        assertTrue(support.updatePromptMessage(guided).contains("relaunch automatically after success"));
     }
 
     @Test

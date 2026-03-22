@@ -17,7 +17,6 @@ import java.util.Objects;
  */
 final class GuiUpdateFlowSupport {
 
-    private static final Object[] GUIDED_UPDATE_OPTIONS = {"Download and Install", "Open Download Page", "Close"};
     private static final Object[] DOWNLOAD_PAGE_OPTIONS = {"Open Download Page", "Close"};
     private static final Object[] UNINSTALL_OPTIONS = {"Cancel", "Uninstall Only", "Clean Wipe"};
 
@@ -48,7 +47,11 @@ final class GuiUpdateFlowSupport {
 
     Object[] updatePromptOptions(ReleaseCheckService.ReleaseInfo releaseInfo) {
         return isGuidedUpgradeReady(releaseInfo)
-                ? GUIDED_UPDATE_OPTIONS.clone()
+                ? new Object[]{
+                "Download and Install " + releaseInfo.latestVersion(),
+                "Open Download Page",
+                "Close"
+        }
                 : DOWNLOAD_PAGE_OPTIONS.clone();
     }
 
@@ -61,7 +64,9 @@ final class GuiUpdateFlowSupport {
                 + "\nLatest version: " + releaseInfo.latestVersion()
                 + (!isGuidedUpgradeReady(releaseInfo)
                 ? "\n\nA verified guided upgrade is unavailable because the published release does not include both the installer and its checksum. Open the latest release page now?"
-                : "\n\nA verified packaged installer is available. Download it and start the upgrade now?");
+                : "\n\nA verified packaged installer is available. Download it, close the current app, install version "
+                + releaseInfo.latestVersion()
+                + ", and relaunch automatically after success.");
     }
 
     boolean shouldLaunchGuidedUpgrade(ReleaseCheckService.ReleaseInfo releaseInfo, int choice) {
