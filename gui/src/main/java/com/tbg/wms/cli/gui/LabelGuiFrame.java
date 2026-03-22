@@ -100,7 +100,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
             new QueueResumeDialogSupport(new QueueResumeDependencies(), MAX_QUEUE_ITEMS);
     private final transient GuiSettingsDialogSupport settingsDialogSupport =
-            new GuiSettingsDialogSupport(new SettingsDependencies(), PREF_PRINT_TO_FILE_DIR, LabelGuiFrame.class);
+            new GuiSettingsDialogSupport(buildSettingsDependencies(), PREF_PRINT_TO_FILE_DIR, LabelGuiFrame.class);
     private final transient GuiUpdateFlowSupport updateFlowSupport = new GuiUpdateFlowSupport();
     private final transient GuiUpdateExecutionSupport updateExecutionSupport = new GuiUpdateExecutionSupport(updateFlowSupport);
     private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
@@ -995,101 +995,28 @@ public final class LabelGuiFrame extends JFrame {
         }
     }
 
-    private final class SettingsDependencies implements GuiSettingsDialogSupport.Dependencies {
-        @Override
-        public JFrame ownerFrame() {
-            return LabelGuiFrame.this;
-        }
-
-        @Override
-        public Preferences preferences() {
-            return preferences;
-        }
-
-        @Override
-        public RuntimeSettings runtimeSettings() {
-            return runtimeSettings;
-        }
-
-        @Override
-        public AppConfig config() {
-            return config;
-        }
-
-        @Override
-        public List<LabelWorkflowService.PrinterOption> loadedPrinters() {
-            return loadedPrinters;
-        }
-
-        @Override
-        public LabelWorkflowService.PrinterOption selectedPrinterOption() {
-            return (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        }
-
-        @Override
-        public void setPrinterModel(DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model) {
-            printerCombo.setModel(model);
-        }
-
-        @Override
-        public void applyTopRowSizing() {
-            LabelGuiFrame.this.applyTopRowSizing();
-        }
-
-        @Override
-        public void restoreSelection(LabelWorkflowService.PrinterOption previousSelection) {
-            LabelGuiFrame.this.restoreSelection(previousSelection);
-        }
-
-        @Override
-        public void showError(String message) {
-            LabelGuiFrame.this.showError(message);
-        }
-
-        @Override
-        public void installClipboardBehavior(JTextComponent... fields) {
-            LabelGuiFrame.this.installTerminalLikeMouseClipboardBehavior(fields);
-        }
-
-        @Override
-        public String formatUpdateStatus() {
-            return LabelGuiFrame.this.formatUpdateStatus();
-        }
-
-        @Override
-        public void checkForUpdates(JLabel statusOutput) {
-            LabelGuiFrame.this.checkForUpdatesAsync(true, statusOutput);
-        }
-
-        @Override
-        public void openUninstallDialog() {
-            LabelGuiFrame.this.openUninstallDialog();
-        }
-
-        @Override
-        public void setReady(String message) {
-            LabelGuiFrame.this.setReady(message);
-        }
-
-        @Override
-        public void clearLabelWorkflowCaches() {
-            service.clearCaches();
-        }
-
-        @Override
-        public void clearAdvancedWorkflowCaches() {
-            advancedService.clearCaches();
-        }
-
-        @Override
-        public void resetLoadedPrinters() {
-            loadedPrinters = List.of();
-        }
-
-        @Override
-        public void loadPrintersAsync() {
-            LabelGuiFrame.this.loadPrintersAsync();
-        }
+    private GuiSettingsDialogSupport.Dependencies buildSettingsDependencies() {
+        return new LabelGuiFrameSettingsDependencies(
+                this,
+                preferences,
+                runtimeSettings,
+                config,
+                () -> loadedPrinters,
+                () -> (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem(),
+                printerCombo::setModel,
+                this::applyTopRowSizing,
+                this::restoreSelection,
+                this::showError,
+                this::installTerminalLikeMouseClipboardBehavior,
+                this::formatUpdateStatus,
+                statusOutput -> checkForUpdatesAsync(true, statusOutput),
+                this::openUninstallDialog,
+                this::setReady,
+                service::clearCaches,
+                advancedService::clearCaches,
+                () -> loadedPrinters = List.of(),
+                this::loadPrintersAsync
+        );
     }
 
     private void saveMainSettings(Path configuredPath, int retentionDays) {
