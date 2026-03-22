@@ -86,6 +86,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient PreviewRenderSupport previewRenderSupport =
             new PreviewRenderSupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
     private final transient GuiPrintFlowSupport printFlowSupport = new GuiPrintFlowSupport();
+    private final transient GuiPrinterSelectionSupport printerSelectionSupport = new GuiPrinterSelectionSupport();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
             new QueueResumeDialogSupport(new QueueResumeDependencies(), MAX_QUEUE_ITEMS);
@@ -308,16 +309,11 @@ public final class LabelGuiFrame extends JFrame {
                     int printerCount = printers.size();
                     printerCombo.setModel(model);
                     applyTopRowSizing();
-                    if (model.getSize() > 0) {
-                        printerCombo.setSelectedIndex(0);
-                        if (printerCount == 0) {
-                            setReady("No enabled printers found. Print to file available.");
-                        } else {
-                            setReady("Printers loaded.");
-                        }
-                    } else {
-                        setReady("No enabled printers found in routing config.");
+                    int selectionIndex = printerSelectionSupport.resolveSelectionIndex(null, comboItems(model));
+                    if (selectionIndex >= 0) {
+                        printerCombo.setSelectedIndex(selectionIndex);
                     }
+                    setReady(printerSelectionSupport.printerLoadStatusMessage(printerCount, model.getSize()));
                 } catch (Exception ex) {
                     setReady("Failed to load printers.");
                     showError(rootMessage(ex));
@@ -899,22 +895,18 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void restoreSelection(LabelWorkflowService.PrinterOption previousSelection) {
-        if (previousSelection == null) {
-            if (printerCombo.getItemCount() > 0) {
-                printerCombo.setSelectedIndex(0);
-            }
-            return;
+        int selectionIndex = printerSelectionSupport.resolveSelectionIndex(previousSelection, comboItems(printerCombo.getModel()));
+        if (selectionIndex >= 0) {
+            printerCombo.setSelectedIndex(selectionIndex);
         }
-        for (int i = 0; i < printerCombo.getItemCount(); i++) {
-            LabelWorkflowService.PrinterOption candidate = printerCombo.getItemAt(i);
-            if (Objects.equals(candidate.getId(), previousSelection.getId())) {
-                printerCombo.setSelectedIndex(i);
-                return;
-            }
+    }
+
+    private List<LabelWorkflowService.PrinterOption> comboItems(ComboBoxModel<LabelWorkflowService.PrinterOption> model) {
+        List<LabelWorkflowService.PrinterOption> items = new ArrayList<>(model.getSize());
+        for (int i = 0; i < model.getSize(); i++) {
+            items.add(model.getElementAt(i));
         }
-        if (printerCombo.getItemCount() > 0) {
-            printerCombo.setSelectedIndex(0);
-        }
+        return items;
     }
 
     private void installTerminalLikeMouseClipboardBehavior(JTextComponent... fields) {
