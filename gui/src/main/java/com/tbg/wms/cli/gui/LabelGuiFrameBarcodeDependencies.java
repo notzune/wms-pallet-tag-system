@@ -19,6 +19,7 @@ final class LabelGuiFrameBarcodeDependencies implements BarcodeDialogFactory.Dep
     private final MessageSink showError;
     private final RootMessageResolver rootMessageResolver;
     private final PrinterResolver printerResolver;
+    private final PrintDispatcher printDispatcher;
 
     LabelGuiFrameBarcodeDependencies(
             PrintTargetModelBuilder printTargetModelBuilder,
@@ -27,7 +28,8 @@ final class LabelGuiFrameBarcodeDependencies implements BarcodeDialogFactory.Dep
             ClipboardInstaller clipboardInstaller,
             MessageSink showError,
             RootMessageResolver rootMessageResolver,
-            PrinterResolver printerResolver
+            PrinterResolver printerResolver,
+            PrintDispatcher printDispatcher
     ) {
         this.printTargetModelBuilder = Objects.requireNonNull(printTargetModelBuilder, "printTargetModelBuilder cannot be null");
         this.printToFileSelector = Objects.requireNonNull(printToFileSelector, "printToFileSelector cannot be null");
@@ -36,6 +38,7 @@ final class LabelGuiFrameBarcodeDependencies implements BarcodeDialogFactory.Dep
         this.showError = Objects.requireNonNull(showError, "showError cannot be null");
         this.rootMessageResolver = Objects.requireNonNull(rootMessageResolver, "rootMessageResolver cannot be null");
         this.printerResolver = Objects.requireNonNull(printerResolver, "printerResolver cannot be null");
+        this.printDispatcher = Objects.requireNonNull(printDispatcher, "printDispatcher cannot be null");
     }
 
     @Override
@@ -73,6 +76,11 @@ final class LabelGuiFrameBarcodeDependencies implements BarcodeDialogFactory.Dep
         return printerResolver.resolve(printerId);
     }
 
+    @Override
+    public void printBarcode(PrinterConfig printerConfig, String zpl) throws Exception {
+        printDispatcher.print(printerConfig, zpl);
+    }
+
     interface PrintTargetModelBuilder {
         DefaultComboBoxModel<LabelWorkflowService.PrinterOption> build(boolean includeFileOption);
     }
@@ -99,5 +107,9 @@ final class LabelGuiFrameBarcodeDependencies implements BarcodeDialogFactory.Dep
 
     interface PrinterResolver {
         PrinterConfig resolve(String printerId) throws Exception;
+    }
+
+    interface PrintDispatcher {
+        void print(PrinterConfig printerConfig, String zpl) throws Exception;
     }
 }

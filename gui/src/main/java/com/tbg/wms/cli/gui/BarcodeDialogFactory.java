@@ -8,7 +8,6 @@ import com.tbg.wms.core.barcode.BarcodeZplBuilder;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.BarcodeRequest;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.Orientation;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.Symbology;
-import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 
 import javax.swing.*;
@@ -39,6 +38,7 @@ final class BarcodeDialogFactory {
     private final Dependencies dependencies;
     private final BarcodeDialogExecutionSupport executionSupport;
     private final BarcodeDialogFormSupport formSupport = new BarcodeDialogFormSupport();
+    private final BarcodeDialogActionSupport actionSupport;
     private final UtilityKeyboardPalette utilityKeyboardPalette;
 
     BarcodeDialogFactory(Dependencies dependencies) {
@@ -48,6 +48,7 @@ final class BarcodeDialogFactory {
                 OUTPUT_TS,
                 MAX_SLUG_LENGTH
         );
+        this.actionSupport = new BarcodeDialogActionSupport(dependencies, executionSupport, formSupport);
         this.utilityKeyboardPalette = new UtilityKeyboardPalette(dependencies::showError);
     }
 
@@ -244,16 +245,9 @@ final class BarcodeDialogFactory {
                                  JSpinner copies,
                                  JComboBox<LabelWorkflowService.PrinterOption> printerSelect,
                                  JTextField outputDir) {
-        String data;
-        try {
-            data = executionSupport.requireBarcodeData(dataField.getText());
-        } catch (IllegalArgumentException ex) {
-            dependencies.showError(ex.getMessage());
-            return;
-        }
-
-        BarcodeRequest request = formSupport.buildRequest(
-                data,
+        actionSupport.generateBarcode(
+                dialog,
+                dataField,
                 typeCombo,
                 orientationCombo,
                 labelWidth,
@@ -264,55 +258,9 @@ final class BarcodeDialogFactory {
                 moduleRatio,
                 barcodeHeight,
                 humanReadable,
-                copies
-        );
-
-        String zpl = executionSupport.buildZpl(request);
-        LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-        boolean printToFile = dependencies.isPrintToFileSelected(printer);
-        Path outputPath = executionSupport.resolveOutputPath(outputDir.getText(), data, printToFile);
-        try {
-            Path parent = outputPath.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-            Files.writeString(outputPath, zpl);
-        } catch (Exception ex) {
-            dependencies.showError(executionSupport.buildWriteFailureMessage(ex));
-            return;
-        }
-
-        if (printToFile) {
-            JOptionPane.showMessageDialog(
-                    dialog,
-                    executionSupport.buildGeneratedMessage(outputPath),
-                    "Barcode Generated",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            return;
-        }
-
-        if (printer == null) {
-            dependencies.showError("Select a print target.");
-            return;
-        }
-
-        try {
-            PrinterConfig printerConfig = dependencies.resolvePrinter(printer.getId());
-            if (printerConfig == null) {
-                throw new IllegalArgumentException("Printer not found: " + printer.getId());
-            }
-            new NetworkPrintService().print(printerConfig, zpl, "barcode");
-        } catch (Exception ex) {
-            dependencies.showError(executionSupport.buildPrintFailureMessage(ex));
-            return;
-        }
-
-        JOptionPane.showMessageDialog(
-                dialog,
-                executionSupport.buildPrintedMessage(outputPath),
-                "Barcode Printed",
-                JOptionPane.INFORMATION_MESSAGE
+                copies,
+                printerSelect,
+                outputDir
         );
     }
 
@@ -356,5 +304,10 @@ final class BarcodeDialogFactory {
          * Resolves a printer configuration by ID.
          */
         PrinterConfig resolvePrinter(String printerId) throws Exception;
+
+        /**
+         * Sends barcode ZPL to the resolved printer.
+         */
+        void printBarcode(PrinterConfig printerConfig, String zpl) throws Exception;
     }
 }

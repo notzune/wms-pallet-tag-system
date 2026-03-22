@@ -14,6 +14,7 @@ import com.tbg.wms.core.OutDirectoryRetentionService;
 import com.tbg.wms.core.RuntimeSettings;
 import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.Lpn;
+import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.update.ReleaseCheckService;
 import com.tbg.wms.core.update.VersionSupport;
@@ -897,8 +898,13 @@ public final class LabelGuiFrame extends JFrame {
                 this::installTerminalLikeMouseClipboardBehavior,
                 this::showError,
                 this::rootMessage,
-                service::resolvePrinter
+                service::resolvePrinter,
+                this::printBarcodeZpl
         );
+    }
+
+    private void printBarcodeZpl(PrinterConfig printerConfig, String zpl) throws Exception {
+        new NetworkPrintService().print(printerConfig, zpl, "barcode");
     }
 
     private LabelGuiFrameToolMenuSupport.MenuActions buildToolMenuActions() {
