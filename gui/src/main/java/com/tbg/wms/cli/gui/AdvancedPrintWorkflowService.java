@@ -38,6 +38,7 @@ public final class AdvancedPrintWorkflowService {
     private final PrintCheckpointSupport checkpointSupport;
     private final CarrierMovePreparationSupport carrierMovePreparationSupport = new CarrierMovePreparationSupport();
     private final AdvancedPrintResultSupport resultSupport = new AdvancedPrintResultSupport();
+    private final AdvancedPrintExecutionSupport executionSupport;
     private final QueueWorkflowSupport queueWorkflowSupport = new QueueWorkflowSupport();
 
     public AdvancedPrintWorkflowService(AppConfig config) {
@@ -49,6 +50,25 @@ public final class AdvancedPrintWorkflowService {
                 MAX_TASKS_PER_JOB,
                 MAX_CHECKPOINT_FILES_SCANNED
         );
+        this.executionSupport = new AdvancedPrintExecutionSupport(new AdvancedPrintExecutionSupport.CheckpointGateway() {
+            @Override
+            public JobCheckpoint createCheckpoint(
+                    String id,
+                    InputMode mode,
+                    String sourceId,
+                    Path outputDir,
+                    boolean printToFile,
+                    PrinterConfig printer,
+                    List<PrintTask> tasks
+            ) throws Exception {
+                return checkpointSupport.createCheckpoint(id, mode, sourceId, outputDir, printToFile, printer, tasks);
+            }
+
+            @Override
+            public void executeTasks(JobCheckpoint checkpoint, PrinterConfig printer, int startIndex) throws Exception {
+                checkpointSupport.executeTasks(checkpoint, printer, startIndex);
+            }
+        }, resultSupport);
     }
 
     public LabelWorkflowService.PreparedJob prepareShipmentJob(String shipmentId) throws Exception {
@@ -144,18 +164,11 @@ public final class AdvancedPrintWorkflowService {
             boolean includeInfoTags
     ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
-        PrinterConfig printer = resultSupport.resolvePrinterForPrint(job.getRouting(), printerId, printToFile);
-        Path targetDir = outputDir == null
-                ? Paths.get("out", "gui-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()))
-                : outputDir;
         List<Lpn> lpnsToPrint = PrintTaskPlanner.filterLpnsForPrint(job.getLpnsForLabels(), selectedLpns);
         PrintTaskPlanner.ShipmentPrintBatch shipmentBatch =
                 PrintTaskPlanner.ShipmentPrintBatch.forShipment(job, lpnsToPrint, includeInfoTags);
         List<PrintTask> tasks = PrintTaskPlanner.buildShipmentTasks(shipmentBatch);
-        JobCheckpoint checkpoint = checkpointSupport.createCheckpoint("shipment-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()),
-                InputMode.SHIPMENT, job.getShipmentId(), targetDir, printToFile, printer, tasks);
-        checkpointSupport.executeTasks(checkpoint, printer, 0);
-        return resultSupport.toResult(checkpoint);
+        return executionSupport.executeShipmentJob(job, printerId, outputDir, printToFile, tasks);
     }
 
     public PrintResult printCarrierMoveJob(PreparedCarrierMoveJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
@@ -182,15 +195,8 @@ public final class AdvancedPrintWorkflowService {
     ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         LabelWorkflowService.PreparedJob firstShipment = job.firstShipmentJob();
-        PrinterConfig printer = resultSupport.resolvePrinterForPrint(firstShipment.getRouting(), printerId, printToFile);
-        Path targetDir = outputDir == null
-                ? Paths.get("out", "gui-cmid-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()))
-                : outputDir;
         List<PrintTask> tasks = PrintTaskPlanner.buildCarrierMoveTasks(job, selectedLabels, includeInfoTags);
-        JobCheckpoint checkpoint = checkpointSupport.createCheckpoint("carrier-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()),
-                InputMode.CARRIER_MOVE, job.carrierMoveId, targetDir, printToFile, printer, tasks);
-        checkpointSupport.executeTasks(checkpoint, printer, 0);
-        return resultSupport.toResult(checkpoint);
+        return executionSupport.executeCarrierMoveJob(job, firstShipment.getRouting(), printerId, outputDir, printToFile, tasks);
     }
 
     public List<ResumeCandidate> listIncompleteJobs() throws Exception {
