@@ -182,7 +182,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private JComponent buildToolBar() {
-        return toolMenuSupport.buildToolBar(toolsButton, new ToolMenuActions());
+        return toolMenuSupport.buildToolBar(toolsButton, buildToolMenuActions());
     }
 
     private JComponent buildTopPanel() {
@@ -896,31 +896,14 @@ public final class LabelGuiFrame extends JFrame {
         );
     }
 
-    private final class ToolMenuActions implements LabelGuiFrameToolMenuSupport.MenuActions {
-        @Override
-        public void openRailLabelsDialog() {
-            LabelGuiFrame.this.openRailLabelsDialog();
-        }
-
-        @Override
-        public void openQueueDialog() {
-            LabelGuiFrame.this.openQueueDialog();
-        }
-
-        @Override
-        public void openBarcodeDialog() {
-            LabelGuiFrame.this.openBarcodeDialog();
-        }
-
-        @Override
-        public void openResumeDialog() {
-            LabelGuiFrame.this.openResumeDialog();
-        }
-
-        @Override
-        public void openSettingsDialog() {
-            LabelGuiFrame.this.openSettingsDialog();
-        }
+    private LabelGuiFrameToolMenuSupport.MenuActions buildToolMenuActions() {
+        return new LabelGuiFrameToolMenuActions(
+                this::openRailLabelsDialog,
+                this::openQueueDialog,
+                this::openBarcodeDialog,
+                this::openResumeDialog,
+                this::openSettingsDialog
+        );
     }
 
     private QueueResumeDialogSupport.Dependencies buildQueueResumeDependencies() {
