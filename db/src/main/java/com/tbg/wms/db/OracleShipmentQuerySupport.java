@@ -34,47 +34,46 @@ final class OracleShipmentQuerySupport {
     }
 
     Shipment loadShipment(String shipmentId) throws SQLException {
-        Shipment shipment = fetchShipmentHeader(shipmentId);
-        if (shipment == null) {
-            return null;
-        }
-        List<Lpn> lpns;
         try (Connection conn = dataSource.getConnection()) {
-            lpns = shipmentLpnHydrationSupport.fetchLpnsWithLineItems(conn, shipmentId);
+            Shipment shipment = fetchShipmentHeader(conn, shipmentId);
+            if (shipment == null) {
+                return null;
+            }
+            List<Lpn> lpns = shipmentLpnHydrationSupport.fetchLpnsWithLineItems(conn, shipmentId);
+            return new Shipment(
+                    shipment.getShipmentId(),
+                    shipment.getExternalId(),
+                    shipment.getOrderId(),
+                    shipment.getWarehouseId(),
+                    shipment.getShipToName(),
+                    shipment.getShipToAddress1(),
+                    shipment.getShipToAddress2(),
+                    shipment.getShipToAddress3(),
+                    shipment.getShipToCity(),
+                    shipment.getShipToState(),
+                    shipment.getShipToZip(),
+                    shipment.getShipToCountry(),
+                    shipment.getShipToPhone(),
+                    shipment.getCarrierCode(),
+                    shipment.getServiceLevel(),
+                    shipment.getDocumentNumber(),
+                    shipment.getTrackingNumber(),
+                    shipment.getDestinationLocation(),
+                    shipment.getCustomerPo(),
+                    shipment.getLocationNumber(),
+                    shipment.getDepartmentNumber(),
+                    shipment.getStopId(),
+                    shipment.getStopSequence(),
+                    shipment.getCarrierMoveId(),
+                    shipment.getProNumber(),
+                    shipment.getBolNumber(),
+                    shipment.getStatus(),
+                    shipment.getShipDate(),
+                    shipment.getDeliveryDate(),
+                    shipment.getCreatedDate(),
+                    lpns
+            );
         }
-        return new Shipment(
-                shipment.getShipmentId(),
-                shipment.getExternalId(),
-                shipment.getOrderId(),
-                shipment.getWarehouseId(),
-                shipment.getShipToName(),
-                shipment.getShipToAddress1(),
-                shipment.getShipToAddress2(),
-                shipment.getShipToAddress3(),
-                shipment.getShipToCity(),
-                shipment.getShipToState(),
-                shipment.getShipToZip(),
-                shipment.getShipToCountry(),
-                shipment.getShipToPhone(),
-                shipment.getCarrierCode(),
-                shipment.getServiceLevel(),
-                shipment.getDocumentNumber(),
-                shipment.getTrackingNumber(),
-                shipment.getDestinationLocation(),
-                shipment.getCustomerPo(),
-                shipment.getLocationNumber(),
-                shipment.getDepartmentNumber(),
-                shipment.getStopId(),
-                shipment.getStopSequence(),
-                shipment.getCarrierMoveId(),
-                shipment.getProNumber(),
-                shipment.getBolNumber(),
-                shipment.getStatus(),
-                shipment.getShipDate(),
-                shipment.getDeliveryDate(),
-                shipment.getCreatedDate(),
-                lpns
-        );
     }
 
     List<ShipmentSkuFootprint> loadShipmentSkuFootprints(String shipmentId) throws SQLException {
@@ -125,6 +124,7 @@ final class OracleShipmentQuerySupport {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             List<String> descriptionColumns = prtmstColumnResolver.getColumns(conn);
+            shipmentDescriptionSupport.clearCache();
             stmt.setString(1, shipmentId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -155,7 +155,7 @@ final class OracleShipmentQuerySupport {
         return rows;
     }
 
-    private Shipment fetchShipmentHeader(String shipmentId) throws SQLException {
+    private Shipment fetchShipmentHeader(Connection conn, String shipmentId) throws SQLException {
         String sql = "SELECT " +
                 "s.SHIP_ID, s.HOST_EXT_ID, s.WH_ID, s.SHPSTS, " +
                 "s.CARCOD, s.SRVLVL, s.DOC_NUM, s.TRACK_NUM, s.STOP_ID, s.DSTLOC, " +
@@ -182,8 +182,7 @@ final class OracleShipmentQuerySupport {
                 "LEFT JOIN WMSP.CAR_MOVE cm ON s.TMS_MOVE_ID = cm.CAR_MOVE_ID " +
                 "WHERE s.SHIP_ID = ?";
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, shipmentId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (!rs.next()) {

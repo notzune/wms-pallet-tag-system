@@ -7,23 +7,46 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Resolves human-readable shipment item descriptions from Oracle description tables.
  */
 final class ShipmentDescriptionSupport {
+    private final Map<DescriptionLookupKey, String> descriptionCache = new HashMap<>();
+
     String resolveItemDescription(Connection conn,
                                   String sku,
                                   String prtClientId,
                                   String whId,
                                   String fallbackDescription,
                                   List<String> descriptionColumns) {
-        return chooseBestDescription(
-                fetchDescriptionFromPrtdsc(conn, sku, prtClientId, whId),
+        DescriptionLookupKey key = new DescriptionLookupKey(
+                NormalizationService.normalizeSku(sku),
+                NormalizationService.normalizeString(prtClientId),
+                NormalizationService.normalizeString(whId),
+                NormalizationService.normalizeString(fallbackDescription)
+        );
+        if (descriptionCache.containsKey(key)) {
+            return descriptionCache.get(key);
+        }
+
+        String prtdscDescription = fetchDescriptionFromPrtdsc(conn, sku, prtClientId, whId);
+        String resolved = DescriptionTextHeuristics.isHumanReadable(prtdscDescription)
+                ? prtdscDescription
+                : chooseBestDescription(
+                null,
                 fetchDescriptionFromPrtmst(conn, sku, prtClientId, descriptionColumns),
                 fallbackDescription
         );
+        descriptionCache.put(key, resolved);
+        return resolved;
+    }
+
+    void clearCache() {
+        descriptionCache.clear();
     }
 
     String chooseBestDescription(String prtdscDescription, String prtmstDescription, String fallbackDescription) {
@@ -122,5 +145,13 @@ final class ShipmentDescriptionSupport {
             return null;
         }
         return null;
+    }
+
+    private record DescriptionLookupKey(
+            String sku,
+            String prtClientId,
+            String whId,
+            String fallbackDescription
+    ) {
     }
 }

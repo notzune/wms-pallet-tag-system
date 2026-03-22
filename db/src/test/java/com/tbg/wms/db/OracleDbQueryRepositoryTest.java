@@ -283,8 +283,7 @@ class OracleDbQueryRepositoryTest {
     @Test
     void testFindShipmentLoadsLineItemsWithSingleShipmentScopedQuery() throws SQLException {
         DataSource dataSource = mock(DataSource.class);
-        Connection headerConnection = mock(Connection.class);
-        Connection lpnsConnection = mock(Connection.class);
+        Connection shipmentConnection = mock(Connection.class);
         PreparedStatement headerStatement = mock(PreparedStatement.class);
         PreparedStatement orderStatement = mock(PreparedStatement.class);
         PreparedStatement lpnsStatement = mock(PreparedStatement.class);
@@ -294,15 +293,15 @@ class OracleDbQueryRepositoryTest {
         ResultSet lpnsResultSet = mock(ResultSet.class);
         ResultSet lineItemsResultSet = mock(ResultSet.class);
 
-        when(dataSource.getConnection()).thenReturn(headerConnection, lpnsConnection);
-        when(headerConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("FROM WMSP.SHIPMENT s"))))
+        when(dataSource.getConnection()).thenReturn(shipmentConnection);
+        when(shipmentConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("FROM WMSP.SHIPMENT s"))))
                 .thenReturn(headerStatement);
-        when(headerConnection.prepareStatement(argThat(sql -> sql != null
+        when(shipmentConnection.prepareStatement(argThat(sql -> sql != null
                 && sql.contains("FROM WMSP.SHIPMENT_LINE sl WHERE sl.SHIP_ID = ? AND ROWNUM <= 1"))))
                 .thenReturn(orderStatement);
-        when(lpnsConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("SELECT DISTINCT "))))
+        when(shipmentConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("SELECT DISTINCT "))))
                 .thenReturn(lpnsStatement);
-        when(lpnsConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM"))))
+        when(shipmentConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM"))))
                 .thenReturn(lineItemsStatement);
 
         when(headerStatement.executeQuery()).thenReturn(headerResultSet);
@@ -342,15 +341,15 @@ class OracleDbQueryRepositoryTest {
 
         OracleDbQueryRepository repo = new OracleDbQueryRepository(dataSource);
         assertEquals(2, repo.findShipmentWithLpnsAndLineItems("SHIP123").getLpnCount());
-        verify(lpnsConnection, times(1))
+        verify(dataSource, times(1)).getConnection();
+        verify(shipmentConnection, times(1))
                 .prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM")));
     }
 
     @Test
     void testFindShipmentCoalescesDuplicateLpnRowsFromInventoryDetailJoin() throws SQLException {
         DataSource dataSource = mock(DataSource.class);
-        Connection headerConnection = mock(Connection.class);
-        Connection lpnsConnection = mock(Connection.class);
+        Connection shipmentConnection = mock(Connection.class);
         PreparedStatement headerStatement = mock(PreparedStatement.class);
         PreparedStatement orderStatement = mock(PreparedStatement.class);
         PreparedStatement lpnsStatement = mock(PreparedStatement.class);
@@ -360,15 +359,15 @@ class OracleDbQueryRepositoryTest {
         ResultSet lpnsResultSet = mock(ResultSet.class);
         ResultSet lineItemsResultSet = mock(ResultSet.class);
 
-        when(dataSource.getConnection()).thenReturn(headerConnection, lpnsConnection);
-        when(headerConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("FROM WMSP.SHIPMENT s"))))
+        when(dataSource.getConnection()).thenReturn(shipmentConnection);
+        when(shipmentConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("FROM WMSP.SHIPMENT s"))))
                 .thenReturn(headerStatement);
-        when(headerConnection.prepareStatement(argThat(sql -> sql != null
+        when(shipmentConnection.prepareStatement(argThat(sql -> sql != null
                 && sql.contains("FROM WMSP.SHIPMENT_LINE sl WHERE sl.SHIP_ID = ? AND ROWNUM <= 1"))))
                 .thenReturn(orderStatement);
-        when(lpnsConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("SELECT DISTINCT "))))
+        when(shipmentConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("SELECT DISTINCT "))))
                 .thenReturn(lpnsStatement);
-        when(lpnsConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM"))))
+        when(shipmentConnection.prepareStatement(argThat(sql -> sql != null && sql.contains("pwd.SHIP_CTNNUM AS LODNUM"))))
                 .thenReturn(lineItemsStatement);
 
         when(headerStatement.executeQuery()).thenReturn(headerResultSet);
