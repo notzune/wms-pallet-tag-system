@@ -50,6 +50,7 @@ public final class RunCommand implements Callable<Integer> {
     private static final int JOB_ID_LENGTH = 8;
     private static final int MAX_LABELS_PER_JOB = 10_000;
     private static final int MAX_LABEL_PREVIEW_ROWS = 100;
+    private final RunCommandOutputSupport outputSupport = new RunCommandOutputSupport();
 
     @Option(
             names = {"-s", "--shipment-id"},
@@ -294,74 +295,20 @@ public final class RunCommand implements Callable<Integer> {
             LabelWorkflowService.PreparedJob prepared,
             List<Lpn> selectedLpns
     ) {
-        System.out.println();
-        System.out.println("=== Shipment Plan Summary ===");
-        System.out.println("Shipment: " + plan.getShipmentId());
-        System.out.println("Total units: " + plan.getTotalUnits());
-        System.out.println("Estimated pallets (footprint): " + plan.getEstimatedPallets());
-        System.out.println("  Full pallets: " + plan.getFullPallets());
-        System.out.println("  Partial pallets: " + plan.getPartialPallets());
-        if (!plan.getMissingFootprintSkus().isEmpty()) {
-            System.out.println("Missing footprint SKUs: " + String.join(", ", plan.getMissingFootprintSkus()));
-        }
-        System.out.println("Labels selected: " + plan.getSelectedLabels() + " / " + plan.getTotalLabels());
-        if (labelSelectionExpression != null && !labelSelectionExpression.isBlank()) {
-            System.out.println("Selection: " + labelSelectionExpression.trim());
-        }
-        System.out.println("Info Tags: " + plan.getInfoTagCount());
-        printShipmentLabelPreview(prepared, selectedLpns);
-        System.out.println("=============================");
-        System.out.println();
-    }
-
-    private void printShipmentLabelPreview(LabelWorkflowService.PreparedJob prepared, List<Lpn> selectedLpns) {
-        System.out.println("Label Preview:");
-        java.util.Set<String> selectedIds = new java.util.HashSet<>();
-        for (Lpn selectedLpn : selectedLpns) {
-            if (selectedLpn != null && selectedLpn.getLpnId() != null) {
-                selectedIds.add(selectedLpn.getLpnId());
-            }
-        }
-        for (int i = 0; i < prepared.getLpnsForLabels().size() && i < MAX_LABEL_PREVIEW_ROWS; i++) {
-            Lpn lpn = prepared.getLpnsForLabels().get(i);
-            boolean selected = lpn != null && selectedIds.contains(lpn.getLpnId());
-            System.out.printf("  [%s] %d. %s%n", selected ? "x" : " ", i + 1, renderLpnPreviewId(lpn));
-        }
-        if (prepared.getLpnsForLabels().size() > MAX_LABEL_PREVIEW_ROWS) {
-            System.out.println("  ... showing first " + MAX_LABEL_PREVIEW_ROWS + " labels");
-        }
-    }
-
-    private static String renderLpnPreviewId(Lpn lpn) {
-        if (lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank()) {
-            return "UNKNOWN";
-        }
-        return lpn.getLpnId();
+        System.out.print(outputSupport.buildShipmentPlanSummary(
+                plan,
+                prepared,
+                selectedLpns,
+                labelSelectionExpression,
+                MAX_LABEL_PREVIEW_ROWS
+        ));
     }
 
     private void printCarrierMovePlanSummary(WorkflowPrintPlanSupport.CarrierMovePlanSummary plan) {
-        System.out.println();
-        System.out.println("=== Carrier Move Plan Summary ===");
-        System.out.println("Carrier Move: " + plan.getCarrierMoveId());
-        System.out.println("Stops: " + plan.getTotalStops());
-        System.out.println("Total units: " + plan.getTotalUnits());
-        System.out.println("Estimated pallets (footprint): " + plan.getEstimatedPallets());
-        System.out.println("  Full pallets: " + plan.getFullPallets());
-        System.out.println("  Partial pallets: " + plan.getPartialPallets());
-        System.out.println("Labels: " + plan.getTotalLabels());
-        System.out.println("Info Tags: " + plan.getInfoTagCount());
-        System.out.println("=================================");
-        System.out.println();
+        System.out.print(outputSupport.buildCarrierMovePlanSummary(plan));
     }
 
     private void printCompletion(AdvancedPrintWorkflowService.PrintResult result) {
-        System.out.println("Success! Generated " + result.getLabelsPrinted() + " label(s) and "
-                + result.getInfoTagsPrinted() + " info tag(s)");
-        System.out.println("Output saved to: " + result.getOutputDirectory().toAbsolutePath());
-        if (result.isPrintToFile()) {
-            System.out.println("(Print-to-file mode: labels were not sent to printer)");
-        } else {
-            System.out.println("Printed to: " + result.getPrinterId() + " (" + result.getPrinterEndpoint() + ")");
-        }
+        System.out.print(outputSupport.buildCompletionMessage(result));
     }
 }
