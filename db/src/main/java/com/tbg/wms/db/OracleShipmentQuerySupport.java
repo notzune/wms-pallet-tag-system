@@ -19,8 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Shipment-oriented Oracle query support used by {@link OracleDbQueryRepository}.
@@ -29,7 +27,6 @@ import java.util.regex.Pattern;
  * enrichment so the main repository can focus on higher-level query routing.</p>
  */
 final class OracleShipmentQuerySupport {
-    private static final Pattern DC_NUMBER_PATTERN = Pattern.compile("(?i)\\bDC\\s*#?\\s*(\\d{3,6})\\b");
     private static final String DEFAULT_LINE_ITEM_UOM = "EA";
     private static final String SHIPMENT_LINE_ITEMS_SQL = "SELECT " +
             "pwd.SHIP_CTNNUM AS LODNUM, " +
@@ -53,6 +50,7 @@ final class OracleShipmentQuerySupport {
 
     private final DataSource dataSource;
     private final PrtmstDescriptionColumnResolver prtmstColumnResolver;
+    private final ShipmentDestinationSupport shipmentDestinationSupport = new ShipmentDestinationSupport();
 
     OracleShipmentQuerySupport(DataSource dataSource, PrtmstDescriptionColumnResolver prtmstColumnResolver) {
         this.dataSource = dataSource;
@@ -221,7 +219,7 @@ final class OracleShipmentQuerySupport {
                 }
 
                 Integer stopSeq = nullableInt(rs, "STOP_SEQ");
-                String destinationNumber = resolveLocationNumber(
+                String destinationNumber = shipmentDestinationSupport.resolveLocationNumber(
                         rs.getString("DEST_NUM"),
                         rs.getString("VC_DEST_ID"),
                         rs.getString("ADRNAM"),
@@ -347,34 +345,6 @@ final class OracleShipmentQuerySupport {
                     return NormalizationService.normalizeString(rs.getString("ORDNUM"));
                 }
             }
-        }
-        return null;
-    }
-
-    private String resolveLocationNumber(String destNum, String vcDestId, String shipToName, String adrHostExtId) {
-        String destination = NormalizationService.normalizeString(destNum);
-        if (!destination.isBlank()) {
-            return destination;
-        }
-        String vcDestination = NormalizationService.normalizeString(vcDestId);
-        if (!vcDestination.isBlank()) {
-            return vcDestination;
-        }
-        String dcFromName = extractDcNumber(shipToName);
-        if (dcFromName != null) {
-            return dcFromName;
-        }
-        String addressHost = NormalizationService.normalizeString(adrHostExtId);
-        return addressHost.isBlank() ? null : addressHost;
-    }
-
-    private String extractDcNumber(String shipToName) {
-        if (shipToName == null || shipToName.isBlank()) {
-            return null;
-        }
-        Matcher matcher = DC_NUMBER_PATTERN.matcher(shipToName);
-        if (matcher.find()) {
-            return matcher.group(1);
         }
         return null;
     }
