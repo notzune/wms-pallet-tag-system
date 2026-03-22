@@ -104,7 +104,7 @@ public final class LabelGuiFrame extends JFrame {
             new QueueResumeDialogSupport(buildQueueResumeDependencies(), MAX_QUEUE_ITEMS);
     private final transient GuiSettingsDialogSupport settingsDialogSupport =
             new GuiSettingsDialogSupport(buildSettingsDependencies(), PREF_PRINT_TO_FILE_DIR, LabelGuiFrame.class);
-    private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(buildBarcodeDependencies());
+    private transient BarcodeDialogFactory barcodeDialogFactory;
     private final transient GuiUpdateFlowSupport updateFlowSupport = new GuiUpdateFlowSupport();
     private final transient GuiUpdateExecutionSupport updateExecutionSupport = new GuiUpdateExecutionSupport(updateFlowSupport);
     private final transient GuiDbStatusSupport dbStatusSupport = new GuiDbStatusSupport();
@@ -135,6 +135,7 @@ public final class LabelGuiFrame extends JFrame {
         add(topContainer, BorderLayout.NORTH);
         add(buildCenterPanel(), BorderLayout.CENTER);
         add(buildBottomPanel(), BorderLayout.SOUTH);
+        this.barcodeDialogFactory = new BarcodeDialogFactory(buildBarcodeDependencies());
 
         wireActions();
         wireShortcuts();
