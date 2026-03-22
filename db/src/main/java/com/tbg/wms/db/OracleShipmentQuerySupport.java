@@ -51,6 +51,7 @@ final class OracleShipmentQuerySupport {
     private final DataSource dataSource;
     private final PrtmstDescriptionColumnResolver prtmstColumnResolver;
     private final ShipmentDestinationSupport shipmentDestinationSupport = new ShipmentDestinationSupport();
+    private final ShipmentDescriptionSupport shipmentDescriptionSupport = new ShipmentDescriptionSupport();
 
     OracleShipmentQuerySupport(DataSource dataSource, PrtmstDescriptionColumnResolver prtmstColumnResolver) {
         this.dataSource = dataSource;
@@ -355,103 +356,7 @@ final class OracleShipmentQuerySupport {
                                           String whId,
                                           String fallbackDescription,
                                           List<String> descriptionColumns) {
-        String prtdscDescription = fetchDescriptionFromPrtdsc(conn, sku, prtClientId, whId);
-        if (DescriptionTextHeuristics.isHumanReadable(prtdscDescription)) {
-            return prtdscDescription;
-        }
-        String prtmstDescription = fetchDescriptionFromPrtmst(conn, sku, prtClientId, descriptionColumns);
-        if (DescriptionTextHeuristics.isHumanReadable(prtmstDescription)) {
-            return prtmstDescription;
-        }
-        if (DescriptionTextHeuristics.isHumanReadable(fallbackDescription)) {
-            return fallbackDescription;
-        }
-        return null;
-    }
-
-    private String fetchDescriptionFromPrtdsc(Connection conn, String sku, String prtClientId, String whId) {
-        if (sku == null || sku.isBlank()) {
-            return null;
-        }
-
-        List<String> clientCandidates = new ArrayList<>();
-        if (prtClientId != null && !prtClientId.isBlank()) {
-            clientCandidates.add(prtClientId);
-        }
-        clientCandidates.add("----");
-
-        List<String> whCandidates = new ArrayList<>();
-        if (whId != null && !whId.isBlank()) {
-            whCandidates.add(whId);
-        }
-        whCandidates.add("----");
-
-        String sql = "SELECT SHORT_DSC, LNGDSC FROM WMSP.PRTDSC " +
-                "WHERE COLNAM = 'prtnum|prt_client_id|wh_id_tmpl' AND COLVAL = ? " +
-                "FETCH FIRST 1 ROWS ONLY";
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
-                for (String clientCandidate : clientCandidates) {
-                    for (String whCandidate : whCandidates) {
-                        String colVal = skuCandidate + "|" + clientCandidate + "|" + whCandidate;
-                        stmt.setString(1, colVal);
-                        try (ResultSet rs = stmt.executeQuery()) {
-                            if (rs.next()) {
-                                String shortDsc = NormalizationService.normalizeString(rs.getString("SHORT_DSC"));
-                                if (DescriptionTextHeuristics.isHumanReadable(shortDsc)) {
-                                    return shortDsc;
-                                }
-                                String longDsc = NormalizationService.normalizeString(rs.getString("LNGDSC"));
-                                if (DescriptionTextHeuristics.isHumanReadable(longDsc)) {
-                                    return longDsc;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (SQLException ignored) {
-            return null;
-        }
-        return null;
-    }
-
-    private String fetchDescriptionFromPrtmst(Connection conn,
-                                              String sku,
-                                              String prtClientId,
-                                              List<String> descriptionColumns) {
-        if (sku == null || sku.isBlank() || descriptionColumns == null || descriptionColumns.isEmpty()) {
-            return null;
-        }
-
-        String selectCols = String.join(", ", descriptionColumns);
-        boolean hasClientId = prtClientId != null && !prtClientId.isBlank();
-        String sql = hasClientId
-                ? "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? AND PRT_CLIENT_ID = ? FETCH FIRST 3 ROWS ONLY"
-                : "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? FETCH FIRST 3 ROWS ONLY";
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
-                stmt.setString(1, skuCandidate);
-                if (hasClientId) {
-                    stmt.setString(2, prtClientId);
-                }
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        for (String column : descriptionColumns) {
-                            String value = NormalizationService.normalizeString(rs.getString(column));
-                            if (DescriptionTextHeuristics.isHumanReadable(value)) {
-                                return value;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (SQLException ignored) {
-            return null;
-        }
-        return null;
+        return shipmentDescriptionSupport.resolveItemDescription(conn, sku, prtClientId, whId, fallbackDescription, descriptionColumns);
     }
 
     private static Integer nullableInt(ResultSet rs, String column) throws SQLException {
