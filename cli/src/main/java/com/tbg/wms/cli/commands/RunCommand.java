@@ -202,7 +202,7 @@ public final class RunCommand implements Callable<Integer> {
         enforceMaxLabels(plan.getTotalLabels());
         printCarrierMovePlanSummary(plan);
 
-        LabelWorkflowService.PreparedJob firstShipment = firstCarrierShipment(prepared);
+        LabelWorkflowService.PreparedJob firstShipment = prepared.firstShipmentJob();
         String printerId = resolvePrinterId(
                 printToFileMode,
                 firstShipment.getRouting(),
@@ -281,17 +281,6 @@ public final class RunCommand implements Callable<Integer> {
             throw new IllegalArgumentException("Could not resolve an enabled printer from routing.");
         }
         return routed.getId();
-    }
-
-    private LabelWorkflowService.PreparedJob firstCarrierShipment(AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared) {
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : prepared.getStopGroups()) {
-            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                if (shipmentJob != null) {
-                    return shipmentJob;
-                }
-            }
-        }
-        throw new IllegalArgumentException("Carrier move has no printable shipments.");
     }
 
     private void enforceMaxLabels(int labels) {

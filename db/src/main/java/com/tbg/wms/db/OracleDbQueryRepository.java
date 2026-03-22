@@ -17,16 +17,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Oracle implementation of DbQueryRepository.
@@ -44,30 +40,10 @@ import java.util.regex.Pattern;
 public final class OracleDbQueryRepository implements DbQueryRepository {
 
     private static final Logger log = LoggerFactory.getLogger(OracleDbQueryRepository.class);
-    private static final Pattern DC_NUMBER_PATTERN = Pattern.compile("(?i)\\bDC\\s*#?\\s*(\\d{3,6})\\b");
-    private static final String DEFAULT_LINE_ITEM_UOM = "EA";
-    private static final String SHIPMENT_LINE_ITEMS_SQL = "SELECT " +
-            "pwd.SHIP_CTNNUM AS LODNUM, " +
-            "sl.SHIP_LINE_ID, sl.ORDNUM, sl.ORDLIN, sl.ORDSLN, sl.CONS_BATCH, " +
-            "COALESCE(" +
-            "NULLIF(sl.SHPQTY, 0), " +
-            "NULLIF(sl.STGQTY, 0), " +
-            "NULLIF(sl.PCKQTY, 0), " +
-            "NULLIF(sl.INPQTY, 0), " +
-            "NULLIF(sl.TOT_PLN_QTY, 0), " +
-            "NULLIF(ol.ORDQTY, 0), " +
-            "0) AS EFFECTIVE_QTY, " +
-            "ol.PRTNUM, ol.CSTPRT, ol.ORDQTY, ol.SALES_ORDNUM, ol.UNTPAK, " +
-            "CAST(NULL AS VARCHAR2(1)) AS LNGDSC, ol.CSTPRT AS SRTDSC, 0 AS NETWGT " +
-            "FROM WMSP.PCKWRK_DTL pwd " +
-            "INNER JOIN WMSP.SHIPMENT_LINE sl ON pwd.SHIP_LINE_ID = sl.SHIP_LINE_ID " +
-            "INNER JOIN WMSP.ORD_LINE ol ON sl.ORDNUM = ol.ORDNUM " +
-            "  AND sl.ORDLIN = ol.ORDLIN AND sl.ORDSLN = ol.ORDSLN AND sl.CLIENT_ID = ol.CLIENT_ID " +
-            "WHERE pwd.SHIP_ID = ? " +
-            "ORDER BY pwd.SHIP_CTNNUM, sl.ORDLIN, sl.ORDSLN";
 
     private final DataSource dataSource;
     private final PrtmstDescriptionColumnResolver prtmstColumnResolver;
+    private final OracleShipmentQuerySupport shipmentQuerySupport;
 
     /**
      * Creates a new OracleDbQueryRepository.
@@ -78,6 +54,7 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     public OracleDbQueryRepository(DataSource dataSource) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource cannot be null");
         this.prtmstColumnResolver = new PrtmstDescriptionColumnResolver();
+        this.shipmentQuerySupport = new OracleShipmentQuerySupport(dataSource, prtmstColumnResolver);
     }
 
     private static String normalizeRailFamilyCode(String prtfam, Integer parsFlag) {
@@ -149,50 +126,13 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
 
         try {
             // Step 1: Fetch shipment header with address and order info
-            Shipment shipment = fetchShipmentHeader(normalizedId);
+            Shipment shipment = shipmentQuerySupport.loadShipment(normalizedId);
             if (shipment == null) {
                 log.warn("Shipment not found: {}", normalizedId);
                 return null;
             }
-
-            // Step 2: Fetch all LPNs for this shipment with their line items
-            List<Lpn> lpns = fetchLpnsWithLineItems(normalizedId);
-            log.debug("Found {} LPNs for shipment {}", lpns.size(), normalizedId);
-
-            // Step 3: Create new shipment with loaded LPNs
-            return new Shipment(
-                    shipment.getShipmentId(),
-                    shipment.getExternalId(),
-                    shipment.getOrderId(),
-                    shipment.getWarehouseId(),
-                    shipment.getShipToName(),
-                    shipment.getShipToAddress1(),
-                    shipment.getShipToAddress2(),
-                    shipment.getShipToAddress3(),
-                    shipment.getShipToCity(),
-                    shipment.getShipToState(),
-                    shipment.getShipToZip(),
-                    shipment.getShipToCountry(),
-                    shipment.getShipToPhone(),
-                    shipment.getCarrierCode(),
-                    shipment.getServiceLevel(),
-                    shipment.getDocumentNumber(),
-                    shipment.getTrackingNumber(),
-                    shipment.getDestinationLocation(),
-                    shipment.getCustomerPo(),
-                    shipment.getLocationNumber(),
-                    shipment.getDepartmentNumber(),
-                    shipment.getStopId(),
-                    shipment.getStopSequence(),
-                    shipment.getCarrierMoveId(),
-                    shipment.getProNumber(),
-                    shipment.getBolNumber(),
-                    shipment.getStatus(),
-                    shipment.getShipDate(),
-                    shipment.getDeliveryDate(),
-                    shipment.getCreatedDate(),
-                    lpns
-            );
+            log.debug("Found {} LPNs for shipment {}", shipment.getLpnCount(), normalizedId);
+            return shipment;
         } catch (SQLException e) {
             log.error("Database error retrieving shipment {}: {}", normalizedId, e.getSQLState());
             throw new WmsDbConnectivityException(
@@ -261,83 +201,8 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
     @Override
     public List<ShipmentSkuFootprint> findShipmentSkuFootprints(String shipmentId) {
         String normalizedId = requireNormalizedId(shipmentId, "shipmentId");
-        List<ShipmentSkuFootprint> rows = new ArrayList<>();
-
-        String sql = "WITH sku_units AS (" +
-                "  SELECT " +
-                "    ol.PRTNUM AS PRTNUM, " +
-                "    MAX(ol.PRT_CLIENT_ID) AS PRT_CLIENT_ID, " +
-                "    MAX(s.WH_ID) AS WH_ID, " +
-                "    MAX(ol.CSTPRT) AS ITEM_DESCRIPTION, " +
-                "    SUM(COALESCE(" +
-                "      NULLIF(sl.SHPQTY, 0), " +
-                "      NULLIF(sl.STGQTY, 0), " +
-                "      NULLIF(sl.PCKQTY, 0), " +
-                "      NULLIF(sl.INPQTY, 0), " +
-                "      NULLIF(sl.TOT_PLN_QTY, 0), " +
-                "      NULLIF(ol.ORDQTY, 0), " +
-                "      0)) AS TOTAL_UNITS " +
-                "  FROM WMSP.SHIPMENT_LINE sl " +
-                "  INNER JOIN WMSP.SHIPMENT s ON s.SHIP_ID = sl.SHIP_ID " +
-                "  INNER JOIN WMSP.ORD_LINE ol ON sl.ORDNUM = ol.ORDNUM " +
-                "    AND sl.ORDLIN = ol.ORDLIN AND sl.ORDSLN = ol.ORDSLN AND sl.CLIENT_ID = ol.CLIENT_ID " +
-                "  WHERE sl.SHIP_ID = ? " +
-                "  GROUP BY ol.PRTNUM" +
-                ") " +
-                "SELECT " +
-                "  su.PRTNUM, " +
-                "  su.PRT_CLIENT_ID, " +
-                "  su.WH_ID, " +
-                "  su.ITEM_DESCRIPTION, " +
-                "  su.TOTAL_UNITS, " +
-                "  MAX(CASE WHEN d.CAS_FLG = 1 THEN d.UNTQTY END) AS UNITS_PER_CASE, " +
-                "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.UNTQTY END) AS UNITS_PER_PALLET, " +
-                "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.LEN END) AS PALLET_LEN, " +
-                "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.WID END) AS PALLET_WID, " +
-                "  MAX(CASE WHEN d.PAL_FLG = 1 THEN d.HGT END) AS PALLET_HGT " +
-                "FROM sku_units su " +
-                "LEFT JOIN WMSP.PRTFTP pf ON pf.PRTNUM = su.PRTNUM " +
-                "  AND pf.PRT_CLIENT_ID = su.PRT_CLIENT_ID " +
-                "  AND pf.WH_ID = su.WH_ID " +
-                "  AND pf.DEFFTP_FLG = 1 " +
-                "LEFT JOIN WMSP.PRTFTP_DTL d ON d.PRTNUM = pf.PRTNUM " +
-                "  AND d.PRT_CLIENT_ID = pf.PRT_CLIENT_ID " +
-                "  AND d.WH_ID = pf.WH_ID " +
-                "  AND d.FTPCOD = pf.FTPCOD " +
-                "GROUP BY su.PRTNUM, su.PRT_CLIENT_ID, su.WH_ID, su.ITEM_DESCRIPTION, su.TOTAL_UNITS";
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            List<String> descriptionColumns = prtmstColumnResolver.getColumns(conn);
-            stmt.setString(1, normalizedId);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    String sku = NormalizationService.normalizeSku(rs.getString("PRTNUM"));
-                    String fallbackDescription = NormalizationService.normalizeString(rs.getString("ITEM_DESCRIPTION"));
-                    String itemDescription = resolveItemDescription(
-                            conn,
-                            sku,
-                            NormalizationService.normalizeString(rs.getString("PRT_CLIENT_ID")),
-                            NormalizationService.normalizeString(rs.getString("WH_ID")),
-                            fallbackDescription,
-                            descriptionColumns
-                    );
-
-                    rows.add(new ShipmentSkuFootprint(
-                            sku,
-                            itemDescription,
-                            rs.getInt("TOTAL_UNITS"),
-                            nullableInt(rs, "UNITS_PER_CASE"),
-                            nullableInt(rs, "UNITS_PER_PALLET"),
-                            nullableDouble(rs, "PALLET_LEN"),
-                            nullableDouble(rs, "PALLET_WID"),
-                            nullableDouble(rs, "PALLET_HGT")
-                    ));
-                }
-            }
-
+        try {
+            List<ShipmentSkuFootprint> rows = shipmentQuerySupport.loadShipmentSkuFootprints(normalizedId);
             log.debug("Loaded {} footprint rows for shipment {}", rows.size(), normalizedId);
             return rows;
         } catch (SQLException e) {
@@ -571,458 +436,14 @@ public final class OracleDbQueryRepository implements DbQueryRepository {
         log.debug("OracleDbQueryRepository closed");
     }
 
-    /**
-     * Fetches the shipment header information with all related address, order, and carrier details.
-     * <p>
-     * This is the master query that retrieves ALL fields from:
-     * - WMSP.SHIPMENT (header)
-     * - WMSP.ADRMST (ship-to address)
-     * - WMSP.ORD (order-level fields: CPONUM, DEST_NUM, DEPTNO)
-     * - WMSP.STOP (stop sequence)
-     * - WMSP.CAR_MOVE (carrier move details: PRO, BOL at move level)
-     *
-     * @param shipmentId the normalized shipment ID
-     * @return Shipment with comprehensive header data, or null if not found
-     * @throws SQLException if database operation fails
-     */
-    private Shipment fetchShipmentHeader(String shipmentId) throws SQLException {
-        String sql = "SELECT " +
-                "s.SHIP_ID, s.HOST_EXT_ID, s.WH_ID, s.SHPSTS, " +
-                "s.CARCOD, s.SRVLVL, s.DOC_NUM, s.TRACK_NUM, s.STOP_ID, s.DSTLOC, " +
-                "s.EARLY_SHPDTE, s.LATE_DLVDTE, s.ADDDTE, s.TMS_MOVE_ID, " +
-                "a.ADRNAM, a.ADRLN1, a.ADRLN2, a.ADRLN3, " +
-                "a.ADRCTY, a.ADRSTC, a.ADRPSZ, a.CTRY_NAME, a.PHNNUM, a.ATTN_NAME, a.HOST_EXT_ID AS ADR_HOST_EXT_ID, " +
-                "(SELECT MAX(o2.CPONUM) FROM WMSP.SHIPMENT_LINE sl2 " +
-                "  INNER JOIN WMSP.ORD o2 ON sl2.ORDNUM = o2.ORDNUM AND sl2.CLIENT_ID = o2.CLIENT_ID " +
-                "  WHERE sl2.SHIP_ID = s.SHIP_ID AND o2.CPONUM IS NOT NULL) AS CPONUM, " +
-                "(SELECT MAX(o2.DEST_NUM) FROM WMSP.SHIPMENT_LINE sl2 " +
-                "  INNER JOIN WMSP.ORD o2 ON sl2.ORDNUM = o2.ORDNUM AND sl2.CLIENT_ID = o2.CLIENT_ID " +
-                "  WHERE sl2.SHIP_ID = s.SHIP_ID AND o2.DEST_NUM IS NOT NULL) AS DEST_NUM, " +
-                "(SELECT MAX(o2.VC_DEST_ID) FROM WMSP.SHIPMENT_LINE sl2 " +
-                "  INNER JOIN WMSP.ORD o2 ON sl2.ORDNUM = o2.ORDNUM AND sl2.CLIENT_ID = o2.CLIENT_ID " +
-                "  WHERE sl2.SHIP_ID = s.SHIP_ID AND o2.VC_DEST_ID IS NOT NULL) AS VC_DEST_ID, " +
-                "(SELECT MAX(o2.DEPTNO) FROM WMSP.SHIPMENT_LINE sl2 " +
-                "  INNER JOIN WMSP.ORD o2 ON sl2.ORDNUM = o2.ORDNUM AND sl2.CLIENT_ID = o2.CLIENT_ID " +
-                "  WHERE sl2.SHIP_ID = s.SHIP_ID AND o2.DEPTNO IS NOT NULL) AS DEPTNO, " +
-                "st.STOP_SEQ, " +
-                "cm.DOC_NUM as CARRIER_BOL, cm.TRACK_NUM as CARRIER_PRO " +
-                "FROM WMSP.SHIPMENT s " +
-                "INNER JOIN WMSP.ADRMST a ON s.RT_ADR_ID = a.ADR_ID " +
-                "LEFT JOIN WMSP.STOP st ON s.STOP_ID = st.STOP_ID " +
-                "LEFT JOIN WMSP.CAR_MOVE cm ON s.TMS_MOVE_ID = cm.CAR_MOVE_ID " +
-                "WHERE s.SHIP_ID = ?";
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, shipmentId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    // Extract all fields with null-safe handling
-                    LocalDateTime shipDate = nullableLocalDateTime(rs, "EARLY_SHPDTE");
-                    LocalDateTime deliveryDate = nullableLocalDateTime(rs, "LATE_DLVDTE");
-                    LocalDateTime createdDate = nullableLocalDateTime(rs, "ADDDTE");
-                    if (createdDate == null) {
-                        createdDate = LocalDateTime.now();
-                    }
-
-                    Integer stopSeq = rs.getInt("STOP_SEQ");
-                    if (rs.wasNull()) {
-                        stopSeq = null;
-                    }
-
-                    String destinationNumber = resolveLocationNumber(
-                            rs.getString("DEST_NUM"),
-                            rs.getString("VC_DEST_ID"),
-                            rs.getString("ADRNAM"),
-                            rs.getString("ADR_HOST_EXT_ID")
-                    );
-
-                    return new Shipment(
-                            NormalizationService.normalizeString(rs.getString("SHIP_ID")),
-                            NormalizationService.normalizeString(rs.getString("HOST_EXT_ID")),
-                            // Derive orderId from SHIPMENT_LINE (done in real call if needed)
-                            extractFirstOrderNumber(conn, shipmentId),
-                            NormalizationService.normalizeString(rs.getString("WH_ID")),
-                            NormalizationService.normalizeString(rs.getString("ADRNAM")),
-                            NormalizationService.normalizeString(rs.getString("ADRLN1")),
-                            NormalizationService.normalizeString(rs.getString("ADRLN2")),
-                            NormalizationService.normalizeString(rs.getString("ADRLN3")),
-                            NormalizationService.normalizeString(rs.getString("ADRCTY")),
-                            NormalizationService.normalizeToUppercase(rs.getString("ADRSTC")),
-                            NormalizationService.normalizeString(rs.getString("ADRPSZ")),
-                            NormalizationService.normalizeString(rs.getString("CTRY_NAME")),
-                            NormalizationService.normalizeString(rs.getString("PHNNUM")),
-                            NormalizationService.normalizeCarrierCode(rs.getString("CARCOD")),
-                            NormalizationService.normalizeToUppercase(rs.getString("SRVLVL")),
-                            NormalizationService.normalizeString(rs.getString("DOC_NUM")),
-                            NormalizationService.normalizeString(rs.getString("TRACK_NUM")),
-                            NormalizationService.normalizeOptionalStagingLocation(rs.getString("DSTLOC")),
-                            NormalizationService.normalizeString(rs.getString("CPONUM")),
-                            destinationNumber,
-                            NormalizationService.normalizeString(rs.getString("DEPTNO")),
-                            NormalizationService.normalizeString(rs.getString("STOP_ID")),
-                            stopSeq,
-                            NormalizationService.normalizeString(rs.getString("TMS_MOVE_ID")),
-                            NormalizationService.normalizeString(rs.getString("CARRIER_PRO")),
-                            NormalizationService.normalizeString(rs.getString("CARRIER_BOL")),
-                            NormalizationService.normalizeToUppercase(rs.getString("SHPSTS")),
-                            shipDate,
-                            deliveryDate,
-                            createdDate,
-                            new ArrayList<>()
-                    );
-                }
-            }
-            return null;
-        }
-    }
-
-    /**
-     * Fetches all LPNs for a shipment with their line items.
-     * <p>
-     * Uses the PCKWRK_DTL → INVDTL → INVSUB → INVLOD chain to get complete pallet data
-     * including lot tracking and dates.
-     *
-     * @param shipmentId the normalized shipment ID
-     * @return list of LPNs with populated line items
-     * @throws SQLException if database operation fails
-     */
-    private List<Lpn> fetchLpnsWithLineItems(String shipmentId) throws SQLException {
-        String lpnSql = "SELECT DISTINCT " +
-                "il.LODNUM, il.LODUCC, il.STOLOC, il.LODWGT, " +
-                "id.LOTNUM, id.SUP_LOTNUM, id.MANDTE, id.EXPIRE_DTE " +
-                "FROM WMSP.PCKWRK_DTL pwd " +
-                "INNER JOIN WMSP.INVDTL id ON pwd.DTLNUM = id.DTLNUM " +
-                "INNER JOIN WMSP.INVSUB isub ON id.SUBNUM = isub.SUBNUM " +
-                "INNER JOIN WMSP.INVLOD il ON isub.LODNUM = il.LODNUM " +
-                "WHERE pwd.SHIP_ID = ? " +
-                "ORDER BY il.LODNUM";
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(lpnSql)) {
-            Map<String, List<LineItem>> lineItemsByLpn = fetchLineItemsByLpn(conn, shipmentId);
-            LinkedHashMap<String, MutableLpnRow> lpnsById = new LinkedHashMap<>();
-
-            stmt.setString(1, shipmentId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    String normalizedLpnId = NormalizationService.normalizeString(rs.getString("LODNUM"));
-                    if (normalizedLpnId.isBlank()) {
-                        continue;
-                    }
-                    MutableLpnRow row = lpnsById.computeIfAbsent(
-                            normalizedLpnId,
-                            ignored -> new MutableLpnRow(
-                                    normalizedLpnId,
-                                    NormalizationService.normalizeString(shipmentId),
-                                    lineItemsByLpn.getOrDefault(normalizedLpnId, List.of())
-                            )
-                    );
-                    row.merge(rs, this);
-                }
-            }
-            List<Lpn> lpns = new ArrayList<>(lpnsById.size());
-            for (MutableLpnRow row : lpnsById.values()) {
-                lpns.add(row.toLpn());
-            }
-            return lpns;
-        }
-    }
-
-    /**
-     * Fetches all line items for a shipment in one query, grouped by pallet (LPN).
-     *
-     * <p>This avoids one-query-per-LPN access patterns on large multi-pallet shipments.</p>
-     *
-     * @param conn       active database connection
-     * @param shipmentId shipment identifier
-     * @return map keyed by normalized LPN ID
-     * @throws SQLException if database operation fails
-     */
-    private Map<String, List<LineItem>> fetchLineItemsByLpn(Connection conn, String shipmentId) throws SQLException {
-        Map<String, List<LineItem>> lineItemsByLpn = new HashMap<>();
-
-        try (PreparedStatement stmt = conn.prepareStatement(SHIPMENT_LINE_ITEMS_SQL)) {
-            stmt.setString(1, shipmentId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    String lpnId = NormalizationService.normalizeString(rs.getString("LODNUM"));
-                    LineItem item = new LineItem(
-                            NormalizationService.normalizeString(rs.getString("ORDLIN")),
-                            NormalizationService.normalizeString(rs.getString("ORDSLN")),
-                            NormalizationService.normalizeSku(rs.getString("PRTNUM")),
-                            NormalizationService.normalizeString(rs.getString("SRTDSC")),
-                            NormalizationService.normalizeString(rs.getString("CSTPRT")),
-                            NormalizationService.normalizeString(rs.getString("ORDNUM")),
-                            NormalizationService.normalizeString(rs.getString("CONS_BATCH")),
-                            NormalizationService.normalizeString(rs.getString("SALES_ORDNUM")),
-                            rs.getInt("EFFECTIVE_QTY"),
-                            rs.getInt("UNTPAK"),
-                            // WMS shipment-line joins used here do not expose a stable unit-of-measure column;
-                            // preserve legacy behavior with explicit EA fallback.
-                            DEFAULT_LINE_ITEM_UOM,
-                            rs.getDouble("NETWGT"),
-                            null, // walmartItemNumber - will be looked up via SkuMappingService
-                            null, // gtinBarcode - could be fetched from ALT_PRTMST
-                            null  // upcCode - could be fetched from ALT_PRTMST
-                    );
-                    lineItemsByLpn.computeIfAbsent(lpnId, ignored -> new ArrayList<>()).add(item);
-                }
-            }
-        }
-
-        return lineItemsByLpn;
-    }
-
-    /**
-     * Helper: Extract the first order number from a shipment's lines.
-     * This is used to populate the orderId field.
-     *
-     * @param conn       active database connection
-     * @param shipmentId the shipment ID
-     * @return first order number, or null
-     * @throws SQLException if database operation fails
-     */
-    private String extractFirstOrderNumber(Connection conn, String shipmentId) throws SQLException {
-        String sql = "SELECT sl.ORDNUM FROM WMSP.SHIPMENT_LINE sl WHERE sl.SHIP_ID = ? AND ROWNUM <= 1";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, shipmentId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return NormalizationService.normalizeString(rs.getString("ORDNUM"));
-                }
-            }
-        }
-        return null;
-    }
-
-    private String resolveLocationNumber(String destNum,
-                                         String vcDestId,
-                                         String shipToName,
-                                         String adrHostExtId) {
-        // Prefer explicit order-level destination first; downstream fallbacks are heuristic.
-        String destination = NormalizationService.normalizeString(destNum);
-        if (!destination.isBlank()) {
-            return destination;
-        }
-
-        String vcDestination = NormalizationService.normalizeString(vcDestId);
-        if (!vcDestination.isBlank()) {
-            return vcDestination;
-        }
-
-        String dcFromName = extractDcNumber(shipToName);
-        if (dcFromName != null) {
-            return dcFromName;
-        }
-
-        String addressHost = NormalizationService.normalizeString(adrHostExtId);
-        return addressHost.isBlank() ? null : addressHost;
-    }
-
-    private String extractDcNumber(String shipToName) {
-        if (shipToName == null || shipToName.isBlank()) {
-            return null;
-        }
-        Matcher matcher = DC_NUMBER_PATTERN.matcher(shipToName);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
-    }
-
-    private String resolveItemDescription(Connection conn,
-                                          String sku,
-                                          String prtClientId,
-                                          String whId,
-                                          String fallbackDescription,
-                                          List<String> descriptionColumns) {
-        String prtdscDescription = fetchDescriptionFromPrtdsc(conn, sku, prtClientId, whId);
-        if (DescriptionTextHeuristics.isHumanReadable(prtdscDescription)) {
-            return prtdscDescription;
-        }
-
-        String prtmstDescription = fetchDescriptionFromPrtmst(conn, sku, prtClientId, descriptionColumns);
-        if (DescriptionTextHeuristics.isHumanReadable(prtmstDescription)) {
-            return prtmstDescription;
-        }
-        if (DescriptionTextHeuristics.isHumanReadable(fallbackDescription)) {
-            return fallbackDescription;
-        }
-        return null;
-    }
-
-    private String fetchDescriptionFromPrtdsc(Connection conn,
-                                              String sku,
-                                              String prtClientId,
-                                              String whId) {
-        if (sku == null || sku.isBlank()) {
-            return null;
-        }
-
-        List<String> clientCandidates = new ArrayList<>();
-        if (prtClientId != null && !prtClientId.isBlank()) {
-            clientCandidates.add(prtClientId);
-        }
-        clientCandidates.add("----");
-
-        List<String> whCandidates = new ArrayList<>();
-        if (whId != null && !whId.isBlank()) {
-            whCandidates.add(whId);
-        }
-        whCandidates.add("----");
-
-        String sql = "SELECT SHORT_DSC, LNGDSC FROM WMSP.PRTDSC " +
-                "WHERE COLNAM = 'prtnum|prt_client_id|wh_id_tmpl' AND COLVAL = ? " +
-                "FETCH FIRST 1 ROWS ONLY";
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
-                // Probe most specific keys first (real client/warehouse), then wildcard placeholders.
-                for (String clientCandidate : clientCandidates) {
-                    for (String whCandidate : whCandidates) {
-                        String colVal = skuCandidate + "|" + clientCandidate + "|" + whCandidate;
-                        stmt.setString(1, colVal);
-                        try (ResultSet rs = stmt.executeQuery()) {
-                            if (rs.next()) {
-                                String shortDsc = NormalizationService.normalizeString(rs.getString("SHORT_DSC"));
-                                if (DescriptionTextHeuristics.isHumanReadable(shortDsc)) {
-                                    return shortDsc;
-                                }
-                                String longDsc = NormalizationService.normalizeString(rs.getString("LNGDSC"));
-                                if (DescriptionTextHeuristics.isHumanReadable(longDsc)) {
-                                    return longDsc;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            log.debug("Could not query PRTDSC for SKU {}: {}", sku, e.getMessage());
-        }
-        return null;
-    }
-
-    private String fetchDescriptionFromPrtmst(Connection conn,
-                                              String sku,
-                                              String prtClientId,
-                                              List<String> descriptionColumns) {
-        if (sku == null || sku.isBlank() || descriptionColumns == null || descriptionColumns.isEmpty()) {
-            return null;
-        }
-
-        String selectCols = String.join(", ", descriptionColumns);
-        boolean hasClientId = prtClientId != null && !prtClientId.isBlank();
-        String sql = hasClientId
-                ? "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? AND PRT_CLIENT_ID = ? FETCH FIRST 3 ROWS ONLY"
-                : "SELECT " + selectCols + " FROM WMSP.PRTMST WHERE PRTNUM = ? FETCH FIRST 3 ROWS ONLY";
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            for (String skuCandidate : SkuCandidateBuilder.buildCandidates(sku)) {
-                stmt.setString(1, skuCandidate);
-                if (hasClientId) {
-                    stmt.setString(2, prtClientId);
-                }
-
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        // Honor preferred column order (SHORT_DSC before longer alternates).
-                        for (String column : descriptionColumns) {
-                            String value = NormalizationService.normalizeString(rs.getString(column));
-                            if (DescriptionTextHeuristics.isHumanReadable(value)) {
-                                return value;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            log.debug("Could not resolve PRTMST description for SKU {}: {}", sku, e.getMessage());
-        }
-        return null;
-    }
-
-    private Integer nullableInt(ResultSet rs, String column) throws SQLException {
-        int value = rs.getInt(column);
-        return rs.wasNull() ? null : value;
-    }
-
-    private Double nullableDouble(ResultSet rs, String column) throws SQLException {
-        double value = rs.getDouble(column);
-        return rs.wasNull() ? null : value;
-    }
-
     private LocalDateTime nullableLocalDateTime(ResultSet rs, String column) throws SQLException {
         Timestamp timestamp = rs.getTimestamp(column);
         return timestamp == null ? null : timestamp.toLocalDateTime();
     }
 
-    private LocalDate nullableLocalDate(ResultSet rs, String column) throws SQLException {
-        Date date = rs.getDate(column);
-        return date == null ? null : date.toLocalDate();
-    }
-
-    /**
-     * Keeps the first meaningful value while allowing later rows to backfill blanks produced by
-     * mixed-detail inventory joins.
-     */
-    private static String preferNonBlank(String currentValue, String candidateValue) {
-        return currentValue == null || currentValue.isBlank() ? candidateValue : currentValue;
-    }
-
-    private static final class MutableLpnRow {
-        private final String lpnId;
-        private final String shipmentId;
-        private final List<LineItem> lineItems;
-        private String sscc;
-        private double weight;
-        private String stagingLocation;
-        private String warehouseLot;
-        private String customerLot;
-        private LocalDate manufactureDate;
-        private LocalDate bestByDate;
-
-        private MutableLpnRow(String lpnId, String shipmentId, List<LineItem> lineItems) {
-            this.lpnId = lpnId;
-            this.shipmentId = shipmentId;
-            this.lineItems = List.copyOf(lineItems);
-        }
-
-        private void merge(ResultSet rs, OracleDbQueryRepository repository) throws SQLException {
-            sscc = preferNonBlank(sscc, NormalizationService.normalizeBarcode(rs.getString("LODUCC")));
-            if (weight == 0.0d) {
-                weight = rs.getDouble("LODWGT");
-            }
-            stagingLocation = preferNonBlank(stagingLocation,
-                    NormalizationService.normalizeOptionalStagingLocation(rs.getString("STOLOC")));
-            warehouseLot = preferNonBlank(warehouseLot, NormalizationService.normalizeString(rs.getString("LOTNUM")));
-            customerLot = preferNonBlank(customerLot, NormalizationService.normalizeString(rs.getString("SUP_LOTNUM")));
-            if (manufactureDate == null) {
-                manufactureDate = repository.nullableLocalDate(rs, "MANDTE");
-            }
-            if (bestByDate == null) {
-                bestByDate = repository.nullableLocalDate(rs, "EXPIRE_DTE");
-            }
-        }
-
-        private Lpn toLpn() {
-            return new Lpn(
-                    lpnId,
-                    shipmentId,
-                    sscc,
-                    0,
-                    0,
-                    weight,
-                    stagingLocation,
-                    warehouseLot,
-                    customerLot,
-                    manufactureDate,
-                    bestByDate,
-                    lineItems
-            );
-        }
+    private Integer nullableInt(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
+        return rs.wasNull() ? null : value;
     }
 
     private static final class MutableRailStop {
