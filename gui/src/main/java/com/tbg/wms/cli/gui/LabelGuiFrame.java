@@ -87,6 +87,7 @@ public final class LabelGuiFrame extends JFrame {
             new PreviewRenderSupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
     private final transient GuiPrintFlowSupport printFlowSupport = new GuiPrintFlowSupport();
     private final transient GuiPrinterSelectionSupport printerSelectionSupport = new GuiPrinterSelectionSupport();
+    private final transient GuiPreviewSelectionUiSupport previewSelectionUiSupport = new GuiPreviewSelectionUiSupport();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
             new QueueResumeDialogSupport(new QueueResumeDependencies(), MAX_QUEUE_ITEMS);
@@ -433,18 +434,15 @@ public final class LabelGuiFrame extends JFrame {
         int selected = selection.selectedLabelCount();
         int infoTags = selection.infoTagCount();
         int totalDocuments = selection.totalDocuments();
-        labelSelectionStatusLabel.setText("Selected " + selected + " of " + total + " labels | Info Tags " + infoTags
-                + " | Total Documents " + totalDocuments);
-        labelSelectionToggleButton.setText(selected == total ? "Deselect All" : "Select All");
+        labelSelectionStatusLabel.setText(previewSelectionUiSupport.selectionStatusText(selected, total, infoTags, totalDocuments));
+        labelSelectionToggleButton.setText(previewSelectionUiSupport.selectionToggleText(selected, total));
         refreshPreviewText(selection);
         updatePrintButtonEnabled(selection);
     }
 
     private void updateLabelSelectionCollapseUi() {
         boolean expanded = labelSelectionCollapseButton.isSelected();
-        labelSelectionCollapseButton.setText(expanded
-                ? "Label Selection [expanded]"
-                : "Label Selection [collapsed]");
+        labelSelectionCollapseButton.setText(previewSelectionUiSupport.collapseButtonText(expanded));
         labelSelectionContentPanel.setVisible(expanded);
         labelSelectionPanel.revalidate();
         labelSelectionPanel.repaint();
@@ -829,11 +827,13 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void updatePrintButtonEnabled(PreviewSelectionSupport.SelectionSnapshot selection) {
-        if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            printButton.setEnabled(!selection.selectedCarrierLabels().isEmpty());
-            return;
-        }
-        printButton.setEnabled(preparedJob != null && !selection.selectedShipmentLpns().isEmpty() && !isCarrierMoveMode());
+        printButton.setEnabled(previewSelectionUiSupport.shouldEnablePrint(
+                isCarrierMoveMode(),
+                preparedCarrierJob != null,
+                preparedJob != null,
+                selection.selectedCarrierLabels().size(),
+                selection.selectedShipmentLpns().size()
+        ));
     }
 
     private void openQueueDialog() {
