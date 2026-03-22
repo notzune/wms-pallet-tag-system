@@ -85,6 +85,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient PreviewSelectionSupport previewSelectionSupport = new PreviewSelectionSupport();
     private final transient PreviewRenderSupport previewRenderSupport =
             new PreviewRenderSupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
+    private final transient GuiPreviewExecutionSupport previewExecutionSupport = new GuiPreviewExecutionSupport();
     private final transient GuiPrintFlowSupport printFlowSupport = new GuiPrintFlowSupport();
     private final transient GuiPrintExecutionSupport printExecutionSupport = new GuiPrintExecutionSupport(printFlowSupport);
     private final transient GuiPrinterSelectionSupport printerSelectionSupport = new GuiPrinterSelectionSupport();
@@ -327,9 +328,11 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void previewJob() {
-        String inputId = shipmentField.getText().trim();
-        if (inputId.isEmpty()) {
-            showError(isCarrierMoveMode() ? "Enter a Carrier Move ID." : "Enter a Shipment ID.");
+        GuiPreviewExecutionSupport.PreviewRequest request;
+        try {
+            request = previewExecutionSupport.prepareRequest(shipmentField.getText(), isCarrierMoveMode());
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
             return;
         }
 
@@ -341,27 +344,35 @@ public final class LabelGuiFrame extends JFrame {
         SwingWorker<Object, Void> worker = new SwingWorker<>() {
             @Override
             protected Object doInBackground() throws Exception {
-                if (isCarrierMoveMode()) {
-                    return advancedService.prepareCarrierMoveJob(inputId);
-                }
-                return service.prepareJob(inputId);
+                return previewExecutionSupport.execute(request, new GuiPreviewExecutionSupport.PreviewLoader() {
+                    @Override
+                    public LabelWorkflowService.PreparedJob prepareShipmentJob(String shipmentId) throws Exception {
+                        return service.prepareJob(shipmentId);
+                    }
+
+                    @Override
+                    public AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepareCarrierMoveJob(String carrierMoveId) throws Exception {
+                        return advancedService.prepareCarrierMoveJob(carrierMoveId);
+                    }
+                });
             }
 
             @Override
             protected void done() {
                 try {
-                    Object prepared = get();
-                    if (prepared instanceof AdvancedPrintWorkflowService.PreparedCarrierMoveJob) {
-                        preparedCarrierJob = (AdvancedPrintWorkflowService.PreparedCarrierMoveJob) prepared;
+                    GuiPreviewExecutionSupport.PreparedPreview prepared = (GuiPreviewExecutionSupport.PreparedPreview) get();
+                    if (prepared.isCarrierMove()) {
+                        preparedCarrierJob = prepared.carrierMoveJob();
                         renderCarrierMovePreview(preparedCarrierJob);
                     } else {
-                        preparedJob = (LabelWorkflowService.PreparedJob) prepared;
+                        preparedJob = prepared.shipmentJob();
                         renderPreview(preparedJob);
                     }
-                    setReady("Preview ready. Verify details, then click Confirm Print.");
+                    setReady(previewExecutionSupport.buildSuccessOutcome().statusMessage());
                 } catch (Exception ex) {
-                    setReady("Preview failed.");
-                    showError(rootMessage(ex));
+                    GuiPreviewExecutionSupport.FailureOutcome outcome = previewExecutionSupport.buildFailureOutcome(ex);
+                    setReady(outcome.statusMessage());
+                    showError(outcome.errorMessage());
                 }
             }
         };
