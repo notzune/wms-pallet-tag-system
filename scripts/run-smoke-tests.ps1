@@ -392,6 +392,45 @@ function New-ScenarioResult {
     }
 }
 
+function New-ScenarioResultFromChecks {
+    param(
+        [Parameter(Mandatory = $true)]
+        $Scenario,
+        [Parameter(Mandatory = $true)]
+        [int]$ExitCode,
+        [Parameter(Mandatory = $true)]
+        [string]$Output,
+        [Parameter(Mandatory = $true)]
+        [string]$ArtifactBaseDir
+    )
+
+    $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($Scenario.expectedArtifacts) -ArtifactBaseDir $ArtifactBaseDir
+    return New-ScenarioResult -Name $Scenario.name -Tier $Scenario.tier -Kind $Scenario.kind `
+        -ExitCode $ExitCode -ExpectedExitCode $Scenario.expectedExitCode -Output $Output `
+        -ArtifactsPassed $artifactCheck.Passed -ArtifactDetails $artifactCheck.Details
+}
+
+function Update-ConfigSourceResult {
+    param(
+        [Parameter(Mandatory = $true)]
+        $Scenario,
+        [Parameter(Mandatory = $true)]
+        $Result,
+        [Parameter(Mandatory = $true)]
+        [string]$OutputText
+    )
+
+    if ($Scenario.kind -ne "config-source" -or [string]::IsNullOrWhiteSpace($Scenario.expectedConfigSourcePattern)) {
+        return $Result
+    }
+
+    if ($OutputText -notmatch [regex]::Escape($Scenario.expectedConfigSourcePattern)) {
+        $Result.Passed = $false
+        $Result.ArtifactDetails = "Expected config source pattern missing: $($Scenario.expectedConfigSourcePattern)"
+    }
+    return $Result
+}
+
 $scriptRoot = Split-Path -Parent $PSCommandPath
 $sourceRoot = Split-Path -Parent $scriptRoot
 $manifestPath = Join-Path $sourceRoot "scripts\smoke\smoke-manifest.json"
@@ -439,19 +478,15 @@ foreach ($scenario in $manifest.scenarios) {
 
     if ($scenario.kind -eq "printer-reachability") {
         $invokeResult = Invoke-PrinterReachabilityScenario -Scenario $scenario
-        $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($scenario.expectedArtifacts) -ArtifactBaseDir $scenarioOutputDir
-        $results.Add((New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
-            -ExitCode $invokeResult.ExitCode -ExpectedExitCode $scenario.expectedExitCode -Output $invokeResult.Output `
-            -ArtifactsPassed $artifactCheck.Passed -ArtifactDetails $artifactCheck.Details)) | Out-Null
+        $results.Add((New-ScenarioResultFromChecks -Scenario $scenario -ExitCode $invokeResult.ExitCode `
+            -Output $invokeResult.Output -ArtifactBaseDir $scenarioOutputDir)) | Out-Null
         continue
     }
 
     if ($scenario.kind -eq "asset-check") {
         $artifactBaseDir = if ($Mode -eq "packaged") { $resolvedTargetPath } else { $sourceRoot }
-        $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($scenario.expectedArtifacts) -ArtifactBaseDir $artifactBaseDir
-        $results.Add((New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
-            -ExitCode 0 -ExpectedExitCode $scenario.expectedExitCode -Output "asset-check" `
-            -ArtifactsPassed $artifactCheck.Passed -ArtifactDetails $artifactCheck.Details)) | Out-Null
+        $results.Add((New-ScenarioResultFromChecks -Scenario $scenario -ExitCode 0 `
+            -Output "asset-check" -ArtifactBaseDir $artifactBaseDir)) | Out-Null
         continue
     }
 
@@ -465,10 +500,8 @@ foreach ($scenario in $manifest.scenarios) {
 
         $invokeResult = Invoke-BootstrapInstallScenario -SourceRoot $sourceRoot -ScenarioOutputDir $scenarioOutputDir `
             -ConfigPath $resolvedConfigPath -ExpectedConfigSourcePattern $scenario.expectedConfigSourcePattern
-        $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($scenario.expectedArtifacts) -ArtifactBaseDir $scenarioOutputDir
-        $results.Add((New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
-            -ExitCode $invokeResult.ExitCode -ExpectedExitCode $scenario.expectedExitCode -Output $invokeResult.Output `
-            -ArtifactsPassed $artifactCheck.Passed -ArtifactDetails $artifactCheck.Details)) | Out-Null
+        $results.Add((New-ScenarioResultFromChecks -Scenario $scenario -ExitCode $invokeResult.ExitCode `
+            -Output $invokeResult.Output -ArtifactBaseDir $scenarioOutputDir)) | Out-Null
         continue
     }
 
@@ -497,18 +530,9 @@ foreach ($scenario in $manifest.scenarios) {
         }
     }
 
-    $artifactCheck = Test-ExpectedArtifacts -ExpectedArtifacts @($scenario.expectedArtifacts) -ArtifactBaseDir $artifactBaseDir
-    $result = New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
-        -ExitCode $invokeResult.ExitCode -ExpectedExitCode $scenario.expectedExitCode -Output $invokeResult.Output `
-        -ArtifactsPassed $artifactCheck.Passed -ArtifactDetails $artifactCheck.Details
-
-    if ($scenario.kind -eq "config-source" -and $scenario.expectedConfigSourcePattern) {
-        if ($invokeResult.Output -notmatch [regex]::Escape($scenario.expectedConfigSourcePattern)) {
-            $result.Passed = $false
-            $result.ArtifactDetails = "Expected config source pattern missing: $($scenario.expectedConfigSourcePattern)"
-        }
-    }
-
+    $result = New-ScenarioResultFromChecks -Scenario $scenario -ExitCode $invokeResult.ExitCode `
+        -Output $invokeResult.Output -ArtifactBaseDir $artifactBaseDir
+    $result = Update-ConfigSourceResult -Scenario $scenario -Result $result -OutputText $invokeResult.Output
     $results.Add($result) | Out-Null
 }
 
