@@ -24,13 +24,9 @@ import picocli.CommandLine.Option;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.regex.Pattern;
 
 /**
  * Generates a standalone barcode label and optionally prints it.
@@ -43,9 +39,8 @@ public final class BarcodeCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(BarcodeCommand.class);
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-    private static final Pattern NON_ALNUM_PATTERN = Pattern.compile("[^a-z0-9]+");
     private static final int JOB_ID_LENGTH = 8;
-    private static final int MAX_SLUG_LENGTH = 40;
+    private final BarcodeCommandSupport commandSupport = new BarcodeCommandSupport();
 
     @Option(
             names = {"-d", "--data"},
@@ -159,17 +154,6 @@ public final class BarcodeCommand implements Callable<Integer> {
     )
     private boolean printToFile;
 
-    private static String safeSlug(String value) {
-        if (value == null) {
-            return "data";
-        }
-        String slug = NON_ALNUM_PATTERN.matcher(value.trim().toLowerCase(Locale.ROOT)).replaceAll("-");
-        if (slug.isEmpty()) {
-            return "data";
-        }
-        return slug.length() > MAX_SLUG_LENGTH ? slug.substring(0, MAX_SLUG_LENGTH) : slug;
-    }
-
     /**
      * Executes barcode generation and optional print/file output flow.
      *
@@ -177,6 +161,22 @@ public final class BarcodeCommand implements Callable<Integer> {
      */
     @Override
     public Integer call() {
+        String validationError = commandSupport.validateOptions(
+                data,
+                labelWidthDots,
+                labelHeightDots,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                copies
+        );
+        if (validationError != null) {
+            System.err.println(validationError);
+            return 2;
+        }
+
         String jobId = UUID.randomUUID().toString().substring(0, JOB_ID_LENGTH);
         log.info("Generating barcode label (jobId={})", jobId);
 
@@ -187,7 +187,7 @@ public final class BarcodeCommand implements Callable<Integer> {
         String effectiveOutputDir = printToFile
                 ? RuntimePathResolver.resolveJarSiblingDir(BarcodeCommand.class, "out").toString()
                 : outputDir;
-        Path zplFile = writeZplFile(zpl, effectiveOutputDir);
+        Path zplFile = commandSupport.writeZplFile(zpl, effectiveOutputDir, data, TS, log);
         if (zplFile == null) {
             return 2;
         }
@@ -237,28 +237,6 @@ public final class BarcodeCommand implements Callable<Integer> {
                 humanReadable,
                 copies
         );
-    }
-
-    private Path writeZplFile(String zpl, String outputDirPath) {
-        Path outputPath = Paths.get(outputDirPath);
-        try {
-            Files.createDirectories(outputPath);
-        } catch (Exception e) {
-            log.error("Failed to create output directory: {}", outputPath, e);
-            System.err.println("Error: Unable to create output directory: " + outputPath);
-            return null;
-        }
-
-        String fileName = String.format("barcode-%s-%s.zpl", TS.format(LocalDateTime.now()), safeSlug(data));
-        Path zplFile = outputPath.resolve(fileName);
-        try {
-            Files.writeString(zplFile, zpl);
-            return zplFile;
-        } catch (Exception e) {
-            log.error("Failed to write ZPL file: {}", zplFile, e);
-            System.err.println("Error: Unable to write ZPL file: " + zplFile);
-            return null;
-        }
     }
 
     private PrinterConfig resolvePrinter() {
