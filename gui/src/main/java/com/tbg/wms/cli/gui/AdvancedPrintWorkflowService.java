@@ -37,6 +37,7 @@ public final class AdvancedPrintWorkflowService {
     private final LabelWorkflowService shipmentService;
     private final PrintCheckpointSupport checkpointSupport;
     private final CarrierMovePreparationSupport carrierMovePreparationSupport = new CarrierMovePreparationSupport();
+    private final AdvancedPrintResultSupport resultSupport = new AdvancedPrintResultSupport();
 
     public AdvancedPrintWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
@@ -157,7 +158,7 @@ public final class AdvancedPrintWorkflowService {
             boolean includeInfoTags
     ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
-        PrinterConfig printer = resolvePrinterForPrint(job.getRouting(), printerId, printToFile);
+        PrinterConfig printer = resultSupport.resolvePrinterForPrint(job.getRouting(), printerId, printToFile);
         Path targetDir = outputDir == null
                 ? Paths.get("out", "gui-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()))
                 : outputDir;
@@ -168,7 +169,7 @@ public final class AdvancedPrintWorkflowService {
         JobCheckpoint checkpoint = checkpointSupport.createCheckpoint("shipment-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()),
                 InputMode.SHIPMENT, job.getShipmentId(), targetDir, printToFile, printer, tasks);
         checkpointSupport.executeTasks(checkpoint, printer, 0);
-        return toResult(checkpoint);
+        return resultSupport.toResult(checkpoint);
     }
 
     public PrintResult printCarrierMoveJob(PreparedCarrierMoveJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
@@ -195,7 +196,7 @@ public final class AdvancedPrintWorkflowService {
     ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
         LabelWorkflowService.PreparedJob firstShipment = job.firstShipmentJob();
-        PrinterConfig printer = resolvePrinterForPrint(firstShipment.getRouting(), printerId, printToFile);
+        PrinterConfig printer = resultSupport.resolvePrinterForPrint(firstShipment.getRouting(), printerId, printToFile);
         Path targetDir = outputDir == null
                 ? Paths.get("out", "gui-cmid-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()))
                 : outputDir;
@@ -203,7 +204,7 @@ public final class AdvancedPrintWorkflowService {
         JobCheckpoint checkpoint = checkpointSupport.createCheckpoint("carrier-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()),
                 InputMode.CARRIER_MOVE, job.carrierMoveId, targetDir, printToFile, printer, tasks);
         checkpointSupport.executeTasks(checkpoint, printer, 0);
-        return toResult(checkpoint);
+        return resultSupport.toResult(checkpoint);
     }
 
     public List<ResumeCandidate> listIncompleteJobs() throws Exception {
@@ -214,32 +215,7 @@ public final class AdvancedPrintWorkflowService {
      * Resume from last successful task (safe mode): reprint the most recent completed task, then continue.
      */
     public PrintResult resumeJob(String checkpointId) throws Exception {
-        return toResult(checkpointSupport.resumeJob(checkpointId));
-    }
-
-    private PrinterConfig resolvePrinterForPrint(com.tbg.wms.core.print.PrinterRoutingService routing, String printerId, boolean printToFile) {
-        if (printToFile) {
-            return null;
-        }
-        String id = printerId == null ? "" : printerId.trim();
-        if (id.isEmpty()) {
-            throw new IllegalArgumentException("Printer is required.");
-        }
-        return routing.findPrinter(id)
-                .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + id));
-    }
-
-    private PrintResult toResult(JobCheckpoint checkpoint) {
-        int labels = 0;
-        int info = 0;
-        for (PrintTask task : checkpoint.tasks) {
-            if (task.kind == TaskKind.PALLET_LABEL) {
-                labels++;
-            } else {
-                info++;
-            }
-        }
-        return new PrintResult(labels, info, Paths.get(checkpoint.outputDirectory), checkpoint.printerId, checkpoint.printerEndpoint, checkpoint.printToFile);
+        return resultSupport.toResult(checkpointSupport.resumeJob(checkpointId));
     }
 
     public enum InputMode {
@@ -391,7 +367,7 @@ public final class AdvancedPrintWorkflowService {
         private final String printerEndpoint;
         private final boolean printToFile;
 
-        private PrintResult(int labelsPrinted, int infoTagsPrinted, Path outputDirectory, String printerId, String printerEndpoint, boolean printToFile) {
+        PrintResult(int labelsPrinted, int infoTagsPrinted, Path outputDirectory, String printerId, String printerEndpoint, boolean printToFile) {
             this.labelsPrinted = labelsPrinted;
             this.infoTagsPrinted = infoTagsPrinted;
             this.outputDirectory = outputDirectory;
