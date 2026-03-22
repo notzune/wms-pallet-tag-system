@@ -58,7 +58,7 @@ final class QueueInputParserTest {
     @Test
     void parseSupportsSemicolonSeparatedInputAndIgnoresWhitespace() {
         List<AdvancedPrintWorkflowService.QueueRequestItem> items = QueueInputParser.parse(
-                " 8000574112 ; FREJCC1226;  S:8000575651 ; C:FREJCG3125 ",
+                " 8000574112 ; 241127;  S:8000575651 ; C:241395 ",
                 AdvancedPrintWorkflowService.QueueItemType.SHIPMENT,
                 10
         );
@@ -67,24 +67,37 @@ final class QueueInputParserTest {
         assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(0).getType());
         assertEquals("8000574112", items.get(0).getId());
         assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(1).getType());
-        assertEquals("FREJCC1226", items.get(1).getId());
+        assertEquals("241127", items.get(1).getId());
         assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(2).getType());
         assertEquals("8000575651", items.get(2).getId());
         assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(3).getType());
-        assertEquals("FREJCG3125", items.get(3).getId());
+        assertEquals("241395", items.get(3).getId());
     }
 
     @Test
-    void parseUsesDefaultTypeForAmbiguousUnprefixedIds() {
+    void parseTreatsNumericNonShipmentIdsAsCarrierMoves() {
         List<AdvancedPrintWorkflowService.QueueRequestItem> items = QueueInputParser.parse(
                 "12345;67890",
-                AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE,
+                AdvancedPrintWorkflowService.QueueItemType.SHIPMENT,
                 10
         );
 
         assertEquals(2, items.size());
         assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(0).getType());
         assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(1).getType());
+    }
+
+    @Test
+    void parseUsesDefaultTypeForNonNumericAmbiguousIds() {
+        List<AdvancedPrintWorkflowService.QueueRequestItem> items = QueueInputParser.parse(
+                "ABC123;FREJCC",
+                AdvancedPrintWorkflowService.QueueItemType.SHIPMENT,
+                10
+        );
+
+        assertEquals(2, items.size());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(0).getType());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(1).getType());
     }
 
     /**

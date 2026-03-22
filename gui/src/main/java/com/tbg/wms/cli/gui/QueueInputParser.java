@@ -97,7 +97,7 @@ final class QueueInputParser {
         if (looksLikeShipmentId(id)) {
             return AdvancedPrintWorkflowService.QueueItemType.SHIPMENT;
         }
-        if (looksLikeCarrierMoveId(id)) {
+        if (looksLikeNumericId(id)) {
             return AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE;
         }
         return defaultType;
@@ -115,19 +115,15 @@ final class QueueInputParser {
         return true;
     }
 
-    private static boolean looksLikeCarrierMoveId(String id) {
-        boolean hasLetter = false;
-        boolean hasDigit = false;
+    private static boolean looksLikeNumericId(String id) {
+        if (id.isBlank()) {
+            return false;
+        }
         for (int i = 0; i < id.length(); i++) {
-            char ch = id.charAt(i);
-            if (Character.isLetter(ch)) {
-                hasLetter = true;
-            } else if (Character.isDigit(ch)) {
-                hasDigit = true;
-            } else {
+            if (!Character.isDigit(id.charAt(i))) {
                 return false;
             }
         }
-        return hasLetter && hasDigit;
+        return true;
     }
 }
