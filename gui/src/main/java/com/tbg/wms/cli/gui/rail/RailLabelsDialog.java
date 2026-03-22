@@ -49,6 +49,7 @@ public final class RailLabelsDialog extends JDialog {
 
     private final transient RailWorkflowService service;
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
+    private final transient RailDialogSupport dialogSupport = new RailDialogSupport();
     private transient RailWorkflowService.PreparedRailJob preparedJob;
 
     public RailLabelsDialog(JFrame owner, AppConfig config) {
@@ -254,11 +255,9 @@ public final class RailLabelsDialog extends JDialog {
                 setButtonsEnabled(preparedJob != null);
                 try {
                     RailWorkflowService.GenerationResult result = get();
-                    String message = "PDF generated:\n" + result.getPdfPath() +
-                            "\n\nOutput directory:\n" + result.getOutputDirectory() +
-                            (result.isPrinted() ? "\n\nPrint command sent to " + result.getPrinterId() + "." : "");
+                    String message = dialogSupport.buildGenerationMessage(result);
                     diagnosticsArea.append("\n\nGeneration Result\n-----------------\n" + message + '\n');
-                    setReady(result.isPrinted() ? "PDF generated and print command sent." : "PDF generated.");
+                    setReady(dialogSupport.buildReadyMessage(result));
                 } catch (Exception ex) {
                     setReady("Generation failed.");
                     showError(rootMessage(ex));
@@ -315,12 +314,8 @@ public final class RailLabelsDialog extends JDialog {
             @Override
             protected void done() {
                 try {
-                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
-                    model.addElement(GuiPrinterTargetSupport.buildSystemDefaultPrinterOption());
-                    for (LabelWorkflowService.PrinterOption option : get()) {
-                        model.addElement(option);
-                    }
-                    model.addElement(GuiPrinterTargetSupport.buildPrintToFileOption(defaultOutputDir()));
+                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model =
+                            dialogSupport.buildPrinterModel(get(), defaultOutputDir());
                     printerCombo.setModel(model);
                     if (model.getSize() > 0) {
                         printerCombo.setSelectedIndex(0);
@@ -339,18 +334,15 @@ public final class RailLabelsDialog extends JDialog {
 
     private void syncPrintTargetUi() {
         LabelWorkflowService.PrinterOption selectedPrinter = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        boolean printToFile = GuiPrinterTargetSupport.isPrintToFile(selectedPrinter);
-        if (printToFile) {
-            printNowCheck.setSelected(false);
-        }
-        printNowCheck.setEnabled(!printToFile);
-        printButton.setText(printToFile ? "Save PDF" : "Print");
+        RailDialogSupport.PrintTargetState state =
+                dialogSupport.syncPrintTargetState(selectedPrinter, printNowCheck.isSelected());
+        printNowCheck.setSelected(state.printNowSelected());
+        printNowCheck.setEnabled(state.printNowEnabled());
+        printButton.setText(state.printButtonText());
     }
 
     private Path defaultOutputDir() {
-        return outputDirField.getText().trim().isEmpty()
-                ? Paths.get("out", "rail-gui").toAbsolutePath()
-                : Paths.get(outputDirField.getText().trim()).toAbsolutePath();
+        return dialogSupport.resolveDefaultOutputDir(outputDirField.getText());
     }
 
     private void setButtonsEnabled(boolean enabled) {
