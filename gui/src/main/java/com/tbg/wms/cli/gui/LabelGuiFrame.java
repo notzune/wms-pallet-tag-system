@@ -83,6 +83,8 @@ public final class LabelGuiFrame extends JFrame {
     private final transient AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
     private final transient LabelPreviewFormatter previewFormatter = new LabelPreviewFormatter();
     private final transient PreviewSelectionSupport previewSelectionSupport = new PreviewSelectionSupport();
+    private final transient PreviewRenderSupport previewRenderSupport =
+            new PreviewRenderSupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
     private final transient GuiPrintFlowSupport printFlowSupport = new GuiPrintFlowSupport();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
@@ -369,71 +371,24 @@ public final class LabelGuiFrame extends JFrame {
 
     private void renderPreview(LabelWorkflowService.PreparedJob job) {
         resetPreviewLabelSelection();
-        shipmentPreviewPanel.removeAll();
-        shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.add(buildLabelSelectionPanel(previewSelectionSupport.buildShipmentLabelOptions(job)));
+        previewRenderSupport.renderShipmentPreview(
+                shipmentPreviewPanel,
+                shipmentArea,
+                buildLabelSelectionPanel(previewSelectionSupport.buildShipmentLabelOptions(job))
+        );
         updatePreviewSelectionUi();
-        shipmentPreviewPanel.revalidate();
-        shipmentPreviewPanel.repaint();
     }
 
     private void renderCarrierMovePreview(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
         Objects.requireNonNull(job, "job cannot be null");
         resetPreviewLabelSelection();
-        shipmentPreviewPanel.removeAll();
-        shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.add(buildLabelSelectionPanel(previewSelectionSupport.buildCarrierMoveLabelOptions(job)));
-
-        addStopPreviewSections(job);
+        previewRenderSupport.renderCarrierMovePreview(
+                shipmentPreviewPanel,
+                shipmentArea,
+                buildLabelSelectionPanel(previewSelectionSupport.buildCarrierMoveLabelOptions(job)),
+                job
+        );
         updatePreviewSelectionUi();
-        shipmentPreviewPanel.revalidate();
-        shipmentPreviewPanel.repaint();
-    }
-
-    private JComponent buildStopPreviewSection(AdvancedPrintWorkflowService.PreparedStopGroup stop) {
-        Objects.requireNonNull(stop, "stop cannot be null");
-        JPanel container = new JPanel(new BorderLayout(0, 4));
-        container.setBorder(BorderFactory.createEmptyBorder(6, 0, 8, 0));
-
-        String label = previewFormatter.stopPreviewLabel(stop);
-        JToggleButton toggle = new JToggleButton(label + "  [expanded]", true);
-        toggle.setFocusPainted(false);
-        toggle.setHorizontalAlignment(SwingConstants.LEFT);
-        container.add(toggle, BorderLayout.NORTH);
-
-        JTextArea details = new JTextArea();
-        details.setEditable(false);
-        details.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        details.setRows(Math.max(16, stop.getShipmentJobs().size() * 16));
-        details.setText(previewFormatter.buildStopDetailsText(
-                stop,
-                MAX_PREVIEW_SHIPMENTS_PER_STOP,
-                MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT));
-
-        JScrollPane detailsScroll = new JScrollPane(details);
-        detailsScroll.setBorder(BorderFactory.createEmptyBorder());
-        container.add(detailsScroll, BorderLayout.CENTER);
-
-        toggle.addActionListener(e -> {
-            boolean expanded = toggle.isSelected();
-            toggle.setText(label + (expanded ? "  [expanded]" : "  [collapsed]"));
-            detailsScroll.setVisible(expanded);
-            container.revalidate();
-            container.repaint();
-        });
-        return container;
-    }
-
-    private int addStopPreviewSections(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
-        int shown = 0;
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
-            if (shown >= MAX_PREVIEW_STOPS) {
-                break;
-            }
-            shipmentPreviewPanel.add(buildStopPreviewSection(stop));
-            shown++;
-        }
-        return shown;
     }
 
     private JComponent buildLabelSelectionPanel(List<PreviewSelectionSupport.LabelOption> options) {
