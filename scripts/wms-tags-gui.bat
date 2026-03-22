@@ -1,11 +1,12 @@
 @echo off
 setlocal
 set "APP_HOME=%~dp0"
+if "%APP_HOME:~-1%"=="\" set "APP_HOME=%APP_HOME:~0,-1%"
 pushd "%APP_HOME%" >nul
-set "APP_EXE=%APP_HOME%WMS Pallet Tag System.exe"
-set "JAVA_EXE=%APP_HOME%runtime\bin\java.exe"
-set "JAR_FILE=%APP_HOME%wms-tags.jar"
-if not exist "%JAR_FILE%" set "JAR_FILE=%APP_HOME%app\wms-tags.jar"
+set "APP_EXE=%APP_HOME%\WMS Pallet Tag System.exe"
+set "JAVA_EXE=%APP_HOME%\runtime\bin\java.exe"
+set "JAR_FILE=%APP_HOME%\wms-tags.jar"
+if not exist "%JAR_FILE%" set "JAR_FILE=%APP_HOME%\app\wms-tags.jar"
 
 if exist "%APP_EXE%" (
   "%APP_EXE%" %*
