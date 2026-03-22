@@ -3,6 +3,7 @@
  */
 package com.tbg.wms.cli.gui.rail;
 
+import com.tbg.wms.cli.gui.GuiExceptionMessageSupport;
 import com.tbg.wms.cli.gui.GuiPrinterTargetSupport;
 import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.cli.gui.TextFieldClipboardController;
@@ -368,11 +369,7 @@ public final class RailLabelsDialog extends JDialog {
     }
 
     private String rootMessage(Throwable throwable) {
-        Throwable current = throwable;
-        while (current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current.getMessage() == null ? current.toString() : current.getMessage();
+        return GuiExceptionMessageSupport.rootMessage(throwable);
     }
 
     private void showError(String message) {

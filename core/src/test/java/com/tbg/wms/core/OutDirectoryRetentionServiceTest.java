@@ -55,4 +55,31 @@ class OutDirectoryRetentionServiceTest {
         assertEquals(1, result.getDeletedFiles());
         assertFalse(Files.exists(oldFile));
     }
+
+    @Test
+    void pruneDefaultOutDirectory_withExplicitRetentionDaysShouldHonorPassedValue() throws Exception {
+        Path appHome = Files.createDirectory(tempDir.resolve("app-home"));
+        Path outDir = Files.createDirectory(appHome.resolve("out"));
+        Path staleFile = Files.writeString(outDir.resolve("stale.zpl"), "^XA^XZ");
+        Path recentFile = Files.writeString(outDir.resolve("recent.zpl"), "^XA^XZ");
+        Files.setLastModifiedTime(staleFile, FileTime.from(Instant.now().minus(Duration.ofDays(10))));
+        Files.setLastModifiedTime(recentFile, FileTime.from(Instant.now().minus(Duration.ofDays(2))));
+
+        String previousAppHome = System.getProperty(RuntimePathResolver.APP_HOME_PROP);
+        System.setProperty(RuntimePathResolver.APP_HOME_PROP, appHome.toString());
+        try {
+            OutDirectoryRetentionService.CleanupResult result =
+                    new OutDirectoryRetentionService().pruneDefaultOutDirectory(OutDirectoryRetentionServiceTest.class, 7);
+
+            assertEquals(1, result.getDeletedFiles());
+            assertFalse(Files.exists(staleFile));
+            assertTrue(Files.exists(recentFile));
+        } finally {
+            if (previousAppHome == null) {
+                System.clearProperty(RuntimePathResolver.APP_HOME_PROP);
+            } else {
+                System.setProperty(RuntimePathResolver.APP_HOME_PROP, previousAppHome);
+            }
+        }
+    }
 }
