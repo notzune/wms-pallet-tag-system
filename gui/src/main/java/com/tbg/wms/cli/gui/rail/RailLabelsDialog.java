@@ -51,6 +51,8 @@ public final class RailLabelsDialog extends JDialog {
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
     private final transient RailDialogSupport dialogSupport = new RailDialogSupport();
     private final transient RailDialogExecutionSupport executionSupport = new RailDialogExecutionSupport();
+    private final transient RailDialogActionSupport actionSupport =
+            new RailDialogActionSupport(dialogSupport, executionSupport);
     private transient RailWorkflowService.PreparedRailJob preparedJob;
 
     public RailLabelsDialog(JFrame owner, AppConfig config) {
@@ -214,13 +216,15 @@ public final class RailLabelsDialog extends JDialog {
             protected void done() {
                 try {
                     preparedJob = get();
-                    renderTable(preparedJob.getCards());
-                    diagnosticsArea.setText(service.buildDiagnosticsText(preparedJob));
-                    if (!preparedJob.getCards().isEmpty()) {
+                    RailDialogActionSupport.PreviewOutcome outcome =
+                            actionSupport.buildPreviewOutcome(preparedJob, service.buildDiagnosticsText(preparedJob));
+                    renderTable(outcome.cards());
+                    diagnosticsArea.setText(outcome.diagnosticsText());
+                    if (outcome.shouldSelectFirstRow()) {
                         previewTable.setRowSelectionInterval(0, 0);
                     }
                     setButtonsEnabled(true);
-                    setReady(executionSupport.previewReadyMessage());
+                    setReady(outcome.readyMessage());
                 } catch (Exception ex) {
                     setReady(executionSupport.previewFailedMessage());
                     showError(executionSupport.rootMessage(ex));
@@ -260,9 +264,9 @@ public final class RailLabelsDialog extends JDialog {
                 setButtonsEnabled(preparedJob != null);
                 try {
                     RailWorkflowService.GenerationResult result = get();
-                    String message = dialogSupport.buildGenerationMessage(result);
-                    diagnosticsArea.append("\n\nGeneration Result\n-----------------\n" + message + '\n');
-                    setReady(dialogSupport.buildReadyMessage(result));
+                    RailDialogActionSupport.GenerationOutcome outcome = actionSupport.buildGenerationOutcome(result);
+                    diagnosticsArea.append(outcome.diagnosticsAppend());
+                    setReady(outcome.readyMessage());
                 } catch (Exception ex) {
                     setReady(executionSupport.generationFailedMessage());
                     showError(executionSupport.rootMessage(ex));
@@ -319,15 +323,16 @@ public final class RailLabelsDialog extends JDialog {
             @Override
             protected void done() {
                 try {
-                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model =
-                            dialogSupport.buildPrinterModel(get(), defaultOutputDir());
+                    RailDialogActionSupport.PrinterLoadOutcome outcome =
+                            actionSupport.buildPrinterLoadOutcome(get(), defaultOutputDir());
+                    DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = outcome.model();
                     printerCombo.setModel(model);
-                    if (model.getSize() > 0) {
+                    if (outcome.shouldSelectFirst()) {
                         printerCombo.setSelectedIndex(0);
                     }
                     printerCombo.setEnabled(true);
                     syncPrintTargetUi();
-                    setReady("Ready.");
+                    setReady(outcome.readyMessage());
                 } catch (Exception ex) {
                     setReady("Failed to load rail printers.");
                     showError(rootMessage(ex));
