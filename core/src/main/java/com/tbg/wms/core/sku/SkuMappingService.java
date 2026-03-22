@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class SkuMappingService {
 
     private static final Logger log = LoggerFactory.getLogger(SkuMappingService.class);
-    private static final int MIN_SKU_LENGTH = 5;
 
     // Map: TBG SKU# → WalmartSkuMapping
     private final Map<String, WalmartSkuMapping> mappingByTbgSku;
@@ -41,6 +40,7 @@ public final class SkuMappingService {
     // Map: Walmart Item# → WalmartSkuMapping (reverse lookup)
     private final Map<String, WalmartSkuMapping> mappingByWalmartItem;
     private final Map<String, Optional<WalmartSkuMapping>> prtnumLookupCache;
+    private final SkuPrtnumLookupSupport prtnumLookupSupport;
 
     /**
      * Creates a new SkuMappingService and loads mappings from CSV file.
@@ -55,28 +55,10 @@ public final class SkuMappingService {
         this.mappingByTbgSku = new HashMap<>();
         this.mappingByWalmartItem = new HashMap<>();
         this.prtnumLookupCache = new ConcurrentHashMap<>();
+        this.prtnumLookupSupport = new SkuPrtnumLookupSupport();
 
         loadMappingsFromCsv(csvFile);
         log.info("Loaded {} SKU mappings from {}", mappingByTbgSku.size(), csvFile);
-    }
-
-    private static String normalizeLookupKey(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private static String extractDigits(String value) {
-        StringBuilder digits = new StringBuilder(value.length());
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (Character.isDigit(c)) {
-                digits.append(c);
-            }
-        }
-        return digits.toString();
     }
 
     /**
@@ -86,7 +68,7 @@ public final class SkuMappingService {
      * @return WalmartSkuMapping, or null if not found
      */
     public WalmartSkuMapping findByTbgSku(String tbgSku) {
-        String normalized = normalizeLookupKey(tbgSku);
+        String normalized = SkuPrtnumLookupSupport.normalizeLookupKey(tbgSku);
         if (normalized == null) {
             return null;
         }
@@ -100,7 +82,7 @@ public final class SkuMappingService {
      * @return WalmartSkuMapping, or null if not found
      */
     public WalmartSkuMapping findByWalmartItem(String walmartItemNo) {
-        String normalized = normalizeLookupKey(walmartItemNo);
+        String normalized = SkuPrtnumLookupSupport.normalizeLookupKey(walmartItemNo);
         if (normalized == null) {
             return null;
         }
@@ -122,7 +104,7 @@ public final class SkuMappingService {
      * @return WalmartSkuMapping, or null if extraction fails
      */
     public WalmartSkuMapping findByPrtnum(String prtnum) {
-        String normalizedPrtnum = normalizeLookupKey(prtnum);
+        String normalizedPrtnum = SkuPrtnumLookupSupport.normalizeLookupKey(prtnum);
         if (normalizedPrtnum == null) {
             return null;
         }
@@ -134,53 +116,7 @@ public final class SkuMappingService {
     }
 
     private Optional<WalmartSkuMapping> findByPrtnumUncached(String normalizedPrtnum) {
-        // Strategy 1: Try direct match (in case it's already short format)
-        WalmartSkuMapping mapping = findByTbgSku(normalizedPrtnum);
-        if (mapping != null) {
-            return Optional.of(mapping);
-        }
-
-        // Strategy 2: Sliding windows (5-N digits) with optional leading-zero trim.
-        // This is resilient to mixed site encodings where the TBG SKU appears embedded in PRTNUM.
-        String digits = extractDigits(normalizedPrtnum);
-        if (!digits.isEmpty()) {
-            // Start with the longest substrings first to prefer the most specific match.
-            for (int len = digits.length(); len >= MIN_SKU_LENGTH; len--) {
-                if (digits.length() < len) {
-                    continue;
-                }
-                for (int i = 0; i <= digits.length() - len; i++) {
-                    String candidate = digits.substring(i, i + len);
-
-                    mapping = findByTbgSku(candidate);
-                    if (mapping != null) {
-                        log.debug("Found mapping via embedded PRTNUM segment: {} -> {}", normalizedPrtnum, mapping.getWalmartItemNo());
-                        return Optional.of(mapping);
-                    }
-
-                    String noLeadingZeros = trimLeadingZeros(candidate);
-                    if (!noLeadingZeros.equals(candidate)) {
-                        mapping = findByTbgSku(noLeadingZeros);
-                        if (mapping != null) {
-                            log.debug("Found mapping via zero-trimmed PRTNUM segment: {} -> {}", normalizedPrtnum, mapping.getWalmartItemNo());
-                            return Optional.of(mapping);
-                        }
-                    }
-                }
-            }
-        }
-
-        log.debug("No SKU mapping found for PRTNUM: {}", normalizedPrtnum);
-        return Optional.empty();
-    }
-
-    private String trimLeadingZeros(String value) {
-        int i = 0;
-        int max = value.length() - 1;
-        while (i < max && value.charAt(i) == '0') {
-            i++;
-        }
-        return i == 0 ? value : value.substring(i);
+        return prtnumLookupSupport.findByPrtnum(normalizedPrtnum, this::findByTbgSku);
     }
 
     /**
