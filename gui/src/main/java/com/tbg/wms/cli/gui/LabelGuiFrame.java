@@ -95,6 +95,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient GuiSettingsDialogSupport settingsDialogSupport =
             new GuiSettingsDialogSupport(new SettingsDependencies(), PREF_PRINT_TO_FILE_DIR, LabelGuiFrame.class);
     private final transient GuiUpdateFlowSupport updateFlowSupport = new GuiUpdateFlowSupport();
+    private final transient GuiUpdateExecutionSupport updateExecutionSupport = new GuiUpdateExecutionSupport(updateFlowSupport);
     private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
     private final transient InstallMaintenanceService installMaintenanceService = new InstallMaintenanceService();
     private final transient GuidedUpdateService guidedUpdateService = new GuidedUpdateService();
@@ -654,13 +655,13 @@ public final class LabelGuiFrame extends JFrame {
     private void checkForUpdatesAsync(boolean userInitiated, JLabel statusOutput) {
         if (updateCheckInProgress) {
             if (userInitiated && statusOutput != null) {
-                statusOutput.setText("Update check already in progress...");
+                statusOutput.setText(updateExecutionSupport.alreadyInProgressMessage());
             }
             return;
         }
         updateCheckInProgress = true;
         if (statusOutput != null) {
-            statusOutput.setText("Checking for updates...");
+            statusOutput.setText(updateExecutionSupport.checkingForUpdatesMessage());
         }
 
         SwingWorker<ReleaseCheckService.ReleaseInfo, Void> worker = new SwingWorker<>() {
@@ -674,19 +675,22 @@ public final class LabelGuiFrame extends JFrame {
                 updateCheckInProgress = false;
                 try {
                     latestReleaseInfo = get();
-                    refreshUpdateAvailabilityUi();
+                    GuiUpdateExecutionSupport.CheckCompletionOutcome outcome =
+                            updateExecutionSupport.buildCheckCompletion(latestReleaseInfo);
+                    refreshUpdateAvailabilityUi(outcome);
                     if (statusOutput != null) {
-                        statusOutput.setText(formatUpdateStatus());
+                        statusOutput.setText(outcome.statusMessage());
                     }
                     if (userInitiated) {
                         showUpdatePrompt(latestReleaseInfo);
                     }
                 } catch (Exception ex) {
+                    GuiUpdateExecutionSupport.FailureOutcome outcome = updateExecutionSupport.buildCheckFailure(ex);
                     if (statusOutput != null) {
-                        statusOutput.setText("Update check failed.");
+                        statusOutput.setText(outcome.statusMessage());
                     }
                     if (userInitiated) {
-                        showError("Update check failed: " + rootMessage(ex));
+                        showError(outcome.errorMessage());
                     }
                 }
             }
@@ -695,13 +699,14 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private String formatUpdateStatus() {
-        return updateFlowSupport.formatUpdateStatus(latestReleaseInfo);
+        return latestReleaseInfo == null
+                ? updateFlowSupport.formatUpdateStatus(null)
+                : updateExecutionSupport.buildCheckCompletion(latestReleaseInfo).statusMessage();
     }
 
-    private void refreshUpdateAvailabilityUi() {
-        boolean updateAvailable = latestReleaseInfo != null && latestReleaseInfo.updateAvailable();
-        toolsButton.setIcon(updateAvailable ? UPDATE_AVAILABLE_ICON : null);
-        toolsButton.setToolTipText(updateFlowSupport.updateTooltip(latestReleaseInfo));
+    private void refreshUpdateAvailabilityUi(GuiUpdateExecutionSupport.CheckCompletionOutcome outcome) {
+        toolsButton.setIcon(outcome.updateAvailable() ? UPDATE_AVAILABLE_ICON : null);
+        toolsButton.setToolTipText(outcome.tooltip());
     }
 
     private void showUpdatePrompt(ReleaseCheckService.ReleaseInfo releaseInfo) {
@@ -726,23 +731,27 @@ public final class LabelGuiFrame extends JFrame {
                 options,
                 options[0]
         );
-        if (updateFlowSupport.shouldLaunchGuidedUpgrade(releaseInfo, choice)) {
+        GuiUpdateExecutionSupport.PromptAction action = updateExecutionSupport.resolvePromptAction(releaseInfo, choice);
+        if (action == GuiUpdateExecutionSupport.PromptAction.GUIDED_UPGRADE) {
             performGuidedUpgrade(releaseInfo);
             return;
         }
-        if (updateFlowSupport.shouldOpenReleasePage(releaseInfo, choice)) {
+        if (action == GuiUpdateExecutionSupport.PromptAction.OPEN_RELEASE_PAGE) {
             openReleaseUrl(releaseInfo.releaseUrl());
         }
     }
 
     private void performGuidedUpgrade(ReleaseCheckService.ReleaseInfo releaseInfo) {
-        Path installScript = installMaintenanceService.findInstallScript(LabelGuiFrame.class).orElse(null);
-        if (installScript == null) {
-            openReleaseUrl(releaseInfo.releaseUrl());
+        GuiUpdateExecutionSupport.GuidedUpgradePlan plan = updateExecutionSupport.planGuidedUpgrade(
+                releaseInfo,
+                installMaintenanceService.findInstallScript(LabelGuiFrame.class).orElse(null)
+        );
+        if (plan.openReleasePageFallback()) {
+            openReleaseUrl(plan.releaseUrl());
             return;
         }
 
-        setBusy("Downloading update " + releaseInfo.latestVersion() + "...");
+        setBusy(plan.busyMessage());
         SwingWorker<Path, Void> worker = new SwingWorker<>() {
             @Override
             protected Path doInBackground() throws Exception {
@@ -753,12 +762,13 @@ public final class LabelGuiFrame extends JFrame {
             protected void done() {
                 try {
                     Path installerPath = get();
-                    installMaintenanceService.launchInstaller(installScript, installerPath);
+                    installMaintenanceService.launchInstaller(plan.installScript(), installerPath);
                     dispose();
                     System.exit(0);
                 } catch (Exception ex) {
-                    setReady("Update download failed.");
-                    showError("Could not start guided update: " + rootMessage(ex));
+                    GuiUpdateExecutionSupport.FailureOutcome outcome = updateExecutionSupport.buildGuidedUpgradeFailure(ex);
+                    setReady(outcome.statusMessage());
+                    showError(outcome.errorMessage());
                 }
             }
         };
@@ -766,28 +776,22 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void openReleaseUrl(String releaseUrl) {
-        if (releaseUrl == null || releaseUrl.isBlank()) {
-            showError("Release download URL is unavailable.");
+        GuiUpdateExecutionSupport.ReleasePagePlan plan = updateExecutionSupport.planReleasePageOpen(
+                releaseUrl,
+                Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)
+        );
+        if (!plan.shouldOpenBrowser()) {
+            showError(plan.errorMessage());
             return;
         }
         try {
-            if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                showError("Desktop browser launch is not supported on this machine.");
-                return;
-            }
-            Desktop.getDesktop().browse(java.net.URI.create(releaseUrl));
+            Desktop.getDesktop().browse(java.net.URI.create(plan.releaseUrl()));
         } catch (Exception ex) {
             showError("Could not open release page: " + rootMessage(ex));
         }
     }
 
     private void openUninstallDialog() {
-        Path uninstallScript = installMaintenanceService.findUninstallScript(LabelGuiFrame.class).orElse(null);
-        if (uninstallScript == null) {
-            showError("Uninstall script not found in the packaged app or repo scripts directory.");
-            return;
-        }
-
         Object[] options = updateFlowSupport.uninstallOptions();
         int choice = JOptionPane.showOptionDialog(
                 this,
@@ -799,16 +803,23 @@ public final class LabelGuiFrame extends JFrame {
                 options,
                 options[0]
         );
-        if (!updateFlowSupport.shouldLaunchUninstall(choice)) {
+        GuiUpdateExecutionSupport.UninstallPlan plan = updateExecutionSupport.planUninstall(
+                installMaintenanceService.findUninstallScript(LabelGuiFrame.class).orElse(null),
+                choice
+        );
+        if (plan.errorMessage() != null) {
+            showError(plan.errorMessage());
             return;
         }
-
+        if (!plan.shouldLaunch()) {
+            return;
+        }
         try {
-            installMaintenanceService.launchUninstall(uninstallScript, updateFlowSupport.shouldWipeInstallRoot(choice));
+            installMaintenanceService.launchUninstall(plan.uninstallScript(), plan.wipeInstallRoot());
             dispose();
             System.exit(0);
         } catch (Exception ex) {
-            showError("Failed to launch uninstall: " + rootMessage(ex));
+            showError(updateExecutionSupport.buildUninstallFailure(ex).errorMessage());
         }
     }
 
