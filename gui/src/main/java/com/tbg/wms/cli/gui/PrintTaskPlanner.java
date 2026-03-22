@@ -63,13 +63,15 @@ final class PrintTaskPlanner {
         LabelWorkflowService.PreparedJob job = batch.getShipmentJob();
         List<Lpn> lpnsToPrint = batch.getLpnsToPrint();
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
-        List<AdvancedPrintWorkflowService.PrintTask> tasks = new ArrayList<>();
         Shipment shipmentForLabels = LabelingSupport.buildShipmentForLabeling(job.getShipment(), lpnsToPrint);
         int labelCount = lpnsToPrint.size();
         if (labelCount > MAX_LABELS_PER_JOB) {
             throw new IllegalArgumentException("Label count exceeds max limit: " + MAX_LABELS_PER_JOB);
         }
+        List<AdvancedPrintWorkflowService.PrintTask> tasks =
+                new ArrayList<>(labelCount + (batch.isIncludeShipmentInfoTag() ? 1 : 0));
         String safeShipmentId = ArtifactNameSupport.safeSlug(job.getShipmentId(), "shipment", MAX_ARTIFACT_SLUG_LENGTH);
+        String stopSuffix = batch.getStopPosition() == null ? "" : (" stop " + batch.getStopPosition());
         for (int i = 0; i < labelCount; i++) {
             Lpn lpn = lpnsToPrint.get(i);
             Map<String, String> data = new LinkedHashMap<>(builder.build(shipmentForLabels, lpn, i, LabelType.WALMART_CANADA_GRID));
@@ -83,8 +85,7 @@ final class PrintTaskPlanner {
             String zpl = ZplTemplateEngine.generate(job.getTemplate(), data);
             String safeLpnId = ArtifactNameSupport.safeSlug(lpn.getLpnId(), "lpn", MAX_ARTIFACT_SLUG_LENGTH);
             String fileName = String.format("%s_%s_%d_of_%d.zpl", safeShipmentId, safeLpnId, i + 1, labelCount);
-            String payload = job.getShipmentId() + ":" + lpn.getLpnId()
-                    + (batch.getStopPosition() == null ? "" : (" stop " + batch.getStopPosition()));
+            String payload = job.getShipmentId() + ":" + lpn.getLpnId() + stopSuffix;
             tasks.add(new AdvancedPrintWorkflowService.PrintTask(
                     AdvancedPrintWorkflowService.TaskKind.PALLET_LABEL,
                     fileName,
@@ -119,7 +120,8 @@ final class PrintTaskPlanner {
             throw new IllegalArgumentException("Select at least one label to print.");
         }
         List<CarrierMoveStopBatch> stopBatches = buildCarrierMoveStopBatches(job, selectedLpnsByShipment);
-        List<AdvancedPrintWorkflowService.PrintTask> tasks = new ArrayList<>();
+        List<AdvancedPrintWorkflowService.PrintTask> tasks =
+                new ArrayList<>(estimateCarrierMoveTaskCount(stopBatches, includeInfoTags));
         for (CarrierMoveStopBatch stopBatch : stopBatches) {
             for (ShipmentPrintBatch shipmentBatch : stopBatch.getShipmentBatches()) {
                 tasks.addAll(buildShipmentTasks(shipmentBatch));
@@ -142,6 +144,22 @@ final class PrintTaskPlanner {
             ));
         }
         return tasks;
+    }
+
+    private static int estimateCarrierMoveTaskCount(List<CarrierMoveStopBatch> stopBatches, boolean includeInfoTags) {
+        int total = includeInfoTags && !stopBatches.isEmpty() ? 1 : 0;
+        for (CarrierMoveStopBatch stopBatch : stopBatches) {
+            if (includeInfoTags) {
+                total += 1;
+            }
+            for (ShipmentPrintBatch shipmentBatch : stopBatch.getShipmentBatches()) {
+                total += shipmentBatch.getLpnsToPrint().size();
+                if (shipmentBatch.isIncludeShipmentInfoTag()) {
+                    total += 1;
+                }
+            }
+        }
+        return total;
     }
 
     private static List<CarrierMoveStopBatch> buildCarrierMoveStopBatches(
