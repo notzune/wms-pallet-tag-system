@@ -86,6 +86,8 @@ public final class LabelGuiFrame extends JFrame {
     private final transient PreviewSelectionPanelSupport previewSelectionPanelSupport = new PreviewSelectionPanelSupport();
     private final transient PreviewRenderSupport previewRenderSupport =
             new PreviewRenderSupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
+    private final transient GuiPreviewDisplaySupport previewDisplaySupport =
+            new GuiPreviewDisplaySupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
     private final transient GuiPreviewExecutionSupport previewExecutionSupport = new GuiPreviewExecutionSupport();
     private final transient GuiPrintFlowSupport printFlowSupport = new GuiPrintFlowSupport();
     private final transient GuiPrintExecutionSupport printExecutionSupport = new GuiPrintExecutionSupport(printFlowSupport);
@@ -449,46 +451,20 @@ public final class LabelGuiFrame extends JFrame {
 
     private void refreshPreviewText(PreviewSelectionSupport.SelectionSnapshot selection) {
         if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            shipmentArea.setText(buildCarrierMoveSummaryText(preparedCarrierJob, selection.selectedCarrierLabels()));
-            mathArea.setText(previewFormatter.buildCarrierMoveMathText(
+            GuiPreviewDisplaySupport.PreviewText previewText = previewDisplaySupport.buildCarrierMovePreview(
                     preparedCarrierJob,
-                    MAX_PREVIEW_STOPS,
-                    MAX_PREVIEW_SHIPMENTS_PER_STOP,
-                    selection.selectedLabelCount(),
+                    selection.selectedCarrierLabels(),
                     selection.infoTagCount()
-            ));
+            );
+            shipmentArea.setText(previewText.summaryText());
+            mathArea.setText(previewText.mathText());
             return;
         }
         if (preparedJob != null && !isCarrierMoveMode()) {
-            shipmentArea.setText(previewFormatter.buildShipmentSummaryText(
-                    preparedJob,
-                    selection.selectedShipmentLpns(),
-                    selection.infoTagCount()
-            ));
-            mathArea.setText(previewFormatter.buildShipmentMathText(
-                    preparedJob,
-                    MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT,
-                    selection.selectedLabelCount(),
-                    selection.infoTagCount()
-            ));
+            GuiPreviewDisplaySupport.PreviewText previewText = previewDisplaySupport.buildShipmentPreview(preparedJob, selection);
+            shipmentArea.setText(previewText.summaryText());
+            mathArea.setText(previewText.mathText());
         }
-    }
-
-    private String buildCarrierMoveSummaryText(
-            AdvancedPrintWorkflowService.PreparedCarrierMoveJob job,
-            List<LabelSelectionRef> selectedLabels
-    ) {
-        StringBuilder summary = new StringBuilder(previewFormatter.buildCarrierMoveSummary(
-                job,
-                selectedLabels.size(),
-                currentInfoTagCount()
-        ));
-        int shownStops = Math.min(job.getStopGroups().size(), MAX_PREVIEW_STOPS);
-        if (job.getStopGroups().size() > shownStops) {
-            summary.append("Preview Notice: Showing first ").append(MAX_PREVIEW_STOPS)
-                    .append(" stops of ").append(job.getStopGroups().size()).append(".\n");
-        }
-        return summary.toString();
     }
 
     private int countSelectedCarrierMoveStops(List<LabelSelectionRef> selectedLabels) {
