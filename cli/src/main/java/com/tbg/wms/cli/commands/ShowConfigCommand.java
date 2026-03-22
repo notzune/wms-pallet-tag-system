@@ -23,24 +23,7 @@ import java.util.concurrent.Callable;
         description = "Print resolved runtime config (secrets redacted)."
 )
 public final class ShowConfigCommand implements Callable<Integer> {
-
-    /**
-     * Redacts sensitive values for safe display in logs.
-     * Returns a placeholder string for any non-null, non-empty value.
-     *
-     * @param value the value to redact
-     * @return a redacted representation, or "(not set)" if value is null/empty
-     */
-    private static String redact(String value) {
-        if (value == null || value.isEmpty()) {
-            return "(not set)";
-        }
-        return "***" + (value.length() > 3 ? value.substring(value.length() - 3) : "***");
-    }
-
-    private static String valueOrDash(String value) {
-        return (value == null || value.isBlank()) ? "-" : value;
-    }
+    private final CliConfigTextSupport configTextSupport = new CliConfigTextSupport();
 
     /**
      * Prints effective runtime configuration values with secrets redacted.
@@ -52,41 +35,7 @@ public final class ShowConfigCommand implements Callable<Integer> {
         try {
             AppConfig cfg = RootCommand.config();
             String site = cfg.activeSiteCode();
-
-            System.out.println();
-            System.out.println("=== WMS Pallet Tag System Configuration ===");
-            System.out.println();
-            System.out.println("Site Configuration:");
-            System.out.println("  Active Site:     " + site);
-            System.out.println("  Site Name:       " + cfg.siteName(site));
-            System.out.println();
-            System.out.println("WMS Environment:");
-            System.out.println("  Environment:     " + cfg.wmsEnvironment());
-            System.out.println("  Config File:     " + (cfg.loadedConfigFileOrNull() == null ? "(none)" : cfg.loadedConfigFileOrNull()));
-            System.out.println();
-            System.out.println("Database Configuration:");
-            System.out.println("  Host:            " + cfg.siteHost(site));
-            System.out.println("  Port:            " + cfg.oraclePort());
-            System.out.println("  Service:         " + cfg.oracleService());
-            System.out.println("  Username:        " + cfg.oracleUsername());
-            System.out.println("  Password:        " + redact(cfg.oraclePassword()));
-            System.out.println("  JDBC URL:        " + cfg.oracleJdbcUrl());
-            System.out.println("  ODBC/TNS Alias:  " + valueOrDash(cfg.oracleOdbcDsnOrNull()));
-            System.out.println("  JDBC Candidates: " + String.join(" | ", cfg.oracleJdbcUrlCandidates()));
-            System.out.println();
-            System.out.println("Connection Pool:");
-            System.out.println("  Max Size:        " + cfg.dbPoolMaxSize());
-            System.out.println("  Connect Timeout: " + cfg.dbPoolConnectionTimeoutMs() + " ms");
-            System.out.println("  Validation Timeout: " + cfg.dbPoolValidationTimeoutMs() + " ms");
-            System.out.println();
-            System.out.println("Printer Configuration:");
-            System.out.println("  Routing File:    " + cfg.printerRoutingFile());
-            System.out.println("  Default Printer: " + cfg.defaultPrinterId());
-            String forcedId = cfg.forcedPrinterIdOrNull();
-            System.out.println("  Forced Printer:  " + (forcedId == null ? "(none)" : forcedId));
-            System.out.println();
-            System.out.println("=== Configuration Verified ===");
-            System.out.println();
+            System.out.print(configTextSupport.buildConfigReport(configTextSupport.snapshot(cfg, site)));
 
             return 0;
         } catch (Exception e) {
