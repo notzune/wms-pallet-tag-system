@@ -100,7 +100,7 @@ public final class LabelingSupport {
             return Collections.emptyMap();
         }
 
-        Map<String, ShipmentSkuFootprint> bySku = new HashMap<>();
+        Map<String, ShipmentSkuFootprint> bySku = new HashMap<>(rows.size());
         for (ShipmentSkuFootprint row : rows) {
             if (row != null && row.getSku() != null && !row.getSku().isBlank()) {
                 bySku.put(row.getSku(), row);
@@ -117,7 +117,7 @@ public final class LabelingSupport {
             return Collections.emptyList();
         }
 
-        List<Lpn> virtualLpns = new ArrayList<>();
+        List<Lpn> virtualLpns = new ArrayList<>(estimateVirtualLpnCount(footprintRows));
         LocalDate today = LocalDate.now();
         int seq = 0;
 
@@ -187,6 +187,26 @@ public final class LabelingSupport {
         }
 
         return virtualLpns;
+    }
+
+    private static int estimateVirtualLpnCount(List<ShipmentSkuFootprint> footprintRows) {
+        int estimated = 0;
+        for (ShipmentSkuFootprint row : footprintRows) {
+            if (row == null || row.getSku() == null || row.getSku().isBlank()) {
+                continue;
+            }
+            int totalUnits = Math.max(0, row.getTotalUnits());
+            if (totalUnits == 0) {
+                continue;
+            }
+            Integer unitsPerPallet = row.getUnitsPerPallet();
+            if (unitsPerPallet != null && unitsPerPallet > 0) {
+                estimated += (totalUnits + unitsPerPallet - 1) / unitsPerPallet;
+            } else {
+                estimated += 1;
+            }
+        }
+        return estimated;
     }
 
     /**

@@ -28,7 +28,7 @@ final class LabelWorkflowPlanningSupport {
         Objects.requireNonNull(rows, "rows cannot be null");
         Objects.requireNonNull(skuMapping, "skuMapping cannot be null");
 
-        List<LabelWorkflowService.SkuMathRow> mathRows = new ArrayList<>();
+        List<LabelWorkflowService.SkuMathRow> mathRows = new ArrayList<>(rows.size());
         for (ShipmentSkuFootprint row : rows) {
             if (row == null) {
                 continue;
