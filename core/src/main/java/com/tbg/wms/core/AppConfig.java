@@ -46,6 +46,7 @@ public final class AppConfig {
     private final Map<String, String> classpathDefaults;
     private final ConfigValueSupport valueSupport;
     private final OracleConnectionConfigSupport oracleConnectionSupport;
+    private final PrintRuntimeConfigSupport printRuntimeSupport;
     private final String loadedConfigFile;
 
     /**
@@ -82,6 +83,7 @@ public final class AppConfig {
                 valueSupport::rawFromEnvOrFile,
                 valueSupport::required
         );
+        this.printRuntimeSupport = new PrintRuntimeConfigSupport(valueSupport);
         this.loadedConfigFile = selectedFile == null ? null : selectedFile.toAbsolutePath().toString();
     }
 
@@ -279,7 +281,7 @@ public final class AppConfig {
      * @return the path from {@code PRINTER_ROUTING_FILE} (default: {@code config/printer-routing.yaml})
      */
     public String printerRoutingFile() {
-        return valueSupport.get("PRINTER_ROUTING_FILE", "config/printer-routing.yaml");
+        return printRuntimeSupport.printerRoutingFile();
     }
 
     /**
@@ -288,7 +290,7 @@ public final class AppConfig {
      * @return the printer ID from {@code PRINTER_DEFAULT_ID} (default: {@code DISPATCH})
      */
     public String defaultPrinterId() {
-        return valueSupport.get("PRINTER_DEFAULT_ID", "DISPATCH");
+        return printRuntimeSupport.defaultPrinterId();
     }
 
     /**
@@ -298,8 +300,7 @@ public final class AppConfig {
      * @return the rail default printer ID from {@code RAIL_DEFAULT_PRINTER_ID}, or {@code null}
      */
     public String railDefaultPrinterIdOrNull() {
-        String v = valueSupport.raw("RAIL_DEFAULT_PRINTER_ID");
-        return (v == null || v.isBlank()) ? null : v.trim();
+        return printRuntimeSupport.railDefaultPrinterIdOrNull();
     }
 
     /**
@@ -308,7 +309,7 @@ public final class AppConfig {
      * @return center gap from {@code RAIL_LABEL_CENTER_GAP_IN} (default: {@code 0.125})
      */
     public double railLabelCenterGapInches() {
-        return valueSupport.parseDouble("RAIL_LABEL_CENTER_GAP_IN", "0.125");
+        return printRuntimeSupport.railLabelCenterGapInches();
     }
 
     /**
@@ -318,7 +319,7 @@ public final class AppConfig {
      * @return offset from {@code RAIL_LABEL_OFFSET_X_IN} (default: {@code 0.02})
      */
     public double railLabelOffsetXInches() {
-        return valueSupport.parseDouble("RAIL_LABEL_OFFSET_X_IN", "0.02");
+        return printRuntimeSupport.railLabelOffsetXInches();
     }
 
     /**
@@ -328,7 +329,7 @@ public final class AppConfig {
      * @return offset from {@code RAIL_LABEL_OFFSET_Y_IN} (default: {@code 0.02})
      */
     public double railLabelOffsetYInches() {
-        return valueSupport.parseDouble("RAIL_LABEL_OFFSET_Y_IN", "0.02");
+        return printRuntimeSupport.railLabelOffsetYInches();
     }
 
     /**
@@ -338,8 +339,7 @@ public final class AppConfig {
      * @return the forced printer ID from {@code PRINTER_FORCE_ID}, or {@code null}
      */
     public String forcedPrinterIdOrNull() {
-        String v = valueSupport.raw("PRINTER_FORCE_ID");
-        return (v == null || v.isBlank()) ? null : v.trim();
+        return printRuntimeSupport.forcedPrinterIdOrNull();
     }
 
     /**
