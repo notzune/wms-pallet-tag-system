@@ -31,8 +31,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * GUI workflow service that loads shipment data, builds preview math,
@@ -43,16 +41,7 @@ public final class LabelWorkflowService {
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     private final AppConfig config;
-    private final Path configBaseDir;
-    // Cache routing configs by site code to avoid repeated disk reads.
-    private final ConcurrentMap<String, PrinterRoutingService> routingBySite = new ConcurrentHashMap<>();
-    // Cache resolved printers by site and printer ID to avoid repeated lookups.
-    private final ConcurrentMap<String, ConcurrentMap<String, PrinterConfig>> printersBySite = new ConcurrentHashMap<>();
-    // Cache site-level label identity metadata by site code.
-    private final ConcurrentMap<String, SiteConfig> siteConfigBySite = new ConcurrentHashMap<>();
-    // Cache reusable assets to avoid repeated disk reads/parsing across preview calls.
-    private volatile SkuMappingService cachedSkuMapping;
-    private volatile LabelTemplate cachedTemplate;
+    private final LabelWorkflowAssetSupport assetSupport;
 
     public LabelWorkflowService(AppConfig config) {
         this(config, RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(LabelWorkflowService.class, "config"));
@@ -60,7 +49,7 @@ public final class LabelWorkflowService {
 
     LabelWorkflowService(AppConfig config, Path configBaseDir) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
-        this.configBaseDir = Objects.requireNonNull(configBaseDir, "configBaseDir cannot be null");
+        this.assetSupport = new LabelWorkflowAssetSupport(config, Objects.requireNonNull(configBaseDir, "configBaseDir cannot be null"));
     }
 
     /**
@@ -71,7 +60,7 @@ public final class LabelWorkflowService {
      */
     public List<PrinterOption> loadPrinters() throws Exception {
         String siteCode = config.activeSiteCode();
-        PrinterRoutingService routing = loadRouting(siteCode);
+        PrinterRoutingService routing = assetSupport.loadRouting(siteCode);
         List<PrinterOption> options = new ArrayList<>();
         for (PrinterConfig printer : routing.getPrinters().values()) {
             if (printer.isEnabled()) {
@@ -88,11 +77,7 @@ public final class LabelWorkflowService {
     }
 
     public void clearCaches() {
-        routingBySite.clear();
-        printersBySite.clear();
-        siteConfigBySite.clear();
-        cachedSkuMapping = null;
-        cachedTemplate = null;
+        assetSupport.clearCaches();
     }
 
     /**
@@ -102,21 +87,8 @@ public final class LabelWorkflowService {
         if (printerId == null || printerId.isBlank()) {
             return null;
         }
-        String normalizedPrinterId = printerId.trim();
         String siteCode = config.activeSiteCode();
-        ConcurrentMap<String, PrinterConfig> sitePrinters = printersBySite
-                .computeIfAbsent(siteCode, ignored -> new ConcurrentHashMap<>());
-        PrinterConfig cached = sitePrinters.get(normalizedPrinterId);
-        if (cached != null) {
-            return cached;
-        }
-        PrinterRoutingService routing = loadRouting(siteCode);
-        PrinterConfig printer = routing.findPrinter(normalizedPrinterId)
-                .orElse(null);
-        if (printer != null) {
-            sitePrinters.putIfAbsent(normalizedPrinterId, printer);
-        }
-        return printer;
+        return assetSupport.resolvePrinter(siteCode, printerId);
     }
 
     /**
@@ -162,18 +134,18 @@ public final class LabelWorkflowService {
         List<Lpn> lpnsForLabels = resolveLpnsForLabeling(shipment, footprintRows);
         boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
         String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
-        SkuMappingService skuMapping = loadSkuMapping();
+        SkuMappingService skuMapping = assetSupport.loadSkuMapping();
         List<SkuMathRow> mathRows = buildSkuMathRows(footprintRows, skuMapping);
 
         String siteCode = config.activeSiteCode();
-        PrinterRoutingService routing = loadRouting(siteCode);
+        PrinterRoutingService routing = assetSupport.loadRouting(siteCode);
         return new PreparedJob(
                 normalizedShipmentId,
                 shipment,
                 routing,
-                loadSiteConfig(siteCode),
+                assetSupport.loadSiteConfig(siteCode),
                 skuMapping,
-                loadTemplate(),
+                assetSupport.loadTemplate(),
                 footprintBySku,
                 planResult,
                 lpnsForLabels,
@@ -299,62 +271,6 @@ public final class LabelWorkflowService {
 
     private boolean isHumanReadable(String value) {
         return LabelingSupport.isHumanReadable(value);
-    }
-
-    private PrinterRoutingService loadRouting(String siteCode) throws Exception {
-        PrinterRoutingService cached = routingBySite.get(siteCode);
-        if (cached != null) {
-            return cached;
-        }
-        PrinterRoutingService routing = PrinterRoutingService.load(siteCode, configBaseDir);
-        PrinterRoutingService prior = routingBySite.putIfAbsent(siteCode, routing);
-        return prior == null ? routing : prior;
-    }
-
-    private SiteConfig createSiteConfig(String siteCode) {
-        return new SiteConfig(
-                config.siteShipFromName(siteCode),
-                config.siteShipFromAddress(siteCode),
-                config.siteShipFromCityStateZip(siteCode)
-        );
-    }
-
-    private SiteConfig loadSiteConfig(String siteCode) {
-        return siteConfigBySite.computeIfAbsent(siteCode, this::createSiteConfig);
-    }
-
-    private SkuMappingService loadSkuMapping() throws Exception {
-        SkuMappingService cached = cachedSkuMapping;
-        if (cached != null) {
-            return cached;
-        }
-        synchronized (this) {
-            if (cachedSkuMapping == null) {
-                Path csvPath = LabelingSupport.resolveSkuMatrixCsv();
-                if (csvPath == null) {
-                    throw new IllegalStateException("SKU mapping CSV not found.");
-                }
-                cachedSkuMapping = new SkuMappingService(csvPath);
-            }
-            return cachedSkuMapping;
-        }
-    }
-
-    private LabelTemplate loadTemplate() throws Exception {
-        LabelTemplate cached = cachedTemplate;
-        if (cached != null) {
-            return cached;
-        }
-        synchronized (this) {
-            if (cachedTemplate == null) {
-                Path templatePath = configBaseDir.resolve("templates").resolve("walmart-canada-label.zpl");
-                if (!Files.exists(templatePath)) {
-                    throw new IllegalStateException("ZPL template not found: " + templatePath);
-                }
-                cachedTemplate = new LabelTemplate("WALMART_CANADA", Files.readString(templatePath));
-            }
-            return cachedTemplate;
-        }
     }
 
     public static final class PrinterOption {
