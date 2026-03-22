@@ -11,7 +11,6 @@ package com.tbg.wms.cli.gui;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.label.SiteConfig;
-import com.tbg.wms.core.labeling.LabelingSupport;
 import com.tbg.wms.core.model.*;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
@@ -41,6 +40,7 @@ public final class LabelWorkflowService {
     private final LabelWorkflowPlanningSupport planningSupport = new LabelWorkflowPlanningSupport();
     private final LabelWorkflowPrintSupport printSupport = new LabelWorkflowPrintSupport();
     private final LabelWorkflowRoutingSupport routingSupport = new LabelWorkflowRoutingSupport();
+    private final LabelWorkflowJobPreparationSupport jobPreparationSupport = new LabelWorkflowJobPreparationSupport();
 
     public LabelWorkflowService(AppConfig config) {
         this(config, RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(LabelWorkflowService.class, "config"));
@@ -95,46 +95,26 @@ public final class LabelWorkflowService {
     }
 
     PreparedJob prepareJob(DbQueryRepository queryRepo, String shipmentId) throws Exception {
-        Objects.requireNonNull(queryRepo, "queryRepo cannot be null");
-        String normalizedShipmentId = shipmentId == null ? "" : shipmentId.trim();
-        if (normalizedShipmentId.isEmpty()) {
-            throw new IllegalArgumentException("Shipment ID is required.");
-        }
-
-        if (!queryRepo.shipmentExists(normalizedShipmentId)) {
-            throw new IllegalArgumentException("Shipment not found: " + normalizedShipmentId);
-        }
-
-        Shipment shipment = queryRepo.findShipmentWithLpnsAndLineItems(normalizedShipmentId);
-        if (shipment == null) {
-            throw new IllegalStateException("Could not retrieve shipment data.");
-        }
-
-        List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(normalizedShipmentId);
-        Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
-        PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
-        // Fallback to virtual rows only when WMS returns no physical LPNs.
-        List<Lpn> lpnsForLabels = planningSupport.resolveLpnsForLabeling(shipment, footprintRows);
-        boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
-        String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
+        LabelWorkflowJobPreparationSupport.LoadedShipmentData loaded =
+                jobPreparationSupport.loadShipmentData(queryRepo, shipmentId, planningSupport);
         SkuMappingService skuMapping = assetSupport.loadSkuMapping();
-        List<SkuMathRow> mathRows = planningSupport.buildSkuMathRows(footprintRows, skuMapping);
+        List<SkuMathRow> mathRows = planningSupport.buildSkuMathRows(loaded.footprintRows(), skuMapping);
 
         String siteCode = config.activeSiteCode();
         PrinterRoutingService routing = assetSupport.loadRouting(siteCode);
         return new PreparedJob(
-                normalizedShipmentId,
-                shipment,
+                loaded.shipmentId(),
+                loaded.shipment(),
                 routing,
                 assetSupport.loadSiteConfig(siteCode),
                 skuMapping,
                 assetSupport.loadTemplate(),
-                footprintBySku,
-                planResult,
-                lpnsForLabels,
+                loaded.footprintBySku(),
+                loaded.planResult(),
+                loaded.lpnsForLabels(),
                 mathRows,
-                usingVirtualLabels,
-                stagingLocation
+                loaded.usingVirtualLabels(),
+                loaded.stagingLocation()
         );
     }
 
