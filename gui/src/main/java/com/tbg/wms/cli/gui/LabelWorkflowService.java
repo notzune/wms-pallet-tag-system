@@ -42,6 +42,7 @@ public final class LabelWorkflowService {
 
     private final AppConfig config;
     private final LabelWorkflowAssetSupport assetSupport;
+    private final LabelWorkflowPlanningSupport planningSupport = new LabelWorkflowPlanningSupport();
 
     public LabelWorkflowService(AppConfig config) {
         this(config, RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(LabelWorkflowService.class, "config"));
@@ -131,11 +132,11 @@ public final class LabelWorkflowService {
         Map<String, ShipmentSkuFootprint> footprintBySku = LabelingSupport.buildFootprintMap(footprintRows);
         PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
         // Fallback to virtual rows only when WMS returns no physical LPNs.
-        List<Lpn> lpnsForLabels = resolveLpnsForLabeling(shipment, footprintRows);
+        List<Lpn> lpnsForLabels = planningSupport.resolveLpnsForLabeling(shipment, footprintRows);
         boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
         String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
         SkuMappingService skuMapping = assetSupport.loadSkuMapping();
-        List<SkuMathRow> mathRows = buildSkuMathRows(footprintRows, skuMapping);
+        List<SkuMathRow> mathRows = planningSupport.buildSkuMathRows(footprintRows, skuMapping);
 
         String siteCode = config.activeSiteCode();
         PrinterRoutingService routing = assetSupport.loadRouting(siteCode);
@@ -214,63 +215,6 @@ public final class LabelWorkflowService {
             return PrintResult.printToFile(printedCount, targetDir.toAbsolutePath());
         }
         return new PrintResult(printedCount, targetDir.toAbsolutePath(), printer.getId(), printer.getEndpoint());
-    }
-
-    private List<SkuMathRow> buildSkuMathRows(List<ShipmentSkuFootprint> rows, SkuMappingService skuMapping) {
-        List<SkuMathRow> mathRows = new ArrayList<>();
-        for (ShipmentSkuFootprint row : rows) {
-            if (row == null) {
-                continue;
-            }
-
-            String sku = row.getSku();
-            if (sku == null || sku.isBlank()) {
-                continue;
-            }
-
-            int units = Math.max(0, row.getTotalUnits());
-            Integer upp = row.getUnitsPerPallet();
-            int fullPallets = 0;
-            int partialPallets = 0;
-            int estimatedPallets = 0;
-            if (upp != null && upp > 0) {
-                fullPallets = units / upp;
-                partialPallets = units % upp > 0 ? 1 : 0;
-                estimatedPallets = fullPallets + partialPallets;
-            }
-
-            String description = row.getItemDescription();
-            if (!isHumanReadable(description)) {
-                WalmartSkuMapping mapping = skuMapping.findByPrtnum(sku);
-                if (mapping != null && isHumanReadable(mapping.getDescription())) {
-                    description = mapping.getDescription();
-                }
-            }
-
-            mathRows.add(new SkuMathRow(
-                    sku,
-                    description == null ? "" : description,
-                    units,
-                    upp,
-                    fullPallets,
-                    partialPallets,
-                    estimatedPallets
-            ));
-        }
-        return mathRows;
-    }
-
-    private List<Lpn> resolveLpnsForLabeling(Shipment shipment, List<ShipmentSkuFootprint> footprintRows) {
-        List<Lpn> lpns = shipment.getLpns();
-        if (!lpns.isEmpty()) {
-            return lpns;
-        }
-        List<Lpn> virtual = LabelingSupport.buildVirtualLpnsFromFootprints(shipment, footprintRows);
-        return virtual.isEmpty() ? lpns : virtual;
-    }
-
-    private boolean isHumanReadable(String value) {
-        return LabelingSupport.isHumanReadable(value);
     }
 
     public static final class PrinterOption {
