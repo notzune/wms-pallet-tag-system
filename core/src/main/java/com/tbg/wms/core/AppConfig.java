@@ -48,6 +48,7 @@ public final class AppConfig {
     private final Map<String, String> envVars;
     private final Map<String, String> fileValues;
     private final Map<String, String> classpathDefaults;
+    private final ConfigValueSupport valueSupport;
     private final OracleConnectionConfigSupport oracleConnectionSupport;
     private final String loadedConfigFile;
 
@@ -79,7 +80,12 @@ public final class AppConfig {
                 ? explicitPath
                 : ConfigFileLocator.discoverConfigFile(DEFAULT_FILE_NAME, AppConfig.class, this.envVars);
         this.fileValues = selectedFile == null ? Map.of() : loadEnvStyleFile(selectedFile);
-        this.oracleConnectionSupport = new OracleConnectionConfigSupport(this::raw, this::rawFromEnvOrFile, this::required);
+        this.valueSupport = new ConfigValueSupport(this.envVars, this.fileValues, this.classpathDefaults, DEFAULT_FILE_NAME);
+        this.oracleConnectionSupport = new OracleConnectionConfigSupport(
+                valueSupport::raw,
+                valueSupport::rawFromEnvOrFile,
+                valueSupport::required
+        );
         this.loadedConfigFile = selectedFile == null ? null : selectedFile.toAbsolutePath().toString();
     }
 
@@ -91,7 +97,7 @@ public final class AppConfig {
      * @throws IllegalStateException if {@code ACTIVE_SITE} is not configured
      */
     public String activeSiteCode() {
-        return required("ACTIVE_SITE");
+        return valueSupport.required("ACTIVE_SITE");
     }
 
     /**
@@ -110,7 +116,7 @@ public final class AppConfig {
      * @throws IllegalStateException if not configured
      */
     public String oracleUsername() {
-        return required("ORACLE_USERNAME");
+        return valueSupport.required("ORACLE_USERNAME");
     }
 
     /**
@@ -120,7 +126,7 @@ public final class AppConfig {
      * @throws IllegalStateException if not configured
      */
     public String oraclePassword() {
-        return required("ORACLE_PASSWORD");
+        return valueSupport.required("ORACLE_PASSWORD");
     }
 
     /**
@@ -129,7 +135,7 @@ public final class AppConfig {
      * @return the port from {@code ORACLE_PORT} (default: {@code 1521})
      */
     public int oraclePort() {
-        return parseIntConfig("ORACLE_PORT", "1521");
+        return valueSupport.parseInt("ORACLE_PORT", "1521");
     }
 
     /**
@@ -138,7 +144,7 @@ public final class AppConfig {
      * @return the service from {@code ORACLE_SERVICE} (default: {@code WMSP})
      */
     public String oracleService() {
-        return get("ORACLE_SERVICE", "WMSP");
+        return valueSupport.get("ORACLE_SERVICE", "WMSP");
     }
 
     /**
@@ -150,7 +156,7 @@ public final class AppConfig {
      * @throws IllegalStateException if the site name is not configured
      */
     public String siteName(String siteCode) {
-        return required("SITE_" + siteCode + "_NAME");
+        return valueSupport.required("SITE_" + siteCode + "_NAME");
     }
 
     /**
@@ -160,7 +166,7 @@ public final class AppConfig {
      * @return ship-from company name
      */
     public String siteShipFromName(String siteCode) {
-        return get("SITE_" + siteCode + "_SHIP_FROM_NAME", "TROPICANA PRODUCTS, INC.");
+        return valueSupport.get("SITE_" + siteCode + "_SHIP_FROM_NAME", "TROPICANA PRODUCTS, INC.");
     }
 
     /**
@@ -170,7 +176,7 @@ public final class AppConfig {
      * @return ship-from street address
      */
     public String siteShipFromAddress(String siteCode) {
-        return get("SITE_" + siteCode + "_SHIP_FROM_ADDRESS", "9 Linden Ave E");
+        return valueSupport.get("SITE_" + siteCode + "_SHIP_FROM_ADDRESS", "9 Linden Ave E");
     }
 
     /**
@@ -180,7 +186,7 @@ public final class AppConfig {
      * @return ship-from city/state/zip line
      */
     public String siteShipFromCityStateZip(String siteCode) {
-        return get("SITE_" + siteCode + "_SHIP_FROM_CITY_STATE_ZIP", "Jersey City, NJ 07305");
+        return valueSupport.get("SITE_" + siteCode + "_SHIP_FROM_CITY_STATE_ZIP", "Jersey City, NJ 07305");
     }
 
     /**
@@ -250,7 +256,7 @@ public final class AppConfig {
      * @return the max pool size from {@code DB_POOL_MAX_SIZE} (default: {@code 5})
      */
     public int dbPoolMaxSize() {
-        return parseIntConfig("DB_POOL_MAX_SIZE", "5");
+        return valueSupport.parseInt("DB_POOL_MAX_SIZE", "5");
     }
 
     /**
@@ -259,7 +265,7 @@ public final class AppConfig {
      * @return the timeout from {@code DB_POOL_CONN_TIMEOUT_MS} (default: {@code 3000} ms)
      */
     public long dbPoolConnectionTimeoutMs() {
-        return parseLongConfig("DB_POOL_CONN_TIMEOUT_MS", "3000");
+        return valueSupport.parseLong("DB_POOL_CONN_TIMEOUT_MS", "3000");
     }
 
     /**
@@ -268,7 +274,7 @@ public final class AppConfig {
      * @return the timeout from {@code DB_POOL_VALIDATION_TIMEOUT_MS} (default: {@code 2000} ms)
      */
     public long dbPoolValidationTimeoutMs() {
-        return parseLongConfig("DB_POOL_VALIDATION_TIMEOUT_MS", "2000");
+        return valueSupport.parseLong("DB_POOL_VALIDATION_TIMEOUT_MS", "2000");
     }
 
     /**
@@ -277,7 +283,7 @@ public final class AppConfig {
      * @return the path from {@code PRINTER_ROUTING_FILE} (default: {@code config/printer-routing.yaml})
      */
     public String printerRoutingFile() {
-        return get("PRINTER_ROUTING_FILE", "config/printer-routing.yaml");
+        return valueSupport.get("PRINTER_ROUTING_FILE", "config/printer-routing.yaml");
     }
 
     /**
@@ -286,7 +292,7 @@ public final class AppConfig {
      * @return the printer ID from {@code PRINTER_DEFAULT_ID} (default: {@code DISPATCH})
      */
     public String defaultPrinterId() {
-        return get("PRINTER_DEFAULT_ID", "DISPATCH");
+        return valueSupport.get("PRINTER_DEFAULT_ID", "DISPATCH");
     }
 
     /**
@@ -296,7 +302,7 @@ public final class AppConfig {
      * @return the rail default printer ID from {@code RAIL_DEFAULT_PRINTER_ID}, or {@code null}
      */
     public String railDefaultPrinterIdOrNull() {
-        String v = raw("RAIL_DEFAULT_PRINTER_ID");
+        String v = valueSupport.raw("RAIL_DEFAULT_PRINTER_ID");
         return (v == null || v.isBlank()) ? null : v.trim();
     }
 
@@ -306,7 +312,7 @@ public final class AppConfig {
      * @return center gap from {@code RAIL_LABEL_CENTER_GAP_IN} (default: {@code 0.125})
      */
     public double railLabelCenterGapInches() {
-        return parseDoubleConfig("RAIL_LABEL_CENTER_GAP_IN", "0.125");
+        return valueSupport.parseDouble("RAIL_LABEL_CENTER_GAP_IN", "0.125");
     }
 
     /**
@@ -316,7 +322,7 @@ public final class AppConfig {
      * @return offset from {@code RAIL_LABEL_OFFSET_X_IN} (default: {@code 0.02})
      */
     public double railLabelOffsetXInches() {
-        return parseDoubleConfig("RAIL_LABEL_OFFSET_X_IN", "0.02");
+        return valueSupport.parseDouble("RAIL_LABEL_OFFSET_X_IN", "0.02");
     }
 
     /**
@@ -326,7 +332,7 @@ public final class AppConfig {
      * @return offset from {@code RAIL_LABEL_OFFSET_Y_IN} (default: {@code 0.02})
      */
     public double railLabelOffsetYInches() {
-        return parseDoubleConfig("RAIL_LABEL_OFFSET_Y_IN", "0.02");
+        return valueSupport.parseDouble("RAIL_LABEL_OFFSET_Y_IN", "0.02");
     }
 
     /**
@@ -336,7 +342,7 @@ public final class AppConfig {
      * @return the forced printer ID from {@code PRINTER_FORCE_ID}, or {@code null}
      */
     public String forcedPrinterIdOrNull() {
-        String v = raw("PRINTER_FORCE_ID");
+        String v = valueSupport.raw("PRINTER_FORCE_ID");
         return (v == null || v.isBlank()) ? null : v.trim();
     }
 
@@ -347,89 +353,6 @@ public final class AppConfig {
      */
     public String loadedConfigFileOrNull() {
         return loadedConfigFile;
-    }
-
-    /**
-     * Internal helper: retrieves a required configuration value.
-     *
-     * @param key the configuration key
-     * @return the trimmed value
-     * @throws IllegalStateException if the key is not set or is blank
-     */
-    private String required(String key) {
-        String v = raw(key);
-        if (v == null || v.isBlank()) {
-            throw new IllegalStateException("Missing required config key: " + key
-                    + " (set env var, or define in " + DEFAULT_FILE_NAME + "/.env)");
-        }
-        return v.trim();
-    }
-
-    private int parseIntConfig(String key, String defaultValue) {
-        String value = get(key, defaultValue);
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException ex) {
-            throw new IllegalStateException("Invalid integer config for " + key + ": '" + value + "'", ex);
-        }
-    }
-
-    private long parseLongConfig(String key, String defaultValue) {
-        String value = get(key, defaultValue);
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException ex) {
-            throw new IllegalStateException("Invalid long config for " + key + ": '" + value + "'", ex);
-        }
-    }
-
-    private double parseDoubleConfig(String key, String defaultValue) {
-        String value = get(key, defaultValue);
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException ex) {
-            throw new IllegalStateException("Invalid decimal config for " + key + ": '" + value + "'", ex);
-        }
-    }
-
-    /**
-     * Internal helper: retrieves an optional configuration value with a default.
-     *
-     * @param key the configuration key
-     * @param def the default value if key is not set
-     * @return the trimmed value, or the default
-     */
-    private String get(String key, String def) {
-        String v = raw(key);
-        return (v == null || v.isBlank()) ? def : v.trim();
-    }
-
-    private String raw(String key) {
-        String fromEnv = envVars.get(key);
-        if (fromEnv != null && !fromEnv.isBlank()) {
-            return fromEnv.trim();
-        }
-
-        String fromFile = fileValues.get(key);
-        if (fromFile != null && !fromFile.isBlank()) {
-            return fromFile.trim();
-        }
-
-        String fromDefaults = classpathDefaults.get(key);
-        return (fromDefaults == null || fromDefaults.isBlank()) ? null : fromDefaults.trim();
-    }
-
-    private String rawFromEnvOrFile(String key) {
-        String fromEnv = envVars.get(key);
-        if (fromEnv != null && !fromEnv.isBlank()) {
-            return fromEnv.trim();
-        }
-
-        String fromFile = fileValues.get(key);
-        if (fromFile != null && !fromFile.isBlank()) {
-            return fromFile.trim();
-        }
-        return null;
     }
 
     private Map<String, String> loadClasspathDefaults() {
