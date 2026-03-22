@@ -83,6 +83,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
     private final transient LabelPreviewFormatter previewFormatter = new LabelPreviewFormatter();
     private final transient PreviewSelectionSupport previewSelectionSupport = new PreviewSelectionSupport();
+    private final transient GuiPrintFlowSupport printFlowSupport = new GuiPrintFlowSupport();
     private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
             new QueueResumeDialogSupport(new QueueResumeDependencies(), MAX_QUEUE_ITEMS);
@@ -574,37 +575,31 @@ public final class LabelGuiFrame extends JFrame {
 
     private void confirmAndPrint() {
         boolean carrierMoveMode = isCarrierMoveMode();
-        boolean previewMissing = carrierMoveMode ? preparedCarrierJob == null : preparedJob == null;
-        if (previewMissing) {
-            showError("Run Preview first.");
-            return;
-        }
-
         LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
         boolean printToFile = isPrintToFileSelected(selected);
-        if (!printToFile && selected == null) {
-            showError("Select a printer.");
-            return;
-        }
-
         PreviewSelectionSupport.SelectionSnapshot selection = snapshotPreviewSelection();
-        List<Lpn> selectedShipmentLpns = carrierMoveMode ? List.of() : selection.selectedShipmentLpns();
-        List<LabelSelectionRef> selectedCarrierLabels =
-                carrierMoveMode ? selection.selectedCarrierLabels() : List.of();
-        if ((!carrierMoveMode && selectedShipmentLpns.isEmpty())
-                || (carrierMoveMode && selectedCarrierLabels.isEmpty())) {
-            showError("Select at least one label to print.");
+        GuiPrintFlowSupport.PrintPlan plan;
+        try {
+            plan = printFlowSupport.planPrint(
+                    carrierMoveMode,
+                    preparedJob,
+                    preparedCarrierJob,
+                    selected,
+                    printToFile,
+                    selection,
+                    includeInfoTagsCheckBox.isSelected(),
+                    defaultPrintToFileOutputDir(),
+                    OUTPUT_TS.format(LocalDateTime.now())
+            );
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
             return;
         }
 
         if (!printToFile) {
-            int plannedLabels = carrierMoveMode
-                    ? selectedCarrierLabels.size()
-                    : selectedShipmentLpns.size();
-            int plannedInfoTags = selection.infoTagCount();
             int choice = JOptionPane.showConfirmDialog(
                     this,
-                    "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?",
+                    printFlowSupport.buildConfirmationMessage(plan, selected),
                     "Confirm Print",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE
@@ -622,28 +617,23 @@ public final class LabelGuiFrame extends JFrame {
         SwingWorker<AdvancedPrintWorkflowService.PrintResult, Void> worker = new SwingWorker<>() {
             @Override
             protected AdvancedPrintWorkflowService.PrintResult doInBackground() throws Exception {
-                String printerId = printToFile ? null : selected.getId();
-                if (carrierMoveMode) {
-                    Path outDir = defaultPrintToFileOutputDir().resolve("gui-cmid-" + preparedCarrierJob.getCarrierMoveId() + "-" +
-                            OUTPUT_TS.format(LocalDateTime.now()));
+                if (plan.carrierMoveMode()) {
                     return advancedService.printCarrierMoveJob(
                             preparedCarrierJob,
-                            selectedCarrierLabels,
-                            printerId,
-                            outDir,
-                            printToFile,
-                            includeInfoTagsCheckBox.isSelected()
+                            plan.selectedCarrierLabels(),
+                            plan.printerId(),
+                            plan.outputDir(),
+                            plan.printToFile(),
+                            plan.includeInfoTags()
                     );
                 }
-                Path outDir = defaultPrintToFileOutputDir().resolve("gui-" + preparedJob.getShipmentId() + "-" +
-                        OUTPUT_TS.format(LocalDateTime.now()));
                 return advancedService.printShipmentJob(
                         preparedJob,
-                        selectedShipmentLpns,
-                        printerId,
-                        outDir,
-                        printToFile,
-                        includeInfoTagsCheckBox.isSelected()
+                        plan.selectedShipmentLpns(),
+                        plan.printerId(),
+                        plan.outputDir(),
+                        plan.printToFile(),
+                        plan.includeInfoTags()
                 );
             }
 
@@ -654,28 +644,13 @@ public final class LabelGuiFrame extends JFrame {
                 clearButton.setEnabled(true);
                 try {
                     AdvancedPrintWorkflowService.PrintResult result = get();
-                    if (result.isPrintToFile()) {
-                        setReady("Saved " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
-                                " info tags to " + result.getOutputDirectory());
-                        JOptionPane.showMessageDialog(
-                                LabelGuiFrame.this,
-                                "Saved " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
-                                        " info tags.\nOutput: " + result.getOutputDirectory(),
-                                "Print Complete",
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
-                    } else {
-                        setReady("Printed " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
-                                " info tags to " + result.getPrinterId() +
-                                " (" + result.getPrinterEndpoint() + ")");
-                        JOptionPane.showMessageDialog(
-                                LabelGuiFrame.this,
-                                "Printed " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
-                                        " info tags.\nOutput: " + result.getOutputDirectory(),
-                                "Print Complete",
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
-                    }
+                    setReady(printFlowSupport.buildCompletionStatus(result));
+                    JOptionPane.showMessageDialog(
+                            LabelGuiFrame.this,
+                            printFlowSupport.buildCompletionDialogMessage(result),
+                            "Print Complete",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
                 } catch (Exception ex) {
                     setReady("Print failed.");
                     showError(rootMessage(ex));
