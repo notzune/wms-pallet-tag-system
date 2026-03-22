@@ -26,9 +26,11 @@ final class OracleRailQuerySupport {
 
     private static final int RAIL_FOOTPRINT_BATCH_SIZE = 900;
     private final DataSource dataSource;
+    private final RailFootprintCandidateSupport footprintCandidateSupport;
 
     OracleRailQuerySupport(DataSource dataSource) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource cannot be null");
+        this.footprintCandidateSupport = new RailFootprintCandidateSupport();
     }
 
     List<RailStopRecord> findRailStopsByTrainId(String normalizedTrainId) {
@@ -155,9 +157,7 @@ final class OracleRailQuerySupport {
             );
         }
 
-        for (List<RailFootprintCandidate> list : byShortCode.values()) {
-            list.sort(Comparator.comparing(RailFootprintCandidate::getItemNumber));
-        }
+        footprintCandidateSupport.sortCandidates(byShortCode);
         return byShortCode;
     }
 
@@ -172,55 +172,13 @@ final class OracleRailQuerySupport {
         return new ArrayList<>(normalizedSet);
     }
 
-    private static void collectFootprintCandidates(
+    private void collectFootprintCandidates(
             PreparedStatement stmt,
             Map<String, List<RailFootprintCandidate>> byShortCode
     ) throws SQLException {
         try (ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                String shortCode = NormalizationService.normalizeString(rs.getString("SHORT_CODE"));
-                String itemNumber = NormalizationService.normalizeSku(rs.getString("ITEM_NBR"));
-                String familyCode = normalizeRailFamilyCode(
-                        rs.getString("PRTFAM"),
-                        nullableInt(rs, "UC_PARS_FLG")
-                );
-                Integer upp = nullableInt(rs, "UNITS_PER_PALLET");
-                int casesPerPallet = upp == null ? 0 : upp;
-                RailFootprintCandidate candidate = new RailFootprintCandidate(
-                        shortCode,
-                        itemNumber,
-                        familyCode,
-                        casesPerPallet
-                );
-                if (!candidate.isValid()) {
-                    continue;
-                }
-                byShortCode.computeIfAbsent(shortCode, ignored -> new ArrayList<>()).add(candidate);
-            }
+            footprintCandidateSupport.collectCandidates(rs, byShortCode);
         }
-    }
-
-    private static String normalizeRailFamilyCode(String prtfam, Integer parsFlag) {
-        String family = NormalizationService.normalizeToUppercase(prtfam);
-        if (parsFlag != null && parsFlag == 1) {
-            return "CAN";
-        }
-        if (family.contains("CAN")) {
-            return "CAN";
-        }
-        if (family.contains("KEV")) {
-            return "KEV";
-        }
-        if (family.contains("DOM")) {
-            return "DOM";
-        }
-        if (family.isBlank()) {
-            return "DOM";
-        }
-        if (family.length() > 3) {
-            return family.substring(0, 3);
-        }
-        return family;
     }
 
     private static String sqlPlaceholders(int count) {
@@ -243,11 +201,6 @@ final class OracleRailQuerySupport {
             return "";
         }
         return Integer.toString(value);
-    }
-
-    private static Integer nullableInt(ResultSet rs, String column) throws SQLException {
-        int value = rs.getInt(column);
-        return rs.wasNull() ? null : value;
     }
 
     private static final class MutableRailStop {
