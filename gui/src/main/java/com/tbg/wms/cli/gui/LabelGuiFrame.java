@@ -100,11 +100,11 @@ public final class LabelGuiFrame extends JFrame {
     private final transient GuiPreviewSelectionUiSupport previewSelectionUiSupport = new GuiPreviewSelectionUiSupport();
     private final transient LabelGuiFramePreviewShellSupport previewShellSupport = new LabelGuiFramePreviewShellSupport();
     private final transient LabelGuiFrameToolMenuSupport toolMenuSupport = new LabelGuiFrameToolMenuSupport();
-    private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(buildBarcodeDependencies());
     private final transient QueueResumeDialogSupport queueResumeDialogSupport =
             new QueueResumeDialogSupport(buildQueueResumeDependencies(), MAX_QUEUE_ITEMS);
     private final transient GuiSettingsDialogSupport settingsDialogSupport =
             new GuiSettingsDialogSupport(buildSettingsDependencies(), PREF_PRINT_TO_FILE_DIR, LabelGuiFrame.class);
+    private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(buildBarcodeDependencies());
     private final transient GuiUpdateFlowSupport updateFlowSupport = new GuiUpdateFlowSupport();
     private final transient GuiUpdateExecutionSupport updateExecutionSupport = new GuiUpdateExecutionSupport(updateFlowSupport);
     private final transient GuiDbStatusSupport dbStatusSupport = new GuiDbStatusSupport();
