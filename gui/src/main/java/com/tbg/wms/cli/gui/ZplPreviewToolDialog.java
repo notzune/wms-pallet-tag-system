@@ -152,15 +152,31 @@ final class ZplPreviewToolDialog extends JDialog {
         updateDocumentControls();
     }
 
-    static void openWithDocuments(
+    static ZplPreviewToolDialog createWithDocuments(
             JFrame owner,
             String title,
             List<GuiZplPreviewSupport.PreviewDocument> previewDocuments
     ) {
         ZplPreviewToolDialog dialog = new ZplPreviewToolDialog(owner);
-        dialog.setTitle(title);
-        dialog.loadDocuments(previewDocuments);
-        dialog.setVisible(true);
+        dialog.setPreviewDocuments(title, previewDocuments);
+        return dialog;
+    }
+
+    static void openWithDocuments(
+            JFrame owner,
+            String title,
+            List<GuiZplPreviewSupport.PreviewDocument> previewDocuments
+    ) {
+        createWithDocuments(owner, title, previewDocuments).setVisible(true);
+    }
+
+    void setPreviewDocuments(String title, List<GuiZplPreviewSupport.PreviewDocument> previewDocuments) {
+        setTitle(title);
+        loadDocuments(previewDocuments);
+    }
+
+    void clearPreviewDocuments() {
+        clearDocuments();
     }
 
     private void installRenderKeyBinding() {

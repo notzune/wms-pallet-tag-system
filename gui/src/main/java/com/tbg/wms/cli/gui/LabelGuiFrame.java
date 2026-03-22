@@ -119,6 +119,7 @@ public final class LabelGuiFrame extends JFrame {
     private transient AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
     private transient ReleaseCheckService.ReleaseInfo latestReleaseInfo;
     private transient boolean updateCheckInProgress;
+    private transient ZplPreviewToolDialog generatedLabelsPreviewDialog;
 
     public LabelGuiFrame() {
         super(buildWindowTitle());
@@ -443,6 +444,7 @@ public final class LabelGuiFrame extends JFrame {
         labelSelectionToggleButton.setText(previewSelectionUiSupport.selectionToggleText(selected, total));
         refreshPreviewText(selection);
         updatePrintButtonEnabled(selection);
+        refreshGeneratedLabelPreviewDialog(selection);
     }
 
     private void updateLabelSelectionCollapseUi() {
@@ -500,6 +502,7 @@ public final class LabelGuiFrame extends JFrame {
                 labelSelectionCollapseButton,
                 includeInfoTagsCheckBox
         );
+        clearGeneratedLabelPreviewDialog();
     }
 
     private void confirmAndPrint() {
@@ -880,30 +883,74 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void openGeneratedLabelPreview() {
-        PreviewSelectionSupport.SelectionSnapshot selection = snapshotPreviewSelection();
         try {
-            List<GuiZplPreviewSupport.PreviewDocument> documents = isCarrierMoveMode()
-                    ? zplPreviewSupport.buildCarrierMoveDocuments(
-                    Objects.requireNonNull(preparedCarrierJob, "preparedCarrierJob"),
-                    selection.selectedCarrierLabels(),
-                    includeInfoTagsCheckBox.isSelected()
-            )
-                    : zplPreviewSupport.buildShipmentDocuments(
-                    Objects.requireNonNull(preparedJob, "preparedJob"),
-                    selection.selectedShipmentLpns(),
-                    includeInfoTagsCheckBox.isSelected()
-            );
+            PreviewSelectionSupport.SelectionSnapshot selection = snapshotPreviewSelection();
+            List<GuiZplPreviewSupport.PreviewDocument> documents = buildGeneratedLabelPreviewDocuments(selection);
             if (documents.isEmpty()) {
                 showError("Preview at least one label before opening the ZPL preview.");
                 return;
             }
-            String title = isCarrierMoveMode()
-                    ? "Carrier Move Label Preview"
-                    : "Shipment Label Preview";
-            ZplPreviewToolDialog.openWithDocuments(this, title, documents);
+            generatedLabelsPreviewDialog = ensureGeneratedLabelsPreviewDialog();
+            generatedLabelsPreviewDialog.setPreviewDocuments(generatedLabelPreviewTitle(), documents);
+            generatedLabelsPreviewDialog.setVisible(true);
+            generatedLabelsPreviewDialog.toFront();
         } catch (Exception ex) {
             showError("Could not open label preview: " + rootMessage(ex));
         }
+    }
+
+    private void refreshGeneratedLabelPreviewDialog(PreviewSelectionSupport.SelectionSnapshot selection) {
+        if (generatedLabelsPreviewDialog == null || !generatedLabelsPreviewDialog.isDisplayable() || !generatedLabelsPreviewDialog.isVisible()) {
+            return;
+        }
+        try {
+            List<GuiZplPreviewSupport.PreviewDocument> documents = buildGeneratedLabelPreviewDocuments(selection);
+            if (documents.isEmpty()) {
+                generatedLabelsPreviewDialog.clearPreviewDocuments();
+                generatedLabelsPreviewDialog.setTitle(generatedLabelPreviewTitle());
+                return;
+            }
+            generatedLabelsPreviewDialog.setPreviewDocuments(generatedLabelPreviewTitle(), documents);
+        } catch (Exception ex) {
+            generatedLabelsPreviewDialog.clearPreviewDocuments();
+        }
+    }
+
+    private List<GuiZplPreviewSupport.PreviewDocument> buildGeneratedLabelPreviewDocuments(
+            PreviewSelectionSupport.SelectionSnapshot selection
+    ) {
+        return isCarrierMoveMode()
+                ? zplPreviewSupport.buildCarrierMoveDocuments(
+                Objects.requireNonNull(preparedCarrierJob, "preparedCarrierJob"),
+                selection.selectedCarrierLabels(),
+                includeInfoTagsCheckBox.isSelected()
+        )
+                : zplPreviewSupport.buildShipmentDocuments(
+                Objects.requireNonNull(preparedJob, "preparedJob"),
+                selection.selectedShipmentLpns(),
+                includeInfoTagsCheckBox.isSelected()
+        );
+    }
+
+    private String generatedLabelPreviewTitle() {
+        return isCarrierMoveMode()
+                ? "Carrier Move Label Preview"
+                : "Shipment Label Preview";
+    }
+
+    private ZplPreviewToolDialog ensureGeneratedLabelsPreviewDialog() {
+        if (generatedLabelsPreviewDialog == null || !generatedLabelsPreviewDialog.isDisplayable()) {
+            generatedLabelsPreviewDialog = new ZplPreviewToolDialog(this);
+        }
+        return generatedLabelsPreviewDialog;
+    }
+
+    private void clearGeneratedLabelPreviewDialog() {
+        if (generatedLabelsPreviewDialog == null || !generatedLabelsPreviewDialog.isDisplayable()) {
+            return;
+        }
+        generatedLabelsPreviewDialog.clearPreviewDocuments();
+        generatedLabelsPreviewDialog.setTitle(generatedLabelPreviewTitle());
     }
 
     private void openQueueDialog() {
