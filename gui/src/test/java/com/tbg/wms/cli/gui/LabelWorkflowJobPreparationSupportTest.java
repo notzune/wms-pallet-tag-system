@@ -24,7 +24,7 @@ class LabelWorkflowJobPreparationSupportTest {
     void loadShipmentData_shouldRejectMissingShipment() {
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
-                () -> support.loadShipmentData(new StubRepository(false, null, List.of(), null), "SHIP-1", new LabelWorkflowPlanningSupport())
+                () -> support.loadShipmentData(new StubRepository(null, List.of()), "SHIP-1", new LabelWorkflowPlanningSupport())
         );
 
         assertEquals("Shipment not found: SHIP-1", ex.getMessage());
@@ -36,14 +36,14 @@ class LabelWorkflowJobPreparationSupportTest {
                 "SHIP-1", "EXT-1", "ORDER-1", "3002",
                 "Ship To", "123 Any St", null, null,
                 "City", "ST", "12345", "USA", null,
-                "CARRIER", "TL", null, null, null,
+                "CARRIER", "TL", null, null, "STAGE",
                 null, "6080", null, null, 1, "CM1", null, null,
                 "R", LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now(), List.of()
         );
         ShipmentSkuFootprint footprint = new ShipmentSkuFootprint("SKU1", "Desc", 120, 60, 10, 20.0, 30.0, 40.0);
 
         LabelWorkflowJobPreparationSupport.LoadedShipmentData loaded = support.loadShipmentData(
-                new StubRepository(true, shipment, List.of(footprint), "STAGE"),
+                new StubRepository(shipment, List.of(footprint)),
                 "SHIP-1",
                 new LabelWorkflowPlanningSupport()
         );
@@ -56,16 +56,12 @@ class LabelWorkflowJobPreparationSupportTest {
     }
 
     private static final class StubRepository implements DbQueryRepository {
-        private final boolean exists;
         private final Shipment shipment;
         private final List<ShipmentSkuFootprint> footprints;
-        private final String stagingLocation;
 
-        private StubRepository(boolean exists, Shipment shipment, List<ShipmentSkuFootprint> footprints, String stagingLocation) {
-            this.exists = exists;
+        private StubRepository(Shipment shipment, List<ShipmentSkuFootprint> footprints) {
             this.shipment = shipment;
             this.footprints = footprints;
-            this.stagingLocation = stagingLocation;
         }
 
         @Override
@@ -75,12 +71,12 @@ class LabelWorkflowJobPreparationSupportTest {
 
         @Override
         public boolean shipmentExists(String shipmentId) {
-            return exists;
+            return shipment != null;
         }
 
         @Override
         public String getStagingLocation(String shipmentId) {
-            return stagingLocation;
+            return shipment == null ? null : shipment.getDestinationLocation();
         }
 
         @Override

@@ -28,13 +28,9 @@ final class LabelWorkflowJobPreparationSupport {
             throw new IllegalArgumentException("Shipment ID is required.");
         }
 
-        if (!queryRepo.shipmentExists(normalizedShipmentId)) {
-            throw new IllegalArgumentException("Shipment not found: " + normalizedShipmentId);
-        }
-
         Shipment shipment = queryRepo.findShipmentWithLpnsAndLineItems(normalizedShipmentId);
         if (shipment == null) {
-            throw new IllegalStateException("Could not retrieve shipment data.");
+            throw new IllegalArgumentException("Shipment not found: " + normalizedShipmentId);
         }
 
         List<ShipmentSkuFootprint> footprintRows = queryRepo.findShipmentSkuFootprints(normalizedShipmentId);
@@ -42,7 +38,7 @@ final class LabelWorkflowJobPreparationSupport {
         PalletPlanningService.PlanResult planResult = new PalletPlanningService().plan(footprintRows);
         List<Lpn> lpnsForLabels = planningSupport.resolveLpnsForLabeling(shipment, footprintRows);
         boolean usingVirtualLabels = shipment.getLpnCount() == 0 && !lpnsForLabels.isEmpty();
-        String stagingLocation = queryRepo.getStagingLocation(normalizedShipmentId);
+        String stagingLocation = shipment.getDestinationLocation();
         return new LoadedShipmentData(
                 normalizedShipmentId,
                 shipment,
