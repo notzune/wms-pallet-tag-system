@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.model.LineItem;
@@ -18,6 +25,9 @@ import java.util.Map;
 
 /**
  * Loads shipment LPN rows and merges inventory detail rows into stable LPN models.
+ *
+ * <p>This helper isolates the shipment LPN hydration query path so line-item grouping and
+ * duplicate-pallet coalescing rules can be tuned without expanding repository orchestration code.</p>
  */
 final class ShipmentLpnHydrationSupport {
     private static final String DEFAULT_LINE_ITEM_UOM = "EA";

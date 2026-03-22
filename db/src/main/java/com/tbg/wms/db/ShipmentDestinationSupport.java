@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.model.NormalizationService;
@@ -7,6 +14,9 @@ import java.util.regex.Pattern;
 
 /**
  * Resolves shipment destination identifiers from available WMS fields.
+ *
+ * <p>This helper keeps destination-number fallback rules deterministic and separate from shipment
+ * header SQL mapping so location-routing fixes stay localized.</p>
  */
 final class ShipmentDestinationSupport {
     private static final Pattern DC_NUMBER_PATTERN = Pattern.compile("(?i)\\bDC\\s*#?\\s*(\\d{3,6})\\b");

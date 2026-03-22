@@ -1,9 +1,19 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.gui;
 
 import java.util.Objects;
 
 /**
  * Builds carrier-move and queue preview text so shipment formatting can stay separate.
+ *
+ * <p>This helper owns the aggregated carrier/queue counters and summary text so queue behavior
+ * changes do not require editing the broader shipment preview formatter.</p>
  */
 final class CarrierMovePreviewSupport {
     private static final String CARRIER_TABLE_SEPARATOR =

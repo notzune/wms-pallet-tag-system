@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.model.NormalizationService;
@@ -13,6 +20,9 @@ import java.util.Map;
 
 /**
  * Resolves human-readable shipment item descriptions from Oracle description tables.
+ *
+ * <p>This helper centralizes the description fallback order and per-load cache so shipment
+ * footprint hydration does not duplicate text-selection logic across repository methods.</p>
  */
 final class ShipmentDescriptionSupport {
     private final Map<DescriptionLookupKey, String> descriptionCache = new HashMap<>();

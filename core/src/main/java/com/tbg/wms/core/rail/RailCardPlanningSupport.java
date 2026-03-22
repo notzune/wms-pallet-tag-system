@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.core.rail;
 
 import java.util.ArrayList;
@@ -9,6 +16,9 @@ import java.util.TreeSet;
 
 /**
  * Builds rail-card pallet totals and top-family summaries in one pass over aggregate items.
+ *
+ * <p>This support class exists to keep the hot rail-card planning path single-pass and isolated
+ * from the broader workflow service so performance tuning and rollup rules can evolve together.</p>
  */
 final class RailCardPlanningSupport {
     private final RailFamilyClassifier familyClassifier = new RailFamilyClassifier();
