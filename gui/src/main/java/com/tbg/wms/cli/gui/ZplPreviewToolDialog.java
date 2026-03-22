@@ -4,6 +4,8 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -109,6 +111,7 @@ final class ZplPreviewToolDialog extends JDialog {
             }
         };
         zplTextArea.getDocument().addDocumentListener(changeListener);
+        installRenderKeyBinding();
         dpmmCombo.addActionListener(e -> queueRender());
         widthSpinner.addChangeListener(e -> queueRender());
         heightSpinner.addChangeListener(e -> queueRender());
@@ -118,6 +121,33 @@ final class ZplPreviewToolDialog extends JDialog {
         pack();
         setSize(1200, 760);
         setLocationRelativeTo(owner);
+    }
+
+    private void installRenderKeyBinding() {
+        InputMap inputMap = zplTextArea.getInputMap(JComponent.WHEN_FOCUSED);
+        ActionMap actionMap = zplTextArea.getActionMap();
+
+        KeyStroke enterKey = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0);
+        KeyStroke shiftEnterKey = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK);
+        Object defaultEnterAction = inputMap.get(enterKey);
+        Object defaultShiftEnterAction = inputMap.get(shiftEnterKey);
+
+        inputMap.put(enterKey, "render-preview-now");
+        if (defaultEnterAction != null) {
+            inputMap.put(shiftEnterKey, defaultEnterAction);
+        }
+
+        actionMap.put("render-preview-now", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                scheduleRender(true);
+            }
+        });
+
+        if (defaultShiftEnterAction != null) {
+            actionMap.put("insert-newline-shift", actionMap.get(defaultShiftEnterAction));
+            inputMap.put(shiftEnterKey, "insert-newline-shift");
+        }
     }
 
     private void queueRender() {
