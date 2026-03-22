@@ -48,6 +48,7 @@ public final class AppConfig {
     private final Map<String, String> envVars;
     private final Map<String, String> fileValues;
     private final Map<String, String> classpathDefaults;
+    private final OracleConnectionConfigSupport oracleConnectionSupport;
     private final String loadedConfigFile;
 
     /**
@@ -78,6 +79,7 @@ public final class AppConfig {
                 ? explicitPath
                 : ConfigFileLocator.discoverConfigFile(DEFAULT_FILE_NAME, AppConfig.class, this.envVars);
         this.fileValues = selectedFile == null ? Map.of() : loadEnvStyleFile(selectedFile);
+        this.oracleConnectionSupport = new OracleConnectionConfigSupport(this::raw, this::rawFromEnvOrFile, this::required);
         this.loadedConfigFile = selectedFile == null ? null : selectedFile.toAbsolutePath().toString();
     }
 
@@ -98,20 +100,7 @@ public final class AppConfig {
      * @return the WMS environment from {@code WMS_ENV} (default: {@code PROD})
      */
     public String wmsEnvironment() {
-        String value = rawFromEnvOrFile("WMS_ENV");
-        if (value == null || value.isBlank()) {
-            value = rawFromEnvOrFile("ACTIVE_ENV");
-        }
-        if (value == null || value.isBlank()) {
-            value = raw("WMS_ENV");
-        }
-        if (value == null || value.isBlank()) {
-            value = raw("ACTIVE_ENV");
-        }
-        if (value == null || value.isBlank()) {
-            value = "PROD";
-        }
-        return value.trim().toUpperCase(Locale.ROOT);
+        return oracleConnectionSupport.resolveWmsEnvironment();
     }
 
     /**
@@ -208,15 +197,7 @@ public final class AppConfig {
      * @throws IllegalStateException if no host is configured for the site
      */
     public String siteHost(String siteCode) {
-        String wmsEnv = wmsEnvironment();
-
-        String scopedKey = "SITE_" + siteCode + "_" + wmsEnv + "_HOST";
-        String scoped = raw(scopedKey);
-        if (scoped != null && !scoped.isBlank()) {
-            return scoped.trim();
-        }
-
-        return required("SITE_" + siteCode + "_HOST");
+        return oracleConnectionSupport.resolveSiteHost(siteCode);
     }
 
     /**
@@ -226,22 +207,7 @@ public final class AppConfig {
      * @return the JDBC connection string
      */
     public String oracleJdbcUrl() {
-        String explicitJdbc = raw("ORACLE_JDBC_URL");
-        if (explicitJdbc != null && !explicitJdbc.isBlank()) {
-            return explicitJdbc.trim();
-        }
-
-        String dsn = raw("ORACLE_DSN");
-        if (dsn != null && !dsn.isBlank()) {
-            String trimmed = dsn.trim();
-            if (trimmed.startsWith("jdbc:")) {
-                return trimmed;
-            }
-            return "jdbc:oracle:thin:@" + trimmed;
-        }
-
-        String site = activeSiteCode();
-        return "jdbc:oracle:thin:@//" + siteHost(site) + ":" + oraclePort() + "/" + oracleService();
+        return oracleConnectionSupport.resolveJdbcUrl(activeSiteCode(), this::oraclePort, this::oracleService);
     }
 
     /**
@@ -259,17 +225,7 @@ public final class AppConfig {
      * @return distinct, ordered JDBC URL candidates
      */
     public List<String> oracleJdbcUrlCandidates() {
-        Set<String> ordered = new LinkedHashSet<>();
-        ordered.add(oracleJdbcUrl());
-
-        String odbcAlias = oracleOdbcDsnOrNull();
-        if (odbcAlias != null && !odbcAlias.isBlank()) {
-            ordered.add("jdbc:oracle:thin:@" + odbcAlias.trim());
-        }
-
-        String site = activeSiteCode();
-        ordered.add("jdbc:oracle:thin:@//" + siteHost(site) + ":" + oraclePort() + "/" + oracleService());
-        return List.copyOf(ordered);
+        return oracleConnectionSupport.resolveJdbcUrlCandidates(activeSiteCode(), this::oraclePort, this::oracleService);
     }
 
     /**
@@ -285,21 +241,7 @@ public final class AppConfig {
      * @return Oracle Net alias used for fallback connectivity
      */
     public String oracleOdbcDsnOrNull() {
-        String explicit = raw("ORACLE_ODBC_DSN");
-        if (explicit != null && !explicit.isBlank()) {
-            return explicit.trim();
-        }
-
-        String netService = raw("ORACLE_NET_SERVICE");
-        if (netService != null && !netService.isBlank()) {
-            return netService.trim();
-        }
-
-        String tnsAlias = raw("ORACLE_TNS_ALIAS");
-        if (tnsAlias != null && !tnsAlias.isBlank()) {
-            return tnsAlias.trim();
-        }
-        return null;
+        return oracleConnectionSupport.resolveOdbcAliasOrNull();
     }
 
     /**
