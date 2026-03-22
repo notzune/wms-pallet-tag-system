@@ -203,6 +203,8 @@ Notes:
 - `uninstall-wms-tags.ps1` now supports clean-install prep by removing the installed product and then wiping the install directory plus non-secret runtime settings
 - Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
 - The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
+- Clean-VM installer automation can be rerun with `scripts\vm\Test-TropTest-InstallerFlow.ps1` when VirtualBox Guest Additions and a guest automation account are available
+- Latest clean-VM evidence shows installer remove/install/upgrade transitions work, but Microsoft Defender on a fresh Windows 11 VM quarantines the installed native launcher as `Trojan:Win32/Bearfoos.B!ml`, which blocks first-run validation of the installed EXE without an exclusion or code-signing/reputation change
 
 ### Tropicana internal installer
 
@@ -258,6 +260,26 @@ Smoke policy:
 
 - `repo` mode is the fast developer gate against the built CLI jar and shared workflow services
 - `packaged` mode is the release gate against the actual packaged app layout
+
+### VM End-to-End Testing
+
+For clean-machine Windows installer validation in VirtualBox:
+
+```powershell
+.\scripts\vm\Test-TropTest-InstallerFlow.ps1 `
+  -GuestUser <GUEST_USER> `
+  -GuestPassword <GUEST_PASSWORD> `
+  -OldInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.4.exe `
+  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.5.exe
+```
+
+Outputs:
+
+- screenshot sequence for maintenance remove, fresh install, upgrade, and launch attempts
+- `installer-flow-report.txt`
+- `defender-events.txt`
+
+The helper uses `VBoxManage controlvm ... keyboardputscancode/keyboardputstring` to drive the visible desktop session, so it remains usable even when `guestcontrol` can only reach the background automation session.
 - `-IncludeInstallerScenarios` adds the slower release-only Tropicana bootstrap install check
 - smoke printing must avoid live printer output by default
 - printer validation should use reachability checks unless a live print run is explicitly requested
