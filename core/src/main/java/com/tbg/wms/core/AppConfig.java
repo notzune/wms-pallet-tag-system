@@ -8,14 +8,10 @@
 
 package com.tbg.wms.core;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Loads and manages runtime configuration from environment variables and `.env` file.
@@ -71,7 +67,7 @@ public final class AppConfig {
      */
     AppConfig(Map<String, String> envVars, Path explicitConfigFile) {
         this.envVars = Map.copyOf(Objects.requireNonNull(envVars, "envVars cannot be null"));
-        this.classpathDefaults = loadClasspathDefaults();
+        this.classpathDefaults = ConfigSourceLoader.loadClasspathDefaults(AppConfig.class, "wms-defaults.properties");
 
         Path explicitPath = explicitConfigFile != null
                 ? ConfigFileLocator.validateConfigFile(explicitConfigFile)
@@ -79,7 +75,7 @@ public final class AppConfig {
         Path selectedFile = explicitPath != null
                 ? explicitPath
                 : ConfigFileLocator.discoverConfigFile(DEFAULT_FILE_NAME, AppConfig.class, this.envVars);
-        this.fileValues = selectedFile == null ? Map.of() : loadEnvStyleFile(selectedFile);
+        this.fileValues = selectedFile == null ? Map.of() : ConfigSourceLoader.loadEnvStyleFile(selectedFile);
         this.valueSupport = new ConfigValueSupport(this.envVars, this.fileValues, this.classpathDefaults, DEFAULT_FILE_NAME);
         this.oracleConnectionSupport = new OracleConnectionConfigSupport(
                 valueSupport::raw,
@@ -353,27 +349,5 @@ public final class AppConfig {
      */
     public String loadedConfigFileOrNull() {
         return loadedConfigFile;
-    }
-
-    private Map<String, String> loadClasspathDefaults() {
-        InputStream stream = AppConfig.class.getClassLoader().getResourceAsStream("wms-defaults.properties");
-        if (stream == null) {
-            return Map.of();
-        }
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-            return EnvStyleConfigParser.parseReader(reader);
-        } catch (Exception ignored) {
-            return Map.of();
-        }
-    }
-
-    private Map<String, String> loadEnvStyleFile(Path path) {
-        try {
-            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            return EnvStyleConfigParser.parseLines(lines);
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read config file: " + path, e);
-        }
     }
 }
