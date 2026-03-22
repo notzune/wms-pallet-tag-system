@@ -60,7 +60,7 @@ public final class LabelDataBuilder {
      * @param siteConfig site-specific configuration (ship-from address, etc.)
      */
     public LabelDataBuilder(SkuMappingService skuMapping, SiteConfig siteConfig) {
-        this(skuMapping, siteConfig, Collections.emptyMap(), loadLocationNumberMappingOrNull());
+        this(skuMapping, siteConfig, Collections.emptyMap(), defaultLocationNumberMapping());
     }
 
     /**
@@ -73,7 +73,7 @@ public final class LabelDataBuilder {
     public LabelDataBuilder(SkuMappingService skuMapping,
                             SiteConfig siteConfig,
                             Map<String, ShipmentSkuFootprint> footprintBySku) {
-        this(skuMapping, siteConfig, footprintBySku, loadLocationNumberMappingOrNull());
+        this(skuMapping, siteConfig, footprintBySku, defaultLocationNumberMapping());
     }
 
     LabelDataBuilder(SkuMappingService skuMapping,
@@ -87,6 +87,10 @@ public final class LabelDataBuilder {
         this.productFieldSupport = new LabelProductFieldSupport(this.skuMapping, this.footprintBySku);
     }
 
+    private static LocationNumberMappingService defaultLocationNumberMapping() {
+        return CachedLocationNumberMappingHolder.INSTANCE;
+    }
+
     private static LocationNumberMappingService loadLocationNumberMappingOrNull() {
         try {
             java.nio.file.Path matrix = LabelingSupport.resolveLocationMatrixCsv();
@@ -97,6 +101,13 @@ public final class LabelDataBuilder {
         } catch (Exception e) {
             log.warn("Location number matrix could not be loaded; sold-to to DC mapping is disabled: {}", e.getMessage());
             return null;
+        }
+    }
+
+    private static final class CachedLocationNumberMappingHolder {
+        private static final LocationNumberMappingService INSTANCE = loadLocationNumberMappingOrNull();
+
+        private CachedLocationNumberMappingHolder() {
         }
     }
 
