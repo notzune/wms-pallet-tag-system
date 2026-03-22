@@ -50,6 +50,7 @@ public final class RailLabelsDialog extends JDialog {
     private final transient RailWorkflowService service;
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
     private final transient RailDialogSupport dialogSupport = new RailDialogSupport();
+    private final transient RailDialogExecutionSupport executionSupport = new RailDialogExecutionSupport();
     private transient RailWorkflowService.PreparedRailJob preparedJob;
 
     public RailLabelsDialog(JFrame owner, AppConfig config) {
@@ -191,9 +192,11 @@ public final class RailLabelsDialog extends JDialog {
     }
 
     private void loadPreview() {
-        String trainId = trainIdField.getText().trim();
-        if (trainId.isEmpty()) {
-            showError("Train ID is required.");
+        RailDialogExecutionSupport.PreviewRequest request;
+        try {
+            request = executionSupport.preparePreviewRequest(trainIdField.getText());
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
             return;
         }
 
@@ -204,7 +207,7 @@ public final class RailLabelsDialog extends JDialog {
         SwingWorker<RailWorkflowService.PreparedRailJob, Void> worker = new SwingWorker<>() {
             @Override
             protected RailWorkflowService.PreparedRailJob doInBackground() throws Exception {
-                return service.prepareRailJob(trainId);
+                return service.prepareRailJob(request.trainId());
             }
 
             @Override
@@ -217,10 +220,10 @@ public final class RailLabelsDialog extends JDialog {
                         previewTable.setRowSelectionInterval(0, 0);
                     }
                     setButtonsEnabled(true);
-                    setReady("Preview ready.");
+                    setReady(executionSupport.previewReadyMessage());
                 } catch (Exception ex) {
-                    setReady("Preview failed.");
-                    showError(rootMessage(ex));
+                    setReady(executionSupport.previewFailedMessage());
+                    showError(executionSupport.rootMessage(ex));
                 }
             }
         };
@@ -233,10 +236,14 @@ public final class RailLabelsDialog extends JDialog {
             return;
         }
 
-        LabelWorkflowService.PrinterOption selectedPrinter = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        boolean printToFile = GuiPrinterTargetSupport.isPrintToFile(selectedPrinter);
-        boolean shouldPrint = !printToFile && (forcePrint || printNowCheck.isSelected());
-        setBusy(shouldPrint ? "Generating PDF and printing..." : "Generating PDF...");
+        RailDialogExecutionSupport.GenerationRequest request = executionSupport.prepareGenerationRequest(
+                preparedJob,
+                outputDirField.getText(),
+                (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem(),
+                forcePrint,
+                printNowCheck.isSelected()
+        );
+        setBusy(executionSupport.generationBusyMessage(request.shouldPrint()));
         loadButton.setEnabled(false);
         generatePdfButton.setEnabled(false);
         printButton.setEnabled(false);
@@ -244,9 +251,7 @@ public final class RailLabelsDialog extends JDialog {
         SwingWorker<RailWorkflowService.GenerationResult, Void> worker = new SwingWorker<>() {
             @Override
             protected RailWorkflowService.GenerationResult doInBackground() throws Exception {
-                Path outputDir = outputDirField.getText().trim().isEmpty() ? null : Paths.get(outputDirField.getText().trim());
-                String printerId = shouldPrint && selectedPrinter != null ? selectedPrinter.getId() : GuiPrinterTargetSupport.FILE_PRINTER_ID;
-                return service.generatePdf(preparedJob, outputDir, printerId);
+                return service.generatePdf(preparedJob, request.outputDirectory(), request.printerId());
             }
 
             @Override
@@ -259,8 +264,8 @@ public final class RailLabelsDialog extends JDialog {
                     diagnosticsArea.append("\n\nGeneration Result\n-----------------\n" + message + '\n');
                     setReady(dialogSupport.buildReadyMessage(result));
                 } catch (Exception ex) {
-                    setReady("Generation failed.");
-                    showError(rootMessage(ex));
+                    setReady(executionSupport.generationFailedMessage());
+                    showError(executionSupport.rootMessage(ex));
                 }
             }
         };
