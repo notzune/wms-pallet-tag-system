@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.RuntimePathResolver;
@@ -11,6 +18,9 @@ import java.util.Optional;
 
 /**
  * Locates and launches packaged install-maintenance scripts.
+ *
+ * <p>This service keeps script discovery and detached process launch behavior out of the GUI shell
+ * so install/uninstall support remains testable and easier to adjust for packaging changes.</p>
  */
 public final class InstallMaintenanceService {
     public Optional<Path> findInstallScript(Class<?> anchorType) {

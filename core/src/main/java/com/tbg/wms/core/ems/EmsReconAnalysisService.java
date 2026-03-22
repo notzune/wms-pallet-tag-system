@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.core.ems;
 
 import java.time.LocalDateTime;
@@ -12,6 +19,10 @@ import java.util.stream.Collectors;
 
 /**
  * Classifies EMS reconciliation rows into actionable mismatch findings.
+ *
+ * <p>This service owns the report-only reasoning layer for EMS reconciliation so categorization,
+ * persistence hints, and suggested operator actions can evolve without leaking spreadsheet logic
+ * into CLI command code.</p>
  */
 public final class EmsReconAnalysisService {
 
