@@ -10,17 +10,13 @@ package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.RuntimePathResolver;
-import com.tbg.wms.core.label.LabelDataBuilder;
-import com.tbg.wms.core.label.LabelType;
 import com.tbg.wms.core.label.SiteConfig;
 import com.tbg.wms.core.labeling.LabelingSupport;
 import com.tbg.wms.core.model.*;
-import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
 import com.tbg.wms.core.sku.SkuMappingService;
 import com.tbg.wms.core.template.LabelTemplate;
-import com.tbg.wms.core.template.ZplTemplateEngine;
 import com.tbg.wms.db.DbConnectionPool;
 import com.tbg.wms.db.DbQueryRepository;
 import com.tbg.wms.db.OracleDbQueryRepository;
@@ -43,6 +39,7 @@ public final class LabelWorkflowService {
     private final AppConfig config;
     private final LabelWorkflowAssetSupport assetSupport;
     private final LabelWorkflowPlanningSupport planningSupport = new LabelWorkflowPlanningSupport();
+    private final LabelWorkflowPrintSupport printSupport = new LabelWorkflowPrintSupport();
 
     public LabelWorkflowService(AppConfig config) {
         this(config, RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(LabelWorkflowService.class, "config"));
@@ -176,45 +173,13 @@ public final class LabelWorkflowService {
         Path targetDir = outputDir == null
                 ? Paths.get("out", "gui-" + job.getShipmentId() + "-" + TIMESTAMP.format(LocalDateTime.now()))
                 : outputDir;
-        Files.createDirectories(targetDir);
-
         PrinterConfig printer = null;
         if (!printToFile) {
             printer = job.getRouting()
                     .findPrinter(resolvedPrinterId)
                     .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + resolvedPrinterId));
         }
-
-        LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
-        NetworkPrintService printService = new NetworkPrintService();
-        Shipment shipmentForLabels = LabelingSupport.buildShipmentForLabeling(job.getShipment(), job.getLpnsForLabels());
-
-        int printedCount = 0;
-        for (int i = 0; i < job.getLpnsForLabels().size(); i++) {
-            Lpn lpn = job.getLpnsForLabels().get(i);
-            Map<String, String> labelData = builder.build(shipmentForLabels, lpn, i, LabelType.WALMART_CANADA_GRID);
-            if (job.isUsingVirtualLabels()) {
-                // Virtual labels must override sequence totals to match generated rows, not physical LPN count.
-                labelData = new HashMap<>(labelData);
-                labelData.put("palletSeq", String.valueOf(i + 1));
-                labelData.put("palletTotal", String.valueOf(job.getLpnsForLabels().size()));
-            }
-
-            String zpl = ZplTemplateEngine.generate(job.getTemplate(), labelData);
-            String fileName = String.format("%s_%s_%d_of_%d.zpl",
-                    job.getShipmentId(), lpn.getLpnId(), i + 1, job.getLpnsForLabels().size());
-            Path zplFile = targetDir.resolve(fileName);
-            Files.writeString(zplFile, zpl);
-            if (!printToFile) {
-                printService.print(printer, zpl, lpn.getLpnId());
-            }
-            printedCount++;
-        }
-
-        if (printToFile) {
-            return PrintResult.printToFile(printedCount, targetDir.toAbsolutePath());
-        }
-        return new PrintResult(printedCount, targetDir.toAbsolutePath(), printer.getId(), printer.getEndpoint());
+        return printSupport.print(job, printer, targetDir, printToFile);
     }
 
     public static final class PrinterOption {
