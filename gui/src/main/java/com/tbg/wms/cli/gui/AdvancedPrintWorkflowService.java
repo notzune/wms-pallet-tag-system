@@ -36,6 +36,7 @@ public final class AdvancedPrintWorkflowService {
     private final AppConfig config;
     private final LabelWorkflowService shipmentService;
     private final PrintCheckpointSupport checkpointSupport;
+    private final CarrierMovePreparationSupport carrierMovePreparationSupport = new CarrierMovePreparationSupport();
 
     public AdvancedPrintWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
@@ -79,59 +80,22 @@ public final class AdvancedPrintWorkflowService {
     }
 
     private List<PreparedStopGroup> buildPreparedStopGroups(DbQueryRepository repo, List<CarrierMoveStopRef> refs) throws Exception {
-        Map<Integer, List<CarrierMoveStopRef>> byStop = groupCarrierMoveRefsByStop(refs);
-        List<PreparedStopGroup> groups = new ArrayList<>(byStop.size());
+        List<CarrierMovePreparationSupport.StopShipmentPlan> plans = carrierMovePreparationSupport.buildStopShipmentPlans(refs);
+        List<PreparedStopGroup> groups = new ArrayList<>(plans.size());
         int stopPosition = 1;
-        for (List<CarrierMoveStopRef> stopRefs : byStop.values()) {
-            if (stopRefs == null || stopRefs.isEmpty()) {
-                continue;
-            }
-            List<LabelWorkflowService.PreparedJob> jobs = resolvePreparedJobsForStop(repo, stopRefs);
+        for (CarrierMovePreparationSupport.StopShipmentPlan plan : plans) {
+            List<LabelWorkflowService.PreparedJob> jobs = resolvePreparedJobsForStop(repo, plan.shipmentIds());
             if (!jobs.isEmpty()) {
-                Integer stopSequence = null;
-                for (CarrierMoveStopRef stopRef : stopRefs) {
-                    if (stopRef != null) {
-                        stopSequence = stopRef.getStopSequence();
-                        break;
-                    }
-                }
-                groups.add(new PreparedStopGroup(stopSequence, stopPosition, jobs));
+                groups.add(new PreparedStopGroup(plan.stopSequence(), stopPosition, jobs));
                 stopPosition++;
             }
         }
         return groups;
     }
 
-    private Map<Integer, List<CarrierMoveStopRef>> groupCarrierMoveRefsByStop(List<CarrierMoveStopRef> refs) {
-        Map<Integer, List<CarrierMoveStopRef>> byStop = new TreeMap<>();
-        for (CarrierMoveStopRef ref : refs) {
-            int key = ref.getStopSequence() == null ? Integer.MAX_VALUE : ref.getStopSequence();
-            byStop.computeIfAbsent(key, ignored -> new ArrayList<>()).add(ref);
-        }
-        return byStop;
-    }
-
-    private List<LabelWorkflowService.PreparedJob> resolvePreparedJobsForStop(DbQueryRepository repo, List<CarrierMoveStopRef> stopRefs) throws Exception {
-        List<CarrierMoveStopRef> orderedRefs = new ArrayList<>(stopRefs.size());
-        for (CarrierMoveStopRef stopRef : stopRefs) {
-            if (stopRef != null) {
-                orderedRefs.add(stopRef);
-            }
-        }
-        orderedRefs.sort(Comparator.comparing(
-                CarrierMoveStopRef::getShipmentId,
-                Comparator.nullsLast(String::compareTo)
-        ));
-
-        LinkedHashSet<String> uniqueShipments = new LinkedHashSet<>(orderedRefs.size());
-        for (CarrierMoveStopRef ref : orderedRefs) {
-            if (ref.getShipmentId() != null && !ref.getShipmentId().isBlank()) {
-                uniqueShipments.add(ref.getShipmentId());
-            }
-        }
-
-        List<LabelWorkflowService.PreparedJob> jobs = new ArrayList<>(uniqueShipments.size());
-        for (String shipId : uniqueShipments) {
+    private List<LabelWorkflowService.PreparedJob> resolvePreparedJobsForStop(DbQueryRepository repo, List<String> shipmentIds) throws Exception {
+        List<LabelWorkflowService.PreparedJob> jobs = new ArrayList<>(shipmentIds.size());
+        for (String shipId : shipmentIds) {
             jobs.add(shipmentService.prepareJob(repo, shipId));
         }
         return jobs;
