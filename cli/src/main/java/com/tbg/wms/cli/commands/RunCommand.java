@@ -12,13 +12,9 @@ import com.tbg.wms.cli.gui.AdvancedPrintWorkflowService;
 import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.cli.gui.WorkflowPrintPlanSupport;
 import com.tbg.wms.core.AppConfig;
-import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
 import com.tbg.wms.core.exception.WmsPrintException;
-import com.tbg.wms.core.label.LabelSelectionRef;
-import com.tbg.wms.core.label.LabelSelectionSupport;
 import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +22,8 @@ import org.slf4j.MDC;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -48,9 +41,9 @@ public final class RunCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(RunCommand.class);
     private static final int JOB_ID_LENGTH = 8;
-    private static final int MAX_LABELS_PER_JOB = 10_000;
     private static final int MAX_LABEL_PREVIEW_ROWS = 100;
     private final RunCommandOutputSupport outputSupport = new RunCommandOutputSupport();
+    private final RunCommandExecutionSupport executionSupport = new RunCommandExecutionSupport();
 
     @Option(
             names = {"-s", "--shipment-id"},
@@ -112,18 +105,16 @@ public final class RunCommand implements Callable<Integer> {
             AppConfig config = RootCommand.config();
             MDC.put("site", config.activeSiteCode());
 
-            String inputId = resolveInputId();
-            boolean carrierMode = isCarrierMoveMode();
+            String inputId = executionSupport.resolveInputId(shipmentId, carrierMoveId);
+            boolean carrierMode = executionSupport.isCarrierMoveMode(carrierMoveId);
             MDC.put(carrierMode ? "carrierMoveId" : "shipmentId", inputId);
             if (carrierMode && labelSelectionExpression != null && !labelSelectionExpression.isBlank()) {
                 throw new IllegalArgumentException("--labels is only supported with --shipment-id.");
             }
 
-            boolean printToFileMode = dryRun || printToFile;
-            String effectiveOutputDir = printToFile
-                    ? RuntimePathResolver.resolveJarSiblingDir(RunCommand.class, "out").toString()
-                    : outputDir;
-            Path outputPath = prepareOutputDirectory(effectiveOutputDir);
+            boolean printToFileMode = executionSupport.isPrintToFileMode(dryRun, printToFile);
+            String effectiveOutputDir = executionSupport.effectiveOutputDir(printToFile, outputDir);
+            Path outputPath = executionSupport.prepareOutputDirectory(effectiveOutputDir);
             AdvancedPrintWorkflowService workflow = new AdvancedPrintWorkflowService(config);
 
             if (carrierMode) {
@@ -164,16 +155,17 @@ public final class RunCommand implements Callable<Integer> {
                                        boolean printToFileMode) throws Exception {
         log.info("Starting shipment print job for {}", id);
         LabelWorkflowService.PreparedJob prepared = workflow.prepareShipmentJob(id);
-        List<Lpn> selectedLpns = resolveSelectedShipmentLpns(prepared);
+        List<Lpn> selectedLpns = executionSupport.resolveSelectedShipmentLpns(prepared, labelSelectionExpression);
         WorkflowPrintPlanSupport.ShipmentPlanSummary plan =
                 WorkflowPrintPlanSupport.buildShipmentPlan(prepared, selectedLpns, 1);
         printShipmentPlanSummary(plan, prepared, selectedLpns);
 
         int labels = selectedLpns.size();
-        enforceMaxLabels(labels);
+        executionSupport.enforceMaxLabels(labels);
 
-        String printerId = resolvePrinterId(
+        String printerId = executionSupport.resolvePrinterId(
                 printToFileMode,
+                printerOverride,
                 prepared.getRouting(),
                 prepared.getStagingLocation()
         );
@@ -200,12 +192,13 @@ public final class RunCommand implements Callable<Integer> {
         log.info("Starting carrier move print job for {}", id);
         AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepared = workflow.prepareCarrierMoveJob(id);
         WorkflowPrintPlanSupport.CarrierMovePlanSummary plan = WorkflowPrintPlanSupport.buildCarrierMovePlan(prepared);
-        enforceMaxLabels(plan.getTotalLabels());
+        executionSupport.enforceMaxLabels(plan.getTotalLabels());
         printCarrierMovePlanSummary(plan);
 
         LabelWorkflowService.PreparedJob firstShipment = prepared.firstShipmentJob();
-        String printerId = resolvePrinterId(
+        String printerId = executionSupport.resolvePrinterId(
                 printToFileMode,
+                printerOverride,
                 firstShipment.getRouting(),
                 firstShipment.getStagingLocation()
         );
@@ -219,75 +212,6 @@ public final class RunCommand implements Callable<Integer> {
 
         printCompletion(result);
         return 0;
-    }
-
-    /**
-     * Validates mutually-exclusive input mode and returns the selected ID.
-     */
-    private String resolveInputId() {
-        boolean hasShipment = shipmentId != null && !shipmentId.isBlank();
-        boolean hasCarrier = carrierMoveId != null && !carrierMoveId.isBlank();
-        if (hasShipment == hasCarrier) {
-            throw new IllegalArgumentException("Specify exactly one of --shipment-id or --carrier-move-id.");
-        }
-        return hasCarrier ? carrierMoveId.trim() : shipmentId.trim();
-    }
-
-    private boolean isCarrierMoveMode() {
-        return carrierMoveId != null && !carrierMoveId.isBlank();
-    }
-
-    private List<Lpn> resolveSelectedShipmentLpns(LabelWorkflowService.PreparedJob prepared) {
-        if (labelSelectionExpression == null || labelSelectionExpression.isBlank()) {
-            return prepared.getLpnsForLabels();
-        }
-        List<LabelSelectionRef> availableSelections = LabelSelectionSupport.buildShipmentSelections(
-                prepared.getShipmentId(),
-                prepared.getLpnsForLabels()
-        );
-        List<LabelSelectionRef> selectedRefs = LabelSelectionSupport.selectByExpression(
-                availableSelections,
-                labelSelectionExpression
-        );
-        return LabelSelectionSupport.selectLpnsByRefs(prepared.getLpnsForLabels(), selectedRefs);
-    }
-
-    private Path prepareOutputDirectory(String outputDirectory) throws Exception {
-        Path outputPath = Paths.get(outputDirectory);
-        Files.createDirectories(outputPath);
-        log.debug("Output directory: {}", outputPath.toAbsolutePath());
-        return outputPath;
-    }
-
-    /**
-     * Resolves final printer ID, honoring print-to-file mode and explicit override first.
-     */
-    private String resolvePrinterId(boolean printToFileMode,
-                                    PrinterRoutingService routing,
-                                    String stagingLocation) {
-        if (printToFileMode) {
-            return null;
-        }
-
-        String override = printerOverride == null ? "" : printerOverride.trim();
-        if (!override.isEmpty()) {
-            return override;
-        }
-
-        PrinterConfig routed = routing.selectPrinter(Map.of(
-                "stagingLocation",
-                stagingLocation == null || stagingLocation.isBlank() ? "UNKNOWN" : stagingLocation
-        ));
-        if (!routed.isEnabled()) {
-            throw new IllegalArgumentException("Could not resolve an enabled printer from routing.");
-        }
-        return routed.getId();
-    }
-
-    private void enforceMaxLabels(int labels) {
-        if (labels > MAX_LABELS_PER_JOB) {
-            throw new IllegalArgumentException("Label count exceeds safe upper bound: " + MAX_LABELS_PER_JOB);
-        }
     }
 
     private void printShipmentPlanSummary(
