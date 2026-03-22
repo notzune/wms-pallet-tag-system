@@ -6,6 +6,7 @@ import com.tbg.wms.core.barcode.BarcodeZplBuilder.Symbology;
 import com.tbg.wms.core.print.PrinterConfig;
 
 import javax.swing.*;
+import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -116,8 +117,7 @@ final class BarcodeDialogActionSupport {
         );
     }
 
-    void previewBarcode(
-            JFrame owner,
+    List<GuiZplPreviewSupport.PreviewDocument> buildPreviewDocuments(
             JTextField dataField,
             JComboBox<Symbology> typeCombo,
             JComboBox<Orientation> orientationCombo,
@@ -131,13 +131,7 @@ final class BarcodeDialogActionSupport {
             JCheckBox humanReadable,
             JSpinner copies
     ) {
-        String data;
-        try {
-            data = executionSupport.requireBarcodeData(dataField.getText());
-        } catch (IllegalArgumentException ex) {
-            dependencies.showError(ex.getMessage());
-            return;
-        }
+        String data = executionSupport.requireBarcodeData(dataField.getText());
 
         BarcodeRequest request = formSupport.buildRequest(
                 data,
@@ -153,10 +147,45 @@ final class BarcodeDialogActionSupport {
                 humanReadable,
                 copies
         );
-        ZplPreviewToolDialog.openWithDocuments(
-                owner,
-                "Barcode Preview",
-                zplPreviewSupport.buildBarcodeDocuments(request)
-        );
+        return zplPreviewSupport.buildBarcodeDocuments(request);
+    }
+
+    void previewBarcode(
+            JFrame owner,
+            JTextField dataField,
+            JComboBox<Symbology> typeCombo,
+            JComboBox<Orientation> orientationCombo,
+            JSpinner labelWidth,
+            JSpinner labelHeight,
+            JSpinner originX,
+            JSpinner originY,
+            JSpinner moduleWidth,
+            JSpinner moduleRatio,
+            JSpinner barcodeHeight,
+            JCheckBox humanReadable,
+            JSpinner copies
+    ) {
+        try {
+            ZplPreviewToolDialog.openWithDocuments(
+                    owner,
+                    "Barcode Preview",
+                    buildPreviewDocuments(
+                            dataField,
+                            typeCombo,
+                            orientationCombo,
+                            labelWidth,
+                            labelHeight,
+                            originX,
+                            originY,
+                            moduleWidth,
+                            moduleRatio,
+                            barcodeHeight,
+                            humanReadable,
+                            copies
+                    )
+            );
+        } catch (IllegalArgumentException ex) {
+            dependencies.showError(ex.getMessage());
+        }
     }
 }

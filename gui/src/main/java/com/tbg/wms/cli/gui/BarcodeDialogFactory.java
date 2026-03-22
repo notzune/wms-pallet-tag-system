@@ -11,11 +11,14 @@ import com.tbg.wms.core.barcode.BarcodeZplBuilder.Symbology;
 import com.tbg.wms.core.print.PrinterConfig;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -35,6 +38,7 @@ final class BarcodeDialogFactory {
     private static final int BARCODE_DEFAULT_MODULE_WIDTH = 3;
     private static final int BARCODE_DEFAULT_MODULE_RATIO = 3;
     private static final int BARCODE_DEFAULT_HEIGHT = 220;
+    private static final int PREVIEW_SYNC_DEBOUNCE_MS = 350;
     private final Dependencies dependencies;
     private final BarcodeDialogExecutionSupport executionSupport;
     private final BarcodeDialogFormSupport formSupport = new BarcodeDialogFormSupport();
@@ -103,6 +107,24 @@ final class BarcodeDialogFactory {
 
         JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
         printerSelect.setModel(dependencies.buildPrintTargetModel(true));
+        final ZplPreviewToolDialog[] previewDialogRef = {null};
+        Timer previewSyncTimer = new Timer(PREVIEW_SYNC_DEBOUNCE_MS, e -> refreshBarcodePreviewIfOpen(
+                owner,
+                previewDialogRef,
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        ));
+        previewSyncTimer.setRepeats(false);
 
         int row = 0;
         addFormRow(form, gbc, row++, "Data", dataField);
@@ -149,8 +171,9 @@ final class BarcodeDialogFactory {
                 outputDir
         ));
 
-        previewButton.addActionListener(e -> actionSupport.previewBarcode(
+        previewButton.addActionListener(e -> previewDialogRef[0] = ensureBarcodePreviewDialog(
                 owner,
+                previewDialogRef[0],
                 dataField,
                 typeCombo,
                 orientationCombo,
@@ -184,11 +207,165 @@ final class BarcodeDialogFactory {
         ));
 
         closeButton.addActionListener(e -> dialog.dispose());
+        installPreviewSync(
+                previewSyncTimer,
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        );
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                previewSyncTimer.stop();
+                if (previewDialogRef[0] != null && previewDialogRef[0].isDisplayable()) {
+                    previewDialogRef[0].dispose();
+                }
+            }
+        });
         dialog.add(form, BorderLayout.CENTER);
         dialog.add(buttons, BorderLayout.SOUTH);
         dialog.pack();
         dialog.setLocationRelativeTo(owner);
         dialog.setVisible(true);
+    }
+
+    private void installPreviewSync(
+            Timer previewSyncTimer,
+            JTextField dataField,
+            JComboBox<Symbology> typeCombo,
+            JComboBox<Orientation> orientationCombo,
+            JSpinner labelWidth,
+            JSpinner labelHeight,
+            JSpinner originX,
+            JSpinner originY,
+            JSpinner moduleWidth,
+            JSpinner moduleRatio,
+            JSpinner barcodeHeight,
+            JCheckBox humanReadable,
+            JSpinner copies
+    ) {
+        Runnable queueRefresh = previewSyncTimer::restart;
+        DocumentListener documentListener = new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                queueRefresh.run();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                queueRefresh.run();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                queueRefresh.run();
+            }
+        };
+        dataField.getDocument().addDocumentListener(documentListener);
+        typeCombo.addActionListener(e -> queueRefresh.run());
+        orientationCombo.addActionListener(e -> queueRefresh.run());
+        labelWidth.addChangeListener(e -> queueRefresh.run());
+        labelHeight.addChangeListener(e -> queueRefresh.run());
+        originX.addChangeListener(e -> queueRefresh.run());
+        originY.addChangeListener(e -> queueRefresh.run());
+        moduleWidth.addChangeListener(e -> queueRefresh.run());
+        moduleRatio.addChangeListener(e -> queueRefresh.run());
+        barcodeHeight.addChangeListener(e -> queueRefresh.run());
+        humanReadable.addActionListener(e -> queueRefresh.run());
+        copies.addChangeListener(e -> queueRefresh.run());
+    }
+
+    private void refreshBarcodePreviewIfOpen(
+            JFrame owner,
+            ZplPreviewToolDialog[] previewDialogRef,
+            JTextField dataField,
+            JComboBox<Symbology> typeCombo,
+            JComboBox<Orientation> orientationCombo,
+            JSpinner labelWidth,
+            JSpinner labelHeight,
+            JSpinner originX,
+            JSpinner originY,
+            JSpinner moduleWidth,
+            JSpinner moduleRatio,
+            JSpinner barcodeHeight,
+            JCheckBox humanReadable,
+            JSpinner copies
+    ) {
+        ZplPreviewToolDialog previewDialog = previewDialogRef[0];
+        if (previewDialog == null || !previewDialog.isDisplayable() || !previewDialog.isVisible()) {
+            return;
+        }
+        try {
+            previewDialog.setPreviewDocuments(
+                    "Barcode Preview",
+                    actionSupport.buildPreviewDocuments(
+                            dataField,
+                            typeCombo,
+                            orientationCombo,
+                            labelWidth,
+                            labelHeight,
+                            originX,
+                            originY,
+                            moduleWidth,
+                            moduleRatio,
+                            barcodeHeight,
+                            humanReadable,
+                            copies
+                    )
+            );
+        } catch (IllegalArgumentException ex) {
+            previewDialog.clearPreviewDocuments();
+            previewDialog.setTitle("Barcode Preview");
+        }
+    }
+
+    private ZplPreviewToolDialog ensureBarcodePreviewDialog(
+            JFrame owner,
+            ZplPreviewToolDialog previewDialog,
+            JTextField dataField,
+            JComboBox<Symbology> typeCombo,
+            JComboBox<Orientation> orientationCombo,
+            JSpinner labelWidth,
+            JSpinner labelHeight,
+            JSpinner originX,
+            JSpinner originY,
+            JSpinner moduleWidth,
+            JSpinner moduleRatio,
+            JSpinner barcodeHeight,
+            JCheckBox humanReadable,
+            JSpinner copies
+    ) {
+        List<GuiZplPreviewSupport.PreviewDocument> documents = actionSupport.buildPreviewDocuments(
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        );
+        if (previewDialog == null || !previewDialog.isDisplayable()) {
+            previewDialog = ZplPreviewToolDialog.createWithDocuments(owner, "Barcode Preview", documents);
+        } else {
+            previewDialog.setPreviewDocuments("Barcode Preview", documents);
+        }
+        previewDialog.setVisible(true);
+        previewDialog.toFront();
+        return previewDialog;
     }
 
     private void openAdvancedSettingsDialog(JDialog parent,
