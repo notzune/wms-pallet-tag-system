@@ -15,6 +15,7 @@ import java.util.Objects;
 final class QueueResumeDialogSupport {
     private final Dependencies dependencies;
     private final int maxQueueItems;
+    private final QueueResumeExecutionSupport executionSupport = new QueueResumeExecutionSupport();
 
     QueueResumeDialogSupport(Dependencies dependencies, int maxQueueItems) {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies cannot be null");
@@ -111,13 +112,13 @@ final class QueueResumeDialogSupport {
             if (candidates.isEmpty()) {
                 JOptionPane.showMessageDialog(
                         dependencies.ownerFrame(),
-                        "No incomplete jobs found.",
+                        executionSupport.noIncompleteJobsMessage(),
                         "Resume Job",
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
-            String[] options = buildResumeOptions(candidates);
+            String[] options = executionSupport.buildResumeOptions(candidates);
             String selected = (String) JOptionPane.showInputDialog(
                     dependencies.ownerFrame(),
                     "Select a job to resume (safe mode reprints last successful label/tag):",
@@ -130,20 +131,18 @@ final class QueueResumeDialogSupport {
             if (selected == null) {
                 return;
             }
-            int index = findSelectedOptionIndex(options, selected);
+            int index = executionSupport.findSelectedOptionIndex(options, selected);
             if (index < 0) {
                 return;
             }
             AdvancedPrintWorkflowService.PrintResult result =
                     dependencies.workflow().resumeJob(candidates.get(index).checkpointId());
             JOptionPane.showMessageDialog(dependencies.ownerFrame(),
-                    "Resume complete.\nLabels: " + result.getLabelsPrinted() +
-                            "\nInfo Tags: " + result.getInfoTagsPrinted() +
-                            "\nOutput: " + result.getOutputDirectory(),
+                    executionSupport.buildResumeCompletionMessage(result),
                     "Resume Complete",
                     JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception ex) {
-            dependencies.showError("Resume failed: " + dependencies.rootMessage(ex));
+            dependencies.showError(executionSupport.buildResumeFailureMessage(ex));
         }
     }
 
@@ -157,16 +156,15 @@ final class QueueResumeDialogSupport {
                 AdvancedPrintWorkflowService.ResumeCandidate latest = candidates.get(0);
                 int choice = JOptionPane.showConfirmDialog(
                         dependencies.ownerFrame(),
-                        buildAutoResumePrompt(latest),
+                        executionSupport.buildAutoResumePrompt(latest),
                         "Incomplete Job Found",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.QUESTION_MESSAGE
                 );
-                if (choice == JOptionPane.YES_OPTION) {
+                if (executionSupport.shouldResumeNow(choice)) {
                     AdvancedPrintWorkflowService.PrintResult result =
                             dependencies.workflow().resumeJob(latest.checkpointId());
-                    dependencies.setReady("Resumed job. Printed " + result.getLabelsPrinted() + " labels and " +
-                            result.getInfoTagsPrinted() + " info tags.");
+                    dependencies.setReady(executionSupport.buildAutoResumeStatus(result));
                 }
             } catch (Exception ignored) {
                 // Startup should continue even if resume scan fails.
@@ -175,13 +173,7 @@ final class QueueResumeDialogSupport {
     }
 
     static String[] buildResumeOptions(List<AdvancedPrintWorkflowService.ResumeCandidate> candidates) {
-        String[] options = new String[candidates.size()];
-        for (int i = 0; i < candidates.size(); i++) {
-            AdvancedPrintWorkflowService.ResumeCandidate candidate = candidates.get(i);
-            options[i] = candidate.mode() + " " + candidate.sourceId() + " | progress " +
-                    candidate.nextTaskIndex() + "/" + candidate.totalTasks();
-        }
-        return options;
+        return new QueueResumeExecutionSupport().buildResumeOptions(candidates);
     }
 
     static int findSelectedOptionIndex(String[] options, String selected) {
@@ -197,8 +189,7 @@ final class QueueResumeDialogSupport {
     }
 
     static String buildAutoResumePrompt(AdvancedPrintWorkflowService.ResumeCandidate latest) {
-        return "Found incomplete job (" + latest.mode() + " " + latest.sourceId() + ", " +
-                latest.nextTaskIndex() + "/" + latest.totalTasks() + ").\nResume now?";
+        return new QueueResumeExecutionSupport().buildAutoResumePrompt(latest);
     }
 
     interface Dependencies {
