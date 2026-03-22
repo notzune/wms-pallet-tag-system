@@ -4,7 +4,6 @@
 package com.tbg.wms.core.rail;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * End-to-end rail planning workflow:
@@ -53,9 +52,9 @@ public final class RailWorkflowService {
             throw new IllegalArgumentException("No rail rows found for train: " + normalizedTrainId);
         }
 
-        Set<String> shortCodes = collectShortCodes(rawRows);
+        List<String> shortCodes = collectShortCodes(rawRows);
         Map<String, List<RailFootprintCandidate>> candidates =
-                repository.findRailFootprintsByShortCode(new ArrayList<>(shortCodes));
+                repository.findRailFootprintsByShortCode(shortCodes);
         Map<String, RailFamilyFootprint> resolvedFootprints = footprintResolver.resolve(candidates);
 
         List<RailCarAggregate> aggregates = aggregationService.aggregateByRailcar(rawRows);
@@ -97,9 +96,10 @@ public final class RailWorkflowService {
                 sortedItems
         );
         RailLabelPlanner.PlannedRailLabel planned = labelPlanner.planOne(flattened, footprints);
-        List<String> families = planned.getTopFamilies().stream()
-                .map(family -> family.getFamilyCode() + ":" + family.getPercent())
-                .collect(Collectors.toList());
+        List<String> families = new ArrayList<>(planned.getTopFamilies().size());
+        for (RailLabelPlanner.FamilyShare family : planned.getTopFamilies()) {
+            families.add(family.getFamilyCode() + ":" + family.getPercent());
+        }
 
         return new RailCarCard(
                 trainId,
@@ -122,7 +122,7 @@ public final class RailWorkflowService {
         return trainId.trim().toUpperCase(Locale.ROOT);
     }
 
-    private Set<String> collectShortCodes(List<RailStopRecord> rows) {
+    private List<String> collectShortCodes(List<RailStopRecord> rows) {
         Set<String> codes = new LinkedHashSet<>();
         for (RailStopRecord row : rows) {
             for (RailStopRecord.ItemQuantity item : row.getItems()) {
@@ -131,7 +131,7 @@ public final class RailWorkflowService {
                 }
             }
         }
-        return codes;
+        return new ArrayList<>(codes);
     }
 
     /**
