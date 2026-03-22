@@ -18,6 +18,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 - Shared CLI output/validation formatting was tightened across `rail-print` and `barcode` so command policy is tested separately from execution paths.
 - Rail helper CSV loading, rail print CLI formatting, and barcode command validation now live behind focused helpers to reduce regression risk in future feature work.
+- Live ZPL preview rendering is now debounced and throttled so operator editing still feels near real time without overrunning the public preview API request limit.
 
 ## [1.7.5] - 2026-03-19
 

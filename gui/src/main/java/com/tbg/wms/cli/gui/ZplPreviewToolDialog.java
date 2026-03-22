@@ -13,6 +13,8 @@ import java.nio.file.Path;
  */
 final class ZplPreviewToolDialog extends JDialog {
     private static final long serialVersionUID = 1L;
+    private static final int LIVE_RENDER_DEBOUNCE_MS = 350;
+    private static final int MIN_RENDER_INTERVAL_MS = 1000;
 
     private final JTextArea zplTextArea = new JTextArea(28, 56);
     private final JLabel previewLabel = new JLabel("Paste ZPL or open a .zpl file to preview.", SwingConstants.CENTER);
@@ -23,9 +25,12 @@ final class ZplPreviewToolDialog extends JDialog {
     private final JSpinner indexSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 50, 1));
     private final JCheckBox liveCheck = new JCheckBox("Render live", true);
     private final Timer debounceTimer;
+    private final Timer throttleTimer;
     private final ZplPreviewRenderService renderService = new ZplPreviewRenderService();
     private SwingWorker<BufferedImage, Void> currentWorker;
     private int renderGeneration;
+    private long lastRenderStartedAtMs;
+    private boolean pendingLiveRender;
 
     ZplPreviewToolDialog(JFrame owner) {
         super(owner, "ZPL Preview Tool", Dialog.ModalityType.MODELESS);
@@ -66,11 +71,20 @@ final class ZplPreviewToolDialog extends JDialog {
         add(splitPane, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
 
-        debounceTimer = new Timer(350, e -> renderNow());
+        debounceTimer = new Timer(LIVE_RENDER_DEBOUNCE_MS, e -> scheduleRender(false));
         debounceTimer.setRepeats(false);
+        throttleTimer = new Timer(MIN_RENDER_INTERVAL_MS, null);
+        throttleTimer.setRepeats(false);
+        throttleTimer.addActionListener(e -> {
+            throttleTimer.stop();
+            if (pendingLiveRender) {
+                pendingLiveRender = false;
+                renderNow();
+            }
+        });
 
         openButton.addActionListener(e -> openZplFile());
-        renderButton.addActionListener(e -> renderNow());
+        renderButton.addActionListener(e -> scheduleRender(true));
         clearButton.addActionListener(e -> {
             zplTextArea.setText("");
             previewLabel.setIcon(null);
@@ -110,7 +124,33 @@ final class ZplPreviewToolDialog extends JDialog {
         if (!liveCheck.isSelected()) {
             return;
         }
+        pendingLiveRender = true;
+        statusLabel.setText("Preview changed. Waiting to render...");
         debounceTimer.restart();
+    }
+
+    private void scheduleRender(boolean forceImmediate) {
+        if (forceImmediate) {
+            pendingLiveRender = false;
+            debounceTimer.stop();
+            throttleTimer.stop();
+            renderNow();
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long elapsed = now - lastRenderStartedAtMs;
+        if (elapsed >= MIN_RENDER_INTERVAL_MS && (currentWorker == null || currentWorker.isDone())) {
+            pendingLiveRender = false;
+            renderNow();
+            return;
+        }
+
+        pendingLiveRender = true;
+        int delay = (int) Math.max(1L, MIN_RENDER_INTERVAL_MS - Math.max(0L, elapsed));
+        throttleTimer.setInitialDelay(delay);
+        throttleTimer.restart();
+        statusLabel.setText("Preview changed. Render queued...");
     }
 
     private void openZplFile() {
@@ -138,6 +178,7 @@ final class ZplPreviewToolDialog extends JDialog {
             previewLabel.setIcon(null);
             previewLabel.setText("Paste ZPL or open a .zpl file to preview.");
             statusLabel.setText("Waiting for ZPL input");
+            pendingLiveRender = false;
             return;
         }
 
@@ -150,6 +191,7 @@ final class ZplPreviewToolDialog extends JDialog {
         double width = ((Number) widthSpinner.getValue()).doubleValue();
         double height = ((Number) heightSpinner.getValue()).doubleValue();
         int index = ((Number) indexSpinner.getValue()).intValue();
+        lastRenderStartedAtMs = System.currentTimeMillis();
         statusLabel.setText("Rendering preview...");
 
         currentWorker = new SwingWorker<>() {
@@ -168,10 +210,16 @@ final class ZplPreviewToolDialog extends JDialog {
                     previewLabel.setText("");
                     previewLabel.setIcon(new ImageIcon(image));
                     statusLabel.setText(String.format("Rendered %dx%d preview at %ddpmm", image.getWidth(), image.getHeight(), dpmm));
+                    if (pendingLiveRender) {
+                        scheduleRender(false);
+                    }
                 } catch (Exception ex) {
                     previewLabel.setIcon(null);
                     previewLabel.setText("Preview unavailable");
                     statusLabel.setText(GuiExceptionMessageSupport.rootMessage(ex));
+                    if (pendingLiveRender) {
+                        scheduleRender(false);
+                    }
                 }
             }
         };
