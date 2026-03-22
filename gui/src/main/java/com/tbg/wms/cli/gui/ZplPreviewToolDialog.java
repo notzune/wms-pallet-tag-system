@@ -16,6 +16,9 @@ import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Live ZPL preview tool using a real rendered image.
@@ -31,18 +34,25 @@ final class ZplPreviewToolDialog extends JDialog {
     private final JTextArea zplTextArea = new JTextArea(28, 56);
     private final JLabel previewLabel = new JLabel("Paste ZPL or open a .zpl file to preview.", SwingConstants.CENTER);
     private final JLabel statusLabel = new JLabel("Ready");
+    private final JLabel documentLabel = new JLabel("Single document");
     private final JComboBox<Integer> dpmmCombo = new JComboBox<>(new Integer[]{6, 8, 12, 24});
     private final JSpinner widthSpinner = new JSpinner(new SpinnerNumberModel(4.0d, 0.1d, 20.0d, 0.1d));
     private final JSpinner heightSpinner = new JSpinner(new SpinnerNumberModel(6.0d, 0.1d, 20.0d, 0.1d));
     private final JSpinner indexSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 50, 1));
+    private final JSpinner documentSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 1, 1));
     private final JCheckBox liveCheck = new JCheckBox("Render live", true);
+    private final JButton previousButton = new JButton("<");
+    private final JButton nextButton = new JButton(">");
     private final Timer debounceTimer;
     private final Timer throttleTimer;
     private final ZplPreviewRenderService renderService = new ZplPreviewRenderService();
+    private final List<GuiZplPreviewSupport.PreviewDocument> documents = new ArrayList<>();
     private SwingWorker<BufferedImage, Void> currentWorker;
     private int renderGeneration;
     private long lastRenderStartedAtMs;
     private boolean pendingLiveRender;
+    private boolean programmaticDocumentSwitch;
+    private int currentDocumentIndex;
 
     ZplPreviewToolDialog(JFrame owner) {
         super(owner, "ZPL Preview Tool", Dialog.ModalityType.MODELESS);
@@ -57,6 +67,10 @@ final class ZplPreviewToolDialog extends JDialog {
         JButton openButton = new JButton("Open ZPL...");
         JButton renderButton = new JButton("Render Now");
         JButton clearButton = new JButton("Clear");
+        topBar.add(previousButton);
+        topBar.add(documentSpinner);
+        topBar.add(nextButton);
+        topBar.add(documentLabel);
         topBar.add(openButton);
         topBar.add(renderButton);
         topBar.add(clearButton);
@@ -98,10 +112,14 @@ final class ZplPreviewToolDialog extends JDialog {
         openButton.addActionListener(e -> openZplFile());
         renderButton.addActionListener(e -> scheduleRender(true));
         clearButton.addActionListener(e -> {
-            zplTextArea.setText("");
-            previewLabel.setIcon(null);
-            previewLabel.setText("Paste ZPL or open a .zpl file to preview.");
-            statusLabel.setText("Cleared");
+            clearDocuments();
+        });
+        previousButton.addActionListener(e -> showDocumentAt(currentDocumentIndex - 1));
+        nextButton.addActionListener(e -> showDocumentAt(currentDocumentIndex + 1));
+        documentSpinner.addChangeListener(e -> {
+            if (!programmaticDocumentSwitch) {
+                showDocumentAt(((Number) documentSpinner.getValue()).intValue() - 1);
+            }
         });
 
         DocumentListener changeListener = new DocumentListener() {
@@ -131,6 +149,18 @@ final class ZplPreviewToolDialog extends JDialog {
         pack();
         setSize(1200, 760);
         setLocationRelativeTo(owner);
+        updateDocumentControls();
+    }
+
+    static void openWithDocuments(
+            JFrame owner,
+            String title,
+            List<GuiZplPreviewSupport.PreviewDocument> previewDocuments
+    ) {
+        ZplPreviewToolDialog dialog = new ZplPreviewToolDialog(owner);
+        dialog.setTitle(title);
+        dialog.loadDocuments(previewDocuments);
+        dialog.setVisible(true);
     }
 
     private void installRenderKeyBinding() {
@@ -161,6 +191,9 @@ final class ZplPreviewToolDialog extends JDialog {
     }
 
     private void queueRender() {
+        if (programmaticDocumentSwitch) {
+            return;
+        }
         if (!liveCheck.isSelected()) {
             return;
         }
@@ -201,7 +234,7 @@ final class ZplPreviewToolDialog extends JDialog {
         }
         Path selected = chooser.getSelectedFile().toPath();
         try {
-            zplTextArea.setText(Files.readString(selected));
+            loadDocuments(List.of(new GuiZplPreviewSupport.PreviewDocument(selected.getFileName().toString(), Files.readString(selected))));
             statusLabel.setText("Loaded " + selected.toAbsolutePath());
         } catch (Exception ex) {
             statusLabel.setText("Failed to load file");
@@ -210,6 +243,86 @@ final class ZplPreviewToolDialog extends JDialog {
                     "ZPL Preview",
                     JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void loadDocuments(List<GuiZplPreviewSupport.PreviewDocument> previewDocuments) {
+        documents.clear();
+        if (previewDocuments != null) {
+            documents.addAll(previewDocuments.stream()
+                    .filter(Objects::nonNull)
+                    .toList());
+        }
+        currentDocumentIndex = 0;
+        updateDocumentControls();
+        if (documents.isEmpty()) {
+            clearDocuments();
+            return;
+        }
+        showDocumentAt(0);
+    }
+
+    private void clearDocuments() {
+        documents.clear();
+        currentDocumentIndex = 0;
+        previewLabel.setIcon(null);
+        previewLabel.setText("Paste ZPL or open a .zpl file to preview.");
+        statusLabel.setText("Cleared");
+        programmaticDocumentSwitch = true;
+        try {
+            zplTextArea.setText("");
+            documentSpinner.setModel(new SpinnerNumberModel(1, 1, 1, 1));
+        } finally {
+            programmaticDocumentSwitch = false;
+        }
+        updateDocumentControls();
+    }
+
+    private void showDocumentAt(int index) {
+        if (documents.isEmpty()) {
+            return;
+        }
+        persistCurrentDocumentText();
+        currentDocumentIndex = Math.max(0, Math.min(index, documents.size() - 1));
+        GuiZplPreviewSupport.PreviewDocument document = documents.get(currentDocumentIndex);
+        programmaticDocumentSwitch = true;
+        try {
+            zplTextArea.setText(document.zpl());
+            documentSpinner.setValue(currentDocumentIndex + 1);
+        } finally {
+            programmaticDocumentSwitch = false;
+        }
+        documentLabel.setText(document.name());
+        updateDocumentControls();
+        if (liveCheck.isSelected()) {
+            scheduleRender(true);
+        } else {
+            statusLabel.setText("Loaded " + document.name());
+        }
+    }
+
+    private void persistCurrentDocumentText() {
+        if (documents.isEmpty() || currentDocumentIndex < 0 || currentDocumentIndex >= documents.size()) {
+            return;
+        }
+        GuiZplPreviewSupport.PreviewDocument document = documents.get(currentDocumentIndex);
+        documents.set(currentDocumentIndex, new GuiZplPreviewSupport.PreviewDocument(document.name(), zplTextArea.getText()));
+    }
+
+    private void updateDocumentControls() {
+        int documentCount = Math.max(1, documents.size());
+        programmaticDocumentSwitch = true;
+        try {
+            documentSpinner.setModel(new SpinnerNumberModel(Math.min(currentDocumentIndex + 1, documentCount), 1, documentCount, 1));
+        } finally {
+            programmaticDocumentSwitch = false;
+        }
+        boolean multipleDocuments = documents.size() > 1;
+        previousButton.setEnabled(multipleDocuments && currentDocumentIndex > 0);
+        nextButton.setEnabled(multipleDocuments && currentDocumentIndex < documents.size() - 1);
+        documentSpinner.setEnabled(multipleDocuments);
+        documentLabel.setText(documents.isEmpty()
+                ? "Single document"
+                : documents.get(currentDocumentIndex).name() + " (" + (currentDocumentIndex + 1) + "/" + documents.size() + ")");
     }
 
     private void renderNow() {

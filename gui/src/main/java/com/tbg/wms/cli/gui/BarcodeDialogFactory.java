@@ -121,12 +121,14 @@ final class BarcodeDialogFactory {
 
         JButton keyboardButton = new JButton("Utility Keyboard...");
         JButton advancedButton = new JButton("Advanced Settings...");
+        JButton previewButton = new JButton("Preview");
         JButton generateButton = new JButton("Generate");
         JButton closeButton = new JButton("Close");
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttons.add(keyboardButton);
         buttons.add(advancedButton);
+        buttons.add(previewButton);
         buttons.add(generateButton);
         buttons.add(closeButton);
 
@@ -145,6 +147,22 @@ final class BarcodeDialogFactory {
                 barcodeHeight,
                 humanReadable,
                 outputDir
+        ));
+
+        previewButton.addActionListener(e -> actionSupport.previewBarcode(
+                owner,
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
         ));
 
         generateButton.addActionListener(e -> generateBarcode(

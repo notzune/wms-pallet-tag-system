@@ -14,6 +14,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - Added a modeless `Tools -> ZPL Preview...` utility that accepts pasted/opened ZPL and renders a live image preview with configurable label size, density, and label index.
 - Added a toggleable utility keyboard to the GUI barcode generator with function keys, edit actions, navigation keys, and common operator shortcuts for system-wide key injection.
 - Added a compact Oracle footer status indicator in the GUI with green/amber/red LED state, short Oracle code display, and full hover detail for connectivity failures.
+- Added `Show Labels` in the main preview workflow and `Preview` in the barcode generator so operators can open the live ZPL renderer against the exact generated documents before printing.
 
 ### Changed
 
@@ -22,6 +23,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - Live ZPL preview rendering is now debounced and throttled so operator editing still feels near real time without overrunning the public preview API request limit.
 - Packaged CLI artifacts now rely on the existing Logback binding only, removing the redundant `slf4j-simple` provider that previously shipped duplicate SLF4J bindings into the shaded runtime jar.
 - GUI queue input now accepts semicolon-delimited mixed IDs, ignores surrounding whitespace, and auto-detects unprefixed numeric shipment (`800...`) versus carrier-move IDs using the live WMS operator pattern.
+- The ZPL Preview dialog now supports paged multi-document preview sets so shipment/carrier-move label runs can be stepped through one generated label or info tag at a time.
 
 ## [1.7.5] - 2026-03-19
 

@@ -17,6 +17,7 @@ final class BarcodeDialogActionSupport {
     private final BarcodeDialogFactory.Dependencies dependencies;
     private final BarcodeDialogExecutionSupport executionSupport;
     private final BarcodeDialogFormSupport formSupport;
+    private final GuiZplPreviewSupport zplPreviewSupport = new GuiZplPreviewSupport();
 
     BarcodeDialogActionSupport(
             BarcodeDialogFactory.Dependencies dependencies,
@@ -112,6 +113,50 @@ final class BarcodeDialogActionSupport {
                 executionSupport.buildPrintedMessage(outputPath),
                 "Barcode Printed",
                 JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+    void previewBarcode(
+            JFrame owner,
+            JTextField dataField,
+            JComboBox<Symbology> typeCombo,
+            JComboBox<Orientation> orientationCombo,
+            JSpinner labelWidth,
+            JSpinner labelHeight,
+            JSpinner originX,
+            JSpinner originY,
+            JSpinner moduleWidth,
+            JSpinner moduleRatio,
+            JSpinner barcodeHeight,
+            JCheckBox humanReadable,
+            JSpinner copies
+    ) {
+        String data;
+        try {
+            data = executionSupport.requireBarcodeData(dataField.getText());
+        } catch (IllegalArgumentException ex) {
+            dependencies.showError(ex.getMessage());
+            return;
+        }
+
+        BarcodeRequest request = formSupport.buildRequest(
+                data,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        );
+        ZplPreviewToolDialog.openWithDocuments(
+                owner,
+                "Barcode Preview",
+                zplPreviewSupport.buildBarcodeDocuments(request)
         );
     }
 }

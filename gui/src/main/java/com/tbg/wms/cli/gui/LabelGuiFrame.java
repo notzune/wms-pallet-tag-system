@@ -62,6 +62,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JComboBox<LabelWorkflowService.PrinterOption> printerCombo = new JComboBox<>();
     private final JButton previewButton = new JButton("Preview");
     private final JButton clearButton = new JButton("Clear");
+    private final JButton showLabelsButton = new JButton("Show Labels");
     private final JButton printButton = new JButton("Confirm Print");
     private final JButton toolsButton = new JButton("Tools");
     private final JButton labelSelectionToggleButton = new JButton("Deselect All");
@@ -107,6 +108,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient GuiUpdateFlowSupport updateFlowSupport = new GuiUpdateFlowSupport();
     private final transient GuiUpdateExecutionSupport updateExecutionSupport = new GuiUpdateExecutionSupport(updateFlowSupport);
     private final transient GuiDbStatusSupport dbStatusSupport = new GuiDbStatusSupport();
+    private final transient GuiZplPreviewSupport zplPreviewSupport = new GuiZplPreviewSupport();
     private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
     private final transient InstallMaintenanceService installMaintenanceService = new InstallMaintenanceService();
     private final transient GuidedUpdateService guidedUpdateService = new GuidedUpdateService();
@@ -145,6 +147,7 @@ public final class LabelGuiFrame extends JFrame {
         checkForUpdatesAsync(false);
         refreshDbStatusAsync();
         printButton.setEnabled(false);
+        showLabelsButton.setEnabled(false);
     }
 
     private static String buildWindowTitle() {
@@ -235,6 +238,9 @@ public final class LabelGuiFrame extends JFrame {
         panel.add(clearButton, gbc);
 
         gbc.gridx = 7;
+        panel.add(showLabelsButton, gbc);
+
+        gbc.gridx = 8;
         panel.add(printButton, gbc);
 
         return panel;
@@ -279,6 +285,7 @@ public final class LabelGuiFrame extends JFrame {
     private void wireActions() {
         previewButton.addActionListener(e -> previewJob());
         clearButton.addActionListener(e -> clearForm());
+        showLabelsButton.addActionListener(e -> openGeneratedLabelPreview());
         printButton.addActionListener(e -> confirmAndPrint());
         labelSelectionToggleButton.addActionListener(e -> togglePreviewLabelSelection());
         labelSelectionCollapseButton.addActionListener(e -> updateLabelSelectionCollapseUi());
@@ -638,6 +645,7 @@ public final class LabelGuiFrame extends JFrame {
         statusLabel.setText(message);
         previewButton.setEnabled(false);
         clearButton.setEnabled(false);
+        showLabelsButton.setEnabled(false);
         printButton.setEnabled(false);
     }
 
@@ -868,6 +876,34 @@ public final class LabelGuiFrame extends JFrame {
                 selection.selectedCarrierLabels().size(),
                 selection.selectedShipmentLpns().size()
         ));
+        showLabelsButton.setEnabled(printButton.isEnabled());
+    }
+
+    private void openGeneratedLabelPreview() {
+        PreviewSelectionSupport.SelectionSnapshot selection = snapshotPreviewSelection();
+        try {
+            List<GuiZplPreviewSupport.PreviewDocument> documents = isCarrierMoveMode()
+                    ? zplPreviewSupport.buildCarrierMoveDocuments(
+                    Objects.requireNonNull(preparedCarrierJob, "preparedCarrierJob"),
+                    selection.selectedCarrierLabels(),
+                    includeInfoTagsCheckBox.isSelected()
+            )
+                    : zplPreviewSupport.buildShipmentDocuments(
+                    Objects.requireNonNull(preparedJob, "preparedJob"),
+                    selection.selectedShipmentLpns(),
+                    includeInfoTagsCheckBox.isSelected()
+            );
+            if (documents.isEmpty()) {
+                showError("Preview at least one label before opening the ZPL preview.");
+                return;
+            }
+            String title = isCarrierMoveMode()
+                    ? "Carrier Move Label Preview"
+                    : "Shipment Label Preview";
+            ZplPreviewToolDialog.openWithDocuments(this, title, documents);
+        } catch (Exception ex) {
+            showError("Could not open label preview: " + rootMessage(ex));
+        }
     }
 
     private void openQueueDialog() {

@@ -437,6 +437,7 @@ Workflow:
 - Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU
   breakdown.
 - Click `Confirm Print` to execute and persist artifacts.
+- Click `Show Labels` after preview to open the live ZPL renderer with the exact generated shipment/carrier-move documents that would be printed, including info tags when selected.
 - Shipment mode output path: `out/gui-<shipment>-<timestamp>/`.
 - Carrier mode output path: `out/gui-cmid-<cmid>-<timestamp>/`.
 - Carrier mode prints all shipment labels in stop order, then per-stop info tags, then one final info tag.
@@ -445,8 +446,10 @@ Workflow:
 - Preview now supports per-label subset selection, starts with all labels selected, and keeps the label-selection panel collapsed by default to reduce noise on large jobs.
 - Preview includes an `Include info tags` toggle and shows `labels + info tags = total documents` in the selection status and math summary.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
+- Barcode Generator now includes a `Preview` action that opens the live ZPL renderer for the currently configured barcode before printing or exporting.
 - Barcode Generator now includes a toggleable `Utility Keyboard...` pop-out with function keys (`F1`-`F12`), Enter/Tab/Esc, clear/edit actions, and navigation keys that can be sent to the currently focused system field.
 - Use `Tools -> ZPL Preview...` to paste or open raw ZPL and render a live label preview with configurable density, label size, and label index.
+- The ZPL Preview tool can also open generated barcode/shipment/carrier documents directly and page through them with previous/next controls or the document spinner while keeping the rendered preview scrollable.
 - Use `Tools -> Rail Labels...` for end-to-end rail merge generation from live WMS train data.
 - GUI printer scoping is driven by printer `capabilities` in `config/<site>/printers.yaml`.
 - Use `capabilities: [ ZPL ]` for pallet-label workflows and `capabilities: [ RAIL ]` for the rail labels tool.
