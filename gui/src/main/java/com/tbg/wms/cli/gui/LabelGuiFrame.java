@@ -83,6 +83,7 @@ public final class LabelGuiFrame extends JFrame {
     private final transient AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
     private final transient LabelPreviewFormatter previewFormatter = new LabelPreviewFormatter();
     private final transient PreviewSelectionSupport previewSelectionSupport = new PreviewSelectionSupport();
+    private final transient PreviewSelectionPanelSupport previewSelectionPanelSupport = new PreviewSelectionPanelSupport();
     private final transient PreviewRenderSupport previewRenderSupport =
             new PreviewRenderSupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
     private final transient GuiPreviewExecutionSupport previewExecutionSupport = new GuiPreviewExecutionSupport();
@@ -402,33 +403,18 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private JComponent buildLabelSelectionPanel(List<PreviewSelectionSupport.LabelOption> options) {
-        Objects.requireNonNull(options, "options cannot be null");
-        previewLabelOptions = List.copyOf(options);
-        previewLabelCheckboxes = new ArrayList<>(options.size());
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        controls.add(labelSelectionToggleButton);
-        controls.add(includeInfoTagsCheckBox);
-        controls.add(labelSelectionStatusLabel);
-
-        JPanel checkboxGrid = new JPanel(new GridLayout(0, 3, 8, 4));
-        for (PreviewSelectionSupport.LabelOption option : options) {
-            JCheckBox checkbox = new JCheckBox(option.labelText(), true);
-            checkbox.addActionListener(e -> updatePreviewSelectionUi());
-            previewLabelCheckboxes.add(checkbox);
-            checkboxGrid.add(checkbox);
-        }
-
-        labelSelectionPanel.removeAll();
-        labelSelectionPanel.setLayout(new BorderLayout(0, 6));
-        labelSelectionPanel.setBorder(BorderFactory.createEtchedBorder());
-        labelSelectionCollapseButton.setFocusPainted(false);
-        labelSelectionCollapseButton.setHorizontalAlignment(SwingConstants.LEFT);
-        labelSelectionPanel.add(labelSelectionCollapseButton, BorderLayout.NORTH);
-        labelSelectionContentPanel.removeAll();
-        labelSelectionContentPanel.add(controls, BorderLayout.NORTH);
-        labelSelectionContentPanel.add(checkboxGrid, BorderLayout.CENTER);
-        labelSelectionPanel.add(labelSelectionContentPanel, BorderLayout.CENTER);
-        labelSelectionCollapseButton.setSelected(false);
+        PreviewSelectionPanelSupport.PanelBuildResult result = previewSelectionPanelSupport.buildPanel(
+                labelSelectionPanel,
+                labelSelectionContentPanel,
+                labelSelectionToggleButton,
+                labelSelectionCollapseButton,
+                includeInfoTagsCheckBox,
+                labelSelectionStatusLabel,
+                options,
+                this::updatePreviewSelectionUi
+        );
+        previewLabelOptions = result.options();
+        previewLabelCheckboxes = result.checkboxes();
         updateLabelSelectionCollapseUi();
         return labelSelectionPanel;
     }
@@ -526,13 +512,14 @@ public final class LabelGuiFrame extends JFrame {
     private void resetPreviewLabelSelection() {
         previewLabelCheckboxes = List.of();
         previewLabelOptions = List.of();
-        labelSelectionPanel.removeAll();
-        labelSelectionContentPanel.removeAll();
-        labelSelectionStatusLabel.setText(" ");
-        labelSelectionToggleButton.setText("Deselect All");
-        labelSelectionCollapseButton.setSelected(false);
-        labelSelectionCollapseButton.setText("Label Selection [collapsed]");
-        includeInfoTagsCheckBox.setSelected(true);
+        previewSelectionPanelSupport.resetPanel(
+                labelSelectionPanel,
+                labelSelectionContentPanel,
+                labelSelectionStatusLabel,
+                labelSelectionToggleButton,
+                labelSelectionCollapseButton,
+                includeInfoTagsCheckBox
+        );
     }
 
     private void confirmAndPrint() {
