@@ -38,6 +38,7 @@ public final class AdvancedPrintWorkflowService {
     private final PrintCheckpointSupport checkpointSupport;
     private final CarrierMovePreparationSupport carrierMovePreparationSupport = new CarrierMovePreparationSupport();
     private final AdvancedPrintResultSupport resultSupport = new AdvancedPrintResultSupport();
+    private final QueueWorkflowSupport queueWorkflowSupport = new QueueWorkflowSupport();
 
     public AdvancedPrintWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
@@ -103,42 +104,27 @@ public final class AdvancedPrintWorkflowService {
     }
 
     public PreparedQueueJob prepareQueue(List<QueueRequestItem> requests) throws Exception {
-        if (requests == null || requests.isEmpty()) {
-            throw new IllegalArgumentException("Queue is empty.");
-        }
-        if (requests.size() > MAX_QUEUE_ITEMS) {
-            throw new IllegalArgumentException("Queue exceeds max size of " + MAX_QUEUE_ITEMS + " items.");
-        }
+        List<QueueRequestItem> normalizedRequests = queueWorkflowSupport.normalizeRequests(requests, MAX_QUEUE_ITEMS);
         List<PreparedQueueItem> resolved = new ArrayList<>();
-        for (QueueRequestItem req : requests) {
-            if (req == null || req.id.isBlank()) {
-                continue;
-            }
+        for (QueueRequestItem req : normalizedRequests) {
             if (req.type == QueueItemType.CARRIER_MOVE) {
                 resolved.add(PreparedQueueItem.forCarrier(req.id, prepareCarrierMoveJob(req.id)));
             } else {
                 resolved.add(PreparedQueueItem.forShipment(req.id, prepareShipmentJob(req.id)));
             }
         }
-        if (resolved.isEmpty()) {
-            throw new IllegalArgumentException("Queue is empty after parsing.");
-        }
         return new PreparedQueueJob(resolved);
     }
 
     public QueuePrintResult printQueue(PreparedQueueJob queue, String printerId, boolean printToFile) throws Exception {
         List<PrintResult> results = new ArrayList<>();
-        int labels = 0;
-        int infoTags = 0;
         for (PreparedQueueItem item : queue.items) {
             PrintResult result = item.type == QueueItemType.CARRIER_MOVE
                     ? printCarrierMoveJob(item.carrierMoveJob, printerId, null, printToFile)
                     : printShipmentJob(item.shipmentJob, printerId, null, printToFile);
             results.add(result);
-            labels += result.labelsPrinted;
-            infoTags += result.infoTagsPrinted;
         }
-        return new QueuePrintResult(results, labels, infoTags);
+        return queueWorkflowSupport.summarizeResults(results);
     }
 
     public PrintResult printShipmentJob(LabelWorkflowService.PreparedJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
@@ -406,7 +392,7 @@ public final class AdvancedPrintWorkflowService {
         private final int totalLabelsPrinted;
         private final int totalInfoTagsPrinted;
 
-        private QueuePrintResult(List<PrintResult> itemResults, int totalLabelsPrinted, int totalInfoTagsPrinted) {
+        QueuePrintResult(List<PrintResult> itemResults, int totalLabelsPrinted, int totalInfoTagsPrinted) {
             this.itemResults = List.copyOf(itemResults);
             this.totalLabelsPrinted = totalLabelsPrinted;
             this.totalInfoTagsPrinted = totalInfoTagsPrinted;
