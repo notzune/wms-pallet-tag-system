@@ -185,7 +185,7 @@ function Resolve-InstalledAppDir {
     throw "Installed app directory not found under: $InstallRoot"
 }
 
-function Invoke-BootstrapInstallScenario {
+function Invoke-TropicanaPackageInstallScenario {
     param(
         [Parameter(Mandatory = $true)]
         [string]$SourceRoot,
@@ -197,14 +197,14 @@ function Invoke-BootstrapInstallScenario {
         [string]$ExpectedConfigSourcePattern
     )
 
-    $shortRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("wms-bootstrap-smoke-" + [guid]::NewGuid().ToString("N"))
+    $shortRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("wms-tropicana-package-smoke-" + [guid]::NewGuid().ToString("N"))
     $smokeAppName = "WMS Pallet Tag System Smoke"
     $smokeInstallDirName = "WMS-Pallet-Tag-System-Smoke"
     $bundleDir = Join-Path $shortRoot "app"
-    $bootstrapDir = Join-Path $shortRoot "bootstrap"
+    $packageDir = Join-Path $shortRoot "package"
     $installRoot = Join-Path $shortRoot ("install\{0}" -f $smokeInstallDirName)
     $localAppDataRoot = Join-Path $shortRoot "localappdata"
-    $installerLogPath = Join-Path $ScenarioOutputDir "bootstrap-install.log"
+    $installerLogPath = Join-Path $ScenarioOutputDir "tropicana-package-install.log"
     $uniqueUpgradeUuid = [guid]::NewGuid().ToString()
 
     New-Item -ItemType Directory -Path $ScenarioOutputDir -Force | Out-Null
@@ -226,53 +226,64 @@ function Invoke-BootstrapInstallScenario {
     if (-not $msiPath) {
         return [pscustomobject]@{
             ExitCode = 1
-            Output   = "Bootstrap installer scenario could not find the MSI installer artifact."
+            Output   = "Tropicana package scenario could not find the MSI installer artifact."
         }
     }
 
     & (Join-Path $SourceRoot "scripts\build-tropicana-installer.ps1") `
         -InstallerPath $msiPath.FullName `
         -ConfigSourcePath $ConfigPath `
-        -OutputDir $bootstrapDir `
+        -OutputDir $packageDir `
         -ProductDisplayName $smokeAppName `
         -SourceRoot $SourceRoot | Out-Null
 
-    $bootstrapExe = Join-Path $bootstrapDir "WMS Pallet Tag System - Tropicana Setup.exe"
-    $bootstrapScript = Join-Path $bootstrapDir "bootstrap-install.ps1"
-    if (-not (Test-Path -LiteralPath $bootstrapExe)) {
+    $packageZip = Join-Path $packageDir "WMS Pallet Tag System - Tropicana Package.zip"
+    $configScript = Join-Path $packageDir "Install-Tropicana-Config.ps1"
+    if (-not (Test-Path -LiteralPath $packageZip)) {
         return [pscustomobject]@{
             ExitCode = 1
-            Output   = "Bootstrap installer scenario could not find the Tropicana setup executable."
+            Output   = "Tropicana package scenario could not find the Tropicana package ZIP."
         }
     }
-    if (-not (Test-Path -LiteralPath $bootstrapScript)) {
+    if (-not (Test-Path -LiteralPath $configScript)) {
         return [pscustomobject]@{
             ExitCode = 1
-            Output   = "Bootstrap installer scenario could not find the bootstrap install script."
+            Output   = "Tropicana package scenario could not find the config installer script."
         }
     }
 
+    $installHelper = Join-Path $SourceRoot "scripts\install-wms-installer.ps1"
     $installResult = Invoke-ProcessCommand -FilePath "powershell.exe" -Arguments @(
         "-NoProfile",
-        "-ExecutionPolicy", "Bypass",
-        "-File", $bootstrapScript,
+        "-File", $installHelper,
+        "-InstallerPath", $msiPath.FullName,
         "-InstallDir", $installRoot,
-        "-LocalAppDataRoot", $localAppDataRoot,
         "-LogPath", $installerLogPath,
+        "-ProductDisplayName", $smokeAppName,
         "-QuietInstall",
-        "-ReplaceExisting",
-        "-NoLaunch"
+        "-ReplaceExisting"
     ) -TimeoutSeconds 900
 
     if ($installResult.ExitCode -ne 0) {
         return $installResult
     }
 
+    $configApplyResult = Invoke-ProcessCommand -FilePath "powershell.exe" -Arguments @(
+        "-NoProfile",
+        "-File", $configScript,
+        "-InstallDir", $installRoot,
+        "-LocalAppDataRoot", $localAppDataRoot,
+        "-SkipVerify"
+    ) -TimeoutSeconds 300
+    if ($configApplyResult.ExitCode -ne 0) {
+        return $configApplyResult
+    }
+
     $targetConfigPath = Join-Path $localAppDataRoot "Tropicana\WMS-Pallet-Tag-System\wms-tags.env"
     if (-not (Test-Path -LiteralPath $targetConfigPath)) {
         return [pscustomobject]@{
             ExitCode = 1
-            Output   = "Bootstrap install did not create Tropicana config at $targetConfigPath"
+            Output   = "Tropicana package install did not create config at $targetConfigPath"
         }
     }
 
@@ -283,9 +294,10 @@ function Invoke-BootstrapInstallScenario {
         -ConfigPath $null -LocalAppDataRoot $localAppDataRoot
 
     $output = @(
-        "bootstrap-exe=$bootstrapExe"
-        "bootstrap-script=$bootstrapScript"
-        "bootstrap-exit=$($installResult.ExitCode)"
+        "package-zip=$packageZip"
+        "config-script=$configScript"
+        "installer-exit=$($installResult.ExitCode)"
+        "config-exit=$($configApplyResult.ExitCode)"
         "install-dir=$installedAppDir"
         "config-path=$targetConfigPath"
         "config-output=$($configResult.Output)"
@@ -490,15 +502,15 @@ foreach ($scenario in $manifest.scenarios) {
         continue
     }
 
-    if ($scenario.kind -eq "bootstrap-install") {
+    if ($scenario.kind -eq "tropicana-package-install") {
         if (-not $resolvedConfigPath) {
             $results.Add((New-ScenarioResult -Name $scenario.name -Tier $scenario.tier -Kind $scenario.kind `
-                -ExitCode 1 -ExpectedExitCode $scenario.expectedExitCode -Output "ConfigPath is required for bootstrap installer smoke." `
-                -ArtifactsPassed $false -ArtifactDetails "Bootstrap installer smoke requires a real config payload.")) | Out-Null
+                -ExitCode 1 -ExpectedExitCode $scenario.expectedExitCode -Output "ConfigPath is required for Tropicana package smoke." `
+                -ArtifactsPassed $false -ArtifactDetails "Tropicana package smoke requires a real config payload.")) | Out-Null
             continue
         }
 
-        $invokeResult = Invoke-BootstrapInstallScenario -SourceRoot $sourceRoot -ScenarioOutputDir $scenarioOutputDir `
+        $invokeResult = Invoke-TropicanaPackageInstallScenario -SourceRoot $sourceRoot -ScenarioOutputDir $scenarioOutputDir `
             -ConfigPath $resolvedConfigPath -ExpectedConfigSourcePattern $scenario.expectedConfigSourcePattern
         $results.Add((New-ScenarioResultFromChecks -Scenario $scenario -ExitCode $invokeResult.ExitCode `
             -Output $invokeResult.Output -ArtifactBaseDir $scenarioOutputDir)) | Out-Null

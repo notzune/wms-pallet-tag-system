@@ -19,6 +19,8 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ### Changed
 
+- Tropicana internal packaging now emits an inert ZIP package with the signed-capable installer, config installer script, and operator instructions instead of a self-extracting bootstrap EXE.
+- Windows helper batch launchers no longer force `ExecutionPolicy Bypass` when invoking PowerShell companion scripts.
 - Shared CLI output/validation formatting was tightened across `rail-print` and `barcode` so command policy is tested separately from execution paths.
 - Rail helper CSV loading, rail print CLI formatting, and barcode command validation now live behind focused helpers to reduce regression risk in future feature work.
 - Live ZPL preview rendering is now debounced and throttled so operator editing still feels near real time without overrunning the public preview API request limit.
@@ -30,6 +32,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ### Fixed
 
+- Tropicana package smoke coverage now validates the two-step installer-plus-config flow instead of the removed bootstrap wrapper path.
 - Fixed packaged GUI startup ordering so barcode dialog initialization no longer dereferences settings support before it exists during frame construction.
 - Fixed direct `gui` command lifecycle so an explicit GUI launch no longer exits immediately after scheduling Swing startup.
 

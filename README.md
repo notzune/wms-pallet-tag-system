@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=dev)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.7.5-blue)
+![Version](https://img.shields.io/badge/version-1.7.6-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current release: `1.7.5` (2026-03-19).
+Current branch target: `1.7.6` (in progress).
 
 ## Versioning and History
 
@@ -67,7 +67,7 @@ Choose one of these paths:
 
 - Portable/manual install: extract the ZIP, replace the dummy `wms-tags.env` with your real values, and run `run.bat` or `wms-tags-gui.bat`
 - Packaged installer: run `WMS Pallet Tag System-<version>.exe` or `install-wms-installer.ps1`
-- Tropicana internal install: generate and distribute `WMS Pallet Tag System - Tropicana Setup.exe` from a trusted internal machine
+- Tropicana internal install: generate and distribute the inert Tropicana package ZIP from a trusted internal machine
 - Manual build from repo: build with Maven, then optionally package with `build-portable-bundle.ps1` or `build-jpackage-bundle.ps1`
 
 ### Manual Build From Repo
@@ -234,7 +234,7 @@ Notes:
 
 ### Tropicana internal installer
 
-Use the local-only Tropicana packaging flow when you want a single EXE that installs the app and applies Tropicana config for the current Windows user.
+Use the local-only Tropicana packaging flow when you want an internal package that ships the signed-capable installer plus the Tropicana config script without a self-extracting wrapper.
 
 ```powershell
 .\scripts\build-tropicana-installer.ps1 -ConfigSourcePath .\.env
@@ -242,14 +242,16 @@ Use the local-only Tropicana packaging flow when you want a single EXE that inst
 
 Outputs:
 
-- `dist\WMS Pallet Tag System - Tropicana Setup.exe`
+- `dist\WMS Pallet Tag System - Tropicana Package.zip`
 - `dist\Install-Tropicana-Config.ps1`
+- `dist\Tropicana-Package-Readme.txt`
 
 Behavior:
 
-- The Tropicana setup EXE installs the normal packaged app and then applies Tropicana config for the current user.
-- Tropicana config persists under `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env`, so normal app updates do not require rerunning setup.
-- `Install-Tropicana-Config.ps1` remains the fallback repair/credential-rotation path.
+- The package ZIP intentionally avoids the previous self-extracting EXE and bootstrap launcher chain.
+- Operators install the normal packaged app first, then run `Install-Tropicana-Config.ps1` to apply Tropicana config for the current user.
+- Tropicana config persists under `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env`, so normal app updates do not require rerunning config install.
+- `Install-Tropicana-Config.ps1` remains the supported repair and credential-rotation path.
 - These Tropicana artifacts are for internal distribution only and should not be attached to public GitHub Releases.
 
 ### Update Paths

@@ -107,6 +107,6 @@ if (-not $SkipVerify -and -not [string]::IsNullOrWhiteSpace($InstallDir)) {
     $verifyScript = Join-Path $InstallDir "scripts\verify-wms-tags.ps1"
     if (Test-Path -LiteralPath $verifyScript) {
         Write-Host "Run this next to validate the install:"
-        Write-Host "powershell -NoProfile -ExecutionPolicy Bypass -File `"$verifyScript`" -InstallDir `"$InstallDir`" -SkipDryRun"
+        Write-Host "powershell -NoProfile -File `"$verifyScript`" -InstallDir `"$InstallDir`" -SkipDryRun"
     }
 }

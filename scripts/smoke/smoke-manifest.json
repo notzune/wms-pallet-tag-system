@@ -99,12 +99,12 @@
       "expectedConfigSourcePattern": "Tropicana"
     },
     {
-      "name": "tropicana-bootstrap-install",
+      "name": "tropicana-package-install",
       "tier": 2,
-      "kind": "bootstrap-install",
+      "kind": "tropicana-package-install",
       "modes": ["packaged"],
       "releaseOnly": true,
-      "command": "tropicana-bootstrap-install",
+      "command": "tropicana-package-install",
       "expectedExitCode": 0,
       "expectedArtifacts": [],
       "expectedConfigSourcePattern": "Tropicana"
