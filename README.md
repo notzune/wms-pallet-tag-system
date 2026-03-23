@@ -10,7 +10,7 @@
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current branch target: `1.7.6` (in progress).
+Current branch target: `1.7.6` prerelease validation.
 
 ## Versioning and History
 
@@ -218,7 +218,7 @@ Notes:
 - `build-jpackage-bundle.ps1` can optionally sign the app-image launcher(s) and the final installer via `-SigningMode signtool`
 - For standard certificate signing, pass one of `-CertificateThumbprint`, `-CertificateSubjectName`, or `-CertificatePath`
 - For Trusted Signing, pass the required `/dlib` and `/dmdf` values through `-AdditionalSignToolArgs`
-- Prerelease tags such as `v1.7.3-rc1` are supported in CI and publish GitHub Releases marked as prereleases automatically
+- Prerelease tags such as `v1.7.6-rc.2` are supported in CI and publish GitHub Releases marked as prereleases automatically
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
 - GUI `Tools` / `Settings` now include `Check for Updates...` and `Uninstall / Clean Install Prep...` actions for packaged installs
@@ -298,7 +298,7 @@ For clean-machine Windows installer validation in VirtualBox:
   -GuestUser <GUEST_USER> `
   -GuestPassword <GUEST_PASSWORD> `
   -OldInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.4.exe `
-  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.5.exe
+  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.6.exe
 ```
 
 Outputs:

@@ -1,6 +1,6 @@
 # Release Smoke Coverage Matrix
 
-This matrix defines the current release smoke boundary for `1.7.5` hardening work.
+This matrix defines the current release smoke boundary for `1.7.6` prerelease hardening work.
 
 Status values:
 
@@ -12,8 +12,8 @@ Status values:
 | --- | --- | --- | --- | --- |
 | View resolved runtime config | `ShowConfigCommand` | `config` command in repo and packaged modes | covered | Validates config source precedence and redaction path |
 | Validate DB connectivity | `DbTestCommand` | `db-test` command in repo and packaged modes | covered | Uses production-safe read-only connectivity check |
-| Shipment label generation with `Print to file` | `RunCommand`, `AdvancedPrintWorkflowService`, `LabelWorkflowService` | `run --shipment-id ... --print-to-file` | covered | Verifies artifact generation without printer I/O |
-| Carrier move label generation with `Print to file` | `RunCommand`, `AdvancedPrintWorkflowService` | `run --carrier-move-id ... --print-to-file` | covered | Verifies multi-stop orchestration and artifacts |
+| Shipment label generation with `Print to file` | `RunCommand`, `AdvancedPrintWorkflowService`, `LabelWorkflowService` | `run --shipment-id ... --print-to-file` | covered | Verifies artifact generation without printer I/O; default smoke can auto-resolve a current WMS shipment ID |
+| Carrier move label generation with `Print to file` | `RunCommand`, `AdvancedPrintWorkflowService` | `run --carrier-move-id ... --print-to-file` | covered | Verifies multi-stop orchestration and artifacts; default smoke can auto-resolve a current WMS carrier move ID |
 | GUI shipment preview math | `LabelWorkflowService.prepareJob` | shipment print-to-file smoke plus targeted service/unit tests | partial | CLI path covers output path, not Swing presentation |
 | GUI carrier move preview math | `AdvancedPrintWorkflowService.prepareCarrierMoveJob` | carrier move print-to-file smoke plus targeted service/unit tests | partial | CLI path covers orchestration, not Swing presentation |
 | Rail preview and PDF generation | `RailWorkflowService`, `RailPrintCommand` | `rail-print --train ... --yes` | covered | Verifies WMS-backed rail aggregation and PDF generation |
@@ -25,7 +25,7 @@ Status values:
 | Packaged location matrix resolution | `LabelDataBuilder` location mapping load | packaged shipment smoke | covered | Verified through packaged label generation path |
 | Packaged printer YAML resolution | `PrinterRoutingService.load` | packaged `config`, `run`, and rail smoke | covered | Guards app-home config discovery |
 | Tropicana per-user config precedence | `ConfigFileLocator`, `AppConfig` | packaged `config` smoke with `%LOCALAPPDATA%` config | covered | Verifies persistent per-user config precedence |
-| Tropicana bootstrap installer flow | installer scripts and bootstrapper | packaged smoke with `-IncludeInstallerScenarios` | covered | Builds an isolated Tropicana bootstrap, performs a real local install, writes per-user config, and verifies installed `config` plus `db-test` |
+| Tropicana package installer flow | installer scripts and packaging helpers | packaged smoke with `-IncludeInstallerScenarios` | covered | Builds an isolated Tropicana package, performs a real local install, writes per-user config, and verifies installed `config` plus `db-test` |
 | Queue / resume GUI actions | `AdvancedPrintWorkflowService` queue APIs | targeted service-level verification | gap | No release smoke runner path yet |
 | Barcode Generator GUI | `BarcodeCommand`, barcode services | `barcode --data ... --dry-run --output-dir ...` in repo and packaged modes | covered | Verifies deterministic ZPL generation and file artifact output without printer I/O |
 | Swing-specific selection UX (`Ctrl+F`, table selection, dialogs) | Swing dialog classes | manual verification only | gap | Outside first-line backend smoke boundary |

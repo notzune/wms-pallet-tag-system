@@ -32,12 +32,16 @@ Latest validated reports on `patch/v1.7.5-tropicana-bootstrap-fix`:
 - repo: `out/smoke-repo-20260321-122513/smoke-report.txt`
 - packaged + installer: `out/smoke-packaged-20260321-123051/smoke-report.txt`
 
+Latest validated reports on `1.7.6`:
+
+- packaged + installer: `C:\Users\zrashed\AppData\Local\Temp\wms-host-smoke-auto-9fc2b53b2122477cb22c3864fa906786\smoke-report.txt`
+
 ## Required Production-Safe Inputs
 
 - Use bounded smoke identifiers only.
 - Current default smoke IDs:
-  - shipment: operator-supplied for the active release window
-  - carrier move: operator-supplied for the active release window
+  - shipment: auto-resolved from the most recent WMS shipment when `-ShipmentId` is omitted
+  - carrier move: auto-resolved from the most recent WMS carrier move with shipments when `-CarrierMoveId` is omitted
   - rail train: `JC03182026` or another current known-good train
 - Keep all release smoke DB usage read-only.
 

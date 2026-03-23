@@ -29,12 +29,14 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - The ZPL Preview dialog now supports paged multi-document preview sets so shipment/carrier-move label runs can be stepped through one generated label or info tag at a time.
 - `build-jpackage-bundle.ps1` now supports optional Windows code-signing hooks for both app-image launchers and installer artifacts, including Trusted Signing-compatible extra SignTool arguments.
 - Portable/app-image GUI launchers now normalize `APP_HOME`, keep the explicit GUI process alive, and regenerate the canonical portable ZIP from current artifacts so clean-machine testing no longer picks up stale bundle content.
+- Release smoke now auto-resolves current live shipment and carrier-move IDs from WMS when explicit smoke IDs are not passed, so packaged smoke can stay green without manual ID rotation.
 
 ### Fixed
 
 - Tropicana package smoke coverage now validates the two-step installer-plus-config flow instead of the removed bootstrap wrapper path.
 - Fixed packaged GUI startup ordering so barcode dialog initialization no longer dereferences settings support before it exists during frame construction.
 - Fixed direct `gui` command lifecycle so an explicit GUI launch no longer exits immediately after scheduling Swing startup.
+- Fixed the release smoke process runner to drain child stdout/stderr asynchronously, preventing deadlocks during verbose packaged print-to-file verification.
 
 ## [1.7.5] - 2026-03-19
 
