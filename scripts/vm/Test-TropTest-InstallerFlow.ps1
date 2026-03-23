@@ -44,12 +44,18 @@ $reportLines.Add("Old installer: $OldInstallerPath")
 $reportLines.Add("New installer: $NewInstallerPath")
 $reportLines.Add("Started: $(Get-Date -Format s)")
 
+$runSuffix = Get-Date -Format "yyyyMMddHHmmss"
+$guestOldInstaller = "C:\Temp\174-$runSuffix.exe"
+$guestNewInstaller = "C:\Temp\175-$runSuffix.exe"
+$reportLines.Add("Guest old installer: $guestOldInstaller")
+$reportLines.Add("Guest new installer: $guestNewInstaller")
+
 Write-Step "Copy installers into guest temp"
-Copy-ToVmGuest -VmName $VmName -GuestUser $GuestUser -GuestPassword $GuestPassword -SourcePath $OldInstallerPath -DestinationPath 'C:\Temp\174.exe'
-Copy-ToVmGuest -VmName $VmName -GuestUser $GuestUser -GuestPassword $GuestPassword -SourcePath $NewInstallerPath -DestinationPath 'C:\Temp\175.exe'
+Copy-ToVmGuest -VmName $VmName -GuestUser $GuestUser -GuestPassword $GuestPassword -SourcePath $OldInstallerPath -DestinationPath $guestOldInstaller
+Copy-ToVmGuest -VmName $VmName -GuestUser $GuestUser -GuestPassword $GuestPassword -SourcePath $NewInstallerPath -DestinationPath $guestNewInstaller
 
 Write-Step "Remove current install through 1.7.4 maintenance flow"
-Start-VmVisibleCommand -VmName $VmName -CommandText 'c:\temp\174.exe' -PostRunDelaySeconds 4
+Start-VmVisibleCommand -VmName $VmName -CommandText $guestOldInstaller -PostRunDelaySeconds 4
 $reportLines.Add("Maintenance start screenshot: $(Save-StepShot -Name '01-maintenance-start')")
 Invoke-VmTap -VmName $VmName -ScanCode '1c'
 Start-Sleep -Seconds 2
@@ -63,7 +69,7 @@ Invoke-VmTap -VmName $VmName -ScanCode '1c'
 Start-Sleep -Seconds 2
 
 Write-Step "Install 1.7.4 fresh"
-Start-VmVisibleCommand -VmName $VmName -CommandText 'c:\temp\174.exe' -PostRunDelaySeconds 4
+Start-VmVisibleCommand -VmName $VmName -CommandText $guestOldInstaller -PostRunDelaySeconds 4
 $reportLines.Add("1.7.4 install start screenshot: $(Save-StepShot -Name '04-install-174-start')")
 1..3 | ForEach-Object {
     Invoke-VmTap -VmName $VmName -ScanCode '1c'
@@ -83,7 +89,7 @@ Invoke-VmAltTap -VmName $VmName -ScanCode '3e'
 Start-Sleep -Seconds 2
 
 Write-Step "Upgrade install to 1.7.5"
-Start-VmVisibleCommand -VmName $VmName -CommandText 'c:\temp\175.exe' -PostRunDelaySeconds 4
+Start-VmVisibleCommand -VmName $VmName -CommandText $guestNewInstaller -PostRunDelaySeconds 4
 $reportLines.Add("1.7.5 install start screenshot: $(Save-StepShot -Name '08-install-175-start')")
 1..3 | ForEach-Object {
     Invoke-VmTap -VmName $VmName -ScanCode '1c'
