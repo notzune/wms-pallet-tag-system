@@ -9,6 +9,8 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ## [Unreleased]
 
+## [1.7.6] - 2026-03-23
+
 ### Added
 
 - Added a modeless `Tools -> ZPL Preview...` utility that accepts pasted/opened ZPL and renders a live image preview with configurable label size, density, and label index.
