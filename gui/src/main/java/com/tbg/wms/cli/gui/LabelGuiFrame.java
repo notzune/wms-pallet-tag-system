@@ -8,6 +8,9 @@
 
 package com.tbg.wms.cli.gui;
 
+import com.tbg.wms.cli.gui.analyzers.AnalyzerContext;
+import com.tbg.wms.cli.gui.analyzers.AnalyzerDialog;
+import com.tbg.wms.cli.gui.analyzers.AnalyzerRegistry;
 import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.OutDirectoryRetentionService;
@@ -120,6 +123,7 @@ public final class LabelGuiFrame extends JFrame {
     private transient ReleaseCheckService.ReleaseInfo latestReleaseInfo;
     private transient boolean updateCheckInProgress;
     private transient ZplPreviewToolDialog generatedLabelsPreviewDialog;
+    private transient AnalyzerDialog analyzerDialog;
 
     public LabelGuiFrame() {
         super(buildWindowTitle());
@@ -1002,12 +1006,12 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void openAnalyzersDialog() {
-        JOptionPane.showMessageDialog(
-                this,
-                "Analyzers are not implemented yet.",
-                "Analyzers",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        if (analyzerDialog == null || !analyzerDialog.isDisplayable()) {
+            analyzerDialog = new AnalyzerDialog(this, new AnalyzerRegistry(List.of(
+                    new com.tbg.wms.cli.gui.analyzers.unpicked.UnpickedPartialsAnalyzerDefinition()
+            )), new AnalyzerContext(config, java.time.Clock.systemDefaultZone()));
+        }
+        analyzerDialog.setVisible(true);
     }
 
     private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildMainPrintTargetModel(boolean includeFileOption) {
