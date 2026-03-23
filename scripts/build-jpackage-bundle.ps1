@@ -2,6 +2,8 @@
 param(
     [ValidateSet("none", "exe", "msi")]
     [string]$InstallerType = "none",
+    [ValidateSet("none", "signtool")]
+    [string]$SigningMode = "none",
     [string]$BundleDir,
     [string]$BundleVersionLabel,
     [string]$JarPath,
@@ -11,6 +13,15 @@ param(
     [string]$AppName,
     [string]$InstallDirName,
     [string]$WinUpgradeUuid,
+    [string]$SignToolPath,
+    [string]$CertificateThumbprint,
+    [string]$CertificateSubjectName,
+    [string]$CertificatePath,
+    [string]$CertificatePassword,
+    [string]$TimestampUrl,
+    [string]$FileDigestAlgorithm = "SHA256",
+    [string]$TimestampDigestAlgorithm = "SHA256",
+    [string[]]$AdditionalSignToolArgs,
     [switch]$SystemWideInstall
 )
 
@@ -62,6 +73,148 @@ function Resolve-JpackageHome {
         throw "Could not resolve JAVA_HOME from jpackage path: $($jpackageCmd.Source)"
     }
     return $javaHome
+}
+
+function Resolve-SignTool {
+    param([string]$RequestedPath)
+
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+        if (-not (Test-Path -LiteralPath $RequestedPath)) {
+            throw "SignTool not found: $RequestedPath"
+        }
+        return (Resolve-Path -LiteralPath $RequestedPath).Path
+    }
+
+    $command = Get-Command signtool.exe -ErrorAction SilentlyContinue
+    if ($command -and $command.Source) {
+        return $command.Source
+    }
+
+    $sdkCandidates = @(
+        (Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"),
+        (Join-Path ${env:ProgramFiles} "Windows Kits\10\bin")
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+
+    foreach ($sdkRoot in $sdkCandidates) {
+        $match = Get-ChildItem -Path $sdkRoot -Recurse -Filter signtool.exe -File -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+        if ($match) {
+            return $match.FullName
+        }
+    }
+
+    throw "signtool.exe not found. Install Windows SDK SignTool or pass -SignToolPath."
+}
+
+function Get-SignableAppPaths {
+    param(
+        [Parameter(Mandatory)]
+        [string]$BundleDir,
+        [Parameter(Mandatory)]
+        [string]$AppName
+    )
+
+    $candidates = @(
+        (Join-Path $BundleDir "$AppName.exe"),
+        (Join-Path $BundleDir "app\$AppName.exe")
+    )
+
+    return $candidates |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -Unique
+}
+
+function Invoke-SignToolSignature {
+    param(
+        [Parameter(Mandatory)]
+        [string]$SignTool,
+        [Parameter(Mandatory)]
+        [string]$TargetPath,
+        [string]$CertificateThumbprint,
+        [string]$CertificateSubjectName,
+        [string]$CertificatePath,
+        [string]$CertificatePassword,
+        [string]$TimestampUrl,
+        [string]$FileDigestAlgorithm,
+        [string]$TimestampDigestAlgorithm,
+        [string[]]$AdditionalArgs
+    )
+
+    $arguments = @(
+        'sign',
+        '/fd', $FileDigestAlgorithm
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
+        $arguments += @('/tr', $TimestampUrl, '/td', $TimestampDigestAlgorithm)
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($CertificateThumbprint)) {
+        $arguments += @('/sha1', $CertificateThumbprint)
+    } elseif (-not [string]::IsNullOrWhiteSpace($CertificateSubjectName)) {
+        $arguments += @('/n', $CertificateSubjectName)
+    } elseif (-not [string]::IsNullOrWhiteSpace($CertificatePath)) {
+        $arguments += @('/f', $CertificatePath)
+        if (-not [string]::IsNullOrWhiteSpace($CertificatePassword)) {
+            $arguments += @('/p', $CertificatePassword)
+        }
+    } elseif (-not $AdditionalArgs) {
+        throw "SigningMode 'signtool' requires certificate info (-CertificateThumbprint, -CertificateSubjectName, or -CertificatePath) or trusted-signing style -AdditionalSignToolArgs."
+    }
+
+    if ($AdditionalArgs) {
+        $arguments += $AdditionalArgs
+    }
+
+    $arguments += $TargetPath
+
+    & $SignTool @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "SignTool signing failed for $TargetPath with exit code $LASTEXITCODE."
+    }
+}
+
+function Invoke-CodeSigning {
+    param(
+        [Parameter(Mandatory)]
+        [string]$TargetPath,
+        [Parameter(Mandatory)]
+        [string]$SigningMode,
+        [string]$SignTool,
+        [string]$CertificateThumbprint,
+        [string]$CertificateSubjectName,
+        [string]$CertificatePath,
+        [string]$CertificatePassword,
+        [string]$TimestampUrl,
+        [string]$FileDigestAlgorithm,
+        [string]$TimestampDigestAlgorithm,
+        [string[]]$AdditionalSignToolArgs
+    )
+
+    if ($SigningMode -eq 'none') {
+        return
+    }
+
+    switch ($SigningMode) {
+        'signtool' {
+            Invoke-SignToolSignature `
+                -SignTool $SignTool `
+                -TargetPath $TargetPath `
+                -CertificateThumbprint $CertificateThumbprint `
+                -CertificateSubjectName $CertificateSubjectName `
+                -CertificatePath $CertificatePath `
+                -CertificatePassword $CertificatePassword `
+                -TimestampUrl $TimestampUrl `
+                -FileDigestAlgorithm $FileDigestAlgorithm `
+                -TimestampDigestAlgorithm $TimestampDigestAlgorithm `
+                -AdditionalArgs $AdditionalSignToolArgs
+            break
+        }
+        default {
+            throw "Unsupported signing mode: $SigningMode"
+        }
+    }
 }
 
 function Write-LauncherScript {
@@ -131,6 +284,10 @@ if (-not $BundleVersionLabel) {
     $BundleVersionLabel = $resolvedVersion
 }
 $javaHome = Resolve-JpackageHome
+$resolvedSignTool = $null
+if ($SigningMode -eq 'signtool') {
+    $resolvedSignTool = Resolve-SignTool -RequestedPath $SignToolPath
+}
 $appName = if ([string]::IsNullOrWhiteSpace($AppName)) { "WMS Pallet Tag System" } else { $AppName.Trim() }
 $installDirName = if ([string]::IsNullOrWhiteSpace($InstallDirName)) { "WMS-Pallet-Tag-System" } else { $InstallDirName.Trim() }
 $winUpgradeUuid = if ([string]::IsNullOrWhiteSpace($WinUpgradeUuid)) {
@@ -188,6 +345,25 @@ Remove-Item -LiteralPath $BundleDir -Recurse -Force -ErrorAction SilentlyContinu
 Copy-Item -LiteralPath $builtAppDir -Destination $BundleDir -Recurse -Force
 Remove-Item -LiteralPath $builtAppDir -Recurse -Force -ErrorAction SilentlyContinue
 
+$signedArtifacts = [System.Collections.Generic.List[string]]::new()
+foreach ($signablePath in (Get-SignableAppPaths -BundleDir $BundleDir -AppName $appName)) {
+    Invoke-CodeSigning `
+        -TargetPath $signablePath `
+        -SigningMode $SigningMode `
+        -SignTool $resolvedSignTool `
+        -CertificateThumbprint $CertificateThumbprint `
+        -CertificateSubjectName $CertificateSubjectName `
+        -CertificatePath $CertificatePath `
+        -CertificatePassword $CertificatePassword `
+        -TimestampUrl $TimestampUrl `
+        -FileDigestAlgorithm $FileDigestAlgorithm `
+        -TimestampDigestAlgorithm $TimestampDigestAlgorithm `
+        -AdditionalSignToolArgs $AdditionalSignToolArgs
+    if ($SigningMode -ne 'none') {
+        $signedArtifacts.Add($signablePath)
+    }
+}
+
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "config\TBG3002") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "config\templates") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "scripts") -Force | Out-Null
@@ -223,6 +399,8 @@ $manifest = [pscustomobject]@{
     InstallerType = $InstallerType
     AppVersion = $version
     BundleVersionLabel = $BundleVersionLabel
+    SigningMode = $SigningMode
+    SignedArtifacts = $signedArtifacts
 }
 $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $BundleDir "appimage-manifest.json") -Encoding UTF8
 
@@ -265,6 +443,21 @@ if ($InstallerType -ne 'none') {
         $installerPath = Join-Path $distDir $installerLeaf
         Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
         Move-Item -LiteralPath $installerCandidate.FullName -Destination $installerPath
+        Invoke-CodeSigning `
+            -TargetPath $installerPath `
+            -SigningMode $SigningMode `
+            -SignTool $resolvedSignTool `
+            -CertificateThumbprint $CertificateThumbprint `
+            -CertificateSubjectName $CertificateSubjectName `
+            -CertificatePath $CertificatePath `
+            -CertificatePassword $CertificatePassword `
+            -TimestampUrl $TimestampUrl `
+            -FileDigestAlgorithm $FileDigestAlgorithm `
+            -TimestampDigestAlgorithm $TimestampDigestAlgorithm `
+            -AdditionalSignToolArgs $AdditionalSignToolArgs
+        if ($SigningMode -ne 'none') {
+            $signedArtifacts.Add($installerPath)
+        }
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\install-wms-installer.ps1") -Destination (Join-Path $distDir "install-wms-installer.ps1") -Force
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\install-wms-installer.bat") -Destination (Join-Path $distDir "install-wms-installer.bat") -Force
         Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\uninstall-wms-tags.ps1") -Destination (Join-Path $distDir "uninstall-wms-tags.ps1") -Force
@@ -287,3 +480,7 @@ if ($installerPath) {
 Write-Host "Config file : $bundleEnvPath"
 Write-Host "GUI exe     : $(Join-Path $BundleDir "$appName.exe")"
 Write-Host "CLI wrapper : $(Join-Path $BundleDir 'run.bat')"
+if ($SigningMode -ne 'none') {
+    Write-Host "Signing     : $SigningMode"
+    Write-Host "SignTool    : $resolvedSignTool"
+}

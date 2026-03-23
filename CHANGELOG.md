@@ -25,6 +25,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - Packaged CLI artifacts now rely on the existing Logback binding only, removing the redundant `slf4j-simple` provider that previously shipped duplicate SLF4J bindings into the shaded runtime jar.
 - GUI queue input now accepts semicolon-delimited mixed IDs, ignores surrounding whitespace, and auto-detects unprefixed numeric shipment (`800...`) versus carrier-move IDs using the live WMS operator pattern.
 - The ZPL Preview dialog now supports paged multi-document preview sets so shipment/carrier-move label runs can be stepped through one generated label or info tag at a time.
+- `build-jpackage-bundle.ps1` now supports optional Windows code-signing hooks for both app-image launchers and installer artifacts, including Trusted Signing-compatible extra SignTool arguments.
 - Portable/app-image GUI launchers now normalize `APP_HOME`, keep the explicit GUI process alive, and regenerate the canonical portable ZIP from current artifacts so clean-machine testing no longer picks up stale bundle content.
 
 ### Fixed

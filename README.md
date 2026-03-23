@@ -171,6 +171,29 @@ Use the `jpackage` builder when you want a native executable layout while keepin
 .\scripts\build-jpackage-bundle.ps1 -InstallerType exe
 ```
 
+2a. Optional: sign the app-image launcher(s) and installer with local SignTool certificate settings:
+
+```powershell
+.\scripts\build-jpackage-bundle.ps1 `
+  -InstallerType exe `
+  -SigningMode signtool `
+  -CertificateThumbprint <CERT_THUMBPRINT> `
+  -TimestampUrl http://timestamp.digicert.com
+```
+
+2b. Optional: sign with Microsoft Trusted Signing via SignTool plugin arguments:
+
+```powershell
+.\scripts\build-jpackage-bundle.ps1 `
+  -InstallerType exe `
+  -SigningMode signtool `
+  -TimestampUrl http://timestamp.acs.microsoft.com `
+  -AdditionalSignToolArgs @(
+    '/dlib', 'C:\path\to\Azure.CodeSigning.Dlib.dll',
+    '/dmdf', 'C:\path\to\trusted-signing-metadata.json'
+  )
+```
+
 3. Optional: install with logging or replace an existing same-version install:
 
 ```powershell
@@ -192,6 +215,9 @@ Notes:
 - The bundled runtime comes from the `jpackage` JDK unless you pass `-RuntimeImage`; use a Java 17 runtime image for release parity with the project baseline
 - The optional installer defaults to per-user install to avoid admin privileges when possible
 - Newer installer builds now use a stable Windows upgrade UUID so normal version-to-version upgrades can reuse the same install identity
+- `build-jpackage-bundle.ps1` can optionally sign the app-image launcher(s) and the final installer via `-SigningMode signtool`
+- For standard certificate signing, pass one of `-CertificateThumbprint`, `-CertificateSubjectName`, or `-CertificatePath`
+- For Trusted Signing, pass the required `/dlib` and `/dmdf` values through `-AdditionalSignToolArgs`
 - Prerelease tags such as `v1.7.3-rc1` are supported in CI and publish GitHub Releases marked as prereleases automatically
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
