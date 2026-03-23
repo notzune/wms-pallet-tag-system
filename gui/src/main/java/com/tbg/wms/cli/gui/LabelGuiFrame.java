@@ -1001,6 +1001,15 @@ public final class LabelGuiFrame extends JFrame {
         dialog.setVisible(true);
     }
 
+    private void openAnalyzersDialog() {
+        JOptionPane.showMessageDialog(
+                this,
+                "Analyzers are not implemented yet.",
+                "Analyzers",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
     private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildMainPrintTargetModel(boolean includeFileOption) {
         return settingsDialogSupport.buildMainPrintTargetModel(includeFileOption);
     }
@@ -1048,6 +1057,7 @@ public final class LabelGuiFrame extends JFrame {
                 this::openQueueDialog,
                 this::openBarcodeDialog,
                 this::openZplPreviewDialog,
+                this::openAnalyzersDialog,
                 this::openResumeDialog,
                 this::openSettingsDialog
         );

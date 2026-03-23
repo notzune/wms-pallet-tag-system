@@ -32,6 +32,7 @@ class LabelGuiFrameToolMenuSupportTest {
                 "Queue Print...",
                 "Barcode Generator...",
                 "ZPL Preview...",
+                "Analyzers...",
                 "Resume Incomplete Job...",
                 "Settings..."
         ), labels);
@@ -63,6 +64,10 @@ class LabelGuiFrameToolMenuSupportTest {
 
         @Override
         public void openZplPreviewDialog() {
+        }
+
+        @Override
+        public void openAnalyzersDialog() {
         }
 
         @Override
