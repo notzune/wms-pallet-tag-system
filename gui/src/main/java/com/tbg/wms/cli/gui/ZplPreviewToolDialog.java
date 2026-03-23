@@ -45,9 +45,9 @@ final class ZplPreviewToolDialog extends JDialog {
     private final JButton nextButton = new JButton(">");
     private final Timer debounceTimer;
     private final Timer throttleTimer;
-    private final ZplPreviewRenderService renderService = new ZplPreviewRenderService();
-    private final List<GuiZplPreviewSupport.PreviewDocument> documents = new ArrayList<>();
-    private SwingWorker<BufferedImage, Void> currentWorker;
+    private final transient ZplPreviewRenderService renderService = new ZplPreviewRenderService();
+    private final transient List<GuiZplPreviewSupport.PreviewDocument> documents = new ArrayList<>();
+    private transient SwingWorker<BufferedImage, Void> currentWorker;
     private int renderGeneration;
     private long lastRenderStartedAtMs;
     private boolean pendingLiveRender;

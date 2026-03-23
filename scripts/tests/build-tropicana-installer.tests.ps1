@@ -26,6 +26,7 @@ $outputDir = Join-Path $tempRoot "dist"
 $inPlaceOutputDir = Join-Path $tempRoot "dist-in-place"
 $packageZipPath = Join-Path $outputDir "WMS Pallet Tag System - Tropicana Package.zip"
 $packageReadmePath = Join-Path $outputDir "Tropicana-Package-Readme.txt"
+$installerHashPath = Join-Path $outputDir "WMS Pallet Tag System-9.9.9.exe.sha256"
 $inPlacePackageZipPath = Join-Path $inPlaceOutputDir "WMS Pallet Tag System - Tropicana Package.zip"
 $supportScriptPath = Join-Path $outputDir "Install-Tropicana-Config.ps1"
 $installDir = Join-Path $tempRoot "InstallDir"
@@ -52,6 +53,7 @@ try {
 
     Assert-True -Condition (Test-Path -LiteralPath $packageZipPath) -Message "Builder should create the Tropicana package ZIP"
     Assert-True -Condition (Test-Path -LiteralPath $packageReadmePath) -Message "Builder should emit the Tropicana package instructions"
+    Assert-True -Condition (Test-Path -LiteralPath $installerHashPath) -Message "Builder should emit the installer SHA-256 sidecar"
     Assert-True -Condition (Test-Path -LiteralPath $supportScriptPath) -Message "Builder should emit the fallback Tropicana config installer script"
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $outputDir "bootstrap-install.ps1"))) -Message "Builder should not emit bootstrap installer scripts"
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $outputDir "bootstrap.cmd"))) -Message "Builder should not emit bootstrap command launchers"
@@ -63,6 +65,7 @@ try {
 
     $packageEntries = [System.IO.Compression.ZipFile]::OpenRead($packageZipPath).Entries | ForEach-Object { $_.FullName }
     Assert-True -Condition ($packageEntries -contains "WMS Pallet Tag System-9.9.9.exe") -Message "Package ZIP should include the packaged installer"
+    Assert-True -Condition ($packageEntries -contains "WMS Pallet Tag System-9.9.9.exe.sha256") -Message "Package ZIP should include the installer SHA-256 sidecar"
     Assert-True -Condition ($packageEntries -contains "Install-Tropicana-Config.ps1") -Message "Package ZIP should include the Tropicana config installer script"
     Assert-True -Condition ($packageEntries -contains "Tropicana-Package-Readme.txt") -Message "Package ZIP should include installation instructions"
 

@@ -100,7 +100,6 @@ ORACLE_PASSWORD=live_pass
     if ($guiWrapper -notmatch '-Dwms\.app\.home="%APP_HOME%"') {
         throw "Portable GUI wrapper should pass wms.app.home to the JVM fallback path."
     }
-
     $jpackageCommand = Get-Command jpackage -ErrorAction SilentlyContinue
     if ($jpackageCommand) {
         & (Join-Path $sourceRoot "scripts\build-jpackage-bundle.ps1") `
@@ -110,6 +109,10 @@ ORACLE_PASSWORD=live_pass
 
         $jpackageEnv = Get-Content -LiteralPath (Join-Path $jpackageBundleDir "wms-tags.env") -Raw
         Assert-Equal -Expected $expectedEnv -Actual $jpackageEnv -Message "jpackage app image should seed template env"
+        $jpackageUninstallScript = Get-Content -LiteralPath (Join-Path $jpackageBundleDir "scripts\uninstall-wms-tags.ps1") -Raw
+        if ($jpackageUninstallScript -match 'ExecutionPolicy''?, ''?Bypass') {
+            throw "jpackage app image uninstall script should not bypass PowerShell execution policy."
+        }
     } else {
         Write-Host "Skipping jpackage env seeding assertion because jpackage.exe is not available."
     }

@@ -92,6 +92,17 @@ Notes:
     Set-Content -LiteralPath $DestinationPath -Value $content -Encoding ASCII
 }
 
+function Write-Sha256Sidecar {
+    param(
+        [string]$TargetPath,
+        [string]$SidecarPath
+    )
+
+    $hash = (Get-FileHash -LiteralPath $TargetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $leaf = Split-Path -Leaf $TargetPath
+    Set-Content -LiteralPath $SidecarPath -Value ("{0} *{1}" -f $hash, $leaf) -Encoding ASCII
+}
+
 $scriptRoot = Split-Path -Parent $PSCommandPath
 if (-not $SourceRoot) {
     $SourceRoot = Split-Path -Parent $scriptRoot
@@ -124,6 +135,9 @@ $outputInstallerPath = Join-Path $OutputDir $installerFileName
 if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedInstallerPath, $outputInstallerPath)) {
     Copy-Item -LiteralPath $resolvedInstallerPath -Destination $outputInstallerPath -Force
 }
+$installerHashPath = Join-Path $OutputDir ($installerFileName + ".sha256")
+Write-Sha256Sidecar -TargetPath $outputInstallerPath -SidecarPath $installerHashPath
+Copy-Item -LiteralPath $installerHashPath -Destination (Join-Path $stageDir ($installerFileName + ".sha256")) -Force
 
 $supportScriptPath = Join-Path $OutputDir "Install-Tropicana-Config.ps1"
 $packageReadmePath = Join-Path $OutputDir "Tropicana-Package-Readme.txt"

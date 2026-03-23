@@ -209,12 +209,6 @@ public final class DbConnectionPool implements AutoCloseable {
     }
 
     /**
-     * Maps SQL exceptions to actionable remediation hints.
-     *
-     * @param e the SQLException
-     * @return a remediation hint string
-     */
-    /**
      * Closes the connection pool and releases all resources.
      * Should be called on application shutdown.
      */
