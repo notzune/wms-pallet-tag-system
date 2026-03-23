@@ -1007,9 +1007,11 @@ public final class LabelGuiFrame extends JFrame {
 
     private void openAnalyzersDialog() {
         if (analyzerDialog == null || !analyzerDialog.isDisplayable()) {
-            analyzerDialog = new AnalyzerDialog(this, new AnalyzerRegistry(List.of(
-                    new com.tbg.wms.cli.gui.analyzers.unpicked.UnpickedPartialsAnalyzerDefinition()
-            )), new AnalyzerContext(config, java.time.Clock.systemDefaultZone()));
+            analyzerDialog = new AnalyzerDialog(
+                    this,
+                    AnalyzerRegistry.defaultRegistry(),
+                    new AnalyzerContext(config, java.time.Clock.systemDefaultZone())
+            );
         }
         analyzerDialog.setVisible(true);
     }

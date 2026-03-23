@@ -5,12 +5,12 @@ import com.tbg.wms.cli.gui.analyzers.AnalyzerContext;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerDataProvider;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerDefinition;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerResult;
+import com.tbg.wms.cli.gui.analyzers.AnalyzerRowStyler;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
+import java.time.Clock;
 
-public final class UnpickedPartialsAnalyzerDefinition implements AnalyzerDefinition<Object> {
+public final class UnpickedPartialsAnalyzerDefinition implements AnalyzerDefinition<UnpickedPartialsRow> {
 
     @Override
     public String id() {
@@ -28,12 +28,21 @@ public final class UnpickedPartialsAnalyzerDefinition implements AnalyzerDefinit
     }
 
     @Override
-    public AnalyzerDataProvider<Object> createProvider(AnalyzerContext context) {
-        return ignored -> new AnalyzerResult<>(List.of(), Instant.now(context.clock()));
+    public AnalyzerDataProvider<UnpickedPartialsRow> createProvider(AnalyzerContext context) {
+        return new UnpickedPartialsDataProvider(
+                new UnpickedPartialsQueryService(),
+                new UnpickedPartialsRuleClassifier(),
+                context.clock()
+        );
     }
 
     @Override
-    public AnalyzerColumnSet<Object> columns() {
-        return List::of;
+    public AnalyzerColumnSet<UnpickedPartialsRow> columns() {
+        return new UnpickedPartialsColumns();
+    }
+
+    @Override
+    public AnalyzerRowStyler<UnpickedPartialsRow> rowStyler() {
+        return new UnpickedPartialsRowStyler();
     }
 }

@@ -18,4 +18,12 @@ class AnalyzerRegistryTest {
         assertEquals("unpicked-partials", registry.defaultAnalyzer().id());
         assertEquals(1, registry.definitions().size());
     }
+
+    @Test
+    void defaultRegistry_shouldExposeUnpickedPartialsDisplayName() {
+        AnalyzerRegistry registry = AnalyzerRegistry.defaultRegistry();
+
+        assertEquals(List.of("Unpicked Partials"),
+                registry.definitions().stream().map(AnalyzerDefinition::displayName).toList());
+    }
 }

@@ -1,10 +1,13 @@
 package com.tbg.wms.cli.gui.analyzers;
 
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.WindowConstants;
@@ -12,7 +15,10 @@ import javax.swing.DefaultListCellRenderer;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Frame;
+import java.awt.FlowLayout;
 import java.io.Serial;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Objects;
 
 @SuppressWarnings("serial")
@@ -23,8 +29,13 @@ public final class AnalyzerDialog extends JDialog {
     private final AnalyzerRegistry registry;
     private final AnalyzerContext context;
     private final JComboBox<AnalyzerDefinition<?>> analyzerCombo = new JComboBox<>();
+    private final JButton refreshButton = new JButton("Refresh");
+    private final JCheckBox autoRefreshCheckBox = new JCheckBox("Auto refresh");
+    private final JComboBox<Duration> intervalCombo = new JComboBox<>();
     private final JLabel statusLabel = new JLabel("Ready.");
+    private final JLabel lastUpdatedLabel = new JLabel(" ");
     private final JTable table = new JTable();
+    private final AnalyzerRefreshScheduler refreshScheduler = new AnalyzerRefreshScheduler(this::loadSelectedAnalyzer);
 
     public AnalyzerDialog(Frame owner, AnalyzerRegistry registry, AnalyzerContext context) {
         super(owner, "Analyzers", false);
@@ -59,8 +70,42 @@ public final class AnalyzerDialog extends JDialog {
             }
         });
         analyzerCombo.addActionListener(e -> loadSelectedAnalyzer());
+        refreshButton.addActionListener(e -> requestRefresh());
+        autoRefreshCheckBox.addActionListener(e -> refreshScheduler.setEnabled(autoRefreshCheckBox.isSelected()));
+        intervalCombo.addActionListener(e -> {
+            Duration selected = (Duration) intervalCombo.getSelectedItem();
+            refreshScheduler.setInterval(selected == null ? Duration.ZERO : selected);
+        });
+        intervalCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(
+                    JList<?> list,
+                    Object value,
+                    int index,
+                    boolean isSelected,
+                    boolean cellHasFocus
+            ) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Duration duration) {
+                    label.setText(duration.toMinutes() + " min");
+                }
+                return label;
+            }
+        });
+        DefaultComboBoxModel<Duration> intervalModel = new DefaultComboBoxModel<>();
+        intervalModel.addElement(Duration.ofMinutes(1));
+        intervalModel.addElement(Duration.ofMinutes(5));
+        intervalModel.addElement(Duration.ofMinutes(15));
+        intervalCombo.setModel(intervalModel);
+        intervalCombo.setSelectedItem(Duration.ofMinutes(1));
 
-        add(analyzerCombo, BorderLayout.NORTH);
+        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        toolbar.add(analyzerCombo);
+        toolbar.add(refreshButton);
+        toolbar.add(autoRefreshCheckBox);
+        toolbar.add(intervalCombo);
+        toolbar.add(lastUpdatedLabel);
+        add(toolbar, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
         add(statusLabel, BorderLayout.SOUTH);
     }
@@ -77,6 +122,14 @@ public final class AnalyzerDialog extends JDialog {
         return definition == null ? "" : definition.displayName();
     }
 
+    int tableRowCountForTest() {
+        return table.getRowCount();
+    }
+
+    void triggerManualRefreshForTest() {
+        requestRefresh();
+    }
+
     @Override
     public void setVisible(boolean visible) {
         if (visible) {
@@ -91,11 +144,26 @@ public final class AnalyzerDialog extends JDialog {
             statusLabel.setText("No analyzer selected.");
             return;
         }
+        loadDefinition(definition);
+    }
+
+    private <R> void loadDefinition(AnalyzerDefinition<R> definition) {
+        statusLabel.setText("Loading...");
         try {
-            definition.createProvider(context).load(context);
+            AnalyzerResult<R> result = definition.createProvider(context).load(context);
+            AnalyzerTableModel<R> model = new AnalyzerTableModel<>(definition.columns());
+            model.setRows(result.rows());
+            table.setModel(model);
+            table.setDefaultRenderer(Object.class, new AnalyzerTableCellRenderer<>(model, definition.rowStyler()));
+            refreshScheduler.markRefreshCompleted(result.fetchedAt());
+            lastUpdatedLabel.setText("Last updated: " + result.fetchedAt());
             statusLabel.setText("Loaded " + definition.displayName() + ".");
         } catch (Exception ex) {
             statusLabel.setText("Load failed: " + ex.getMessage());
         }
+    }
+
+    private void requestRefresh() {
+        refreshScheduler.requestImmediateRefresh();
     }
 }

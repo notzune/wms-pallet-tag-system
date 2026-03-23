@@ -12,13 +12,18 @@ public final class AnalyzerTableModel<R> extends AbstractTableModel {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private final Function<R, Object> valueAccessor;
-    private final List<String> columnNames;
+    private final List<AnalyzerColumnSet.Column<R>> columns;
     private List<R> rows = List.of();
 
     public AnalyzerTableModel(Function<R, Object> valueAccessor, List<String> columnNames) {
-        this.valueAccessor = Objects.requireNonNull(valueAccessor, "valueAccessor cannot be null");
-        this.columnNames = List.copyOf(Objects.requireNonNull(columnNames, "columnNames cannot be null"));
+        Objects.requireNonNull(valueAccessor, "valueAccessor cannot be null");
+        this.columns = List.copyOf(Objects.requireNonNull(columnNames, "columnNames cannot be null").stream()
+                .map(name -> new AnalyzerColumnSet.Column<R>(name, valueAccessor))
+                .toList());
+    }
+
+    public AnalyzerTableModel(AnalyzerColumnSet<R> columnSet) {
+        this.columns = List.copyOf(Objects.requireNonNull(columnSet, "columnSet cannot be null").columns());
     }
 
     public void setRows(List<R> rows) {
@@ -37,16 +42,16 @@ public final class AnalyzerTableModel<R> extends AbstractTableModel {
 
     @Override
     public int getColumnCount() {
-        return columnNames.size();
+        return columns.size();
     }
 
     @Override
     public String getColumnName(int column) {
-        return columnNames.get(column);
+        return columns.get(column).name();
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
-        return valueAccessor.apply(rows.get(rowIndex));
+        return columns.get(columnIndex).valueAccessor().apply(rows.get(rowIndex));
     }
 }

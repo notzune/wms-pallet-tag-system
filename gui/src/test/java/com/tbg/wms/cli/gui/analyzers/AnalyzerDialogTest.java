@@ -41,6 +41,21 @@ class AnalyzerDialogTest {
 
         assertEquals("Unpicked Partials", dialog.selectedAnalyzerNameForTest());
         assertEquals(1, analyzer.loadCount());
+        assertEquals(1, dialog.tableRowCountForTest());
+    }
+
+    @Test
+    void manualRefresh_shouldReloadSelectedAnalyzer() {
+        FakeAnalyzerDefinition analyzer = new FakeAnalyzerDefinition("unpicked-partials", "Unpicked Partials");
+        AnalyzerDialog dialog = new AnalyzerDialog(null,
+                new AnalyzerRegistry(List.of(analyzer)),
+                new AnalyzerContext(new com.tbg.wms.core.AppConfig(),
+                        Clock.fixed(Instant.parse("2026-03-23T10:00:00Z"), ZoneOffset.UTC)));
+
+        dialog.openForTest();
+        dialog.triggerManualRefreshForTest();
+
+        assertEquals(2, analyzer.loadCount());
     }
 
     private static final class FakeAnalyzerDefinition implements AnalyzerDefinition<String> {
@@ -78,7 +93,12 @@ class AnalyzerDialogTest {
 
         @Override
         public AnalyzerColumnSet<String> columns() {
-            return () -> List.of(new AnalyzerColumnSet.Column<>("value"));
+            return () -> List.of(new AnalyzerColumnSet.Column<>("value", row -> row));
+        }
+
+        @Override
+        public AnalyzerRowStyler<String> rowStyler() {
+            return row -> AnalyzerRowStyle.of(AnalyzerColorPalette.DEFAULT_BACKGROUND, AnalyzerColorPalette.DEFAULT_FOREGROUND);
         }
 
         private int loadCount() {

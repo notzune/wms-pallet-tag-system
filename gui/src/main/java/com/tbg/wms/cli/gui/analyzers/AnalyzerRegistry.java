@@ -1,5 +1,7 @@
 package com.tbg.wms.cli.gui.analyzers;
 
+import com.tbg.wms.cli.gui.analyzers.unpicked.UnpickedPartialsAnalyzerDefinition;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -20,5 +22,11 @@ public final class AnalyzerRegistry {
 
     public AnalyzerDefinition<?> defaultAnalyzer() {
         return definitions.get(0);
+    }
+
+    public static AnalyzerRegistry defaultRegistry() {
+        return new AnalyzerRegistry(List.of(
+                new UnpickedPartialsAnalyzerDefinition()
+        ));
     }
 }

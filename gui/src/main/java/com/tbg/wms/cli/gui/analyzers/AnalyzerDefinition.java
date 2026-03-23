@@ -13,4 +13,6 @@ public interface AnalyzerDefinition<R> {
     AnalyzerDataProvider<R> createProvider(AnalyzerContext context);
 
     AnalyzerColumnSet<R> columns();
+
+    AnalyzerRowStyler<R> rowStyler();
 }
