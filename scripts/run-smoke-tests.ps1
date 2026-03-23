@@ -31,6 +31,148 @@ function Get-ResolvedPathOrThrow {
     return (Resolve-Path -LiteralPath $PathValue).Path
 }
 
+function Resolve-SmokeConfigPath {
+    param(
+        [string]$ConfigPath,
+        [string]$SourceRoot
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
+        return Get-ResolvedPathOrThrow -PathValue $ConfigPath -Label "ConfigPath"
+    }
+
+    $defaultPath = Join-Path $SourceRoot ".env"
+    if (Test-Path -LiteralPath $defaultPath) {
+        return (Resolve-Path -LiteralPath $defaultPath).Path
+    }
+
+    return $null
+}
+
+function Read-EnvConfigMap {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ConfigPath
+    )
+
+    $map = @{}
+    foreach ($line in (Get-Content -LiteralPath $ConfigPath)) {
+        if ($line -match '^\s*#' -or $line -match '^\s*$') {
+            continue
+        }
+        $firstEquals = $line.IndexOf('=')
+        if ($firstEquals -lt 1) {
+            continue
+        }
+
+        $key = $line.Substring(0, $firstEquals).Trim()
+        $value = $line.Substring($firstEquals + 1).Trim()
+        if (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+            $value = $value.Substring(1, $value.Length - 2)
+        }
+        $map[$key] = $value
+    }
+
+    return $map
+}
+
+function Invoke-OdbcScalarQuery {
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$ConfigMap,
+        [Parameter(Mandatory = $true)]
+        [string]$Sql
+    )
+
+    $dsn = $ConfigMap["ORACLE_ODBC_ALIAS"]
+    if ([string]::IsNullOrWhiteSpace($dsn)) {
+        $dsn = $ConfigMap["ACTIVE_SITE"]
+    }
+    $user = $ConfigMap["ORACLE_USERNAME"]
+    $password = $ConfigMap["ORACLE_PASSWORD"]
+
+    if ([string]::IsNullOrWhiteSpace($dsn) -or [string]::IsNullOrWhiteSpace($user) -or [string]::IsNullOrWhiteSpace($password)) {
+        throw "Smoke ID discovery requires ORACLE_ODBC_ALIAS or ACTIVE_SITE plus ORACLE_USERNAME and ORACLE_PASSWORD in the smoke config."
+    }
+
+    $connection = New-Object System.Data.Odbc.OdbcConnection
+    $connection.ConnectionString = "DSN=$dsn;Uid=$user;Pwd=$password"
+    try {
+        $connection.Open()
+        $command = $connection.CreateCommand()
+        $command.CommandText = $Sql
+        $result = $command.ExecuteScalar()
+        if ($null -eq $result) {
+            return $null
+        }
+        return [string]$result
+    } finally {
+        $connection.Dispose()
+    }
+}
+
+function Resolve-LiveSmokeIds {
+    param(
+        [string]$ConfigPath,
+        [string]$ShipmentId,
+        [string]$CarrierMoveId
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ShipmentId) -and -not [string]::IsNullOrWhiteSpace($CarrierMoveId)) {
+        return [pscustomobject]@{
+            ShipmentId    = $ShipmentId.Trim()
+            CarrierMoveId = $CarrierMoveId.Trim()
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+        throw "Smoke ID discovery needs a config file. Pass -ConfigPath or provide .env at the repo root."
+    }
+
+    $configMap = Read-EnvConfigMap -ConfigPath $ConfigPath
+    $resolvedShipmentId = $ShipmentId
+    $resolvedCarrierMoveId = $CarrierMoveId
+
+    if ([string]::IsNullOrWhiteSpace($resolvedShipmentId)) {
+        $resolvedShipmentId = Invoke-OdbcScalarQuery -ConfigMap $configMap -Sql @"
+select ship_id
+from (
+  select s.ship_id
+  from wmsp.shipment s
+  where s.ship_id is not null
+  order by s.adddte desc
+)
+where rownum = 1
+"@
+        if ([string]::IsNullOrWhiteSpace($resolvedShipmentId)) {
+            throw "Could not resolve a recent shipment ID for smoke tests."
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($resolvedCarrierMoveId)) {
+        $resolvedCarrierMoveId = Invoke-OdbcScalarQuery -ConfigMap $configMap -Sql @"
+select car_move_id
+from (
+  select st.car_move_id
+  from wmsp.stop st
+  join wmsp.shipment s on s.stop_id = st.stop_id
+  where st.car_move_id is not null
+  group by st.car_move_id
+  order by max(s.adddte) desc
+)
+where rownum = 1
+"@
+        if ([string]::IsNullOrWhiteSpace($resolvedCarrierMoveId)) {
+            throw "Could not resolve a recent carrier move ID for smoke tests."
+        }
+    }
+
+    [pscustomobject]@{
+        ShipmentId    = $resolvedShipmentId.Trim()
+        CarrierMoveId = $resolvedCarrierMoveId.Trim()
+    }
+}
+
 function Resolve-RepoJarPath {
     param([string]$SourceRoot)
 
@@ -144,6 +286,8 @@ function Invoke-ProcessCommand {
     $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $psi
     [void]$process.Start()
+    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+    $stderrTask = $process.StandardError.ReadToEndAsync()
     if ($TimeoutSeconds -gt 0) {
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
             try {
@@ -151,6 +295,7 @@ function Invoke-ProcessCommand {
             } catch {
                 $process.Kill()
             }
+            $process.WaitForExit()
             return [pscustomobject]@{
                 ExitCode = 124
                 Output   = ("Process timed out after {0} seconds: {1}" -f $TimeoutSeconds, $FilePath)
@@ -159,8 +304,8 @@ function Invoke-ProcessCommand {
     } else {
         $process.WaitForExit()
     }
-    $stdout = $process.StandardOutput.ReadToEnd()
-    $stderr = $process.StandardError.ReadToEnd()
+    $stdout = $stdoutTask.GetAwaiter().GetResult()
+    $stderr = $stderrTask.GetAwaiter().GetResult()
 
     return [pscustomobject]@{
         ExitCode = $process.ExitCode
@@ -448,10 +593,7 @@ $sourceRoot = Split-Path -Parent $scriptRoot
 $manifestPath = Join-Path $sourceRoot "scripts\smoke\smoke-manifest.json"
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 
-$resolvedConfigPath = $null
-if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
-    $resolvedConfigPath = Get-ResolvedPathOrThrow -PathValue $ConfigPath -Label "ConfigPath"
-}
+$resolvedConfigPath = Resolve-SmokeConfigPath -ConfigPath $ConfigPath -SourceRoot $sourceRoot
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $sourceRoot ("out\smoke-" + $Mode + "-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
@@ -464,8 +606,9 @@ $resolvedTargetPath = if ($Mode -eq "repo") {
     Resolve-PackagedTargetPath -SourceRoot $sourceRoot -TargetPath $TargetPath
 }
 
-$effectiveShipmentId = if ($ShipmentId) { $ShipmentId } else { "4885021" }
-$effectiveCarrierMoveId = if ($CarrierMoveId) { $CarrierMoveId } else { "10001866" }
+$liveSmokeIds = Resolve-LiveSmokeIds -ConfigPath $resolvedConfigPath -ShipmentId $ShipmentId -CarrierMoveId $CarrierMoveId
+$effectiveShipmentId = $liveSmokeIds.ShipmentId
+$effectiveCarrierMoveId = $liveSmokeIds.CarrierMoveId
 $effectiveTrainId = if ($TrainId) { $TrainId } else { "JC03182026" }
 
 $localAppDataRoot = Join-Path $OutputRoot "localappdata"

@@ -48,6 +48,11 @@ Assert-True -Condition ($runnerContent.Contains("[switch]`$IncludeInstallerScena
 Assert-True -Condition ($runnerContent.Contains("releaseOnly")) -Message "Smoke runner should recognize release-only scenarios"
 Assert-True -Condition ($runnerContent.Contains("tropicana-package-install")) -Message "Smoke runner should handle Tropicana package installer scenarios"
 Assert-True -Condition ($runnerContent.Contains("Invoke-TropicanaPackageInstallScenario")) -Message "Smoke runner should route installer smoke through the Tropicana package helper"
+Assert-True -Condition ($runnerContent.Contains("Resolve-SmokeConfigPath")) -Message "Smoke runner should resolve a usable smoke config path for live ID discovery"
+Assert-True -Condition ($runnerContent.Contains("Resolve-LiveSmokeIds")) -Message "Smoke runner should support live shipment and carrier move discovery"
+Assert-True -Condition ($runnerContent.Contains("ReadToEndAsync")) -Message "Smoke runner should drain child process output asynchronously to avoid deadlocks on verbose smoke commands"
+Assert-True -Condition (-not $runnerContent.Contains('"4885021"')) -Message "Smoke runner should not hardcode a stale shipment smoke ID"
+Assert-True -Condition (-not $runnerContent.Contains('"10001866"')) -Message "Smoke runner should not hardcode a stale carrier move smoke ID"
 Assert-True -Condition ($runnerContent.Contains("smoke-report.json")) -Message "Smoke runner should emit machine-readable smoke report"
 Assert-True -Condition ($runnerContent.Contains("smoke-report.txt")) -Message "Smoke runner should emit text smoke report"
 
