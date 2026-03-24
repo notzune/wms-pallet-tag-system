@@ -18,25 +18,160 @@ function Get-InstalledWmsProduct {
         [string]$ProductDisplayName
     )
 
-    $entries = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
-        Where-Object { $_.DisplayName -eq $ProductDisplayName }
+    $registryRoots = @(
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )
+    $userHives = Get-ChildItem 'Registry::HKEY_USERS' -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.PSChildName -match '^S-1-5-21-' -and
+                    $_.PSChildName -notlike '*_Classes'
+        } |
+        ForEach-Object { 'Registry::HKEY_USERS\{0}\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -f $_.PSChildName }
+    $registryRoots += $userHives
+
+    $entries = Get-ItemProperty $registryRoots -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -eq $ProductDisplayName } |
+        Sort-Object DisplayVersion -Descending -Unique
 
     if (-not $entries) {
         return $null
     }
 
-    return $entries | Sort-Object DisplayVersion -Descending | Select-Object -First 1
+    return $entries | Select-Object -First 1
 }
 
 function Get-InstallerVersion {
     param([string]$Path)
 
     $name = [System.IO.Path]::GetFileNameWithoutExtension($Path)
-    if ($name -match '(\d+\.\d+\.\d+)$') {
+    if ($name -match '(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$') {
         return $Matches[1]
     }
     return $null
+}
+
+function Parse-SemVerLike {
+    param([string]$VersionText)
+
+    if ([string]::IsNullOrWhiteSpace($VersionText)) {
+        return $null
+    }
+
+    $normalized = $VersionText.Trim()
+    if ($normalized -notmatch '^(?<core>\d+\.\d+\.\d+)(?:-(?<suffix>[0-9A-Za-z.-]+))?$') {
+        return $null
+    }
+
+    $coreParts = $Matches['core'].Split('.') | ForEach-Object { [int]$_ }
+    $suffix = $Matches['suffix']
+    $suffixParts = @()
+    if (-not [string]::IsNullOrWhiteSpace($suffix)) {
+        $suffixParts = $suffix.Split('.')
+    }
+
+    return [pscustomobject]@{
+        Major = $coreParts[0]
+        Minor = $coreParts[1]
+        Patch = $coreParts[2]
+        Suffix = $suffix
+        SuffixParts = $suffixParts
+    }
+}
+
+function Compare-SemVerLike {
+    param(
+        [string]$LeftVersion,
+        [string]$RightVersion
+    )
+
+    $left = Parse-SemVerLike -VersionText $LeftVersion
+    $right = Parse-SemVerLike -VersionText $RightVersion
+    if ($null -eq $left -or $null -eq $right) {
+        throw "Could not compare installer versions '$LeftVersion' and '$RightVersion'."
+    }
+
+    foreach ($property in 'Major', 'Minor', 'Patch') {
+        if ($left.$property -lt $right.$property) {
+            return -1
+        }
+        if ($left.$property -gt $right.$property) {
+            return 1
+        }
+    }
+
+    $leftHasSuffix = -not [string]::IsNullOrWhiteSpace($left.Suffix)
+    $rightHasSuffix = -not [string]::IsNullOrWhiteSpace($right.Suffix)
+    if (-not $leftHasSuffix -and -not $rightHasSuffix) {
+        return 0
+    }
+    if (-not $leftHasSuffix) {
+        return 1
+    }
+    if (-not $rightHasSuffix) {
+        return -1
+    }
+
+    $maxLength = [Math]::Max($left.SuffixParts.Count, $right.SuffixParts.Count)
+    for ($i = 0; $i -lt $maxLength; $i++) {
+        if ($i -ge $left.SuffixParts.Count) {
+            return -1
+        }
+        if ($i -ge $right.SuffixParts.Count) {
+            return 1
+        }
+
+        $leftPart = $left.SuffixParts[$i]
+        $rightPart = $right.SuffixParts[$i]
+        $leftIsNumeric = $leftPart -match '^\d+$'
+        $rightIsNumeric = $rightPart -match '^\d+$'
+
+        if ($leftIsNumeric -and $rightIsNumeric) {
+            $leftNumber = [int]$leftPart
+            $rightNumber = [int]$rightPart
+            if ($leftNumber -lt $rightNumber) {
+                return -1
+            }
+            if ($leftNumber -gt $rightNumber) {
+                return 1
+            }
+            continue
+        }
+
+        if ($leftIsNumeric -and -not $rightIsNumeric) {
+            return -1
+        }
+        if (-not $leftIsNumeric -and $rightIsNumeric) {
+            return 1
+        }
+
+        $comparison = [string]::CompareOrdinal($leftPart, $rightPart)
+        if ($comparison -lt 0) {
+            return -1
+        }
+        if ($comparison -gt 0) {
+            return 1
+        }
+    }
+
+    return 0
+}
+
+function Should-ReplaceExistingInstall {
+    param(
+        [switch]$ReplaceExisting,
+        [string]$InstallerVersion,
+        [string]$InstalledVersion
+    )
+
+    if ($ReplaceExisting) {
+        return $true
+    }
+    if ([string]::IsNullOrWhiteSpace($InstallerVersion) -or [string]::IsNullOrWhiteSpace($InstalledVersion)) {
+        return $false
+    }
+
+    return (Compare-SemVerLike -LeftVersion $InstallerVersion -RightVersion $InstalledVersion) -le 0
 }
 
 function Get-InstallerType {
@@ -71,9 +206,31 @@ function Invoke-Uninstall {
 
     Write-Host "Uninstalling existing WMS Pallet Tag System ($($InstalledProduct.DisplayVersion))..."
     $argumentString = '/x "{0}" /passive /norestart /l*v "{1}"' -f $productCode, $LogPath
-    $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $argumentString -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-        throw "Uninstall failed with exit code $($process.ExitCode). See log: $LogPath"
+    Invoke-MsiexecWithRetry -ArgumentString $argumentString -FailurePrefix 'Uninstall failed' -LogPath $LogPath
+}
+
+function Invoke-MsiexecWithRetry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ArgumentString,
+        [Parameter(Mandatory = $true)]
+        [string]$FailurePrefix,
+        [Parameter(Mandatory = $true)]
+        [string]$LogPath,
+        [int]$MaxAttempts = 4,
+        [int]$RetryDelaySeconds = 5
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $ArgumentString -Wait -PassThru
+        if ($process.ExitCode -eq 0) {
+            return
+        }
+        if ($process.ExitCode -ne 1618 -or $attempt -eq $MaxAttempts) {
+            throw "$FailurePrefix with exit code $($process.ExitCode). See log: $LogPath"
+        }
+        Write-Host "Windows Installer is busy (1618). Retrying in $RetryDelaySeconds second(s)..."
+        Start-Sleep -Seconds $RetryDelaySeconds
     }
 }
 
@@ -96,10 +253,7 @@ function Invoke-MsiInstall {
     }
     $argumentParts += ('/l*v "{0}"' -f $LogPath)
 
-    $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList ($argumentParts -join ' ') -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-        throw "MSI installer failed with exit code $($process.ExitCode). See log: $LogPath"
-    }
+    Invoke-MsiexecWithRetry -ArgumentString ($argumentParts -join ' ') -FailurePrefix 'MSI installer failed' -LogPath $LogPath
 }
 
 function Invoke-ExeInstall {
@@ -196,6 +350,10 @@ function Invoke-Relaunch {
     Start-Process -FilePath $Path | Out-Null
 }
 
+if ($env:WMS_INSTALLER_HELPER_TEST_MODE -eq '1') {
+    return
+}
+
 if (-not $InstallerPath) {
     $scriptRoot = Split-Path -Parent $PSCommandPath
     $candidate = Get-ChildItem -Path $scriptRoot -Filter 'WMS Pallet Tag System-*.exe' -File -ErrorAction SilentlyContinue |
@@ -225,7 +383,7 @@ $installed = Get-InstalledWmsProduct -ProductDisplayName $ProductDisplayName
 if ($installed) {
     $installedVersion = [string]$installed.DisplayVersion
     Write-Host "Detected installed version: $installedVersion"
-    if ($ReplaceExisting -or ($installerVersion -and $installedVersion -eq $installerVersion)) {
+    if (Should-ReplaceExistingInstall -ReplaceExisting:$ReplaceExisting -InstallerVersion $installerVersion -InstalledVersion $installedVersion) {
         $uninstallLog = [System.IO.Path]::ChangeExtension($LogPath, '.uninstall.log')
         Invoke-Uninstall -InstalledProduct $installed -LogPath $uninstallLog
     }

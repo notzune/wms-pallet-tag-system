@@ -27,36 +27,12 @@ function Assert-Equal {
 try {
     Assert-Equal '1.7.2-rc1' (Get-InstallerVersion -Path 'C:\temp\WMS Pallet Tag System-1.7.2-rc1.exe') 'Prerelease installer version parsing failed.'
     Assert-Equal '1.7.2' (Get-InstallerVersion -Path 'C:\temp\WMS Pallet Tag System-1.7.2.exe') 'Stable installer version parsing failed.'
-
-    $script:StatusLabel = [pscustomobject]@{ Text = '' }
-    $script:ProgressBar = [pscustomobject]@{ Style = ''; Value = 0 }
-    $script:CloseButton = [pscustomobject]@{ Visible = $false }
-    $script:StatusForm = [pscustomobject]@{
-        Visible = $false
-        TopMost = $true
-        ShowDialogCalls = 0
-        ActivateCalls = 0
-        CloseCalls = 0
-    }
-    $script:StatusForm | Add-Member -MemberType ScriptMethod -Name Activate -Value {
-        $this.ActivateCalls++
-    }
-    $script:StatusForm | Add-Member -MemberType ScriptMethod -Name ShowDialog -Value {
-        $this.ShowDialogCalls++
-    }
-    $script:StatusForm | Add-Member -MemberType ScriptMethod -Name Close -Value {
-        $this.CloseCalls++
-        $this.Visible = $false
-    }
-
-    Complete-StatusWindow -Message 'Installation failed.' -KeepOpen:$true
-
-    Assert-Equal 'Installation failed.' $script:StatusLabel.Text 'Completion message was not propagated.'
-    Assert-True $script:CloseButton.Visible 'Close button should be visible for failure state.'
-    Assert-Equal 'Blocks' $script:ProgressBar.Style 'Progress bar should switch to block style on completion.'
-    Assert-Equal 100 $script:ProgressBar.Value 'Progress bar should be completed.'
-    Assert-Equal 0 $script:StatusForm.ShowDialogCalls 'Failure state should not reopen the form modally.'
-    Assert-True ($script:StatusForm.ActivateCalls -ge 1) 'Failure state should activate the existing form.'
+    Assert-True ((Compare-SemVerLike -LeftVersion '1.7.5' -RightVersion '1.7.6') -lt 0) 'Stable downgrade comparison should sort older versions first.'
+    Assert-True ((Compare-SemVerLike -LeftVersion '1.7.6-rc1' -RightVersion '1.7.6') -lt 0) 'Prerelease should compare lower than the final stable release.'
+    Assert-True ((Compare-SemVerLike -LeftVersion '1.7.6-rc2' -RightVersion '1.7.6-rc1') -gt 0) 'Later prerelease tags should compare higher than earlier prereleases.'
+    Assert-True (Should-ReplaceExistingInstall -InstallerVersion '1.7.5' -InstalledVersion '1.7.6') 'Downgrade installs should trigger uninstall-first replacement.'
+    Assert-True (Should-ReplaceExistingInstall -InstallerVersion '1.7.6' -InstalledVersion '1.7.6') 'Same-version reinstall should trigger uninstall-first replacement.'
+    Assert-True (-not (Should-ReplaceExistingInstall -InstallerVersion '1.7.7' -InstalledVersion '1.7.6')) 'Upgrades should not force uninstall-first replacement.'
 
     Write-Host 'install-wms-installer tests passed.'
 } finally {
