@@ -1,5 +1,31 @@
 # Next Agent Notes
 
+## 2026-03-24 Validation Notes
+
+- Clean-VM validation was rerun against the `TropTest` VirtualBox guest with no Java on `PATH`.
+- `scripts/vm/Test-TropTest-InstallerFlow.ps1` was hardened to:
+  - allow a local DPAPI-backed credential file instead of requiring inline guest credentials every run
+  - resolve the active visible desktop user instead of assuming the guest-control user
+  - scrub stale per-user install directories before replaying the interactive installer flow
+  - collect post-install CLI `config` / `db-test` output through the visible desktop session
+- Evidence from `out/vm-installer-flow-rerun/` shows:
+  - packaged `1.7.5 -> 1.7.6` interactive install completed on the VM
+  - the `1.7.6` GUI launched successfully in the visible desktop session
+  - Microsoft Defender quarantine did not reproduce on that rerun; the latest log only showed cloud intelligence/update events
+  - the bare packaged installer did not seed Tropicana config by itself, so installed CLI commands initially failed on missing `SITE_TBG3002_HOST`
+  - running the shipped `dist/Install-Tropicana-Config.ps1` non-elevated in the VM fixed that immediately; installed `config` and `db-test` then succeeded using `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env`
+- Practical release takeaway:
+  - Tropicana config installer remains a first-install / repair / credential-rotation tool only
+  - normal app upgrades should continue to rely on persistent `%LOCALAPPDATA%` config, not rerun Tropicana setup
+- Update/downgrade status:
+  - updater-related automated suites passed locally (`core.update` + GUI update support tests)
+  - packaged upgrade path has VM evidence
+  - raw downgrade is still not fully validated end to end; ad hoc `1.7.6 -> 1.7.5` visible-session installer attempts were inconclusive and should not be treated as proof
+- Direct-download note:
+  - the app already supports guided installer download when a GitHub release publishes both the installer `.exe` and matching `.sha256`
+  - Tropicana config artifacts should stay private because the generated `Install-Tropicana-Config.ps1` embeds environment payload
+  - if direct download is needed for Tropicana customers, prefer a private GitHub release asset or another authenticated internal HTTPS endpoint rather than a public raw URL
+
 ## 2026-03-21 Handoff
 
 - Local worktree dependency has been removed. Cross-workstation continuity should now rely on GitHub branches plus `git fetch --all --prune` and `git switch <branch>`.
