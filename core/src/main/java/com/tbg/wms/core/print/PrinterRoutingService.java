@@ -8,16 +8,15 @@
 
 package com.tbg.wms.core.print;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Service for printer routing based on YAML configuration.
@@ -32,7 +31,6 @@ import java.util.*;
 public final class PrinterRoutingService {
 
     private static final Logger log = LoggerFactory.getLogger(PrinterRoutingService.class);
-    private static final int DEFAULT_PRINTER_PORT = 9100;
 
     private final Map<String, PrinterConfig> printers;
     private final List<RoutingRule> rules;
@@ -78,123 +76,9 @@ public final class PrinterRoutingService {
      * @throws IllegalArgumentException if configuration is invalid
      */
     public static PrinterRoutingService load(String siteCode, Path configBaseDir) throws IOException {
-        Path siteConfigDir = configBaseDir.resolve(siteCode);
-        Path printersFile = siteConfigDir.resolve("printers.yaml");
-        Path routingFile = siteConfigDir.resolve("printer-routing.yaml");
-
-        if (!Files.exists(printersFile)) {
-            throw new IOException("Printers config not found: " + printersFile);
-        }
-        if (!Files.exists(routingFile)) {
-            throw new IOException("Routing config not found: " + routingFile);
-        }
-
-        log.info("Loading printer configuration from {}", siteConfigDir);
-
-        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-
-        PrintersYaml printersYaml = mapper.readValue(printersFile.toFile(), PrintersYaml.class);
-        validateOptionalSiteCode(siteCode, printersYaml.siteCode, printersFile);
-        List<PrinterEntry> printersList = printersYaml.printers == null ? List.of() : printersYaml.printers;
-        Map<String, PrinterConfig> printers = new LinkedHashMap<>();
-
-        for (PrinterEntry printerEntry : printersList) {
-            String id = requireYamlValue(printerEntry.id, "printers[].id", printersFile);
-            String name = requireYamlValue(printerEntry.name, "printers[].name", printersFile);
-            String ip = requireYamlValue(printerEntry.ip, "printers[].ip", printersFile);
-            // Match historical behavior: YAML omits these often, so keep deterministic defaults.
-            int port = printerEntry.port == null ? DEFAULT_PRINTER_PORT : printerEntry.port;
-            List<String> tags = printerEntry.tags == null ? Collections.emptyList() : printerEntry.tags;
-            List<String> capabilities = printerEntry.capabilities == null ? Collections.emptyList() : printerEntry.capabilities;
-            String locationHint = printerEntry.locationHint;
-            boolean enabled = printerEntry.enabled == null || printerEntry.enabled;
-
-            PrinterConfig printer = new PrinterConfig(id, name, ip, port, tags, capabilities, locationHint, enabled);
-            printers.put(id, printer);
-            log.debug("Loaded printer: {}", printer);
-        }
-
-        RoutingYaml routingYaml = mapper.readValue(routingFile.toFile(), RoutingYaml.class);
-        validateOptionalSiteCode(siteCode, routingYaml.siteCode, routingFile);
-        String defaultPrinterId = requireYamlValue(routingYaml.defaultPrinterId, "defaultPrinterId", routingFile);
-        List<RuleEntry> rulesList = routingYaml.rules == null ? List.of() : routingYaml.rules;
-        List<RoutingRule> rules = new ArrayList<>();
-
-        for (RuleEntry ruleEntry : rulesList) {
-            String id = requireYamlValue(ruleEntry.id, "rules[].id", routingFile);
-            boolean enabled = ruleEntry.enabled == null || ruleEntry.enabled;
-
-            List<RuleConditionEntry> conditions = ruleEntry.when == null || ruleEntry.when.all == null
-                    ? List.of()
-                    : ruleEntry.when.all;
-            if (conditions.isEmpty()) {
-                log.warn("Skipping rule {} with no conditions", id);
-                continue;
-            }
-
-            int definedConditionCount = 0;
-            for (RuleConditionEntry condition : conditions) {
-                if (condition != null) {
-                    definedConditionCount++;
-                }
-            }
-            if (definedConditionCount > 1) {
-                throw new IllegalArgumentException(
-                        "Routing rule '" + id + "' in " + routingFile + " defines multiple conditions in when.all; "
-                                + "this configuration is not yet supported."
-                );
-            }
-
-            // For now, preserve one-condition semantics used by existing routing configs.
-            RuleConditionEntry condition = firstDefinedCondition(conditions);
-            if (condition == null) {
-                log.warn("Skipping rule {} with only empty conditions", id);
-                continue;
-            }
-            String field = requireYamlValue(condition.field, "rules[].when.all[].field", routingFile);
-            String operator = requireYamlValue(condition.op, "rules[].when.all[].op", routingFile);
-            String value = requireYamlValue(condition.value, "rules[].when.all[].value", routingFile);
-            String printerId = requireYamlValue(
-                    ruleEntry.then == null ? null : ruleEntry.then.printerId,
-                    "rules[].then.printerId",
-                    routingFile
-            );
-
-            RoutingRule rule = new RoutingRule(id, enabled, field, operator, value, printerId);
-            rules.add(rule);
-            log.debug("Loaded routing rule: {}", rule);
-        }
-
-        return new PrinterRoutingService(printers, rules, defaultPrinterId, siteCode);
-    }
-
-    private static String requireYamlValue(String value, String field, Path sourceFile) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Missing required field '" + field + "' in " + sourceFile);
-        }
-        return value;
-    }
-
-    private static RuleConditionEntry firstDefinedCondition(List<RuleConditionEntry> conditions) {
-        for (RuleConditionEntry condition : conditions) {
-            if (condition != null) {
-                return condition;
-            }
-        }
-        return null;
-    }
-
-    private static void validateOptionalSiteCode(String expectedSiteCode, String configuredSiteCode, Path sourceFile) {
-        if (configuredSiteCode == null || configuredSiteCode.isBlank()) {
-            return;
-        }
-
-        if (!expectedSiteCode.equalsIgnoreCase(configuredSiteCode)) {
-            throw new IllegalArgumentException(
-                    "Site code mismatch in " + sourceFile
-                            + ": expected '" + expectedSiteCode + "' but found '" + configuredSiteCode + "'"
-            );
-        }
+        PrinterRoutingConfigLoader.LoadedPrinterRoutingConfig loaded =
+                new PrinterRoutingConfigLoader().load(siteCode, configBaseDir);
+        return new PrinterRoutingService(loaded.printers, loaded.rules, loaded.defaultPrinterId, siteCode);
     }
 
     /**
@@ -271,58 +155,6 @@ public final class PrinterRoutingService {
 
     public String getSiteCode() {
         return siteCode;
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class PrintersYaml {
-        public Integer version;
-        public String siteCode;
-        public List<PrinterEntry> printers;
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class PrinterEntry {
-        public String id;
-        public String name;
-        public String ip;
-        public Integer port;
-        public List<String> tags;
-        public List<String> capabilities;
-        public String locationHint;
-        public Boolean enabled;
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class RoutingYaml {
-        public Integer version;
-        public String siteCode;
-        public String defaultPrinterId;
-        public List<RuleEntry> rules;
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class RuleEntry {
-        public String id;
-        public Boolean enabled;
-        public RuleWhen when;
-        public RuleThen then;
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class RuleWhen {
-        public List<RuleConditionEntry> all;
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class RuleConditionEntry {
-        public String field;
-        public String op;
-        public String value;
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static final class RuleThen {
-        public String printerId;
     }
 }
 

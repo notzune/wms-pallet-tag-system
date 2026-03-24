@@ -8,27 +8,25 @@
 
 package com.tbg.wms.cli.gui;
 
+import com.tbg.wms.cli.gui.analyzers.AnalyzerContext;
+import com.tbg.wms.cli.gui.analyzers.AnalyzerDialog;
+import com.tbg.wms.cli.gui.analyzers.AnalyzerRegistry;
 import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.OutDirectoryRetentionService;
-import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.RuntimeSettings;
 import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.Lpn;
+import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
-import com.tbg.wms.core.update.UpdateActionService;
-import com.tbg.wms.core.update.UpdateCatalogService;
-import com.tbg.wms.core.update.UpdatePolicyService;
+import com.tbg.wms.core.update.ReleaseCheckService;
 import com.tbg.wms.core.update.VersionSupport;
 
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
 import java.io.Serial;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -67,6 +65,7 @@ public final class LabelGuiFrame extends JFrame {
     private final JComboBox<LabelWorkflowService.PrinterOption> printerCombo = new JComboBox<>();
     private final JButton previewButton = new JButton("Preview");
     private final JButton clearButton = new JButton("Clear");
+    private final JButton showLabelsButton = new JButton("Show Labels");
     private final JButton printButton = new JButton("Confirm Print");
     private final JButton toolsButton = new JButton("Tools");
     private final JButton labelSelectionToggleButton = new JButton("Deselect All");
@@ -79,6 +78,8 @@ public final class LabelGuiFrame extends JFrame {
     private final JTextArea mathArea = new JTextArea();
     private final JLabel statusLabel = new JLabel("Ready.");
     private final JLabel labelSelectionStatusLabel = new JLabel(" ");
+    private final JLabel dbStatusLedLabel = new JLabel();
+    private final JLabel dbStatusLabel = new JLabel();
     private final JLabel versionLabel = new JLabel();
     private final transient Preferences preferences = Preferences.userNodeForPackage(LabelGuiFrame.class);
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
@@ -88,29 +89,49 @@ public final class LabelGuiFrame extends JFrame {
     private final transient LabelWorkflowService service = new LabelWorkflowService(config);
     private final transient AdvancedPrintWorkflowService advancedService = new AdvancedPrintWorkflowService(config);
     private final transient LabelPreviewFormatter previewFormatter = new LabelPreviewFormatter();
-    private final transient BarcodeDialogFactory barcodeDialogFactory = new BarcodeDialogFactory(new BarcodeDependencies());
-    private final transient UpdateCatalogService updateCatalogService = new UpdateCatalogService();
-    private final transient UpdatePolicyService updatePolicyService = new UpdatePolicyService();
-    private final transient UpdateActionService updateActionService = new UpdateActionService();
-    private final transient UpdatePromptStateStore updatePromptStateStore = new UpdatePromptStateStore();
-    private final transient UpdateUiSupport updateUiSupport = new UpdateUiSupport();
+    private final transient PreviewSelectionSupport previewSelectionSupport = new PreviewSelectionSupport();
+    private final transient PreviewSelectionPanelSupport previewSelectionPanelSupport = new PreviewSelectionPanelSupport();
+    private final transient PreviewRenderSupport previewRenderSupport =
+            new PreviewRenderSupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
+    private final transient GuiPreviewDisplaySupport previewDisplaySupport =
+            new GuiPreviewDisplaySupport(previewFormatter, MAX_PREVIEW_STOPS, MAX_PREVIEW_SHIPMENTS_PER_STOP, MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT);
+    private final transient GuiPreviewExecutionSupport previewExecutionSupport = new GuiPreviewExecutionSupport();
+    private final transient GuiPrintFlowSupport printFlowSupport = new GuiPrintFlowSupport();
+    private final transient GuiPrintExecutionSupport printExecutionSupport = new GuiPrintExecutionSupport(printFlowSupport);
+    private final transient GuiPrinterSelectionSupport printerSelectionSupport = new GuiPrinterSelectionSupport();
+    private final transient FramePrinterSelectionSupport framePrinterSelectionSupport = new FramePrinterSelectionSupport();
+    private final transient GuiPreviewSelectionUiSupport previewSelectionUiSupport = new GuiPreviewSelectionUiSupport();
+    private final transient LabelGuiFramePreviewShellSupport previewShellSupport = new LabelGuiFramePreviewShellSupport();
+    private final transient LabelGuiFrameToolMenuSupport toolMenuSupport = new LabelGuiFrameToolMenuSupport();
+    private final transient QueueResumeDialogSupport queueResumeDialogSupport =
+            new QueueResumeDialogSupport(buildQueueResumeDependencies(), MAX_QUEUE_ITEMS);
+    private final transient GuiSettingsDialogSupport settingsDialogSupport =
+            new GuiSettingsDialogSupport(buildSettingsDependencies(), PREF_PRINT_TO_FILE_DIR, LabelGuiFrame.class);
+    private transient BarcodeDialogFactory barcodeDialogFactory;
+    private final transient GuiUpdateFlowSupport updateFlowSupport = new GuiUpdateFlowSupport();
+    private final transient GuiUpdateExecutionSupport updateExecutionSupport = new GuiUpdateExecutionSupport(updateFlowSupport);
+    private final transient GuiDbStatusSupport dbStatusSupport = new GuiDbStatusSupport();
+    private final transient GuiZplPreviewSupport zplPreviewSupport = new GuiZplPreviewSupport();
+    private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
     private final transient InstallMaintenanceService installMaintenanceService = new InstallMaintenanceService();
     private final transient GuidedUpdateService guidedUpdateService = new GuidedUpdateService();
     private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
     private transient List<JCheckBox> previewLabelCheckboxes = List.of();
-    private transient List<PreviewLabelOption> previewLabelOptions = List.of();
+    private transient List<PreviewSelectionSupport.LabelOption> previewLabelOptions = List.of();
     private transient LabelWorkflowService.PreparedJob preparedJob;
     private transient AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob;
-    private transient UpdateManagerSnapshot latestUpdateSnapshot = emptyUpdateSnapshot();
+    private transient ReleaseCheckService.ReleaseInfo latestReleaseInfo;
     private transient boolean updateCheckInProgress;
+    private transient ZplPreviewToolDialog generatedLabelsPreviewDialog;
+    private transient AnalyzerDialog analyzerDialog;
 
     public LabelGuiFrame() {
         super(buildWindowTitle());
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setIconImages(AppIconSupport.loadWindowIcons());
         setSize(1080, 720);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(8, 8));
-        setIconImage(AppIconSupport.loadWindowIcon());
 
         JPanel topContainer = new JPanel(new BorderLayout());
         topContainer.add(buildToolBar(), BorderLayout.NORTH);
@@ -118,6 +139,7 @@ public final class LabelGuiFrame extends JFrame {
         add(topContainer, BorderLayout.NORTH);
         add(buildCenterPanel(), BorderLayout.CENTER);
         add(buildBottomPanel(), BorderLayout.SOUTH);
+        this.barcodeDialogFactory = new BarcodeDialogFactory(buildBarcodeDependencies());
 
         wireActions();
         wireShortcuts();
@@ -128,8 +150,10 @@ public final class LabelGuiFrame extends JFrame {
         applyTopRowSizing();
         loadPrintersAsync();
         new OutDirectoryRetentionService().pruneDefaultOutDirectory(LabelGuiFrame.class);
-        checkForUpdatesAsync(true);
+        checkForUpdatesAsync(false);
+        refreshDbStatusAsync();
         printButton.setEnabled(false);
+        showLabelsButton.setEnabled(false);
     }
 
     private static String buildWindowTitle() {
@@ -140,12 +164,18 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private static String resolveVersionTag() {
-        return VersionSupport.resolveRuntimeVersion(
-                LabelGuiFrame.class,
-                "wms.tags.version",
-                "version",
-                VERSION_RESOURCE_PATHS
-        ).trim();
+        String version = VersionSupport.resolvePackageVersion(LabelGuiFrame.class);
+        if (version.isBlank()) {
+            version = System.getProperty("wms.tags.version", "").trim();
+        }
+        if (version.isBlank()) {
+            version = resolveVersionFromPomProperties();
+        }
+        return version.trim();
+    }
+
+    private static String resolveVersionFromPomProperties() {
+        return VersionSupport.readFirstNonBlankProperty(LabelGuiFrame.class, "version", VERSION_RESOURCE_PATHS);
     }
 
     private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
@@ -165,54 +195,8 @@ public final class LabelGuiFrame extends JFrame {
         return GuiPrinterTargetSupport.isPrintToFile(selected);
     }
 
-    private static UpdateManagerSnapshot emptyUpdateSnapshot() {
-        UpdatePolicyService.UpdateDecision decision = new UpdatePolicyService.UpdateDecision(
-                resolveVersionTag(),
-                "",
-                "",
-                0,
-                false,
-                false,
-                UpdatePolicyService.UpdateSeverity.CURRENT
-        );
-        UpdateUiSupport.UpdateUiState uiState = new UpdateUiSupport.UpdateUiState(
-                "No update check has completed yet.",
-                false,
-                false
-        );
-        return new UpdateManagerSnapshot(null, decision, uiState, List.of(), false);
-    }
-
     private JComponent buildToolBar() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
-
-        toolsButton.setFocusable(false);
-        toolsButton.setHorizontalTextPosition(SwingConstants.LEFT);
-        toolBar.add(toolsButton);
-
-        JPopupMenu toolsMenu = new JPopupMenu();
-        JMenuItem railLabelsItem = new JMenuItem("Rail Labels...");
-        railLabelsItem.addActionListener(e -> openRailLabelsDialog());
-        toolsMenu.add(railLabelsItem);
-        JMenuItem queueItem = new JMenuItem("Queue Print...");
-        queueItem.addActionListener(e -> openQueueDialog());
-        toolsMenu.add(queueItem);
-        JMenuItem barcodeItem = new JMenuItem("Barcode Generator...");
-        barcodeItem.addActionListener(e -> openBarcodeDialog());
-        toolsMenu.add(barcodeItem);
-        toolsMenu.addSeparator();
-        JMenuItem resumeItem = new JMenuItem("Resume Incomplete Job...");
-        resumeItem.addActionListener(e -> openResumeDialog());
-        toolsMenu.add(resumeItem);
-        JMenuItem settingsItem = new JMenuItem("Settings...");
-        settingsItem.addActionListener(e -> openSettingsDialog());
-        toolsMenu.add(settingsItem);
-
-        toolsButton.addActionListener(e ->
-                toolsMenu.show(toolsButton, 0, toolsButton.getHeight()));
-
-        return toolBar;
+        return toolMenuSupport.buildToolBar(toolsButton, buildToolMenuActions());
     }
 
     private JComponent buildTopPanel() {
@@ -260,6 +244,9 @@ public final class LabelGuiFrame extends JFrame {
         panel.add(clearButton, gbc);
 
         gbc.gridx = 7;
+        panel.add(showLabelsButton, gbc);
+
+        gbc.gridx = 8;
         panel.add(printButton, gbc);
 
         return panel;
@@ -283,15 +270,28 @@ public final class LabelGuiFrame extends JFrame {
     private JComponent buildBottomPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 6, 8));
+        dbStatusLabel.setFont(dbStatusLabel.getFont().deriveFont(dbStatusLabel.getFont().getSize2D() - 1f));
+        versionLabel.setFont(versionLabel.getFont().deriveFont(versionLabel.getFont().getSize2D() - 1f));
+        JPanel dbPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        dbPanel.setOpaque(false);
+        dbStatusLedLabel.setVerticalAlignment(SwingConstants.CENTER);
+        dbPanel.add(dbStatusLedLabel);
+        dbPanel.add(dbStatusLabel);
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        rightPanel.setOpaque(false);
+        rightPanel.add(dbPanel);
         versionLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 6, 12));
+        rightPanel.add(versionLabel);
         panel.add(statusLabel, BorderLayout.CENTER);
-        panel.add(versionLabel, BorderLayout.EAST);
+        panel.add(rightPanel, BorderLayout.EAST);
+        applyDbStatus(dbStatusSupport.checking(config.oracleService()));
         return panel;
     }
 
     private void wireActions() {
         previewButton.addActionListener(e -> previewJob());
         clearButton.addActionListener(e -> clearForm());
+        showLabelsButton.addActionListener(e -> openGeneratedLabelPreview());
         printButton.addActionListener(e -> confirmAndPrint());
         labelSelectionToggleButton.addActionListener(e -> togglePreviewLabelSelection());
         labelSelectionCollapseButton.addActionListener(e -> updateLabelSelectionCollapseUi());
@@ -301,15 +301,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void wireShortcuts() {
-        InputMap inputMap = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-        ActionMap actionMap = getRootPane().getActionMap();
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "preview");
-        actionMap.put("preview", new AbstractAction() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                previewJob();
-            }
-        });
+        WorkflowShortcutBinder.bindPreviewShortcut(getRootPane(), previewButton, "preview");
     }
 
     private void loadPrintersAsync() {
@@ -329,16 +321,14 @@ public final class LabelGuiFrame extends JFrame {
                     int printerCount = printers.size();
                     printerCombo.setModel(model);
                     applyTopRowSizing();
-                    if (model.getSize() > 0) {
-                        printerCombo.setSelectedIndex(0);
-                        if (printerCount == 0) {
-                            setReady("No enabled printers found. Print to file available.");
-                        } else {
-                            setReady("Printers loaded.");
-                        }
-                    } else {
-                        setReady("No enabled printers found in routing config.");
+                    int selectionIndex = printerSelectionSupport.resolveSelectionIndex(
+                            null,
+                            framePrinterSelectionSupport.comboItems(model)
+                    );
+                    if (selectionIndex >= 0) {
+                        printerCombo.setSelectedIndex(selectionIndex);
                     }
+                    setReady(printerSelectionSupport.printerLoadStatusMessage(printerCount, model.getSize()));
                 } catch (Exception ex) {
                     setReady("Failed to load printers.");
                     showError(rootMessage(ex));
@@ -349,9 +339,11 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void previewJob() {
-        String inputId = shipmentField.getText().trim();
-        if (inputId.isEmpty()) {
-            showError(isCarrierMoveMode() ? "Enter a Carrier Move ID." : "Enter a Shipment ID.");
+        GuiPreviewExecutionSupport.PreviewRequest request;
+        try {
+            request = previewExecutionSupport.prepareRequest(shipmentField.getText(), isCarrierMoveMode());
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
             return;
         }
 
@@ -363,27 +355,37 @@ public final class LabelGuiFrame extends JFrame {
         SwingWorker<Object, Void> worker = new SwingWorker<>() {
             @Override
             protected Object doInBackground() throws Exception {
-                if (isCarrierMoveMode()) {
-                    return advancedService.prepareCarrierMoveJob(inputId);
-                }
-                return service.prepareJob(inputId);
+                return previewExecutionSupport.execute(request, new GuiPreviewExecutionSupport.PreviewLoader() {
+                    @Override
+                    public LabelWorkflowService.PreparedJob prepareShipmentJob(String shipmentId) throws Exception {
+                        return service.prepareJob(shipmentId);
+                    }
+
+                    @Override
+                    public AdvancedPrintWorkflowService.PreparedCarrierMoveJob prepareCarrierMoveJob(String carrierMoveId) throws Exception {
+                        return advancedService.prepareCarrierMoveJob(carrierMoveId);
+                    }
+                });
             }
 
             @Override
             protected void done() {
                 try {
-                    Object prepared = get();
-                    if (prepared instanceof AdvancedPrintWorkflowService.PreparedCarrierMoveJob) {
-                        preparedCarrierJob = (AdvancedPrintWorkflowService.PreparedCarrierMoveJob) prepared;
+                    GuiPreviewExecutionSupport.PreparedPreview prepared = (GuiPreviewExecutionSupport.PreparedPreview) get();
+                    if (prepared.isCarrierMove()) {
+                        preparedCarrierJob = prepared.carrierMoveJob();
                         renderCarrierMovePreview(preparedCarrierJob);
                     } else {
-                        preparedJob = (LabelWorkflowService.PreparedJob) prepared;
+                        preparedJob = prepared.shipmentJob();
                         renderPreview(preparedJob);
                     }
-                    setReady("Preview ready. Verify details, then click Confirm Print.");
+                    applyDbStatus(dbStatusSupport.connected(config.oracleService()));
+                    setReady(previewExecutionSupport.buildSuccessOutcome().statusMessage());
                 } catch (Exception ex) {
-                    setReady("Preview failed.");
-                    showError(rootMessage(ex));
+                    dbStatusSupport.failure(config.oracleService(), ex).ifPresent(LabelGuiFrame.this::applyDbStatus);
+                    GuiPreviewExecutionSupport.FailureOutcome outcome = previewExecutionSupport.buildFailureOutcome(ex);
+                    setReady(outcome.statusMessage());
+                    showError(outcome.errorMessage());
                 }
             }
         };
@@ -392,160 +394,41 @@ public final class LabelGuiFrame extends JFrame {
 
     private void renderPreview(LabelWorkflowService.PreparedJob job) {
         resetPreviewLabelSelection();
-        shipmentPreviewPanel.removeAll();
-        shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.add(buildLabelSelectionPanel(buildShipmentLabelOptions(job)));
+        previewRenderSupport.renderShipmentPreview(
+                shipmentPreviewPanel,
+                shipmentArea,
+                buildLabelSelectionPanel(previewSelectionSupport.buildShipmentLabelOptions(job))
+        );
         updatePreviewSelectionUi();
-        shipmentPreviewPanel.revalidate();
-        shipmentPreviewPanel.repaint();
     }
 
     private void renderCarrierMovePreview(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
         Objects.requireNonNull(job, "job cannot be null");
         resetPreviewLabelSelection();
-        shipmentPreviewPanel.removeAll();
-        shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.add(buildLabelSelectionPanel(buildCarrierMoveLabelOptions(job)));
-
-        addStopPreviewSections(job);
+        previewRenderSupport.renderCarrierMovePreview(
+                shipmentPreviewPanel,
+                shipmentArea,
+                buildLabelSelectionPanel(previewSelectionSupport.buildCarrierMoveLabelOptions(job)),
+                job
+        );
         updatePreviewSelectionUi();
-        shipmentPreviewPanel.revalidate();
-        shipmentPreviewPanel.repaint();
     }
 
-    private JComponent buildStopPreviewSection(AdvancedPrintWorkflowService.PreparedStopGroup stop) {
-        Objects.requireNonNull(stop, "stop cannot be null");
-        JPanel container = new JPanel(new BorderLayout(0, 4));
-        container.setBorder(BorderFactory.createEmptyBorder(6, 0, 8, 0));
-
-        String label = previewFormatter.stopPreviewLabel(stop);
-        JToggleButton toggle = new JToggleButton(label + "  [expanded]", true);
-        toggle.setFocusPainted(false);
-        toggle.setHorizontalAlignment(SwingConstants.LEFT);
-        container.add(toggle, BorderLayout.NORTH);
-
-        JTextArea details = new JTextArea();
-        details.setEditable(false);
-        details.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        details.setRows(Math.max(16, stop.getShipmentJobs().size() * 16));
-        details.setText(previewFormatter.buildStopDetailsText(
-                stop,
-                MAX_PREVIEW_SHIPMENTS_PER_STOP,
-                MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT));
-
-        JScrollPane detailsScroll = new JScrollPane(details);
-        detailsScroll.setBorder(BorderFactory.createEmptyBorder());
-        container.add(detailsScroll, BorderLayout.CENTER);
-
-        toggle.addActionListener(e -> {
-            boolean expanded = toggle.isSelected();
-            toggle.setText(label + (expanded ? "  [expanded]" : "  [collapsed]"));
-            detailsScroll.setVisible(expanded);
-            container.revalidate();
-            container.repaint();
-        });
-        return container;
-    }
-
-    private int addStopPreviewSections(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
-        int shown = 0;
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
-            if (shown >= MAX_PREVIEW_STOPS) {
-                break;
-            }
-            shipmentPreviewPanel.add(buildStopPreviewSection(stop));
-            shown++;
-        }
-        return shown;
-    }
-
-    private JComponent buildLabelSelectionPanel(List<PreviewLabelOption> options) {
-        Objects.requireNonNull(options, "options cannot be null");
-        previewLabelOptions = List.copyOf(options);
-        previewLabelCheckboxes = new ArrayList<>(options.size());
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        controls.add(labelSelectionToggleButton);
-        controls.add(includeInfoTagsCheckBox);
-        controls.add(labelSelectionStatusLabel);
-
-        JPanel checkboxGrid = new JPanel(new GridLayout(0, 3, 8, 4));
-        for (PreviewLabelOption option : options) {
-            JCheckBox checkbox = new JCheckBox(option.labelText(), true);
-            checkbox.addActionListener(e -> updatePreviewSelectionUi());
-            previewLabelCheckboxes.add(checkbox);
-            checkboxGrid.add(checkbox);
-        }
-
-        labelSelectionPanel.removeAll();
-        labelSelectionPanel.setLayout(new BorderLayout(0, 6));
-        labelSelectionPanel.setBorder(BorderFactory.createEtchedBorder());
-        labelSelectionCollapseButton.setFocusPainted(false);
-        labelSelectionCollapseButton.setHorizontalAlignment(SwingConstants.LEFT);
-        labelSelectionPanel.add(labelSelectionCollapseButton, BorderLayout.NORTH);
-        labelSelectionContentPanel.removeAll();
-        labelSelectionContentPanel.add(controls, BorderLayout.NORTH);
-        labelSelectionContentPanel.add(checkboxGrid, BorderLayout.CENTER);
-        labelSelectionPanel.add(labelSelectionContentPanel, BorderLayout.CENTER);
-        labelSelectionCollapseButton.setSelected(false);
+    private JComponent buildLabelSelectionPanel(List<PreviewSelectionSupport.LabelOption> options) {
+        PreviewSelectionPanelSupport.PanelBuildResult result = previewSelectionPanelSupport.buildPanel(
+                labelSelectionPanel,
+                labelSelectionContentPanel,
+                labelSelectionToggleButton,
+                labelSelectionCollapseButton,
+                includeInfoTagsCheckBox,
+                labelSelectionStatusLabel,
+                options,
+                this::updatePreviewSelectionUi
+        );
+        previewLabelOptions = result.options();
+        previewLabelCheckboxes = result.checkboxes();
         updateLabelSelectionCollapseUi();
         return labelSelectionPanel;
-    }
-
-    private List<PreviewLabelOption> buildShipmentLabelOptions(LabelWorkflowService.PreparedJob job) {
-        Objects.requireNonNull(job, "job cannot be null");
-        List<PreviewLabelOption> options = new ArrayList<>(job.getLpnsForLabels().size());
-        int index = 1;
-        for (Lpn lpn : job.getLpnsForLabels()) {
-            options.add(new PreviewLabelOption(buildShipmentLabelOptionText(index, lpn), lpn, null));
-            index++;
-        }
-        return options;
-    }
-
-    private List<PreviewLabelOption> buildCarrierMoveLabelOptions(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
-        Objects.requireNonNull(job, "job cannot be null");
-        List<PreviewLabelOption> options = new ArrayList<>();
-        int index = 1;
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
-            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
-                    String labelText = buildCarrierMoveLabelOptionText(index, stop, shipmentJob, lpn);
-                    LabelSelectionRef selection = LabelSelectionRef.forCarrierMove(
-                            index,
-                                    shipmentJob.getShipmentId(),
-                                    resolveLpnId(lpn),
-                                    stop.getStopPosition()
-                    );
-                    options.add(new PreviewLabelOption(labelText, lpn, selection));
-                    index++;
-                }
-            }
-        }
-        return options;
-    }
-
-    private String buildShipmentLabelOptionText(int index, Lpn lpn) {
-        return String.format("%02d. %s", index, resolveLpnId(lpn));
-    }
-
-    private String buildCarrierMoveLabelOptionText(
-            int index,
-            AdvancedPrintWorkflowService.PreparedStopGroup stop,
-            LabelWorkflowService.PreparedJob shipmentJob,
-            Lpn lpn
-    ) {
-        return String.format(
-                "%02d. Stop %02d | Shipment %s | %s",
-                index,
-                stop.getStopPosition(),
-                shipmentJob.getShipmentId(),
-                resolveLpnId(lpn)
-        );
-    }
-
-    private String resolveLpnId(Lpn lpn) {
-        String lpnId = lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank() ? "UNKNOWN" : lpn.getLpnId();
-        return lpnId;
     }
 
     private void togglePreviewLabelSelection() {
@@ -557,204 +440,99 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void updatePreviewSelectionUi() {
-        PreviewSelectionSnapshot selection = snapshotPreviewSelection();
+        PreviewSelectionSupport.SelectionSnapshot selection = snapshotPreviewSelection();
         int total = previewLabelCheckboxes.size();
         int selected = selection.selectedLabelCount();
         int infoTags = selection.infoTagCount();
         int totalDocuments = selection.totalDocuments();
-        labelSelectionStatusLabel.setText("Selected " + selected + " of " + total + " labels | Info Tags " + infoTags
-                + " | Total Documents " + totalDocuments);
-        labelSelectionToggleButton.setText(selected == total ? "Deselect All" : "Select All");
+        labelSelectionStatusLabel.setText(previewSelectionUiSupport.selectionStatusText(selected, total, infoTags, totalDocuments));
+        labelSelectionToggleButton.setText(previewSelectionUiSupport.selectionToggleText(selected, total));
         refreshPreviewText(selection);
         updatePrintButtonEnabled(selection);
+        refreshGeneratedLabelPreviewDialog(selection);
     }
 
     private void updateLabelSelectionCollapseUi() {
         boolean expanded = labelSelectionCollapseButton.isSelected();
-        labelSelectionCollapseButton.setText(expanded
-                ? "Label Selection [expanded]"
-                : "Label Selection [collapsed]");
+        labelSelectionCollapseButton.setText(previewSelectionUiSupport.collapseButtonText(expanded));
         labelSelectionContentPanel.setVisible(expanded);
         labelSelectionPanel.revalidate();
         labelSelectionPanel.repaint();
     }
 
-    private void refreshPreviewText(PreviewSelectionSnapshot selection) {
+    private void refreshPreviewText(PreviewSelectionSupport.SelectionSnapshot selection) {
         if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            shipmentArea.setText(buildCarrierMoveSummaryText(preparedCarrierJob, selection.selectedCarrierLabels()));
-            mathArea.setText(previewFormatter.buildCarrierMoveMathText(
+            GuiPreviewDisplaySupport.PreviewText previewText = previewDisplaySupport.buildCarrierMovePreview(
                     preparedCarrierJob,
-                    MAX_PREVIEW_STOPS,
-                    MAX_PREVIEW_SHIPMENTS_PER_STOP,
-                    selection.selectedLabelCount(),
+                    selection.selectedCarrierLabels(),
                     selection.infoTagCount()
-            ));
+            );
+            shipmentArea.setText(previewText.summaryText());
+            mathArea.setText(previewText.mathText());
             return;
         }
         if (preparedJob != null && !isCarrierMoveMode()) {
-            shipmentArea.setText(previewFormatter.buildShipmentSummaryText(
-                    preparedJob,
-                    selection.selectedShipmentLpns(),
-                    selection.infoTagCount()
-            ));
-            mathArea.setText(previewFormatter.buildShipmentMathText(
-                    preparedJob,
-                    MAX_PREVIEW_SKU_ROWS_PER_SHIPMENT,
-                    selection.selectedLabelCount(),
-                    selection.infoTagCount()
-            ));
+            GuiPreviewDisplaySupport.PreviewText previewText = previewDisplaySupport.buildShipmentPreview(preparedJob, selection);
+            shipmentArea.setText(previewText.summaryText());
+            mathArea.setText(previewText.mathText());
         }
-    }
-
-    private String buildCarrierMoveSummaryText(
-            AdvancedPrintWorkflowService.PreparedCarrierMoveJob job,
-            List<LabelSelectionRef> selectedLabels
-    ) {
-        StringBuilder summary = new StringBuilder(previewFormatter.buildCarrierMoveSummary(
-                job,
-                selectedLabels.size(),
-                currentInfoTagCount()
-        ));
-        int shownStops = Math.min(job.getStopGroups().size(), MAX_PREVIEW_STOPS);
-        if (job.getStopGroups().size() > shownStops) {
-            summary.append("Preview Notice: Showing first ").append(MAX_PREVIEW_STOPS)
-                    .append(" stops of ").append(job.getStopGroups().size()).append(".\n");
-        }
-        return summary.toString();
-    }
-
-    private List<PreviewLabelOption> getSelectedPreviewOptions() {
-        if (previewLabelCheckboxes.isEmpty() || previewLabelOptions.isEmpty()) {
-            return List.of();
-        }
-        List<PreviewLabelOption> selected = new ArrayList<>();
-        for (int i = 0; i < previewLabelCheckboxes.size() && i < previewLabelOptions.size(); i++) {
-            if (previewLabelCheckboxes.get(i).isSelected()) {
-                selected.add(previewLabelOptions.get(i));
-            }
-        }
-        return selected;
-    }
-
-    private List<Lpn> getSelectedShipmentLpns() {
-        if (preparedJob == null) {
-            return List.of();
-        }
-        List<Lpn> selected = new ArrayList<>();
-        for (PreviewLabelOption option : getSelectedPreviewOptions()) {
-            if (option.lpn() != null) {
-                selected.add(option.lpn());
-            }
-        }
-        return selected;
-    }
-
-    private List<LabelSelectionRef> getSelectedCarrierMoveLabels() {
-        if (preparedCarrierJob == null) {
-            return List.of();
-        }
-        List<LabelSelectionRef> selected = new ArrayList<>();
-        for (PreviewLabelOption option : getSelectedPreviewOptions()) {
-            if (option.carrierMoveSelection() != null) {
-                selected.add(option.carrierMoveSelection());
-            }
-        }
-        return selected;
     }
 
     private int countSelectedCarrierMoveStops(List<LabelSelectionRef> selectedLabels) {
-        return (int) selectedLabels.stream()
-                .map(LabelSelectionRef::getStopPosition)
-                .distinct()
-                .count();
+        return previewSelectionSupport.countSelectedCarrierMoveStops(selectedLabels);
     }
 
     private int currentInfoTagCount() {
         return snapshotPreviewSelection().infoTagCount();
     }
 
-    private int computeInfoTagCount(int selectedShipmentLabels, List<LabelSelectionRef> selectedCarrierLabels) {
-        if (!includeInfoTagsCheckBox.isSelected()) {
-            return 0;
-        }
-        if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            return PrintTaskPlanner.countCarrierMoveInfoTags(selectedCarrierLabels, true);
-        }
-        if (preparedJob != null && !isCarrierMoveMode()) {
-            return PrintTaskPlanner.countShipmentInfoTags(selectedShipmentLabels, true);
-        }
-        return 0;
-    }
-
-    private PreviewSelectionSnapshot snapshotPreviewSelection() {
-        if (previewLabelCheckboxes.isEmpty() || previewLabelOptions.isEmpty()) {
-            return new PreviewSelectionSnapshot(List.of(), List.of(), List.of(), 0);
-        }
-        List<PreviewLabelOption> selectedOptions = new ArrayList<>();
-        List<Lpn> selectedShipmentLpns = new ArrayList<>();
-        List<LabelSelectionRef> selectedCarrierLabels = new ArrayList<>();
-        for (int i = 0; i < previewLabelCheckboxes.size() && i < previewLabelOptions.size(); i++) {
-            if (!previewLabelCheckboxes.get(i).isSelected()) {
-                continue;
-            }
-            PreviewLabelOption option = previewLabelOptions.get(i);
-            selectedOptions.add(option);
-            if (option.lpn() != null) {
-                selectedShipmentLpns.add(option.lpn());
-            }
-            if (option.carrierMoveSelection() != null) {
-                selectedCarrierLabels.add(option.carrierMoveSelection());
-            }
-        }
-        int infoTagCount = computeInfoTagCount(selectedShipmentLpns.size(), selectedCarrierLabels);
-        return new PreviewSelectionSnapshot(selectedOptions, selectedShipmentLpns, selectedCarrierLabels, infoTagCount);
+    private PreviewSelectionSupport.SelectionSnapshot snapshotPreviewSelection() {
+        return previewSelectionSupport.snapshotSelection(
+                previewLabelCheckboxes,
+                previewLabelOptions,
+                includeInfoTagsCheckBox.isSelected(),
+                preparedCarrierJob != null && isCarrierMoveMode(),
+                preparedJob != null && !isCarrierMoveMode()
+        );
     }
 
     private void resetPreviewLabelSelection() {
         previewLabelCheckboxes = List.of();
         previewLabelOptions = List.of();
-        labelSelectionPanel.removeAll();
-        labelSelectionContentPanel.removeAll();
-        labelSelectionStatusLabel.setText(" ");
-        labelSelectionToggleButton.setText("Deselect All");
-        labelSelectionCollapseButton.setSelected(false);
-        labelSelectionCollapseButton.setText("Label Selection [collapsed]");
-        includeInfoTagsCheckBox.setSelected(true);
+        previewSelectionPanelSupport.resetPanel(
+                labelSelectionPanel,
+                labelSelectionContentPanel,
+                labelSelectionStatusLabel,
+                labelSelectionToggleButton,
+                labelSelectionCollapseButton,
+                includeInfoTagsCheckBox
+        );
+        clearGeneratedLabelPreviewDialog();
     }
 
     private void confirmAndPrint() {
-        boolean carrierMoveMode = isCarrierMoveMode();
-        boolean previewMissing = carrierMoveMode ? preparedCarrierJob == null : preparedJob == null;
-        if (previewMissing) {
-            showError("Run Preview first.");
+        GuiPrintExecutionSupport.PreparedExecution execution;
+        try {
+            execution = printExecutionSupport.prepareExecution(new GuiPrintExecutionSupport.PrintRequest(
+                    isCarrierMoveMode(),
+                    preparedJob,
+                    preparedCarrierJob,
+                    (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem(),
+                    isPrintToFileSelected((LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem()),
+                    snapshotPreviewSelection(),
+                    includeInfoTagsCheckBox.isSelected(),
+                    defaultPrintToFileOutputDir(),
+                    OUTPUT_TS.format(LocalDateTime.now())
+            ));
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
             return;
         }
 
-        LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        boolean printToFile = isPrintToFileSelected(selected);
-        if (!printToFile && selected == null) {
-            showError("Select a printer.");
-            return;
-        }
-
-        PreviewSelectionSnapshot selection = snapshotPreviewSelection();
-        List<Lpn> selectedShipmentLpns = carrierMoveMode ? List.of() : selection.selectedShipmentLpns();
-        List<LabelSelectionRef> selectedCarrierLabels =
-                carrierMoveMode ? selection.selectedCarrierLabels() : List.of();
-        if ((!carrierMoveMode && selectedShipmentLpns.isEmpty())
-                || (carrierMoveMode && selectedCarrierLabels.isEmpty())) {
-            showError("Select at least one label to print.");
-            return;
-        }
-
-        if (!printToFile) {
-            int plannedLabels = carrierMoveMode
-                    ? selectedCarrierLabels.size()
-                    : selectedShipmentLpns.size();
-            int plannedInfoTags = selection.infoTagCount();
+        if (execution.requiresConfirmation()) {
             int choice = JOptionPane.showConfirmDialog(
                     this,
-                    "Print " + plannedLabels + " labels + " + plannedInfoTags + " info tags to " + selected + "?",
+                    execution.confirmationMessage(),
                     "Confirm Print",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE
@@ -772,29 +550,45 @@ public final class LabelGuiFrame extends JFrame {
         SwingWorker<AdvancedPrintWorkflowService.PrintResult, Void> worker = new SwingWorker<>() {
             @Override
             protected AdvancedPrintWorkflowService.PrintResult doInBackground() throws Exception {
-                String printerId = printToFile ? null : selected.getId();
-                if (carrierMoveMode) {
-                    Path outDir = defaultPrintToFileOutputDir().resolve("gui-cmid-" + preparedCarrierJob.getCarrierMoveId() + "-" +
-                            OUTPUT_TS.format(LocalDateTime.now()));
-                    return advancedService.printCarrierMoveJob(
-                            preparedCarrierJob,
-                            selectedCarrierLabels,
-                            printerId,
-                            outDir,
-                            printToFile,
-                            includeInfoTagsCheckBox.isSelected()
-                    );
-                }
-                Path outDir = defaultPrintToFileOutputDir().resolve("gui-" + preparedJob.getShipmentId() + "-" +
-                        OUTPUT_TS.format(LocalDateTime.now()));
-                return advancedService.printShipmentJob(
-                        preparedJob,
-                        selectedShipmentLpns,
-                        printerId,
-                        outDir,
-                        printToFile,
-                        includeInfoTagsCheckBox.isSelected()
-                );
+                return printExecutionSupport.execute(execution, new GuiPrintExecutionSupport.PrintRunner() {
+                    @Override
+                    public AdvancedPrintWorkflowService.PrintResult printShipment(
+                            LabelWorkflowService.PreparedJob preparedJob,
+                            List<Lpn> selectedLpns,
+                            String printerId,
+                            Path outputDir,
+                            boolean printToFile,
+                            boolean includeInfoTags
+                    ) throws Exception {
+                        return advancedService.printShipmentJob(
+                                preparedJob,
+                                selectedLpns,
+                                printerId,
+                                outputDir,
+                                printToFile,
+                                includeInfoTags
+                        );
+                    }
+
+                    @Override
+                    public AdvancedPrintWorkflowService.PrintResult printCarrierMove(
+                            AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob,
+                            List<LabelSelectionRef> selectedLabels,
+                            String printerId,
+                            Path outputDir,
+                            boolean printToFile,
+                            boolean includeInfoTags
+                    ) throws Exception {
+                        return advancedService.printCarrierMoveJob(
+                                preparedCarrierJob,
+                                selectedLabels,
+                                printerId,
+                                outputDir,
+                                printToFile,
+                                includeInfoTags
+                        );
+                    }
+                });
             }
 
             @Override
@@ -804,41 +598,62 @@ public final class LabelGuiFrame extends JFrame {
                 clearButton.setEnabled(true);
                 try {
                     AdvancedPrintWorkflowService.PrintResult result = get();
-                    if (result.isPrintToFile()) {
-                        setReady("Saved " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
-                                " info tags to " + result.getOutputDirectory());
-                        JOptionPane.showMessageDialog(
-                                LabelGuiFrame.this,
-                                "Saved " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
-                                        " info tags.\nOutput: " + result.getOutputDirectory(),
-                                "Print Complete",
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
-                    } else {
-                        setReady("Printed " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
-                                " info tags to " + result.getPrinterId() +
-                                " (" + result.getPrinterEndpoint() + ")");
-                        JOptionPane.showMessageDialog(
-                                LabelGuiFrame.this,
-                                "Printed " + result.getLabelsPrinted() + " labels and " + result.getInfoTagsPrinted() +
-                                        " info tags.\nOutput: " + result.getOutputDirectory(),
-                                "Print Complete",
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
-                    }
+                    applyDbStatus(dbStatusSupport.connected(config.oracleService()));
+                    GuiPrintExecutionSupport.CompletionOutcome outcome = printExecutionSupport.buildCompletionOutcome(result);
+                    setReady(outcome.statusMessage());
+                    JOptionPane.showMessageDialog(
+                            LabelGuiFrame.this,
+                            outcome.dialogMessage(),
+                            "Print Complete",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
                 } catch (Exception ex) {
-                    setReady("Print failed.");
-                    showError(rootMessage(ex));
+                    dbStatusSupport.failure(config.oracleService(), ex).ifPresent(LabelGuiFrame.this::applyDbStatus);
+                    GuiPrintExecutionSupport.FailureOutcome outcome = printExecutionSupport.buildFailureOutcome(ex);
+                    setReady(outcome.statusMessage());
+                    showError(outcome.errorMessage());
                 }
             }
         };
         worker.execute();
     }
 
+    private void refreshDbStatusAsync() {
+        applyDbStatus(dbStatusSupport.checking(config.oracleService()));
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try (com.tbg.wms.db.DbConnectionPool pool = new com.tbg.wms.db.DbConnectionPool(config)) {
+                    pool.testConnectivity();
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    applyDbStatus(dbStatusSupport.connected(config.oracleService()));
+                } catch (Exception ex) {
+                    dbStatusSupport.failure(config.oracleService(), ex).ifPresent(LabelGuiFrame.this::applyDbStatus);
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void applyDbStatus(GuiDbStatusSupport.StatusState state) {
+        dbStatusLedLabel.setIcon(state.icon());
+        dbStatusLedLabel.setToolTipText(state.tooltip());
+        dbStatusLabel.setText(state.text());
+        dbStatusLabel.setToolTipText(state.tooltip());
+    }
+
     private void setBusy(String message) {
         statusLabel.setText(message);
         previewButton.setEnabled(false);
         clearButton.setEnabled(false);
+        showLabelsButton.setEnabled(false);
         printButton.setEnabled(false);
     }
 
@@ -853,43 +668,49 @@ public final class LabelGuiFrame extends JFrame {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    private void checkForUpdatesAsync(boolean startupCheck) {
-        checkForUpdatesAsync(startupCheck, null);
+    private void checkForUpdatesAsync(boolean userInitiated) {
+        checkForUpdatesAsync(userInitiated, null);
     }
 
-    private void checkForUpdatesAsync(boolean startupCheck, JLabel statusOutput) {
+    private void checkForUpdatesAsync(boolean userInitiated, JLabel statusOutput) {
         if (updateCheckInProgress) {
-            if (statusOutput != null) {
-                statusOutput.setText("Update check already in progress...");
+            if (userInitiated && statusOutput != null) {
+                statusOutput.setText(updateExecutionSupport.alreadyInProgressMessage());
             }
             return;
         }
         updateCheckInProgress = true;
         if (statusOutput != null) {
-            statusOutput.setText("Checking for updates...");
+            statusOutput.setText(updateExecutionSupport.checkingForUpdatesMessage());
         }
 
-        SwingWorker<UpdateManagerSnapshot, Void> worker = new SwingWorker<>() {
+        SwingWorker<ReleaseCheckService.ReleaseInfo, Void> worker = new SwingWorker<>() {
             @Override
-            protected UpdateManagerSnapshot doInBackground() throws Exception {
-                return refreshUpdateSnapshot(updatePromptStateStore.experimentalUpdatesEnabled());
+            protected ReleaseCheckService.ReleaseInfo doInBackground() throws Exception {
+                return releaseCheckService.checkLatestRelease(resolveVersionTag());
             }
 
             @Override
             protected void done() {
                 updateCheckInProgress = false;
                 try {
-                    latestUpdateSnapshot = get();
-                    refreshUpdateAvailabilityUi();
+                    latestReleaseInfo = get();
+                    GuiUpdateExecutionSupport.CheckCompletionOutcome outcome =
+                            updateExecutionSupport.buildCheckCompletion(latestReleaseInfo);
+                    refreshUpdateAvailabilityUi(outcome);
                     if (statusOutput != null) {
-                        statusOutput.setText(formatUpdateStatus());
+                        statusOutput.setText(outcome.statusMessage());
                     }
-                    if (startupCheck) {
-                        maybeShowStartupUpdatePrompt();
+                    if (userInitiated) {
+                        showUpdatePrompt(latestReleaseInfo);
                     }
                 } catch (Exception ex) {
+                    GuiUpdateExecutionSupport.FailureOutcome outcome = updateExecutionSupport.buildCheckFailure(ex);
                     if (statusOutput != null) {
-                        statusOutput.setText("Update check failed.");
+                        statusOutput.setText(outcome.statusMessage());
+                    }
+                    if (userInitiated) {
+                        showError(outcome.errorMessage());
                     }
                 }
             }
@@ -898,164 +719,103 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private String formatUpdateStatus() {
-        return latestUpdateSnapshot.summary();
+        return latestReleaseInfo == null
+                ? updateFlowSupport.formatUpdateStatus(null)
+                : updateExecutionSupport.buildCheckCompletion(latestReleaseInfo).statusMessage();
     }
 
-    private void refreshUpdateAvailabilityUi() {
-        boolean showToolbarWarning = latestUpdateSnapshot.showToolbarWarning();
-        toolsButton.setIcon(showToolbarWarning ? UPDATE_AVAILABLE_ICON : null);
-        toolsButton.setToolTipText(showToolbarWarning
-                ? "New stable update available: " + latestUpdateSnapshot.latestStableVersion()
-                : null);
+    private void refreshUpdateAvailabilityUi(GuiUpdateExecutionSupport.CheckCompletionOutcome outcome) {
+        toolsButton.setIcon(outcome.updateAvailable() ? UPDATE_AVAILABLE_ICON : null);
+        toolsButton.setToolTipText(outcome.tooltip());
     }
 
-    private UpdateManagerSnapshot refreshUpdateSnapshot(boolean experimentalEnabled) throws Exception {
-        updatePromptStateStore.setExperimentalUpdatesEnabled(experimentalEnabled);
-        UpdateCatalogService.ReleaseCatalog catalog = updateCatalogService.loadCatalog(resolveVersionTag());
-        UpdatePolicyService.UpdateDecision decision = updatePolicyService.evaluate(catalog, experimentalEnabled);
-        UpdateUiSupport.UpdateUiState uiState = updateUiSupport.buildState(decision, updatePromptStateStore);
-        UpdateManagerSnapshot snapshot = new UpdateManagerSnapshot(
-                catalog,
-                decision,
-                uiState,
-                updateActionService.selectInstallTargets(catalog, experimentalEnabled),
-                experimentalEnabled
-        );
-        latestUpdateSnapshot = snapshot;
-        return snapshot;
-    }
-
-    private void maybeShowStartupUpdatePrompt() {
-        if (!latestUpdateSnapshot.showStartupPrompt()) {
+    private void showUpdatePrompt(ReleaseCheckService.ReleaseInfo releaseInfo) {
+        if (!releaseInfo.updateAvailable()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    updateFlowSupport.updatePromptMessage(releaseInfo),
+                    "Updates",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
             return;
         }
-        Object[] options = {"Update Now", "View Details", "Ignore This Version"};
+
+        Object[] options = updateFlowSupport.updatePromptOptions(releaseInfo);
         int choice = JOptionPane.showOptionDialog(
                 this,
-                "Current version: " + latestUpdateSnapshot.currentVersion()
-                        + "\nLatest stable version: " + latestUpdateSnapshot.latestStableVersion()
-                        + "\nStable releases behind: " + latestUpdateSnapshot.stableUpdatesBehind()
-                        + "\n\nA newer stable release line is available.",
-                "New Stable Update Available",
+                updateFlowSupport.updatePromptMessage(releaseInfo),
+                "Update Available",
                 JOptionPane.DEFAULT_OPTION,
-                JOptionPane.WARNING_MESSAGE,
+                JOptionPane.INFORMATION_MESSAGE,
                 null,
                 options,
                 options[0]
         );
-        if (choice == 0) {
-            UpdateActionService.InstallTarget selectedTarget = latestUpdateSnapshot.installTargets().stream()
-                    .filter(target -> Objects.equals(target.version(), latestUpdateSnapshot.latestStableVersion()))
-                    .findFirst()
-                    .orElse(null);
-            if (selectedTarget != null) {
-                performGuidedUpgrade(selectedTarget);
-            } else {
-                openReleaseUrl(latestUpdateSnapshot.latestStableReleaseUrl());
-            }
-        } else if (choice == 1) {
-            openUpdateManagerDialog();
-        } else if (choice == 2) {
-            updatePromptStateStore.ignorePromptTarget(latestUpdateSnapshot.latestStableVersion());
-            latestUpdateSnapshot = new UpdateManagerSnapshot(
-                    latestUpdateSnapshot.catalog(),
-                    latestUpdateSnapshot.decision(),
-                    updateUiSupport.buildState(latestUpdateSnapshot.decision(), updatePromptStateStore),
-                    latestUpdateSnapshot.installTargets(),
-                    latestUpdateSnapshot.experimentalUpdatesEnabled()
-            );
-            refreshUpdateAvailabilityUi();
+        GuiUpdateExecutionSupport.PromptAction action = updateExecutionSupport.resolvePromptAction(releaseInfo, choice);
+        if (action == GuiUpdateExecutionSupport.PromptAction.GUIDED_UPGRADE) {
+            performGuidedUpgrade(releaseInfo);
+            return;
+        }
+        if (action == GuiUpdateExecutionSupport.PromptAction.OPEN_RELEASE_PAGE) {
+            openReleaseUrl(releaseInfo.releaseUrl());
         }
     }
 
-    private void performGuidedUpgrade(UpdateActionService.InstallTarget installTarget) {
-        Path installScript = installMaintenanceService.findInstallScript(LabelGuiFrame.class).orElse(null);
-        if (installScript == null) {
-            openReleaseUrl(installTarget.releaseUrl());
+    private void performGuidedUpgrade(ReleaseCheckService.ReleaseInfo releaseInfo) {
+        GuiUpdateExecutionSupport.GuidedUpgradePlan plan = updateExecutionSupport.planGuidedUpgrade(
+                releaseInfo,
+                installMaintenanceService.findInstallScript(LabelGuiFrame.class).orElse(null)
+        );
+        if (plan.openReleasePageFallback()) {
+            openReleaseUrl(plan.releaseUrl());
             return;
         }
 
-        setBusy("Downloading update " + installTarget.version() + "...");
+        setBusy(plan.busyMessage());
         SwingWorker<Path, Void> worker = new SwingWorker<>() {
             @Override
             protected Path doInBackground() throws Exception {
-                return guidedUpdateService.downloadInstaller(LabelGuiFrame.class, installTarget);
+                return guidedUpdateService.downloadInstaller(LabelGuiFrame.class, releaseInfo);
             }
 
             @Override
             protected void done() {
                 try {
                     Path installerPath = get();
-                    installMaintenanceService.launchInstaller(installScript, installerPath);
+                    installMaintenanceService.launchInstaller(plan.installScript(), installerPath);
                     dispose();
                     System.exit(0);
                 } catch (Exception ex) {
-                    setReady("Update download failed.");
-                    showError("Could not start guided update: " + rootMessage(ex));
+                    GuiUpdateExecutionSupport.FailureOutcome outcome = updateExecutionSupport.buildGuidedUpgradeFailure(ex);
+                    setReady(outcome.statusMessage());
+                    showError(outcome.errorMessage());
                 }
             }
         };
         worker.execute();
     }
 
-    private void openUpdateManagerDialog() {
-        UpdateManagerDialog dialog = new UpdateManagerDialog(
-                this,
-                latestUpdateSnapshot,
-                this::refreshUpdateSnapshot,
-                this::installTargetFromDialog,
-                this::openReleaseUrl
-        );
-        dialog.setVisible(true);
-    }
-
-    private void installTargetFromDialog(UpdateActionService.InstallTarget installTarget) {
-        UpdateActionService.TargetWarning warning = updateActionService.buildWarning(resolveVersionTag(), installTarget);
-        if (warning.requiresConfirmation()) {
-            int choice = JOptionPane.showConfirmDialog(
-                    this,
-                    warning.message(),
-                    "Confirm Version Change",
-                    JOptionPane.OK_CANCEL_OPTION,
-                    JOptionPane.WARNING_MESSAGE
-            );
-            if (choice != JOptionPane.OK_OPTION) {
-                return;
-            }
-        }
-        performGuidedUpgrade(installTarget);
-    }
-
     private void openReleaseUrl(String releaseUrl) {
-        if (releaseUrl == null || releaseUrl.isBlank()) {
-            showError("Release download URL is unavailable.");
+        GuiUpdateExecutionSupport.ReleasePagePlan plan = updateExecutionSupport.planReleasePageOpen(
+                releaseUrl,
+                Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)
+        );
+        if (!plan.shouldOpenBrowser()) {
+            showError(plan.errorMessage());
             return;
         }
         try {
-            if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                showError("Desktop browser launch is not supported on this machine.");
-                return;
-            }
-            Desktop.getDesktop().browse(java.net.URI.create(releaseUrl));
+            Desktop.getDesktop().browse(java.net.URI.create(plan.releaseUrl()));
         } catch (Exception ex) {
             showError("Could not open release page: " + rootMessage(ex));
         }
     }
 
     private void openUninstallDialog() {
-        Path uninstallScript = installMaintenanceService.findUninstallScript(LabelGuiFrame.class).orElse(null);
-        if (uninstallScript == null) {
-            showError("Uninstall script not found in the packaged app or repo scripts directory.");
-            return;
-        }
-
-        Object[] options = {"Cancel", "Uninstall Only", "Clean Wipe"};
+        Object[] options = updateFlowSupport.uninstallOptions();
         int choice = JOptionPane.showOptionDialog(
                 this,
-                "Choose uninstall mode:\n"
-                        + "- Uninstall Only removes the installed product.\n"
-                        + "- Clean Wipe also removes the install directory and runtime settings to prepare for a clean reinstall.\n\n"
-                        + "The app will close after launch so the uninstall can complete.",
+                updateFlowSupport.uninstallMessage(),
                 "Uninstall / Clean Install Prep",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.WARNING_MESSAGE,
@@ -1063,187 +823,147 @@ public final class LabelGuiFrame extends JFrame {
                 options,
                 options[0]
         );
-        if (choice != 1 && choice != 2) {
+        GuiUpdateExecutionSupport.UninstallPlan plan = updateExecutionSupport.planUninstall(
+                installMaintenanceService.findUninstallScript(LabelGuiFrame.class).orElse(null),
+                choice
+        );
+        if (plan.errorMessage() != null) {
+            showError(plan.errorMessage());
             return;
         }
-
+        if (!plan.shouldLaunch()) {
+            return;
+        }
         try {
-            installMaintenanceService.launchUninstall(uninstallScript, choice == 2);
+            installMaintenanceService.launchUninstall(plan.uninstallScript(), plan.wipeInstallRoot());
             dispose();
             System.exit(0);
         } catch (Exception ex) {
-            showError("Failed to launch uninstall: " + rootMessage(ex));
+            showError(updateExecutionSupport.buildUninstallFailure(ex).errorMessage());
         }
     }
 
     private void clearForm() {
-        shipmentField.setText("");
-        shipmentArea.setText("");
         resetPreviewLabelSelection();
-        shipmentPreviewPanel.removeAll();
-        shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.revalidate();
-        shipmentPreviewPanel.repaint();
-        mathArea.setText("");
         preparedJob = null;
         preparedCarrierJob = null;
-        printButton.setEnabled(false);
-        shipmentField.requestFocusInWindow();
-        setReady("Cleared. Enter the next " + (isCarrierMoveMode() ? "Carrier Move ID." : "Shipment ID."));
+        previewShellSupport.applyClearedState(
+                shipmentField,
+                shipmentPreviewPanel,
+                shipmentArea,
+                mathArea,
+                printButton,
+                isCarrierMoveMode(),
+                this::setReady
+        );
     }
 
     private void updateInputModeUi() {
-        inputLabel.setText(isCarrierMoveMode() ? "Carrier Move ID:" : "Shipment ID:");
         preparedJob = null;
         preparedCarrierJob = null;
         resetPreviewLabelSelection();
-        shipmentArea.setText("");
-        shipmentPreviewPanel.removeAll();
-        shipmentPreviewPanel.add(shipmentArea);
-        shipmentPreviewPanel.revalidate();
-        shipmentPreviewPanel.repaint();
-        mathArea.setText("");
-        printButton.setEnabled(false);
+        previewShellSupport.applyInputModeUi(
+                inputLabel,
+                isCarrierMoveMode(),
+                shipmentPreviewPanel,
+                shipmentArea,
+                mathArea,
+                printButton
+        );
     }
 
     private boolean isCarrierMoveMode() {
         return carrierMoveModeButton.isSelected();
     }
 
-    private void updatePrintButtonEnabled(PreviewSelectionSnapshot selection) {
-        if (preparedCarrierJob != null && isCarrierMoveMode()) {
-            printButton.setEnabled(!selection.selectedCarrierLabels().isEmpty());
+    private void updatePrintButtonEnabled(PreviewSelectionSupport.SelectionSnapshot selection) {
+        printButton.setEnabled(previewSelectionUiSupport.shouldEnablePrint(
+                isCarrierMoveMode(),
+                preparedCarrierJob != null,
+                preparedJob != null,
+                selection.selectedCarrierLabels().size(),
+                selection.selectedShipmentLpns().size()
+        ));
+        showLabelsButton.setEnabled(printButton.isEnabled());
+    }
+
+    private void openGeneratedLabelPreview() {
+        try {
+            PreviewSelectionSupport.SelectionSnapshot selection = snapshotPreviewSelection();
+            List<GuiZplPreviewSupport.PreviewDocument> documents = buildGeneratedLabelPreviewDocuments(selection);
+            if (documents.isEmpty()) {
+                showError("Preview at least one label before opening the ZPL preview.");
+                return;
+            }
+            generatedLabelsPreviewDialog = ensureGeneratedLabelsPreviewDialog();
+            generatedLabelsPreviewDialog.setPreviewDocuments(generatedLabelPreviewTitle(), documents);
+            generatedLabelsPreviewDialog.setVisible(true);
+            generatedLabelsPreviewDialog.toFront();
+        } catch (Exception ex) {
+            showError("Could not open label preview: " + rootMessage(ex));
+        }
+    }
+
+    private void refreshGeneratedLabelPreviewDialog(PreviewSelectionSupport.SelectionSnapshot selection) {
+        if (generatedLabelsPreviewDialog == null || !generatedLabelsPreviewDialog.isDisplayable() || !generatedLabelsPreviewDialog.isVisible()) {
             return;
         }
-        printButton.setEnabled(preparedJob != null && !selection.selectedShipmentLpns().isEmpty() && !isCarrierMoveMode());
+        try {
+            List<GuiZplPreviewSupport.PreviewDocument> documents = buildGeneratedLabelPreviewDocuments(selection);
+            if (documents.isEmpty()) {
+                generatedLabelsPreviewDialog.clearPreviewDocuments();
+                generatedLabelsPreviewDialog.setTitle(generatedLabelPreviewTitle());
+                return;
+            }
+            generatedLabelsPreviewDialog.setPreviewDocuments(generatedLabelPreviewTitle(), documents);
+        } catch (Exception ex) {
+            generatedLabelsPreviewDialog.clearPreviewDocuments();
+        }
+    }
+
+    private List<GuiZplPreviewSupport.PreviewDocument> buildGeneratedLabelPreviewDocuments(
+            PreviewSelectionSupport.SelectionSnapshot selection
+    ) {
+        return isCarrierMoveMode()
+                ? zplPreviewSupport.buildCarrierMoveDocuments(
+                Objects.requireNonNull(preparedCarrierJob, "preparedCarrierJob"),
+                selection.selectedCarrierLabels(),
+                includeInfoTagsCheckBox.isSelected()
+        )
+                : zplPreviewSupport.buildShipmentDocuments(
+                Objects.requireNonNull(preparedJob, "preparedJob"),
+                selection.selectedShipmentLpns(),
+                includeInfoTagsCheckBox.isSelected()
+        );
+    }
+
+    private String generatedLabelPreviewTitle() {
+        return isCarrierMoveMode()
+                ? "Carrier Move Label Preview"
+                : "Shipment Label Preview";
+    }
+
+    private ZplPreviewToolDialog ensureGeneratedLabelsPreviewDialog() {
+        if (generatedLabelsPreviewDialog == null || !generatedLabelsPreviewDialog.isDisplayable()) {
+            generatedLabelsPreviewDialog = new ZplPreviewToolDialog(this);
+        }
+        return generatedLabelsPreviewDialog;
+    }
+
+    private void clearGeneratedLabelPreviewDialog() {
+        if (generatedLabelsPreviewDialog == null || !generatedLabelsPreviewDialog.isDisplayable()) {
+            return;
+        }
+        generatedLabelsPreviewDialog.clearPreviewDocuments();
+        generatedLabelsPreviewDialog.setTitle(generatedLabelPreviewTitle());
     }
 
     private void openQueueDialog() {
-        JDialog dialog = new JDialog(this, "Queue Print", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        dialog.setLayout(new BorderLayout(8, 8));
-
-        JTextArea inputArea = new JTextArea(12, 72);
-        inputArea.setLineWrap(false);
-        installTerminalLikeMouseClipboardBehavior(inputArea);
-
-        JComboBox<String> defaultType = new JComboBox<>(new String[]{"Carrier Move ID", "Shipment ID"});
-        JLabel hint = new JLabel("Use prefixes for mixed queue: C:<cmid> or S:<shipment>. One item per line.");
-
-        JTextArea previewArea = new JTextArea(14, 72);
-        previewArea.setEditable(false);
-        previewArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-
-        JPanel top = new JPanel(new BorderLayout(4, 4));
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        controls.add(new JLabel("Default Type:"));
-        controls.add(defaultType);
-        top.add(controls, BorderLayout.NORTH);
-        top.add(new JScrollPane(inputArea), BorderLayout.CENTER);
-        top.add(hint, BorderLayout.SOUTH);
-
-        JButton previewBtn = new JButton("Preview Queue");
-        JButton printBtn = new JButton("Print Queue");
-        JButton closeBtn = new JButton("Close");
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttons.add(previewBtn);
-        buttons.add(printBtn);
-        buttons.add(closeBtn);
-
-        final AdvancedPrintWorkflowService.PreparedQueueJob[] prepared = new AdvancedPrintWorkflowService.PreparedQueueJob[1];
-
-        previewBtn.addActionListener(e -> {
-            try {
-                List<AdvancedPrintWorkflowService.QueueRequestItem> requests =
-                        QueueInputParser.parse(
-                                inputArea.getText(),
-                                defaultType.getSelectedIndex() == 0
-                                        ? AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE
-                                        : AdvancedPrintWorkflowService.QueueItemType.SHIPMENT,
-                                MAX_QUEUE_ITEMS);
-                prepared[0] = advancedService.prepareQueue(requests);
-                previewArea.setText(previewFormatter.buildQueuePreview(prepared[0]));
-            } catch (Exception ex) {
-                showError(rootMessage(ex));
-            }
-        });
-
-        printBtn.addActionListener(e -> {
-            if (prepared[0] == null) {
-                showError("Preview queue first.");
-                return;
-            }
-            LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-            boolean printToFile = isPrintToFileSelected(selected);
-            String printerId = printToFile ? null : (selected == null ? null : selected.getId());
-            try {
-                AdvancedPrintWorkflowService.QueuePrintResult result = advancedService.printQueue(prepared[0], printerId, printToFile);
-                JOptionPane.showMessageDialog(dialog,
-                        "Queue complete.\nLabels: " + result.getTotalLabelsPrinted() +
-                                "\nInfo Tags: " + result.getTotalInfoTagsPrinted(),
-                        "Queue Complete",
-                        JOptionPane.INFORMATION_MESSAGE);
-                dialog.dispose();
-            } catch (Exception ex) {
-                showError("Queue print failed: " + rootMessage(ex));
-            }
-        });
-
-        closeBtn.addActionListener(e -> dialog.dispose());
-
-        dialog.add(top, BorderLayout.NORTH);
-        dialog.add(new JScrollPane(previewArea), BorderLayout.CENTER);
-        dialog.add(buttons, BorderLayout.SOUTH);
-        dialog.pack();
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
+        queueResumeDialogSupport.openQueueDialog();
     }
 
     private void openResumeDialog() {
-        try {
-            List<AdvancedPrintWorkflowService.ResumeCandidate> candidates = advancedService.listIncompleteJobs();
-            if (candidates.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No incomplete jobs found.", "Resume Job", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-
-            String[] options = new String[candidates.size()];
-            for (int i = 0; i < candidates.size(); i++) {
-                AdvancedPrintWorkflowService.ResumeCandidate c = candidates.get(i);
-                options[i] = c.mode() + " " + c.sourceId() + " | progress " + c.nextTaskIndex() + "/" + c.totalTasks();
-            }
-            String selected = (String) JOptionPane.showInputDialog(
-                    this,
-                    "Select a job to resume (safe mode reprints last successful label/tag):",
-                    "Resume Incomplete Job",
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    options,
-                    options[0]
-            );
-            if (selected == null) {
-                return;
-            }
-            int index = -1;
-            for (int i = 0; i < options.length; i++) {
-                if (Objects.equals(options[i], selected)) {
-                    index = i;
-                    break;
-                }
-            }
-            if (index < 0) {
-                return;
-            }
-            AdvancedPrintWorkflowService.PrintResult result = advancedService.resumeJob(candidates.get(index).checkpointId());
-            JOptionPane.showMessageDialog(this,
-                    "Resume complete.\nLabels: " + result.getLabelsPrinted() +
-                            "\nInfo Tags: " + result.getInfoTagsPrinted() +
-                            "\nOutput: " + result.getOutputDirectory(),
-                    "Resume Complete",
-                    JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception ex) {
-            showError("Resume failed: " + rootMessage(ex));
-        }
+        queueResumeDialogSupport.openResumeDialog();
     }
 
     private void openRailLabelsDialog() {
@@ -1252,30 +972,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void autoResumeIfFound() {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                List<AdvancedPrintWorkflowService.ResumeCandidate> candidates = advancedService.listIncompleteJobs();
-                if (candidates.isEmpty()) {
-                    return;
-                }
-                AdvancedPrintWorkflowService.ResumeCandidate latest = candidates.get(0);
-                int choice = JOptionPane.showConfirmDialog(
-                        this,
-                        "Found incomplete job (" + latest.mode() + " " + latest.sourceId() + ", " +
-                                latest.nextTaskIndex() + "/" + latest.totalTasks() + ").\nResume now?",
-                        "Incomplete Job Found",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.QUESTION_MESSAGE
-                );
-                if (choice == JOptionPane.YES_OPTION) {
-                    AdvancedPrintWorkflowService.PrintResult result = advancedService.resumeJob(latest.checkpointId());
-                    setReady("Resumed job. Printed " + result.getLabelsPrinted() + " labels and " +
-                            result.getInfoTagsPrinted() + " info tags.");
-                }
-            } catch (Exception ignored) {
-                // Startup should continue even if resume scan fails.
-            }
-        });
+        queueResumeDialogSupport.autoResumeIfFound();
     }
 
     private void applyTopRowSizing() {
@@ -1296,220 +993,134 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private String rootMessage(Throwable throwable) {
-        Throwable cursor = Objects.requireNonNullElse(throwable, new RuntimeException("Unknown error"));
-        while (cursor.getCause() != null) {
-            cursor = cursor.getCause();
-        }
-        String message = cursor.getMessage();
-        return (message == null || message.isBlank()) ? cursor.getClass().getSimpleName() : message;
+        return GuiExceptionMessageSupport.rootMessage(throwable);
     }
 
     private void openBarcodeDialog() {
         barcodeDialogFactory.open(this);
     }
 
-    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildMainPrintTargetModel(boolean includeFileOption) {
-        return buildPrintTargetModel(GuiPrinterTargetSupport.filterLabelScreenPrinters(loadedPrinters), includeFileOption);
-    }
-
-    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption) {
-        return buildPrintTargetModel(loadedPrinters, includeFileOption);
-    }
-
-    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(
-            List<LabelWorkflowService.PrinterOption> printerOptions,
-            boolean includeFileOption
-    ) {
-        DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
-        for (LabelWorkflowService.PrinterOption option : printerOptions) {
-            model.addElement(option);
-        }
-        if (includeFileOption) {
-            model.addElement(GuiPrinterTargetSupport.buildPrintToFileOption(defaultPrintToFileOutputDir()));
-        }
-        return model;
-    }
-
-    private Path defaultPrintToFileOutputDir() {
-        String configured = preferences.get(PREF_PRINT_TO_FILE_DIR, "");
-        if (configured != null && !configured.isBlank()) {
-            try {
-                return Paths.get(configured.trim());
-            } catch (java.nio.file.InvalidPathException ignored) {
-                // Fallback to runtime-derived default if persisted value is invalid.
-            }
-        }
-        return RuntimePathResolver.resolveJarSiblingDir(LabelGuiFrame.class, "out");
-    }
-
-    private void openSettingsDialog() {
-        MainSettingsDialog dialog = new MainSettingsDialog(
-                this,
-                defaultPrintToFileOutputDir(),
-                runtimeSettings.outRetentionDays(OutDirectoryRetentionService.DEFAULT_RETENTION_DAYS),
-                formatUpdateStatus(),
-                this::showError,
-                this::installTerminalLikeMouseClipboardBehavior,
-                this::saveMainSettings,
-                retentionDays -> runOutDirectoryCleanup(this, retentionDays),
-                this::openUpdateManagerDialog,
-                this::openUninstallDialog,
-                () -> openAdvancedSettingsDialog(this)
-        );
+    private void openZplPreviewDialog() {
+        ZplPreviewToolDialog dialog = new ZplPreviewToolDialog(this);
         dialog.setVisible(true);
     }
 
+    private void openAnalyzersDialog() {
+        if (analyzerDialog == null || !analyzerDialog.isDisplayable()) {
+            analyzerDialog = new AnalyzerDialog(
+                    this,
+                    AnalyzerRegistry.defaultRegistry(),
+                    new AnalyzerContext(config, java.time.Clock.systemDefaultZone())
+            );
+        }
+        analyzerDialog.setVisible(true);
+    }
+
+    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildMainPrintTargetModel(boolean includeFileOption) {
+        return settingsDialogSupport.buildMainPrintTargetModel(includeFileOption);
+    }
+
+    private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption) {
+        return settingsDialogSupport.buildPrintTargetModel(includeFileOption);
+    }
+
+    private Path defaultPrintToFileOutputDir() {
+        return settingsDialogSupport.defaultPrintToFileOutputDir();
+    }
+
+    private void openSettingsDialog() {
+        settingsDialogSupport.openSettingsDialog();
+    }
+
     private void restoreSelection(LabelWorkflowService.PrinterOption previousSelection) {
-        if (previousSelection == null) {
-            if (printerCombo.getItemCount() > 0) {
-                printerCombo.setSelectedIndex(0);
-            }
-            return;
-        }
-        for (int i = 0; i < printerCombo.getItemCount(); i++) {
-            LabelWorkflowService.PrinterOption candidate = printerCombo.getItemAt(i);
-            if (Objects.equals(candidate.getId(), previousSelection.getId())) {
-                printerCombo.setSelectedIndex(i);
-                return;
-            }
-        }
-        if (printerCombo.getItemCount() > 0) {
-            printerCombo.setSelectedIndex(0);
-        }
+        framePrinterSelectionSupport.restoreSelection(printerCombo, previousSelection, printerSelectionSupport);
     }
 
     private void installTerminalLikeMouseClipboardBehavior(JTextComponent... fields) {
         clipboardController.install(fields);
     }
 
-    private final class BarcodeDependencies implements BarcodeDialogFactory.Dependencies {
-        @Override
-        public DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildPrintTargetModel(boolean includeFileOption) {
-            return LabelGuiFrame.this.buildPrintTargetModel(includeFileOption);
-        }
-
-        @Override
-        public boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
-            return LabelGuiFrame.isPrintToFileSelected(selected);
-        }
-
-        @Override
-        public Path defaultPrintToFileOutputDir() {
-            return LabelGuiFrame.this.defaultPrintToFileOutputDir();
-        }
-
-        @Override
-        public void installClipboardBehavior(JTextComponent... fields) {
-            LabelGuiFrame.this.installTerminalLikeMouseClipboardBehavior(fields);
-        }
-
-        @Override
-        public void showError(String message) {
-            LabelGuiFrame.this.showError(message);
-        }
-
-        @Override
-        public String rootMessage(Throwable throwable) {
-            return LabelGuiFrame.this.rootMessage(throwable);
-        }
-
-        @Override
-        public PrinterConfig resolvePrinter(String printerId) throws Exception {
-            return service.resolvePrinter(printerId);
-        }
+    private BarcodeDialogFactory.Dependencies buildBarcodeDependencies() {
+        return new LabelGuiFrameBarcodeDependencies(
+                this::buildPrintTargetModel,
+                LabelGuiFrame::isPrintToFileSelected,
+                this::defaultPrintToFileOutputDir,
+                this::installTerminalLikeMouseClipboardBehavior,
+                this::showError,
+                this::rootMessage,
+                service::resolvePrinter,
+                this::printBarcodeZpl
+        );
     }
 
-    private record PreviewSelectionSnapshot(
-            List<PreviewLabelOption> selectedOptions,
-            List<Lpn> selectedShipmentLpns,
-            List<LabelSelectionRef> selectedCarrierLabels,
-            int infoTagCount
-    ) {
-        private PreviewSelectionSnapshot {
-            selectedOptions = List.copyOf(selectedOptions);
-            selectedShipmentLpns = List.copyOf(selectedShipmentLpns);
-            selectedCarrierLabels = List.copyOf(selectedCarrierLabels);
-        }
+    private void printBarcodeZpl(PrinterConfig printerConfig, String zpl) throws Exception {
+        new NetworkPrintService().print(printerConfig, zpl, "barcode");
+    }
 
-        private int selectedLabelCount() {
-            return selectedOptions.size();
-        }
+    private LabelGuiFrameToolMenuSupport.MenuActions buildToolMenuActions() {
+        return new LabelGuiFrameToolMenuActions(
+                this::openRailLabelsDialog,
+                this::openQueueDialog,
+                this::openBarcodeDialog,
+                this::openZplPreviewDialog,
+                this::openAnalyzersDialog,
+                this::openResumeDialog,
+                this::openSettingsDialog
+        );
+    }
 
-        private int totalDocuments() {
-            return selectedLabelCount() + infoTagCount;
-        }
+    private QueueResumeDialogSupport.Dependencies buildQueueResumeDependencies() {
+        return new LabelGuiFrameQueueResumeDependencies(
+                this,
+                advancedService,
+                previewFormatter,
+                () -> (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem(),
+                LabelGuiFrame::isPrintToFileSelected,
+                this::installTerminalLikeMouseClipboardBehavior,
+                this::showError,
+                this::rootMessage,
+                this::setReady
+        );
+    }
+
+    private GuiSettingsDialogSupport.Dependencies buildSettingsDependencies() {
+        return new LabelGuiFrameSettingsDependencies(
+                this,
+                preferences,
+                runtimeSettings,
+                config,
+                () -> loadedPrinters,
+                () -> (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem(),
+                printerCombo::setModel,
+                this::applyTopRowSizing,
+                this::restoreSelection,
+                this::showError,
+                this::installTerminalLikeMouseClipboardBehavior,
+                this::formatUpdateStatus,
+                statusOutput -> checkForUpdatesAsync(true, statusOutput),
+                this::openUninstallDialog,
+                this::setReady,
+                service::clearCaches,
+                advancedService::clearCaches,
+                () -> loadedPrinters = List.of(),
+                this::loadPrintersAsync
+        );
     }
 
     private void saveMainSettings(Path configuredPath, int retentionDays) {
-        preferences.put(PREF_PRINT_TO_FILE_DIR, configuredPath.toString());
-        runtimeSettings.setOutRetentionDays(retentionDays);
-        LabelWorkflowService.PrinterOption previousSelection =
-                (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
-        printerCombo.setModel(buildMainPrintTargetModel(true));
-        applyTopRowSizing();
-        restoreSelection(previousSelection);
-        setReady("Settings saved.");
+        settingsDialogSupport.saveMainSettings(configuredPath, retentionDays);
     }
 
     private void runOutDirectoryCleanup(Component owner, int retentionDays) {
-        OutDirectoryRetentionService.CleanupResult result =
-                new OutDirectoryRetentionService().pruneDefaultOutDirectory(LabelGuiFrame.class);
-        JOptionPane.showMessageDialog(
-                owner,
-                "Cleanup complete.\nDeleted files: " + result.getDeletedFiles()
-                        + "\nDeleted folders: " + result.getDeletedDirectories()
-                        + "\nRetention days: " + retentionDays
-                        + "\nRoot: " + result.getRootDir(),
-                "Out Cleanup",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        settingsDialogSupport.runOutDirectoryCleanup(owner, retentionDays);
     }
 
     private void openAdvancedSettingsDialog(Component owner) {
-        AdvancedSettingsDialog dialog = new AdvancedSettingsDialog(
-                this,
-                config,
-                this::reloadRuntimeConfigArtifacts,
-                this::showError,
-                this::installTerminalLikeMouseClipboardBehavior
-        );
-        dialog.setLocationRelativeTo(owner);
-        dialog.setVisible(true);
+        settingsDialogSupport.openAdvancedSettingsDialog(owner);
     }
 
     private void reloadRuntimeConfigArtifacts() {
-        service.clearCaches();
-        advancedService.clearCaches();
-        loadedPrinters = List.of();
-        loadPrintersAsync();
-        setReady("Runtime config reloaded.");
+        settingsDialogSupport.reloadRuntimeConfigArtifacts();
     }
 
-    private static final class PreviewLabelOption {
-        private final String labelText;
-        private final Lpn lpn;
-        private final LabelSelectionRef carrierMoveSelection;
-
-        private PreviewLabelOption(
-                String labelText,
-                Lpn lpn,
-                LabelSelectionRef carrierMoveSelection
-        ) {
-            this.labelText = Objects.requireNonNull(labelText, "labelText");
-            this.lpn = lpn;
-            this.carrierMoveSelection = carrierMoveSelection;
-        }
-
-        private String labelText() {
-            return labelText;
-        }
-
-        private Lpn lpn() {
-            return lpn;
-        }
-
-        private LabelSelectionRef carrierMoveSelection() {
-            return carrierMoveSelection;
-        }
-    }
 }

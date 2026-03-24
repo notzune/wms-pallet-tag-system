@@ -8,17 +8,17 @@ import com.tbg.wms.core.barcode.BarcodeZplBuilder;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.BarcodeRequest;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.Orientation;
 import com.tbg.wms.core.barcode.BarcodeZplBuilder.Symbology;
-import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -38,10 +38,22 @@ final class BarcodeDialogFactory {
     private static final int BARCODE_DEFAULT_MODULE_WIDTH = 3;
     private static final int BARCODE_DEFAULT_MODULE_RATIO = 3;
     private static final int BARCODE_DEFAULT_HEIGHT = 220;
+    private static final int PREVIEW_SYNC_DEBOUNCE_MS = 350;
     private final Dependencies dependencies;
+    private final BarcodeDialogExecutionSupport executionSupport;
+    private final BarcodeDialogFormSupport formSupport = new BarcodeDialogFormSupport();
+    private final BarcodeDialogActionSupport actionSupport;
+    private final UtilityKeyboardPalette utilityKeyboardPalette;
 
     BarcodeDialogFactory(Dependencies dependencies) {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies cannot be null");
+        this.executionSupport = new BarcodeDialogExecutionSupport(
+                dependencies.defaultPrintToFileOutputDir(),
+                OUTPUT_TS,
+                MAX_SLUG_LENGTH
+        );
+        this.actionSupport = new BarcodeDialogActionSupport(dependencies, executionSupport, formSupport);
+        this.utilityKeyboardPalette = new UtilityKeyboardPalette(dependencies::showError);
     }
 
     private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
@@ -95,6 +107,24 @@ final class BarcodeDialogFactory {
 
         JComboBox<LabelWorkflowService.PrinterOption> printerSelect = new JComboBox<>();
         printerSelect.setModel(dependencies.buildPrintTargetModel(true));
+        final ZplPreviewToolDialog[] previewDialogRef = {null};
+        Timer previewSyncTimer = new Timer(PREVIEW_SYNC_DEBOUNCE_MS, e -> refreshBarcodePreviewIfOpen(
+                owner,
+                previewDialogRef,
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        ));
+        previewSyncTimer.setRepeats(false);
 
         int row = 0;
         addFormRow(form, gbc, row++, "Data", dataField);
@@ -103,24 +133,28 @@ final class BarcodeDialogFactory {
         addFormRow(form, gbc, row++, "Scanner Profile", scannerProfile);
         addFormRow(form, gbc, row, "Printer", printerSelect);
 
-        Runnable syncOutputState = () -> {
-            LabelWorkflowService.PrinterOption selected =
-                    (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-            boolean printToFile = dependencies.isPrintToFileSelected(selected);
-            outputDir.setEnabled(printToFile);
-            outputDir.setEditable(printToFile);
-        };
+        Runnable syncOutputState = () -> formSupport.syncOutputState(
+                outputDir,
+                null,
+                dependencies.isPrintToFileSelected((LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem())
+        );
         printerSelect.addActionListener(e -> syncOutputState.run());
         syncOutputState.run();
 
+        JButton keyboardButton = new JButton("Utility Keyboard...");
         JButton advancedButton = new JButton("Advanced Settings...");
+        JButton previewButton = new JButton("Preview");
         JButton generateButton = new JButton("Generate");
         JButton closeButton = new JButton("Close");
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttons.add(keyboardButton);
         buttons.add(advancedButton);
+        buttons.add(previewButton);
         buttons.add(generateButton);
         buttons.add(closeButton);
+
+        keyboardButton.addActionListener(e -> utilityKeyboardPalette.toggle(owner));
 
         advancedButton.addActionListener(e -> openAdvancedSettingsDialog(
                 dialog,
@@ -135,6 +169,23 @@ final class BarcodeDialogFactory {
                 barcodeHeight,
                 humanReadable,
                 outputDir
+        ));
+
+        previewButton.addActionListener(e -> previewDialogRef[0] = ensureBarcodePreviewDialog(
+                owner,
+                previewDialogRef[0],
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
         ));
 
         generateButton.addActionListener(e -> generateBarcode(
@@ -156,11 +207,165 @@ final class BarcodeDialogFactory {
         ));
 
         closeButton.addActionListener(e -> dialog.dispose());
+        installPreviewSync(
+                previewSyncTimer,
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        );
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                previewSyncTimer.stop();
+                if (previewDialogRef[0] != null && previewDialogRef[0].isDisplayable()) {
+                    previewDialogRef[0].dispose();
+                }
+            }
+        });
         dialog.add(form, BorderLayout.CENTER);
         dialog.add(buttons, BorderLayout.SOUTH);
         dialog.pack();
         dialog.setLocationRelativeTo(owner);
         dialog.setVisible(true);
+    }
+
+    private void installPreviewSync(
+            Timer previewSyncTimer,
+            JTextField dataField,
+            JComboBox<Symbology> typeCombo,
+            JComboBox<Orientation> orientationCombo,
+            JSpinner labelWidth,
+            JSpinner labelHeight,
+            JSpinner originX,
+            JSpinner originY,
+            JSpinner moduleWidth,
+            JSpinner moduleRatio,
+            JSpinner barcodeHeight,
+            JCheckBox humanReadable,
+            JSpinner copies
+    ) {
+        Runnable queueRefresh = previewSyncTimer::restart;
+        DocumentListener documentListener = new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                queueRefresh.run();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                queueRefresh.run();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                queueRefresh.run();
+            }
+        };
+        dataField.getDocument().addDocumentListener(documentListener);
+        typeCombo.addActionListener(e -> queueRefresh.run());
+        orientationCombo.addActionListener(e -> queueRefresh.run());
+        labelWidth.addChangeListener(e -> queueRefresh.run());
+        labelHeight.addChangeListener(e -> queueRefresh.run());
+        originX.addChangeListener(e -> queueRefresh.run());
+        originY.addChangeListener(e -> queueRefresh.run());
+        moduleWidth.addChangeListener(e -> queueRefresh.run());
+        moduleRatio.addChangeListener(e -> queueRefresh.run());
+        barcodeHeight.addChangeListener(e -> queueRefresh.run());
+        humanReadable.addActionListener(e -> queueRefresh.run());
+        copies.addChangeListener(e -> queueRefresh.run());
+    }
+
+    private void refreshBarcodePreviewIfOpen(
+            JFrame owner,
+            ZplPreviewToolDialog[] previewDialogRef,
+            JTextField dataField,
+            JComboBox<Symbology> typeCombo,
+            JComboBox<Orientation> orientationCombo,
+            JSpinner labelWidth,
+            JSpinner labelHeight,
+            JSpinner originX,
+            JSpinner originY,
+            JSpinner moduleWidth,
+            JSpinner moduleRatio,
+            JSpinner barcodeHeight,
+            JCheckBox humanReadable,
+            JSpinner copies
+    ) {
+        ZplPreviewToolDialog previewDialog = previewDialogRef[0];
+        if (previewDialog == null || !previewDialog.isDisplayable() || !previewDialog.isVisible()) {
+            return;
+        }
+        try {
+            previewDialog.setPreviewDocuments(
+                    "Barcode Preview",
+                    actionSupport.buildPreviewDocuments(
+                            dataField,
+                            typeCombo,
+                            orientationCombo,
+                            labelWidth,
+                            labelHeight,
+                            originX,
+                            originY,
+                            moduleWidth,
+                            moduleRatio,
+                            barcodeHeight,
+                            humanReadable,
+                            copies
+                    )
+            );
+        } catch (IllegalArgumentException ex) {
+            previewDialog.clearPreviewDocuments();
+            previewDialog.setTitle("Barcode Preview");
+        }
+    }
+
+    private ZplPreviewToolDialog ensureBarcodePreviewDialog(
+            JFrame owner,
+            ZplPreviewToolDialog previewDialog,
+            JTextField dataField,
+            JComboBox<Symbology> typeCombo,
+            JComboBox<Orientation> orientationCombo,
+            JSpinner labelWidth,
+            JSpinner labelHeight,
+            JSpinner originX,
+            JSpinner originY,
+            JSpinner moduleWidth,
+            JSpinner moduleRatio,
+            JSpinner barcodeHeight,
+            JCheckBox humanReadable,
+            JSpinner copies
+    ) {
+        List<GuiZplPreviewSupport.PreviewDocument> documents = actionSupport.buildPreviewDocuments(
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies
+        );
+        if (previewDialog == null || !previewDialog.isDisplayable()) {
+            previewDialog = ZplPreviewToolDialog.createWithDocuments(owner, "Barcode Preview", documents);
+        } else {
+            previewDialog.setPreviewDocuments("Barcode Preview", documents);
+        }
+        previewDialog.setVisible(true);
+        previewDialog.toFront();
+        return previewDialog;
     }
 
     private void openAdvancedSettingsDialog(JDialog parent,
@@ -201,13 +406,11 @@ final class BarcodeDialogFactory {
         advancedGbc.gridwidth = 2;
         advancedForm.add(humanReadable, advancedGbc);
 
-        Runnable syncAdvancedOutputState = () -> {
-            LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-            boolean printToFile = dependencies.isPrintToFileSelected(selected);
-            outputDir.setEnabled(printToFile);
-            outputDir.setEditable(printToFile);
-            outputDirLabel.setEnabled(printToFile);
-        };
+        Runnable syncAdvancedOutputState = () -> formSupport.syncOutputState(
+                outputDir,
+                outputDirLabel,
+                dependencies.isPrintToFileSelected((LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem())
+        );
         syncAdvancedOutputState.run();
 
         JPanel advancedButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -237,90 +440,23 @@ final class BarcodeDialogFactory {
                                  JSpinner copies,
                                  JComboBox<LabelWorkflowService.PrinterOption> printerSelect,
                                  JTextField outputDir) {
-        String data = dataField.getText().trim();
-        if (data.isEmpty()) {
-            dependencies.showError("Barcode data is required.");
-            return;
-        }
-
-        BarcodeRequest request = new BarcodeRequest(
-                data,
-                (Symbology) typeCombo.getSelectedItem(),
-                (Orientation) orientationCombo.getSelectedItem(),
-                (int) labelWidth.getValue(),
-                (int) labelHeight.getValue(),
-                (int) originX.getValue(),
-                (int) originY.getValue(),
-                (int) moduleWidth.getValue(),
-                (int) moduleRatio.getValue(),
-                (int) barcodeHeight.getValue(),
-                humanReadable.isSelected(),
-                (int) copies.getValue()
-        );
-
-        String zpl = BarcodeZplBuilder.build(request);
-        LabelWorkflowService.PrinterOption printer = (LabelWorkflowService.PrinterOption) printerSelect.getSelectedItem();
-        boolean printToFile = dependencies.isPrintToFileSelected(printer);
-        Path outputPath = resolveOutputPath(outputDir.getText(), data, printToFile);
-        try {
-            Path parent = outputPath.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-            Files.writeString(outputPath, zpl);
-        } catch (Exception ex) {
-            dependencies.showError("Failed to write ZPL file: " + ex.getMessage());
-            return;
-        }
-
-        if (printToFile) {
-            JOptionPane.showMessageDialog(
-                    dialog,
-                    "ZPL saved to " + outputPath,
-                    "Barcode Generated",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            return;
-        }
-
-        if (printer == null) {
-            dependencies.showError("Select a print target.");
-            return;
-        }
-
-        try {
-            PrinterConfig printerConfig = dependencies.resolvePrinter(printer.getId());
-            if (printerConfig == null) {
-                throw new IllegalArgumentException("Printer not found: " + printer.getId());
-            }
-            new NetworkPrintService().print(printerConfig, zpl, "barcode");
-        } catch (Exception ex) {
-            dependencies.showError("Failed to print barcode: " + dependencies.rootMessage(ex));
-            return;
-        }
-
-        JOptionPane.showMessageDialog(
+        actionSupport.generateBarcode(
                 dialog,
-                "Printed barcode label.\nZPL saved to " + outputPath,
-                "Barcode Printed",
-                JOptionPane.INFORMATION_MESSAGE
+                dataField,
+                typeCombo,
+                orientationCombo,
+                labelWidth,
+                labelHeight,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                humanReadable,
+                copies,
+                printerSelect,
+                outputDir
         );
-    }
-
-    private Path resolveOutputPath(String outputDir, String data, boolean printToFileSelected) {
-        String dir;
-        if (printToFileSelected) {
-            dir = (outputDir == null || outputDir.isBlank())
-                    ? dependencies.defaultPrintToFileOutputDir().toString()
-                    : outputDir.trim();
-        } else {
-            dir = dependencies.defaultPrintToFileOutputDir().toString();
-        }
-        Path outputPath = Paths.get(dir);
-        String fileName = String.format("barcode-%s-%s.zpl",
-                OUTPUT_TS.format(LocalDateTime.now()),
-                ArtifactNameSupport.safeSlug(data, "data", MAX_SLUG_LENGTH));
-        return outputPath.resolve(fileName);
     }
 
     /**
@@ -363,5 +499,10 @@ final class BarcodeDialogFactory {
          * Resolves a printer configuration by ID.
          */
         PrinterConfig resolvePrinter(String printerId) throws Exception;
+
+        /**
+         * Sends barcode ZPL to the resolved printer.
+         */
+        void printBarcode(PrinterConfig printerConfig, String zpl) throws Exception;
     }
 }

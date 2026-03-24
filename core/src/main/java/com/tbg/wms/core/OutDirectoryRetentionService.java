@@ -34,6 +34,14 @@ public final class OutDirectoryRetentionService {
     public CleanupResult pruneDefaultOutDirectory(Class<?> anchorType) {
         Objects.requireNonNull(anchorType, "anchorType cannot be null");
         int retentionDays = runtimeSettings.outRetentionDays(DEFAULT_RETENTION_DAYS);
+        return pruneDefaultOutDirectory(anchorType, retentionDays);
+    }
+
+    public CleanupResult pruneDefaultOutDirectory(Class<?> anchorType, int retentionDays) {
+        Objects.requireNonNull(anchorType, "anchorType cannot be null");
+        if (retentionDays <= 0) {
+            throw new IllegalArgumentException("retentionDays must be positive");
+        }
         return prune(RuntimePathResolver.resolveJarSiblingDir(anchorType, "out"), Duration.ofDays(retentionDays));
     }
 

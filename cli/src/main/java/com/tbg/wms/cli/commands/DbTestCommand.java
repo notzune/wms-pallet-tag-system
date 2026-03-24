@@ -49,6 +49,7 @@ public final class DbTestCommand implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(DbTestCommand.class);
     private static final int JOB_ID_LENGTH = 8;
+    private final CliConfigTextSupport configTextSupport = new CliConfigTextSupport();
 
     /**
      * Runs connectivity diagnostics for the active DB configuration.
@@ -73,8 +74,7 @@ public final class DbTestCommand implements Callable<Integer> {
 
             log.info("Starting database connectivity test");
 
-            printHeader();
-            printConfiguration(config, site);
+            System.out.print(configTextSupport.buildDbTestConfiguration(configTextSupport.snapshot(config, site)));
 
             // Create connection pool (may fail with configuration errors)
             System.out.println("Attempting to create connection pool...");
@@ -118,37 +118,6 @@ public final class DbTestCommand implements Callable<Integer> {
             MDC.remove("site");
             MDC.remove("env");
         }
-    }
-
-    private void printHeader() {
-        System.out.println();
-        System.out.println("==========================================================");
-        System.out.println("         Database Connectivity Test                       ");
-        System.out.println("==========================================================");
-        System.out.println();
-    }
-
-    private void printConfiguration(AppConfig config, String site) {
-        System.out.println("Configuration:");
-        System.out.println("  Active Site:     " + site + " (" + config.siteName(site) + ")");
-        System.out.println("  WMS Environment: " + config.wmsEnvironment());
-        System.out.println("  Database Host:   " + config.siteHost(site));
-        System.out.println("  Database Port:   " + config.oraclePort());
-        System.out.println("  Service Name:    " + config.oracleService());
-        System.out.println("  Username:        " + config.oracleUsername());
-        System.out.println("  JDBC URL:        " + config.oracleJdbcUrl());
-        System.out.println("  ODBC/TNS Alias:  " + valueOrDash(config.oracleOdbcDsnOrNull()));
-        System.out.println("  JDBC Candidates: " + String.join(" | ", config.oracleJdbcUrlCandidates()));
-        System.out.println();
-        System.out.println("Pool Configuration:");
-        System.out.println("  Max Size:        " + config.dbPoolMaxSize());
-        System.out.println("  Connect Timeout: " + config.dbPoolConnectionTimeoutMs() + " ms");
-        System.out.println("  Validation Timeout: " + config.dbPoolValidationTimeoutMs() + " ms");
-        System.out.println();
-    }
-
-    private String valueOrDash(String value) {
-        return (value == null || value.isBlank()) ? "-" : value;
     }
 
     private void printSuccess(DbConnectivityDiagnostics diag, String activeJdbcUrl) {

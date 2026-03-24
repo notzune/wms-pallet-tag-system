@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Resolves and validates configuration file locations.
@@ -42,7 +43,15 @@ final class ConfigFileLocator {
     }
 
     static Path discoverConfigFile(String defaultFileName, Class<?> anchorClass) {
+        return discoverConfigFile(defaultFileName, anchorClass, System.getenv());
+    }
+
+    static Path discoverConfigFile(String defaultFileName, Class<?> anchorClass, Map<String, String> envVars) {
         List<Path> candidates = new ArrayList<>();
+        Path perUserConfig = resolvePerUserConfig(defaultFileName, envVars);
+        if (perUserConfig != null) {
+            candidates.add(perUserConfig);
+        }
         candidates.add(Paths.get(defaultFileName));
         candidates.add(Paths.get(".env"));
         candidates.add(Paths.get("config", defaultFileName));
@@ -66,6 +75,20 @@ final class ConfigFileLocator {
             }
         }
         return null;
+    }
+
+    private static Path resolvePerUserConfig(String defaultFileName, Map<String, String> envVars) {
+        if (envVars == null) {
+            return null;
+        }
+        String localAppData = envVars.getOrDefault("LOCALAPPDATA", "").trim();
+        if (localAppData.isEmpty()) {
+            return null;
+        }
+        return Paths.get(localAppData)
+                .resolve("Tropicana")
+                .resolve("WMS-Pallet-Tag-System")
+                .resolve(defaultFileName);
     }
 
     private static Path resolveExecutableDirectory(Class<?> anchorClass) {

@@ -34,80 +34,28 @@ final class PrintTaskPlanner {
      * canonical label order.
      */
     static List<Lpn> filterLpnsForPrint(List<Lpn> availableLpns, List<Lpn> selectedLpns) {
-        Objects.requireNonNull(availableLpns, "availableLpns cannot be null");
-        Objects.requireNonNull(selectedLpns, "selectedLpns cannot be null");
-
-        if (selectedLpns.isEmpty()) {
-            throw new IllegalArgumentException("Select at least one label to print.");
-        }
-
-        LinkedHashSet<String> selectedIds = new LinkedHashSet<>();
-        for (Lpn lpn : selectedLpns) {
-            if (lpn != null && lpn.getLpnId() != null) {
-                selectedIds.add(lpn.getLpnId());
-            }
-        }
-        if (selectedIds.isEmpty()) {
-            throw new IllegalArgumentException("Select at least one label to print.");
-        }
-
-        List<Lpn> filtered = new ArrayList<>(selectedIds.size());
-        for (Lpn lpn : availableLpns) {
-            if (lpn != null && selectedIds.contains(lpn.getLpnId())) {
-                filtered.add(lpn);
-            }
-        }
-        if (filtered.isEmpty()) {
-            throw new IllegalArgumentException("Selected labels are no longer available for printing.");
-        }
-        return filtered;
+        return PrintTaskSelectionSupport.filterLpnsForPrint(availableLpns, selectedLpns);
     }
 
     /**
      * Builds the default select-all carrier-move selection set in preview order.
      */
     static List<LabelSelectionRef> collectAllCarrierMoveLabelSelections(AdvancedPrintWorkflowService.PreparedCarrierMoveJob job) {
-        Objects.requireNonNull(job, "job cannot be null");
-        List<LabelSelectionRef> selected = new ArrayList<>();
-        for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
-            for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
-                    if (lpn != null && lpn.getLpnId() != null) {
-                        selected.add(LabelSelectionRef.forCarrierMove(
-                                selected.size() + 1,
-                                shipmentJob.getShipmentId(),
-                                lpn.getLpnId(),
-                                stop.getStopPosition()
-                        ));
-                    }
-                }
-            }
-        }
-        return selected;
+        return PrintTaskSelectionSupport.collectAllCarrierMoveLabelSelections(job);
     }
 
     /**
      * Shipment jobs emit one info tag only when at least one label remains selected.
      */
     static int countShipmentInfoTags(int selectedLabels, boolean includeInfoTags) {
-        return includeInfoTags && selectedLabels > 0 ? 1 : 0;
+        return PrintTaskSelectionSupport.countShipmentInfoTags(selectedLabels, includeInfoTags);
     }
 
     /**
      * Carrier moves emit one stop info tag per selected stop plus one final summary tag.
      */
     static int countCarrierMoveInfoTags(List<LabelSelectionRef> selectedLabels, boolean includeInfoTags) {
-        Objects.requireNonNull(selectedLabels, "selectedLabels cannot be null");
-        if (!includeInfoTags || selectedLabels.isEmpty()) {
-            return 0;
-        }
-        LinkedHashSet<Integer> distinctStops = new LinkedHashSet<>();
-        for (LabelSelectionRef selectedLabel : selectedLabels) {
-            if (selectedLabel != null && selectedLabel.getStopPosition() != null) {
-                distinctStops.add(selectedLabel.getStopPosition());
-            }
-        }
-        return distinctStops.isEmpty() ? 0 : distinctStops.size() + 1;
+        return PrintTaskSelectionSupport.countCarrierMoveInfoTags(selectedLabels, includeInfoTags);
     }
 
     static List<AdvancedPrintWorkflowService.PrintTask> buildShipmentTasks(ShipmentPrintBatch batch) {
@@ -115,13 +63,15 @@ final class PrintTaskPlanner {
         LabelWorkflowService.PreparedJob job = batch.getShipmentJob();
         List<Lpn> lpnsToPrint = batch.getLpnsToPrint();
         LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
-        List<AdvancedPrintWorkflowService.PrintTask> tasks = new ArrayList<>();
         Shipment shipmentForLabels = LabelingSupport.buildShipmentForLabeling(job.getShipment(), lpnsToPrint);
         int labelCount = lpnsToPrint.size();
         if (labelCount > MAX_LABELS_PER_JOB) {
             throw new IllegalArgumentException("Label count exceeds max limit: " + MAX_LABELS_PER_JOB);
         }
+        List<AdvancedPrintWorkflowService.PrintTask> tasks =
+                new ArrayList<>(labelCount + (batch.isIncludeShipmentInfoTag() ? 1 : 0));
         String safeShipmentId = ArtifactNameSupport.safeSlug(job.getShipmentId(), "shipment", MAX_ARTIFACT_SLUG_LENGTH);
+        String stopSuffix = batch.getStopPosition() == null ? "" : (" stop " + batch.getStopPosition());
         for (int i = 0; i < labelCount; i++) {
             Lpn lpn = lpnsToPrint.get(i);
             Map<String, String> data = new LinkedHashMap<>(builder.build(shipmentForLabels, lpn, i, LabelType.WALMART_CANADA_GRID));
@@ -135,8 +85,7 @@ final class PrintTaskPlanner {
             String zpl = ZplTemplateEngine.generate(job.getTemplate(), data);
             String safeLpnId = ArtifactNameSupport.safeSlug(lpn.getLpnId(), "lpn", MAX_ARTIFACT_SLUG_LENGTH);
             String fileName = String.format("%s_%s_%d_of_%d.zpl", safeShipmentId, safeLpnId, i + 1, labelCount);
-            String payload = job.getShipmentId() + ":" + lpn.getLpnId()
-                    + (batch.getStopPosition() == null ? "" : (" stop " + batch.getStopPosition()));
+            String payload = job.getShipmentId() + ":" + lpn.getLpnId() + stopSuffix;
             tasks.add(new AdvancedPrintWorkflowService.PrintTask(
                     AdvancedPrintWorkflowService.TaskKind.PALLET_LABEL,
                     fileName,
@@ -165,12 +114,14 @@ final class PrintTaskPlanner {
     ) {
         Objects.requireNonNull(job, "job cannot be null");
         Objects.requireNonNull(selectedLabels, "selectedLabels cannot be null");
-        Map<String, LinkedHashSet<String>> selectedLpnsByShipment = indexCarrierMoveSelections(selectedLabels);
+        Map<String, LinkedHashSet<String>> selectedLpnsByShipment =
+                PrintTaskSelectionSupport.indexCarrierMoveSelections(selectedLabels);
         if (selectedLpnsByShipment.isEmpty()) {
             throw new IllegalArgumentException("Select at least one label to print.");
         }
         List<CarrierMoveStopBatch> stopBatches = buildCarrierMoveStopBatches(job, selectedLpnsByShipment);
-        List<AdvancedPrintWorkflowService.PrintTask> tasks = new ArrayList<>();
+        List<AdvancedPrintWorkflowService.PrintTask> tasks =
+                new ArrayList<>(estimateCarrierMoveTaskCount(stopBatches, includeInfoTags));
         for (CarrierMoveStopBatch stopBatch : stopBatches) {
             for (ShipmentPrintBatch shipmentBatch : stopBatch.getShipmentBatches()) {
                 tasks.addAll(buildShipmentTasks(shipmentBatch));
@@ -195,6 +146,22 @@ final class PrintTaskPlanner {
         return tasks;
     }
 
+    private static int estimateCarrierMoveTaskCount(List<CarrierMoveStopBatch> stopBatches, boolean includeInfoTags) {
+        int total = includeInfoTags && !stopBatches.isEmpty() ? 1 : 0;
+        for (CarrierMoveStopBatch stopBatch : stopBatches) {
+            if (includeInfoTags) {
+                total += 1;
+            }
+            for (ShipmentPrintBatch shipmentBatch : stopBatch.getShipmentBatches()) {
+                total += shipmentBatch.getLpnsToPrint().size();
+                if (shipmentBatch.isIncludeShipmentInfoTag()) {
+                    total += 1;
+                }
+            }
+        }
+        return total;
+    }
+
     private static List<CarrierMoveStopBatch> buildCarrierMoveStopBatches(
             AdvancedPrintWorkflowService.PreparedCarrierMoveJob job,
             Map<String, LinkedHashSet<String>> selectedLpnsByShipment
@@ -204,7 +171,8 @@ final class PrintTaskPlanner {
         for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
             List<ShipmentPrintBatch> shipmentBatches = new ArrayList<>(stop.getShipmentJobs().size());
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
-                List<Lpn> selectedLpns = filterCarrierMoveShipmentLpns(shipmentJob, selectedLpnsByShipment);
+                List<Lpn> selectedLpns =
+                        PrintTaskSelectionSupport.filterCarrierMoveShipmentLpns(shipmentJob, selectedLpnsByShipment);
                 if (selectedLpns.isEmpty()) {
                     continue;
                 }
@@ -251,37 +219,6 @@ final class PrintTaskPlanner {
                 stopInfo,
                 "INFO-STOP " + stopBatch.getStop().getStopPosition()
         );
-    }
-
-    private static Map<String, LinkedHashSet<String>> indexCarrierMoveSelections(List<LabelSelectionRef> selectedLabels) {
-        Map<String, LinkedHashSet<String>> selectedLpnsByShipment = new LinkedHashMap<>();
-        for (LabelSelectionRef selection : selectedLabels) {
-            if (selection == null || selection.getShipmentId() == null || selection.getShipmentId().isBlank()
-                    || selection.getLpnId() == null || selection.getLpnId().isBlank()) {
-                continue;
-            }
-            selectedLpnsByShipment
-                    .computeIfAbsent(selection.getShipmentId(), ignored -> new LinkedHashSet<>())
-                    .add(selection.getLpnId());
-        }
-        return selectedLpnsByShipment;
-    }
-
-    private static List<Lpn> filterCarrierMoveShipmentLpns(
-            LabelWorkflowService.PreparedJob shipmentJob,
-            Map<String, LinkedHashSet<String>> selectedLpnsByShipment
-    ) {
-        LinkedHashSet<String> selectedIds = selectedLpnsByShipment.get(shipmentJob.getShipmentId());
-        if (selectedIds == null || selectedIds.isEmpty()) {
-            return List.of();
-        }
-        List<Lpn> selectedLpns = new ArrayList<>(selectedIds.size());
-        for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
-            if (lpn != null && selectedIds.contains(lpn.getLpnId())) {
-                selectedLpns.add(lpn);
-            }
-        }
-        return selectedLpns;
     }
 
     static final class ShipmentPrintBatch {

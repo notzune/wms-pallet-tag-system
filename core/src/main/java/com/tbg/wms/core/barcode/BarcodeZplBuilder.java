@@ -15,6 +15,13 @@ import java.util.Objects;
  */
 public final class BarcodeZplBuilder {
 
+    private static final int ESTIMATED_CODE128_START_STOP_MODULES = 35;
+    private static final int ESTIMATED_CODE128_MODULES_PER_CHAR = 11;
+    private static final int ESTIMATED_CODE128_QUIET_ZONE_MODULES = 20;
+    private static final int HUMAN_READABLE_TEXT_HEIGHT_DOTS = 36;
+    private static final int HUMAN_READABLE_TEXT_GAP_DOTS = 12;
+    private static final int CENTER_UPWARD_BIAS_DOTS = 36;
+
     private BarcodeZplBuilder() {
     }
 
@@ -30,6 +37,7 @@ public final class BarcodeZplBuilder {
     public static String build(BarcodeRequest request) {
         Objects.requireNonNull(request, "request cannot be null");
         boolean landscape = request.getOrientation() == Orientation.LANDSCAPE;
+        Placement placement = computePlacement(request, landscape);
 
         StringBuilder zpl = new StringBuilder(256);
         zpl.append("^XA\n");
@@ -45,9 +53,9 @@ public final class BarcodeZplBuilder {
                 .append(request.getBarcodeHeight())
                 .append('\n');
         zpl.append("^FO")
-                .append(request.getOriginX())
+                .append(placement.originX())
                 .append(',')
-                .append(request.getOriginY())
+                .append(placement.originY())
                 .append('\n');
         zpl.append("^BC")
                 .append(landscape ? "R" : "N")
@@ -67,6 +75,49 @@ public final class BarcodeZplBuilder {
         }
         zpl.append("^XZ\n");
         return zpl.toString();
+    }
+
+    private static Placement computePlacement(BarcodeRequest request, boolean landscape) {
+        int estimatedBarcodeWidth = estimateBarcodeWidthDots(request);
+        int textHeight = request.isHumanReadable() ? HUMAN_READABLE_TEXT_HEIGHT_DOTS + HUMAN_READABLE_TEXT_GAP_DOTS : 0;
+        int blockWidth = estimatedBarcodeWidth;
+        int blockHeight = request.getBarcodeHeight() + textHeight;
+        if (landscape) {
+            int rotatedWidth = blockHeight;
+            int rotatedHeight = blockWidth;
+            blockWidth = rotatedWidth;
+            blockHeight = rotatedHeight;
+        }
+
+        int centeredX = centerWithinSafeArea(
+                request.getLabelWidthDots(),
+                request.getOriginX(),
+                blockWidth,
+                0
+        );
+        int centeredY = centerWithinSafeArea(
+                request.getLabelHeightDots(),
+                request.getOriginY(),
+                blockHeight,
+                CENTER_UPWARD_BIAS_DOTS
+        );
+        return new Placement(centeredX, centeredY);
+    }
+
+    private static int estimateBarcodeWidthDots(BarcodeRequest request) {
+        int charCount = request.getData().length();
+        int moduleCount = ESTIMATED_CODE128_START_STOP_MODULES
+                + ESTIMATED_CODE128_QUIET_ZONE_MODULES
+                + (charCount * ESTIMATED_CODE128_MODULES_PER_CHAR);
+        return moduleCount * request.getModuleWidth();
+    }
+
+    private static int centerWithinSafeArea(int labelSize, int safeMargin, int blockSize, int leadingBias) {
+        int safeAreaSize = Math.max(0, labelSize - (safeMargin * 2));
+        int centeredOffset = Math.max(0, (safeAreaSize - blockSize) / 2);
+        int biasedOrigin = safeMargin + centeredOffset - leadingBias;
+        int maxOrigin = Math.max(safeMargin, labelSize - safeMargin - blockSize);
+        return Math.max(safeMargin, Math.min(biasedOrigin, maxOrigin));
     }
 
     private static String escapeZpl(String value) {
@@ -204,5 +255,8 @@ public final class BarcodeZplBuilder {
         public int getCopies() {
             return copies;
         }
+    }
+
+    private record Placement(int originX, int originY) {
     }
 }

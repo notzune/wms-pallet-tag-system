@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "description": "Shared release smoke scenarios for repo and packaged execution targets.",
+  "scenarios": [
+    {
+      "name": "config",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "config",
+      "expectedExitCode": 0,
+      "expectedArtifacts": []
+    },
+    {
+      "name": "db-test",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "db-test",
+      "expectedExitCode": 0,
+      "expectedArtifacts": []
+    },
+    {
+      "name": "shipment-print-to-file",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "run --shipment-id {shipmentId} --print-to-file --output-dir {outputDir}",
+      "expectedExitCode": 0,
+      "expectedArtifacts": ["*.zpl"]
+    },
+    {
+      "name": "carrier-move-print-to-file",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "run --carrier-move-id {carrierMoveId} --print-to-file --output-dir {outputDir}",
+      "expectedExitCode": 0,
+      "expectedArtifacts": ["*.zpl"]
+    },
+    {
+      "name": "barcode-generate-to-file",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "barcode --data GUI-BARCODE-123 --dry-run --output-dir {outputDir}",
+      "expectedExitCode": 0,
+      "expectedArtifacts": ["*.zpl"]
+    },
+    {
+      "name": "rail-template",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "rail-print --template --output-dir {outputDir}",
+      "expectedExitCode": 0,
+      "expectedArtifacts": ["*.pdf"]
+    },
+    {
+      "name": "rail-render",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "rail-print --train {trainId} --yes --output-dir {outputDir}",
+      "expectedExitCode": 0,
+      "expectedArtifacts": ["*.pdf"]
+    },
+    {
+      "name": "rail-system-default-validation",
+      "tier": 1,
+      "kind": "command",
+      "modes": ["repo", "packaged"],
+      "command": "rail-print --validate-system-default-print",
+      "expectedExitCode": 0,
+      "expectedArtifacts": []
+    },
+    {
+      "name": "packaged-config-assets",
+      "tier": 1,
+      "kind": "asset-check",
+      "modes": ["packaged"],
+      "command": "config",
+      "expectedExitCode": 0,
+      "expectedArtifacts": [
+        "config\\walmart-sku-matrix.csv",
+        "config\\walm_loc_num_matrix.csv",
+        "config\\TBG3002\\printers.yaml",
+        "config\\TBG3002\\printer-routing.yaml"
+      ]
+    },
+    {
+      "name": "tropicana-config-precedence",
+      "tier": 2,
+      "kind": "config-source",
+      "modes": ["packaged"],
+      "command": "config",
+      "expectedExitCode": 0,
+      "expectedArtifacts": [],
+      "expectedConfigSourcePattern": "Tropicana"
+    },
+    {
+      "name": "tropicana-package-install",
+      "tier": 2,
+      "kind": "tropicana-package-install",
+      "modes": ["packaged"],
+      "releaseOnly": true,
+      "command": "tropicana-package-install",
+      "expectedExitCode": 0,
+      "expectedArtifacts": [],
+      "expectedConfigSourcePattern": "Tropicana"
+    },
+    {
+      "name": "rail-office-printer-reachability",
+      "tier": 2,
+      "kind": "printer-reachability",
+      "modes": ["repo", "packaged"],
+      "command": "printer-reachability",
+      "expectedExitCode": 0,
+      "expectedArtifacts": [],
+      "host": "10.19.64.16",
+      "port": 9100
+    },
+    {
+      "name": "order-pick-printer-reachability",
+      "tier": 2,
+      "kind": "printer-reachability",
+      "modes": ["repo", "packaged"],
+      "command": "printer-reachability",
+      "expectedExitCode": 0,
+      "expectedArtifacts": [],
+      "host": "10.19.64.52",
+      "port": 9100
+    }
+  ]
+}

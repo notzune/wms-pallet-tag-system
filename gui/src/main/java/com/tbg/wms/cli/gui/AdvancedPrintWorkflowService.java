@@ -13,7 +13,6 @@ import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.label.LabelSelectionRef;
 import com.tbg.wms.core.model.CarrierMoveStopRef;
 import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.print.NetworkPrintService;
 import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.db.DbConnectionPool;
 import com.tbg.wms.db.DbQueryRepository;
@@ -36,12 +35,40 @@ public final class AdvancedPrintWorkflowService {
     private static final int MAX_CHECKPOINT_FILES_SCANNED = 5_000;
     private final AppConfig config;
     private final LabelWorkflowService shipmentService;
-    private final JobCheckpointStore checkpointStore;
+    private final PrintCheckpointSupport checkpointSupport;
+    private final CarrierMovePreparationSupport carrierMovePreparationSupport = new CarrierMovePreparationSupport();
+    private final AdvancedPrintResultSupport resultSupport = new AdvancedPrintResultSupport();
+    private final AdvancedPrintExecutionSupport executionSupport;
+    private final QueueWorkflowSupport queueWorkflowSupport = new QueueWorkflowSupport();
 
     public AdvancedPrintWorkflowService(AppConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
         this.shipmentService = new LabelWorkflowService(config);
-        this.checkpointStore = new JobCheckpointStore();
+        this.checkpointSupport = new PrintCheckpointSupport(
+                new JobCheckpointStore(),
+                shipmentService,
+                MAX_TASKS_PER_JOB,
+                MAX_CHECKPOINT_FILES_SCANNED
+        );
+        this.executionSupport = new AdvancedPrintExecutionSupport(new AdvancedPrintExecutionSupport.CheckpointGateway() {
+            @Override
+            public JobCheckpoint createCheckpoint(
+                    String id,
+                    InputMode mode,
+                    String sourceId,
+                    Path outputDir,
+                    boolean printToFile,
+                    PrinterConfig printer,
+                    List<PrintTask> tasks
+            ) throws Exception {
+                return checkpointSupport.createCheckpoint(id, mode, sourceId, outputDir, printToFile, printer, tasks);
+            }
+
+            @Override
+            public void executeTasks(JobCheckpoint checkpoint, PrinterConfig printer, int startIndex) throws Exception {
+                checkpointSupport.executeTasks(checkpoint, printer, startIndex);
+            }
+        }, resultSupport);
     }
 
     public LabelWorkflowService.PreparedJob prepareShipmentJob(String shipmentId) throws Exception {
@@ -75,101 +102,49 @@ public final class AdvancedPrintWorkflowService {
     }
 
     private List<PreparedStopGroup> buildPreparedStopGroups(DbQueryRepository repo, List<CarrierMoveStopRef> refs) throws Exception {
-        Map<Integer, List<CarrierMoveStopRef>> byStop = groupCarrierMoveRefsByStop(refs);
-        List<PreparedStopGroup> groups = new ArrayList<>(byStop.size());
+        List<CarrierMovePreparationSupport.StopShipmentPlan> plans = carrierMovePreparationSupport.buildStopShipmentPlans(refs);
+        List<PreparedStopGroup> groups = new ArrayList<>(plans.size());
         int stopPosition = 1;
-        for (List<CarrierMoveStopRef> stopRefs : byStop.values()) {
-            if (stopRefs == null || stopRefs.isEmpty()) {
-                continue;
-            }
-            List<LabelWorkflowService.PreparedJob> jobs = resolvePreparedJobsForStop(repo, stopRefs);
+        for (CarrierMovePreparationSupport.StopShipmentPlan plan : plans) {
+            List<LabelWorkflowService.PreparedJob> jobs = resolvePreparedJobsForStop(repo, plan.shipmentIds());
             if (!jobs.isEmpty()) {
-                Integer stopSequence = null;
-                for (CarrierMoveStopRef stopRef : stopRefs) {
-                    if (stopRef != null) {
-                        stopSequence = stopRef.getStopSequence();
-                        break;
-                    }
-                }
-                groups.add(new PreparedStopGroup(stopSequence, stopPosition, jobs));
+                groups.add(new PreparedStopGroup(plan.stopSequence(), stopPosition, jobs));
                 stopPosition++;
             }
         }
         return groups;
     }
 
-    private Map<Integer, List<CarrierMoveStopRef>> groupCarrierMoveRefsByStop(List<CarrierMoveStopRef> refs) {
-        Map<Integer, List<CarrierMoveStopRef>> byStop = new TreeMap<>();
-        for (CarrierMoveStopRef ref : refs) {
-            int key = ref.getStopSequence() == null ? Integer.MAX_VALUE : ref.getStopSequence();
-            byStop.computeIfAbsent(key, ignored -> new ArrayList<>()).add(ref);
-        }
-        return byStop;
-    }
-
-    private List<LabelWorkflowService.PreparedJob> resolvePreparedJobsForStop(DbQueryRepository repo, List<CarrierMoveStopRef> stopRefs) throws Exception {
-        List<CarrierMoveStopRef> orderedRefs = new ArrayList<>(stopRefs.size());
-        for (CarrierMoveStopRef stopRef : stopRefs) {
-            if (stopRef != null) {
-                orderedRefs.add(stopRef);
-            }
-        }
-        orderedRefs.sort(Comparator.comparing(
-                CarrierMoveStopRef::getShipmentId,
-                Comparator.nullsLast(String::compareTo)
-        ));
-
-        LinkedHashSet<String> uniqueShipments = new LinkedHashSet<>(orderedRefs.size());
-        for (CarrierMoveStopRef ref : orderedRefs) {
-            if (ref.getShipmentId() != null && !ref.getShipmentId().isBlank()) {
-                uniqueShipments.add(ref.getShipmentId());
-            }
-        }
-
-        List<LabelWorkflowService.PreparedJob> jobs = new ArrayList<>(uniqueShipments.size());
-        for (String shipId : uniqueShipments) {
+    private List<LabelWorkflowService.PreparedJob> resolvePreparedJobsForStop(DbQueryRepository repo, List<String> shipmentIds) throws Exception {
+        List<LabelWorkflowService.PreparedJob> jobs = new ArrayList<>(shipmentIds.size());
+        for (String shipId : shipmentIds) {
             jobs.add(shipmentService.prepareJob(repo, shipId));
         }
         return jobs;
     }
 
     public PreparedQueueJob prepareQueue(List<QueueRequestItem> requests) throws Exception {
-        if (requests == null || requests.isEmpty()) {
-            throw new IllegalArgumentException("Queue is empty.");
-        }
-        if (requests.size() > MAX_QUEUE_ITEMS) {
-            throw new IllegalArgumentException("Queue exceeds max size of " + MAX_QUEUE_ITEMS + " items.");
-        }
+        List<QueueRequestItem> normalizedRequests = queueWorkflowSupport.normalizeRequests(requests, MAX_QUEUE_ITEMS);
         List<PreparedQueueItem> resolved = new ArrayList<>();
-        for (QueueRequestItem req : requests) {
-            if (req == null || req.id.isBlank()) {
-                continue;
-            }
+        for (QueueRequestItem req : normalizedRequests) {
             if (req.type == QueueItemType.CARRIER_MOVE) {
                 resolved.add(PreparedQueueItem.forCarrier(req.id, prepareCarrierMoveJob(req.id)));
             } else {
                 resolved.add(PreparedQueueItem.forShipment(req.id, prepareShipmentJob(req.id)));
             }
         }
-        if (resolved.isEmpty()) {
-            throw new IllegalArgumentException("Queue is empty after parsing.");
-        }
         return new PreparedQueueJob(resolved);
     }
 
     public QueuePrintResult printQueue(PreparedQueueJob queue, String printerId, boolean printToFile) throws Exception {
         List<PrintResult> results = new ArrayList<>();
-        int labels = 0;
-        int infoTags = 0;
         for (PreparedQueueItem item : queue.items) {
             PrintResult result = item.type == QueueItemType.CARRIER_MOVE
                     ? printCarrierMoveJob(item.carrierMoveJob, printerId, null, printToFile)
                     : printShipmentJob(item.shipmentJob, printerId, null, printToFile);
             results.add(result);
-            labels += result.labelsPrinted;
-            infoTags += result.infoTagsPrinted;
         }
-        return new QueuePrintResult(results, labels, infoTags);
+        return queueWorkflowSupport.summarizeResults(results);
     }
 
     public PrintResult printShipmentJob(LabelWorkflowService.PreparedJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
@@ -189,18 +164,11 @@ public final class AdvancedPrintWorkflowService {
             boolean includeInfoTags
     ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
-        PrinterConfig printer = resolvePrinterForPrint(job.getRouting(), printerId, printToFile);
-        Path targetDir = outputDir == null
-                ? Paths.get("out", "gui-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()))
-                : outputDir;
         List<Lpn> lpnsToPrint = PrintTaskPlanner.filterLpnsForPrint(job.getLpnsForLabels(), selectedLpns);
         PrintTaskPlanner.ShipmentPrintBatch shipmentBatch =
                 PrintTaskPlanner.ShipmentPrintBatch.forShipment(job, lpnsToPrint, includeInfoTags);
         List<PrintTask> tasks = PrintTaskPlanner.buildShipmentTasks(shipmentBatch);
-        JobCheckpoint checkpoint = createCheckpoint("shipment-" + job.getShipmentId() + "-" + TS.format(LocalDateTime.now()),
-                InputMode.SHIPMENT, job.getShipmentId(), targetDir, printToFile, printer, tasks);
-        executeTasks(checkpoint, printer, 0);
-        return toResult(checkpoint);
+        return executionSupport.executeShipmentJob(job, printerId, outputDir, printToFile, tasks);
     }
 
     public PrintResult printCarrierMoveJob(PreparedCarrierMoveJob job, String printerId, Path outputDir, boolean printToFile) throws Exception {
@@ -226,170 +194,20 @@ public final class AdvancedPrintWorkflowService {
             boolean includeInfoTags
     ) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
-        LabelWorkflowService.PreparedJob firstShipment = firstCarrierShipment(job);
-        PrinterConfig printer = resolvePrinterForPrint(firstShipment.getRouting(), printerId, printToFile);
-        Path targetDir = outputDir == null
-                ? Paths.get("out", "gui-cmid-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()))
-                : outputDir;
+        LabelWorkflowService.PreparedJob firstShipment = job.firstShipmentJob();
         List<PrintTask> tasks = PrintTaskPlanner.buildCarrierMoveTasks(job, selectedLabels, includeInfoTags);
-        JobCheckpoint checkpoint = createCheckpoint("carrier-" + job.carrierMoveId + "-" + TS.format(LocalDateTime.now()),
-                InputMode.CARRIER_MOVE, job.carrierMoveId, targetDir, printToFile, printer, tasks);
-        executeTasks(checkpoint, printer, 0);
-        return toResult(checkpoint);
+        return executionSupport.executeCarrierMoveJob(job, firstShipment.getRouting(), printerId, outputDir, printToFile, tasks);
     }
 
     public List<ResumeCandidate> listIncompleteJobs() throws Exception {
-        List<ResumeCandidate> items = new ArrayList<>();
-        for (Path file : checkpointStore.listCheckpointFiles(MAX_CHECKPOINT_FILES_SCANNED)) {
-            try {
-                JobCheckpoint checkpoint = checkpointStore.read(stripJsonExtension(file.getFileName().toString()));
-                if (checkpoint != null && !checkpoint.completed) {
-                    int total = checkpoint.tasks == null ? 0 : checkpoint.tasks.size();
-                    items.add(new ResumeCandidate(checkpoint.id, checkpoint.mode, checkpoint.sourceId, checkpoint.outputDirectory,
-                            checkpoint.nextTaskIndex, total, checkpoint.updatedAt, checkpoint.lastError));
-                }
-            } catch (Exception ignored) {
-                // Skip malformed checkpoint files and continue scanning.
-            }
-        }
-        items.sort(Comparator.comparing(ResumeCandidate::updatedAt, Comparator.nullsLast(LocalDateTime::compareTo)).reversed());
-        return items;
+        return checkpointSupport.listIncompleteJobs();
     }
 
     /**
      * Resume from last successful task (safe mode): reprint the most recent completed task, then continue.
      */
     public PrintResult resumeJob(String checkpointId) throws Exception {
-        if (checkpointId == null || checkpointId.isBlank()) {
-            throw new IllegalArgumentException("Checkpoint ID is required.");
-        }
-        JobCheckpoint checkpoint = readCheckpoint(checkpointId.trim());
-        if (checkpoint == null) {
-            throw new IllegalArgumentException("Checkpoint not found: " + checkpointId);
-        }
-        if (checkpoint.completed) {
-            throw new IllegalStateException("Checkpoint is already completed.");
-        }
-        PrinterConfig printer = checkpoint.printToFile ? null : shipmentService.resolvePrinter(checkpoint.printerId);
-        int resumeIndex = checkpoint.nextTaskIndex <= 0 ? 0 : checkpoint.nextTaskIndex - 1;
-        executeTasks(checkpoint, printer, resumeIndex);
-        return toResult(checkpoint);
-    }
-
-    private PrinterConfig resolvePrinterForPrint(com.tbg.wms.core.print.PrinterRoutingService routing, String printerId, boolean printToFile) {
-        if (printToFile) {
-            return null;
-        }
-        String id = printerId == null ? "" : printerId.trim();
-        if (id.isEmpty()) {
-            throw new IllegalArgumentException("Printer is required.");
-        }
-        return routing.findPrinter(id)
-                .orElseThrow(() -> new IllegalArgumentException("Printer not found or disabled: " + id));
-    }
-
-    private LabelWorkflowService.PreparedJob firstCarrierShipment(PreparedCarrierMoveJob job) {
-        for (PreparedStopGroup stop : job.stopGroups) {
-            for (LabelWorkflowService.PreparedJob shipmentJob : stop.shipmentJobs) {
-                if (shipmentJob != null) {
-                    return shipmentJob;
-                }
-            }
-        }
-        throw new IllegalArgumentException("Carrier move has no printable shipments.");
-    }
-
-    private JobCheckpoint createCheckpoint(String id, InputMode mode, String sourceId, Path outputDir, boolean printToFile, PrinterConfig printer, List<PrintTask> tasks) throws Exception {
-        JobCheckpoint c = new JobCheckpoint();
-        c.id = id;
-        c.mode = mode;
-        c.sourceId = sourceId;
-        c.outputDirectory = outputDir.toAbsolutePath().toString();
-        c.printToFile = printToFile;
-        c.printerId = printToFile ? "FILE" : printer.getId();
-        c.printerEndpoint = printToFile ? "FILE" : printer.getEndpoint();
-        c.createdAt = LocalDateTime.now();
-        c.updatedAt = c.createdAt;
-        c.nextTaskIndex = 0;
-        c.completed = false;
-        c.tasks = tasks;
-        writeCheckpoint(c);
-        return c;
-    }
-
-    /**
-     * Executes print tasks in deterministic order while persisting checkpoint progress after
-     * each successful task. This makes resume semantics explicit and crash-safe.
-     */
-    private void executeTasks(JobCheckpoint checkpoint, PrinterConfig printer, int startIndex) throws Exception {
-        Objects.requireNonNull(checkpoint, "checkpoint cannot be null");
-        if (checkpoint.tasks == null) {
-            throw new IllegalArgumentException("Checkpoint tasks cannot be null.");
-        }
-        if (checkpoint.tasks.size() > MAX_TASKS_PER_JOB) {
-            throw new IllegalArgumentException("Task count exceeds max limit: " + MAX_TASKS_PER_JOB);
-        }
-        Path outDir = Paths.get(checkpoint.outputDirectory);
-        java.nio.file.Files.createDirectories(outDir);
-        NetworkPrintService printService = new NetworkPrintService();
-        int start = Math.max(0, Math.min(startIndex, checkpoint.tasks.size()));
-        for (int i = start; i < checkpoint.tasks.size(); i++) {
-            PrintTask task = checkpoint.tasks.get(i);
-            Path outFile = outDir.resolve(task.fileName);
-            try {
-                java.nio.file.Files.writeString(outFile, task.zpl);
-                if (!checkpoint.printToFile) {
-                    if (printer == null) {
-                        throw new IllegalStateException("Printer is required.");
-                    }
-                    printService.print(printer, task.zpl, task.payloadId);
-                }
-                checkpoint.nextTaskIndex = i + 1;
-                checkpoint.updatedAt = LocalDateTime.now();
-                checkpoint.lastError = null;
-                writeCheckpoint(checkpoint);
-            } catch (Exception ex) {
-                checkpoint.completed = false;
-                checkpoint.updatedAt = LocalDateTime.now();
-                checkpoint.lastError = ex.getMessage();
-                writeCheckpoint(checkpoint);
-                throw ex;
-            }
-        }
-        checkpoint.completed = true;
-        checkpoint.updatedAt = LocalDateTime.now();
-        checkpoint.lastError = null;
-        writeCheckpoint(checkpoint);
-    }
-
-    private PrintResult toResult(JobCheckpoint checkpoint) {
-        int labels = 0;
-        int info = 0;
-        for (PrintTask task : checkpoint.tasks) {
-            if (task.kind == TaskKind.PALLET_LABEL) {
-                labels++;
-            } else {
-                info++;
-            }
-        }
-        return new PrintResult(labels, info, Paths.get(checkpoint.outputDirectory), checkpoint.printerId, checkpoint.printerEndpoint, checkpoint.printToFile);
-    }
-
-    private JobCheckpoint readCheckpoint(String id) throws Exception {
-        return checkpointStore.read(id);
-    }
-
-    private void writeCheckpoint(JobCheckpoint checkpoint) throws Exception {
-        checkpointStore.write(checkpoint);
-    }
-
-    private String stripJsonExtension(String fileName) {
-        if (fileName == null) {
-            return "";
-        }
-        return fileName.toLowerCase(Locale.ROOT).endsWith(".json")
-                ? fileName.substring(0, fileName.length() - 5)
-                : fileName;
+        return resultSupport.toResult(checkpointSupport.resumeJob(checkpointId));
     }
 
     public enum InputMode {
@@ -427,6 +245,17 @@ public final class AdvancedPrintWorkflowService {
 
         public int getTotalStops() {
             return stopGroups.size();
+        }
+
+        public LabelWorkflowService.PreparedJob firstShipmentJob() {
+            for (PreparedStopGroup stop : stopGroups) {
+                for (LabelWorkflowService.PreparedJob shipmentJob : stop.shipmentJobs) {
+                    if (shipmentJob != null) {
+                        return shipmentJob;
+                    }
+                }
+            }
+            throw new IllegalArgumentException("Carrier move has no printable shipments.");
         }
     }
 
@@ -530,7 +359,7 @@ public final class AdvancedPrintWorkflowService {
         private final String printerEndpoint;
         private final boolean printToFile;
 
-        private PrintResult(int labelsPrinted, int infoTagsPrinted, Path outputDirectory, String printerId, String printerEndpoint, boolean printToFile) {
+        PrintResult(int labelsPrinted, int infoTagsPrinted, Path outputDirectory, String printerId, String printerEndpoint, boolean printToFile) {
             this.labelsPrinted = labelsPrinted;
             this.infoTagsPrinted = infoTagsPrinted;
             this.outputDirectory = outputDirectory;
@@ -569,7 +398,7 @@ public final class AdvancedPrintWorkflowService {
         private final int totalLabelsPrinted;
         private final int totalInfoTagsPrinted;
 
-        private QueuePrintResult(List<PrintResult> itemResults, int totalLabelsPrinted, int totalInfoTagsPrinted) {
+        QueuePrintResult(List<PrintResult> itemResults, int totalLabelsPrinted, int totalInfoTagsPrinted) {
             this.itemResults = List.copyOf(itemResults);
             this.totalLabelsPrinted = totalLabelsPrinted;
             this.totalInfoTagsPrinted = totalInfoTagsPrinted;
@@ -598,7 +427,7 @@ public final class AdvancedPrintWorkflowService {
         private final LocalDateTime updatedAt;
         private final String lastError;
 
-        private ResumeCandidate(String checkpointId, InputMode mode, String sourceId, String outputDirectory, int nextTaskIndex, int totalTasks, LocalDateTime updatedAt, String lastError) {
+        ResumeCandidate(String checkpointId, InputMode mode, String sourceId, String outputDirectory, int nextTaskIndex, int totalTasks, LocalDateTime updatedAt, String lastError) {
             this.checkpointId = checkpointId;
             this.mode = mode;
             this.sourceId = sourceId;

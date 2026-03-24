@@ -46,10 +46,7 @@ public final class CliMain {
     public static void main(String[] args) {
         new OutDirectoryRetentionService().pruneDefaultOutDirectory(CliMain.class);
         if (args == null || args.length == 0) {
-            SwingUtilities.invokeLater(() -> {
-                LabelGuiFrame frame = new LabelGuiFrame();
-                frame.setVisible(true);
-            });
+            GuiLauncher.launchAndWait(LabelGuiFrame::new);
             return;
         }
 

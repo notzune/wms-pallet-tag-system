@@ -10,9 +10,27 @@ $ErrorActionPreference = "Stop"
 
 function Get-JavaInfo {
     $javaCandidates = New-Object System.Collections.Generic.List[string]
+    $javaHomeCandidates = New-Object System.Collections.Generic.List[string]
 
     if ($env:JAVA_HOME) {
-        $javaFromEnv = Join-Path $env:JAVA_HOME "bin\java.exe"
+        [void]$javaHomeCandidates.Add($env:JAVA_HOME)
+    }
+
+    $userJavaHome = [Environment]::GetEnvironmentVariable('JAVA_HOME', 'User')
+    if (-not [string]::IsNullOrWhiteSpace($userJavaHome)) {
+        [void]$javaHomeCandidates.Add($userJavaHome)
+    }
+
+    $machineJavaHome = [Environment]::GetEnvironmentVariable('JAVA_HOME', 'Machine')
+    if (-not [string]::IsNullOrWhiteSpace($machineJavaHome)) {
+        [void]$javaHomeCandidates.Add($machineJavaHome)
+    }
+
+    foreach ($candidateHome in ($javaHomeCandidates | Select-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($candidateHome)) {
+            continue
+        }
+        $javaFromEnv = Join-Path $candidateHome "bin\java.exe"
         if (Test-Path -LiteralPath $javaFromEnv) {
             [void]$javaCandidates.Add($javaFromEnv)
         }
@@ -26,7 +44,7 @@ function Get-JavaInfo {
     $whereJava = (& where.exe java 2>$null)
     if ($whereJava) {
         foreach ($candidate in $whereJava) {
-            if (Test-Path -LiteralPath $candidate) {
+            if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate)) {
                 [void]$javaCandidates.Add($candidate)
             }
         }
@@ -147,15 +165,9 @@ New-Item -ItemType Directory -Path (Join-Path $BundleDir "config\templates") -Fo
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "scripts") -Force | Out-Null
 
 Copy-Item -LiteralPath $JarPath -Destination (Join-Path $BundleDir "wms-tags.jar") -Force
-$rootEnvPath = Join-Path $SourceRoot ".env"
 $bundleEnvPath = Join-Path $BundleDir "wms-tags.env"
-if (Test-Path -LiteralPath $rootEnvPath) {
-    Write-Host "Seeding bundle env from: $rootEnvPath"
-    Copy-Item -LiteralPath $rootEnvPath -Destination $bundleEnvPath -Force
-} else {
-    Write-Host "Root .env not found; using config\\wms-tags.env.example"
-    Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -Destination $bundleEnvPath -Force
-}
+Write-Host "Seeding bundle env from: config\\wms-tags.env.example"
+Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -Destination $bundleEnvPath -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printers.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printers.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printer-routing.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printer-routing.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walmart-sku-matrix.csv") -Destination (Join-Path $BundleDir "config\walmart-sku-matrix.csv") -Force
@@ -211,9 +223,23 @@ $manifest = [pscustomobject]@{
 }
 $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $BundleDir "bundle-manifest.json") -Encoding UTF8
 
+$bundleParent = Split-Path -Parent $BundleDir
+$bundleLeaf = Split-Path -Leaf $BundleDir
+$canonicalZip = Join-Path $bundleParent "$bundleLeaf.zip"
+if (Test-Path -LiteralPath $canonicalZip) {
+    Remove-Item -LiteralPath $canonicalZip -Force
+}
+Push-Location $bundleParent
+try {
+    Compress-Archive -LiteralPath $bundleLeaf -DestinationPath $canonicalZip -Force
+} finally {
+    Pop-Location
+}
+
 Write-Host ""
 Write-Host "Portable bundle ready."
 Write-Host "Bundle folder : $BundleDir"
+Write-Host "Bundle zip    : $canonicalZip"
 Write-Host "Jar SHA256    : $jarHash"
 Write-Host "Run CLI       : $BundleDir\run.bat"
 Write-Host "Launch GUI    : $BundleDir\wms-tags-gui.bat"

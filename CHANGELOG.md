@@ -2,12 +2,84 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/).
+
+Commit history is maintained with [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ## [Unreleased]
 
-No unreleased changes documented yet.
+## [1.7.6] - 2026-03-23
+
+### Added
+
+- Added a modeless `Tools -> ZPL Preview...` utility that accepts pasted/opened ZPL and renders a live image preview with configurable label size, density, and label index.
+- Added a toggleable utility keyboard to the GUI barcode generator with function keys, edit actions, navigation keys, and common operator shortcuts for system-wide key injection.
+- Added a compact Oracle footer status indicator in the GUI with green/amber/red LED state, short Oracle code display, and full hover detail for connectivity failures.
+- Added `Show Labels` in the main preview workflow and `Preview` in the barcode generator so operators can open the live ZPL renderer against the exact generated documents before printing.
+- Added `scripts/vm/Test-TropTest-InstallerFlow.ps1` plus shared VirtualBox visible-session helpers so clean-VM remove/install/upgrade validation can be rerun with screenshots and Defender evidence capture.
+
+### Changed
+
+- Tropicana internal packaging now emits an inert ZIP package with the signed-capable installer, config installer script, and operator instructions instead of a self-extracting bootstrap EXE.
+- Windows helper batch launchers no longer force `ExecutionPolicy Bypass` when invoking PowerShell companion scripts.
+- Shared CLI output/validation formatting was tightened across `rail-print` and `barcode` so command policy is tested separately from execution paths.
+- Rail helper CSV loading, rail print CLI formatting, and barcode command validation now live behind focused helpers to reduce regression risk in future feature work.
+- Live ZPL preview rendering is now debounced and throttled so operator editing still feels near real time without overrunning the public preview API request limit.
+- Packaged CLI artifacts now rely on the existing Logback binding only, removing the redundant `slf4j-simple` provider that previously shipped duplicate SLF4J bindings into the shaded runtime jar.
+- GUI queue input now accepts semicolon-delimited mixed IDs, ignores surrounding whitespace, and auto-detects unprefixed numeric shipment (`800...`) versus carrier-move IDs using the live WMS operator pattern.
+- The ZPL Preview dialog now supports paged multi-document preview sets so shipment/carrier-move label runs can be stepped through one generated label or info tag at a time.
+- `build-jpackage-bundle.ps1` now supports optional Windows code-signing hooks for both app-image launchers and installer artifacts, including Trusted Signing-compatible extra SignTool arguments.
+- Portable/app-image GUI launchers now normalize `APP_HOME`, keep the explicit GUI process alive, and regenerate the canonical portable ZIP from current artifacts so clean-machine testing no longer picks up stale bundle content.
+- Release smoke now auto-resolves current live shipment and carrier-move IDs from WMS when explicit smoke IDs are not passed, so packaged smoke can stay green without manual ID rotation.
+
+### Fixed
+
+- Tropicana package smoke coverage now validates the two-step installer-plus-config flow instead of the removed bootstrap wrapper path.
+- Fixed packaged GUI startup ordering so barcode dialog initialization no longer dereferences settings support before it exists during frame construction.
+- Fixed direct `gui` command lifecycle so an explicit GUI launch no longer exits immediately after scheduling Swing startup.
+- Fixed the release smoke process runner to drain child stdout/stderr asynchronously, preventing deadlocks during verbose packaged print-to-file verification.
+
+## [1.7.5] - 2026-03-19
+
+### Fixed
+
+- Fixed the Tropicana bootstrap/support installer path so the generated `Install-Tropicana-Config.ps1` now activates and writes its embedded config payload correctly.
+- Added an end-to-end regression test that executes the generated fallback support script without `-ConfigSourcePath` and verifies it writes the expected per-user Tropicana config.
+- Supersedes `1.7.4` for Tropicana internal installs; `1.7.4` shipped with a broken embedded-config handoff in the generated bootstrap/support installer path.
+- Fixed rail `System default printer` handling to use direct PDF print jobs instead of Windows shell file-association printing, preventing `No application is associated with the specified file for this operation.`
+
+### Added
+
+- Added a manifest-driven release smoke harness with repo and packaged execution modes.
+- Added a release smoke coverage matrix and release checklist so Tier 1 workflows are explicitly gated before tagging.
+- Added a non-destructive `rail-print --validate-system-default-print` CLI path so the rail GUI system-default target has a smokeable backend equivalent.
+
+## [1.7.4] - 2026-03-19
+
+### Added
+
+- Shared `Ctrl+F` workflow hotkey support so the main label window triggers `Preview` and Rail Labels triggers `Load Preview` even while the primary input field is focused.
+
+### Changed
+
+- Public `config/wms-tags.env.example` now uses dummy-only database/site placeholders instead of production-like values.
+- Public bundle config seeding regression coverage now self-builds the CLI jar when needed so packaging checks remain runnable from a clean worktree.
+
+### Fixed
+
+- Public portable and app-image bundles no longer ship a production-like default `wms-tags.env` template.
+
+## [1.7.3] - 2026-03-19
+
+### Added
+
+- Added `build-tropicana-installer.ps1` to generate a local-only `WMS Pallet Tag System - Tropicana Setup.exe` plus a fallback `Install-Tropicana-Config.ps1` for internal Tropicana distribution.
+
+### Changed
+
+- Public portable and jpackage bundles now always seed `wms-tags.env` from the sanitized template instead of copying the build machine's root `.env`.
+- Runtime config discovery now prefers `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env` so per-user Tropicana config survives normal packaged app updates.
 
 ## [1.7.2] - 2026-03-18
 

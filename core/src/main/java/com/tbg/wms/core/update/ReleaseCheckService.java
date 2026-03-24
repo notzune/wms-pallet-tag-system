@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 Tropicana Brands Group
+ *
+ * @author Zeyad Rashed
+ * @email zeyad.rashed@tropicana.com
+ * @since 1.7.5
+ */
 package com.tbg.wms.core.update;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,6 +22,9 @@ import java.util.Objects;
 
 /**
  * Looks up the latest published GitHub release for the app.
+ *
+ * <p>This service is the release-feed boundary for runtime update checks. It intentionally keeps
+ * transport and JSON parsing separate from GUI decision logic.</p>
  */
 public final class ReleaseCheckService {
     private final UpdateCatalogService updateCatalogService;

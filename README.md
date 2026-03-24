@@ -3,14 +3,21 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.7.2-blue)
+![Version](https://img.shields.io/badge/version-1.7.6-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current development target: `1.7.2`.
+Current branch target: `1.7.6` prerelease validation.
+
+## Versioning and History
+
+- Releases follow [Semantic Versioning](https://semver.org/).
+- `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+- Git commit messages should follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+- New release notes should be staged under `## [Unreleased]` before version cut/tagging.
 
 For open work and follow-up items, see the [GitHub issues tracker](https://github.com/notzune/wms-pallet-tag-system/issues).
 
@@ -60,8 +67,9 @@ Portable bundles include a JRE and do not require a separate Java install.
 
 Choose one of these paths:
 
-- Portable/manual install: extract the ZIP, edit `wms-tags.env`, and run `run.bat` or `wms-tags-gui.bat`
+- Portable/manual install: extract the ZIP, replace the dummy `wms-tags.env` with your real values, and run `run.bat` or `wms-tags-gui.bat`
 - Packaged installer: run `WMS Pallet Tag System-<version>.exe` or `install-wms-installer.ps1`
+- Tropicana internal install: generate and distribute the inert Tropicana package ZIP from a trusted internal machine
 - Manual build from repo: build with Maven, then optionally package with `build-portable-bundle.ps1` or `build-jpackage-bundle.ps1`
 
 ### Manual Build From Repo
@@ -165,6 +173,29 @@ Use the `jpackage` builder when you want a native executable layout while keepin
 .\scripts\build-jpackage-bundle.ps1 -InstallerType exe
 ```
 
+2a. Optional: sign the app-image launcher(s) and installer with local SignTool certificate settings:
+
+```powershell
+.\scripts\build-jpackage-bundle.ps1 `
+  -InstallerType exe `
+  -SigningMode signtool `
+  -CertificateThumbprint <CERT_THUMBPRINT> `
+  -TimestampUrl http://timestamp.digicert.com
+```
+
+2b. Optional: sign with Microsoft Trusted Signing via SignTool plugin arguments:
+
+```powershell
+.\scripts\build-jpackage-bundle.ps1 `
+  -InstallerType exe `
+  -SigningMode signtool `
+  -TimestampUrl http://timestamp.acs.microsoft.com `
+  -AdditionalSignToolArgs @(
+    '/dlib', 'C:\path\to\Azure.CodeSigning.Dlib.dll',
+    '/dmdf', 'C:\path\to\trusted-signing-metadata.json'
+  )
+```
+
 3. Optional: install with logging or replace an existing same-version install:
 
 ```powershell
@@ -181,12 +212,15 @@ Use the `jpackage` builder when you want a native executable layout while keepin
 Notes:
 
 - Default app-image output is `dist/wms-pallet-tag-system-<version>-app`
-- The app image keeps `config/`, `wms-tags.env`, `out/`, and `logs/` next to the executable
+- The app image keeps `config/`, template `wms-tags.env`, `out/`, and `logs/` next to the executable
 - The generated app image includes `WMS Pallet Tag System.exe`, plus `run.bat` and `wms-tags-gui.bat` wrappers for CLI and GUI entrypoints
 - The bundled runtime comes from the `jpackage` JDK unless you pass `-RuntimeImage`; use a Java 17 runtime image for release parity with the project baseline
 - The optional installer defaults to per-user install to avoid admin privileges when possible
 - Newer installer builds now use a stable Windows upgrade UUID so normal version-to-version upgrades can reuse the same install identity
-- Prerelease tags such as `v1.7.1-rc1` are supported in CI and publish GitHub Releases marked as prereleases automatically
+- `build-jpackage-bundle.ps1` can optionally sign the app-image launcher(s) and the final installer via `-SigningMode signtool`
+- For standard certificate signing, pass one of `-CertificateThumbprint`, `-CertificateSubjectName`, or `-CertificatePath`
+- For Trusted Signing, pass the required `/dlib` and `/dmdf` values through `-AdditionalSignToolArgs`
+- Prerelease tags such as `v1.7.6-rc.2` are supported in CI and publish GitHub Releases marked as prereleases automatically
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
 - GUI `Tools` / `Settings` now include `Update Manager...` and `Uninstall / Clean Install Prep...` actions for packaged installs
@@ -204,22 +238,94 @@ Notes:
 - Building an `.exe` or `.msi` installer requires WiX Toolset v3+ on `PATH`
 - The portable ZIP/manual install path remains supported for machines where the packaged executable is not viable
 - If an operator launches the raw installer `.exe` directly outside the helper path, Windows Installer UI remains the controlling experience; the richer status/relaunch flow is provided by `install-wms-installer.ps1` / `.bat` and the in-app guided updater
+- Clean-VM installer automation can be rerun with `scripts\vm\Test-TropTest-InstallerFlow.ps1` when VirtualBox Guest Additions and a guest automation account are available
+- Latest clean-VM evidence shows installer remove/install/upgrade transitions work, but Microsoft Defender on a fresh Windows 11 VM quarantines the installed native launcher as `Trojan:Win32/Bearfoos.B!ml`, which blocks first-run validation of the installed EXE without an exclusion or code-signing/reputation change
+
+### Tropicana internal installer
+
+Use the local-only Tropicana packaging flow when you want an internal package that ships the signed-capable installer plus the Tropicana config script without a self-extracting wrapper.
+
+```powershell
+.\scripts\build-tropicana-installer.ps1 -ConfigSourcePath .\.env
+```
+
+Outputs:
+
+- `dist\WMS Pallet Tag System - Tropicana Package.zip`
+- `dist\Install-Tropicana-Config.ps1`
+- `dist\Tropicana-Package-Readme.txt`
+
+Behavior:
+
+- The package ZIP intentionally avoids the previous self-extracting EXE and bootstrap launcher chain.
+- Operators install the normal packaged app first, then run `Install-Tropicana-Config.ps1` to apply Tropicana config for the current user.
+- Tropicana config persists under `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env`, so normal app updates do not require rerunning config install.
+- `Install-Tropicana-Config.ps1` remains the supported repair and credential-rotation path.
+- These Tropicana artifacts are for internal distribution only and should not be attached to public GitHub Releases.
 
 ### Update Paths
 
 - Portable/manual install:
   download the latest portable ZIP or installer from GitHub Releases and replace/reinstall manually
 - Packaged install:
-  use `Tools -> Settings -> Update Manager...` for stable/prerelease visibility, guided installer download, and manual version selection when the release includes both the `.exe` and `.sha256`
+  use the update actions under `Tools -> Settings` for release checks, guided installer download, and packaged-install maintenance when the release includes both the `.exe` and `.sha256`
+- Tropicana internal install:
+  rerun `Install-Tropicana-Config.ps1` only when credentials rotate or per-user config needs repair
 - Clean reinstall:
   use `Tools -> Settings -> Uninstall / Clean Install Prep...` or `uninstall-wms-tags.ps1`
 
 ### Release Order
 
 - Merge the release-prep PR to `main`
-- Tag `v1.7.2-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
+- Tag `vX.Y.Z-rc1` (or another SemVer prerelease tag) to publish a GitHub prerelease automatically
 - Validate portable ZIP, installer `.exe`, `.exe.sha256`, and updater behavior against that prerelease
-- Tag `v1.7.2` when the prerelease is accepted
+- Tag `vX.Y.Z` when the prerelease is accepted
+
+### Release Smoke
+
+Release tagging should be blocked until smoke evidence exists for both repo and packaged targets.
+
+Primary smoke entrypoints:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode repo -ConfigPath .\.env
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode packaged -ConfigPath .\.env
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode packaged -ConfigPath .\.env -IncludeInstallerScenarios
+```
+
+Smoke policy:
+
+- `repo` mode is the fast developer gate against the built CLI jar and shared workflow services
+- `packaged` mode is the release gate against the actual packaged app layout
+
+### VM End-to-End Testing
+
+For clean-machine Windows installer validation in VirtualBox:
+
+```powershell
+.\scripts\vm\Test-TropTest-InstallerFlow.ps1 `
+  -GuestUser <GUEST_USER> `
+  -GuestPassword <GUEST_PASSWORD> `
+  -OldInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.4.exe `
+  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.6.exe
+```
+
+Outputs:
+
+- screenshot sequence for maintenance remove, fresh install, upgrade, and launch attempts
+- `installer-flow-report.txt`
+- `defender-events.txt`
+
+The helper uses `VBoxManage controlvm ... keyboardputscancode/keyboardputstring` to drive the visible desktop session, so it remains usable even when `guestcontrol` can only reach the background automation session.
+- `-IncludeInstallerScenarios` adds the slower release-only Tropicana bootstrap install check
+- smoke printing must avoid live printer output by default
+- printer validation should use reachability checks unless a live print run is explicitly requested
+- current smoke defaults are intended for bounded production-safe IDs and can be overridden by explicit parameters
+- GUI workflows are validated through shared backend paths first; remaining GUI-only gaps must stay documented in the release coverage matrix
+- the installer scenario performs a real isolated local install, then verifies Tropicana `%LOCALAPPDATA%` config precedence and post-install `db-test`
+
+See [docs/release-smoke-coverage-matrix.md](docs/release-smoke-coverage-matrix.md) for the current coverage contract.
+See [docs/release-checklist.md](docs/release-checklist.md) for the release gate.
 
 ## Configuration
 
@@ -227,9 +333,13 @@ Configuration file precedence:
 
 1. Environment variables
 2. `WMS_CONFIG_FILE` path, if set
-3. `wms-tags.env` next to the JAR (or working directory)
-4. `.env`
-5. Built-in defaults
+3. `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env`
+4. `wms-tags.env` next to the JAR (or working directory)
+5. `.env`
+6. Built-in defaults
+
+Public release artifacts always ship with the dummy template `config\wms-tags.env.example` copied into place as `wms-tags.env`; that file is intentionally non-functional until replaced with real credentials.
+Tropicana internal installs should get working credentials only through `WMS Pallet Tag System - Tropicana Setup.exe` or `Install-Tropicana-Config.ps1`.
 
 Key settings:
 
@@ -353,6 +463,7 @@ Workflow:
 
 - Open `gui`, then go to `Tools -> Rail Labels...`.
 - Enter train ID and click `Load Preview`.
+- Press `Ctrl+F` to trigger `Load Preview` from the keyboard while the workflow window is focused.
 - System pulls rail rows from WMS and resolves footprints by short code from WMS.
 - Preview includes:
 - Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
@@ -379,11 +490,13 @@ Workflow:
 - Mode defaults to `Carrier Move ID`; `Shipment ID` mode remains available.
 - Main window footer shows `Version <x.y.z>` and resolves from package metadata with Maven `pom.properties` fallback.
 - Enter ID, select printer, and click `Preview`.
+- Press `Ctrl+F` to trigger `Preview` from the keyboard while the workflow window is focused.
 - Label-generation printer dropdown only shows printers marked with the `ZPL` capability, plus `Print to file`.
 - Shipment preview shows shipment summary, label plan, and SKU-level pallet math (full vs partial).
 - Carrier Move preview shows job summary and expandable stop sections; each stop renders shipment-level detail and SKU
   breakdown.
 - Click `Confirm Print` to execute and persist artifacts.
+- Click `Show Labels` after preview to open the live ZPL renderer with the exact generated shipment/carrier-move documents that would be printed, including info tags when selected.
 - Shipment mode output path: `out/gui-<shipment>-<timestamp>/`.
 - Carrier mode output path: `out/gui-cmid-<cmid>-<timestamp>/`.
 - Carrier mode prints all shipment labels in stop order, then per-stop info tags, then one final info tag.
@@ -392,16 +505,22 @@ Workflow:
 - Preview now supports per-label subset selection, starts with all labels selected, and keeps the label-selection panel collapsed by default to reduce noise on large jobs.
 - Preview includes an `Include info tags` toggle and shows `labels + info tags = total documents` in the selection status and math summary.
 - Use `Tools -> Barcode Generator...` for standalone barcode ZPL generation/printing.
+- Barcode Generator now includes a `Preview` action that opens the live ZPL renderer for the currently configured barcode before printing or exporting.
+- Barcode Generator now includes a toggleable `Utility Keyboard...` pop-out with function keys (`F1`-`F12`), Enter/Tab/Esc, clear/edit actions, and navigation keys that can be sent to the currently focused system field.
+- Use `Tools -> ZPL Preview...` to paste or open raw ZPL and render a live label preview with configurable density, label size, and label index.
+- The ZPL Preview tool can also open generated barcode/shipment/carrier documents directly and page through them with previous/next controls or the document spinner while keeping the rendered preview scrollable.
 - Use `Tools -> Rail Labels...` for end-to-end rail merge generation from live WMS train data.
 - GUI printer scoping is driven by printer `capabilities` in `config/<site>/printers.yaml`.
 - Use `capabilities: [ ZPL ]` for pallet-label workflows and `capabilities: [ RAIL ]` for the rail labels tool.
 - Barcode dialog now defaults to an operator-focused layout and moves low-level controls under `Advanced Settings...`.
 - Use queue/resume actions from the GUI to process mixed job batches and recover interrupted jobs.
+- Queue input accepts new lines or semicolons, ignores surrounding whitespace, and auto-detects unprefixed numeric IDs as shipment (`800...`) versus carrier move (other numeric values); explicit `S:` / `C:` prefixes still override.
+- The main window footer shows a compact Oracle status LED in the bottom-right corner (`Checking`, `Connected`, or `Not connected - ORA-xxxxx`), with the full Oracle error/remediation detail available on hover.
 - `Tools` shows an alert badge when an application update is available, and `Settings...` exposes manual update checks plus packaged-install uninstall / clean-wipe launchers.
 - If the latest release includes the packaged installer `.exe`, update checks can use a guided download-and-install path instead of only opening the release page.
 - `Settings...` also exposes `Advanced Settings...` for non-secret runtime config files under `config/`; `wms-tags.env` stays outside the GUI because it contains database/network secrets.
 - Runtime output cleanup now prunes stale `out/` artifacts older than 14 days by default, and the retention window is configurable from `Settings...`.
-- See [docs/update-security-evaluation.md](/C:/Users/zrashed/Documents/Code/wms-pallet-tag-system/docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
+- See [docs/update-security-evaluation.md](docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
 
 ## Walmart SKU Behavior
 
@@ -490,7 +609,7 @@ Behavior:
   `cli/target/maven-archiver/pom.properties`.
 - PRs: also upload the installer `.exe` and `.exe.sha256` as workflow artifacts.
 - Stable tags (`vX.Y.Z`): attach the portable ZIP, installer `.exe`, and matching `.exe.sha256` to a normal GitHub Release.
-- Prerelease tags (`vX.Y.Z-<suffix>` such as `v1.7.1-rc1`): attach the same artifacts to a GitHub Release marked as a prerelease.
+- Prerelease tags (`vX.Y.Z-<suffix>` such as `v1.7.3-rc1`): attach the same artifacts to a GitHub Release marked as a prerelease.
 - Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
 ## Project Structure

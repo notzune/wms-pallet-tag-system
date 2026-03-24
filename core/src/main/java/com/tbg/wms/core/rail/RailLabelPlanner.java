@@ -15,6 +15,7 @@ import java.util.*;
 public final class RailLabelPlanner {
     private static final int DEFAULT_ITEM_SLOTS = 13;
     private final int itemSlots;
+    private final RailFamilyShareSupport familyShareSupport;
 
     public RailLabelPlanner() {
         this(DEFAULT_ITEM_SLOTS);
@@ -25,6 +26,7 @@ public final class RailLabelPlanner {
             throw new IllegalArgumentException("itemSlots must be > 0");
         }
         this.itemSlots = itemSlots;
+        this.familyShareSupport = new RailFamilyShareSupport();
     }
 
     /**
@@ -86,7 +88,7 @@ public final class RailLabelPlanner {
             equivalentByFamily.merge(footprint.getFamilyCode(), equivalent, Double::sum);
         }
 
-        List<FamilyShare> shares = buildSortedShares(equivalentByFamily, totalEquivalent);
+        List<FamilyShare> shares = familyShareSupport.buildSortedShares(equivalentByFamily, totalEquivalent);
         List<FamilyShare> topThree = shares.size() <= 3 ? shares : shares.subList(0, 3);
         return new PlannedRailLabel(
                 record,
@@ -96,76 +98,6 @@ public final class RailLabelPlanner {
                 totalEquivalent,
                 itemSlots
         );
-    }
-
-    private List<FamilyShare> buildSortedShares(Map<String, Double> equivalentByFamily, double totalEquivalent) {
-        List<FamilyShare> shares = new ArrayList<>(equivalentByFamily.size());
-        if (totalEquivalent <= 0.0d) {
-            return shares;
-        }
-
-        List<Map.Entry<String, Double>> entries = new ArrayList<>(equivalentByFamily.entrySet());
-        entries.sort(Comparator.<Map.Entry<String, Double>>comparingDouble(Map.Entry::getValue).reversed()
-                .thenComparing(Map.Entry::getKey));
-        Map<String, Integer> percentByFamily = allocatePercentages(entries, totalEquivalent);
-
-        for (Map.Entry<String, Double> entry : entries) {
-            int percent = percentByFamily.getOrDefault(entry.getKey(), 0);
-            shares.add(new FamilyShare(entry.getKey(), percent, entry.getValue()));
-        }
-        return shares;
-    }
-
-    /**
-     * Allocates integer percentages that always sum to 100 using a largest-remainder policy.
-     *
-     * <p>This prevents per-family Math.round drift (e.g. 33/33/33 -> 99 or 34/34/34 -> 102)
-     * while preserving deterministic ordering on ties.</p>
-     */
-    private Map<String, Integer> allocatePercentages(List<Map.Entry<String, Double>> entries, double totalEquivalent) {
-        Map<String, Integer> result = new LinkedHashMap<>();
-        if (entries.isEmpty() || totalEquivalent <= 0.0d) {
-            return result;
-        }
-
-        List<PercentCandidate> candidates = new ArrayList<>(entries.size());
-        int floorSum = 0;
-        for (Map.Entry<String, Double> entry : entries) {
-            double exact = (entry.getValue() / totalEquivalent) * 100.0d;
-            int floor = (int) Math.floor(exact);
-            floorSum += floor;
-            candidates.add(new PercentCandidate(entry.getKey(), exact - floor));
-            result.put(entry.getKey(), floor);
-        }
-
-        int remaining = Math.max(0, 100 - floorSum);
-        candidates.sort(Comparator.comparingDouble(PercentCandidate::remainder).reversed()
-                .thenComparing(PercentCandidate::familyCode));
-
-        for (int i = 0; i < remaining && i < candidates.size(); i++) {
-            PercentCandidate candidate = candidates.get(i);
-            result.put(candidate.familyCode(), result.get(candidate.familyCode()) + 1);
-        }
-
-        return result;
-    }
-
-    private static final class PercentCandidate {
-        private final String familyCode;
-        private final double remainder;
-
-        private PercentCandidate(String familyCode, double remainder) {
-            this.familyCode = familyCode;
-            this.remainder = remainder;
-        }
-
-        private String familyCode() {
-            return familyCode;
-        }
-
-        private double remainder() {
-            return remainder;
-        }
     }
 
     /**
@@ -271,7 +203,7 @@ public final class RailLabelPlanner {
         private final int percent;
         private final double equivalentPallets;
 
-        private FamilyShare(String familyCode, int percent, double equivalentPallets) {
+        FamilyShare(String familyCode, int percent, double equivalentPallets) {
             this.familyCode = familyCode;
             this.percent = percent;
             this.equivalentPallets = equivalentPallets;

@@ -55,6 +55,51 @@ final class QueueInputParserTest {
         assertEquals("7000000002", items.get(2).getId());
     }
 
+    @Test
+    void parseSupportsSemicolonSeparatedInputAndIgnoresWhitespace() {
+        List<AdvancedPrintWorkflowService.QueueRequestItem> items = QueueInputParser.parse(
+                " 8000574112 ; 241127;  S:8000575651 ; C:241395 ",
+                AdvancedPrintWorkflowService.QueueItemType.SHIPMENT,
+                10
+        );
+
+        assertEquals(4, items.size());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(0).getType());
+        assertEquals("8000574112", items.get(0).getId());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(1).getType());
+        assertEquals("241127", items.get(1).getId());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(2).getType());
+        assertEquals("8000575651", items.get(2).getId());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(3).getType());
+        assertEquals("241395", items.get(3).getId());
+    }
+
+    @Test
+    void parseTreatsNumericNonShipmentIdsAsCarrierMoves() {
+        List<AdvancedPrintWorkflowService.QueueRequestItem> items = QueueInputParser.parse(
+                "12345;67890",
+                AdvancedPrintWorkflowService.QueueItemType.SHIPMENT,
+                10
+        );
+
+        assertEquals(2, items.size());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(0).getType());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.CARRIER_MOVE, items.get(1).getType());
+    }
+
+    @Test
+    void parseUsesDefaultTypeForNonNumericAmbiguousIds() {
+        List<AdvancedPrintWorkflowService.QueueRequestItem> items = QueueInputParser.parse(
+                "ABC123;FREJCC",
+                AdvancedPrintWorkflowService.QueueItemType.SHIPMENT,
+                10
+        );
+
+        assertEquals(2, items.size());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(0).getType());
+        assertEquals(AdvancedPrintWorkflowService.QueueItemType.SHIPMENT, items.get(1).getType());
+    }
+
     /**
      * Rejects blank input payloads.
      */

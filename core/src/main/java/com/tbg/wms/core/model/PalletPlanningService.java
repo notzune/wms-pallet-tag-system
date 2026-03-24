@@ -41,25 +41,20 @@ public final class PalletPlanningService {
                 continue;
             }
 
-            int units = Math.max(0, row.getTotalUnits());
-            totalUnits += units;
+            PalletMathSupport.PalletCounts counts =
+                    PalletMathSupport.calculate(row.getTotalUnits(), row.getUnitsPerPallet());
+            totalUnits += counts.units();
 
-            Integer unitsPerPallet = row.getUnitsPerPallet();
-            if (unitsPerPallet == null || unitsPerPallet <= 0) {
+            if (row.getUnitsPerPallet() == null || row.getUnitsPerPallet() <= 0) {
                 // Missing footprint: treat as one partial pallet for visibility.
-                if (units > 0 && row.getSku() != null && !row.getSku().isBlank()) {
+                if (counts.units() > 0 && row.getSku() != null && !row.getSku().isBlank()) {
                     missing.add(row.getSku());
                     partialPallets += 1;
                 }
                 continue;
             }
-
-            int full = units / unitsPerPallet;
-            int remainder = units % unitsPerPallet;
-            fullPallets += full;
-            if (remainder > 0) {
-                partialPallets += 1;
-            }
+            fullPallets += counts.fullPallets();
+            partialPallets += counts.partialPallets();
         }
 
         int estimatedPallets = fullPallets + partialPallets;

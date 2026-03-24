@@ -4,7 +4,6 @@
 package com.tbg.wms.core.rail;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * End-to-end rail planning workflow:
@@ -13,29 +12,25 @@ import java.util.stream.Collectors;
 public final class RailWorkflowService {
     private final RailDbRepository repository;
     private final RailAggregationService aggregationService;
-    private final RailPalletCalculator palletCalculator;
-    private final RailLabelPlanner labelPlanner;
+    private final RailCardPlanningSupport cardPlanningSupport;
     private final RailFootprintResolver footprintResolver;
 
     public RailWorkflowService(RailDbRepository repository) {
         this(
                 repository,
                 new RailAggregationService(),
-                new RailPalletCalculator(),
-                new RailLabelPlanner(),
+                new RailCardPlanningSupport(),
                 new RailFootprintResolver()
         );
     }
 
     RailWorkflowService(RailDbRepository repository,
                         RailAggregationService aggregationService,
-                        RailPalletCalculator palletCalculator,
-                        RailLabelPlanner labelPlanner,
+                        RailCardPlanningSupport cardPlanningSupport,
                         RailFootprintResolver footprintResolver) {
         this.repository = Objects.requireNonNull(repository, "repository cannot be null");
         this.aggregationService = Objects.requireNonNull(aggregationService, "aggregationService cannot be null");
-        this.palletCalculator = Objects.requireNonNull(palletCalculator, "palletCalculator cannot be null");
-        this.labelPlanner = Objects.requireNonNull(labelPlanner, "labelPlanner cannot be null");
+        this.cardPlanningSupport = Objects.requireNonNull(cardPlanningSupport, "cardPlanningSupport cannot be null");
         this.footprintResolver = Objects.requireNonNull(footprintResolver, "footprintResolver cannot be null");
     }
 
@@ -53,9 +48,9 @@ public final class RailWorkflowService {
             throw new IllegalArgumentException("No rail rows found for train: " + normalizedTrainId);
         }
 
-        Set<String> shortCodes = collectShortCodes(rawRows);
+        List<String> shortCodes = collectShortCodes(rawRows);
         Map<String, List<RailFootprintCandidate>> candidates =
-                repository.findRailFootprintsByShortCode(new ArrayList<>(shortCodes));
+                repository.findRailFootprintsByShortCode(shortCodes);
         Map<String, RailFamilyFootprint> resolvedFootprints = footprintResolver.resolve(candidates);
 
         List<RailCarAggregate> aggregates = aggregationService.aggregateByRailcar(rawRows);
@@ -83,23 +78,9 @@ public final class RailWorkflowService {
                                   RailCarAggregate aggregate,
                                   Map<String, RailFamilyFootprint> footprints,
                                   Set<String> missingFromPlanner) {
-        RailPalletCalculator.RailPalletResult palletResult = palletCalculator.calculate(aggregate, footprints);
-        missingFromPlanner.addAll(palletResult.getMissingItems());
+        RailCardPlanningSupport.RailCardPlan cardPlan = cardPlanningSupport.plan(aggregate, footprints);
+        missingFromPlanner.addAll(cardPlan.missingItems());
         List<RailStopRecord.ItemQuantity> sortedItems = aggregate.getSortedItemsByCasesDesc();
-
-        RailStopRecord flattened = new RailStopRecord(
-                aggregate.getDate(),
-                aggregate.getSequence(),
-                aggregate.getTrainNumber(),
-                aggregate.getVehicleId(),
-                aggregate.getWarehouse(),
-                aggregate.getLoadNumberDisplay(),
-                sortedItems
-        );
-        RailLabelPlanner.PlannedRailLabel planned = labelPlanner.planOne(flattened, footprints);
-        List<String> families = planned.getTopFamilies().stream()
-                .map(family -> family.getFamilyCode() + ":" + family.getPercent())
-                .collect(Collectors.toList());
 
         return new RailCarCard(
                 trainId,
@@ -107,11 +88,11 @@ public final class RailWorkflowService {
                 aggregate.getVehicleId(),
                 aggregate.getLoadNumberDisplay(),
                 sortedItems,
-                palletResult.getCanPallets(),
-                palletResult.getDomPallets(),
-                palletResult.getKevPallets(),
-                families,
-                palletResult.getMissingItems()
+                cardPlan.canPallets(),
+                cardPlan.domPallets(),
+                cardPlan.kevPallets(),
+                cardPlan.topFamilies(),
+                cardPlan.missingItems()
         );
     }
 
@@ -122,7 +103,7 @@ public final class RailWorkflowService {
         return trainId.trim().toUpperCase(Locale.ROOT);
     }
 
-    private Set<String> collectShortCodes(List<RailStopRecord> rows) {
+    private List<String> collectShortCodes(List<RailStopRecord> rows) {
         Set<String> codes = new LinkedHashSet<>();
         for (RailStopRecord row : rows) {
             for (RailStopRecord.ItemQuantity item : row.getItems()) {
@@ -131,7 +112,7 @@ public final class RailWorkflowService {
                 }
             }
         }
-        return codes;
+        return new ArrayList<>(codes);
     }
 
     /**

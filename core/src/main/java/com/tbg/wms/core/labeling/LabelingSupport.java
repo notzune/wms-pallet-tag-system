@@ -8,6 +8,7 @@
 
 package com.tbg.wms.core.labeling;
 
+import com.tbg.wms.core.RuntimePathResolver;
 import com.tbg.wms.core.model.LineItem;
 import com.tbg.wms.core.model.Lpn;
 import com.tbg.wms.core.model.Shipment;
@@ -54,7 +55,7 @@ public final class LabelingSupport {
      * @return CSV path or null if not found
      */
     public static Path resolveSkuMatrixCsv() {
-        for (Path candidate : SKU_MATRIX_CANDIDATES) {
+        for (Path candidate : resolveMatrixCandidates(SKU_MATRIX_CANDIDATES)) {
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }
@@ -68,12 +69,27 @@ public final class LabelingSupport {
      * @return CSV path or null if not found
      */
     public static Path resolveLocationMatrixCsv() {
-        for (Path candidate : LOCATION_MATRIX_CANDIDATES) {
+        for (Path candidate : resolveMatrixCandidates(LOCATION_MATRIX_CANDIDATES)) {
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }
         }
         return null;
+    }
+
+    private static List<Path> resolveMatrixCandidates(List<Path> relativeCandidates) {
+        Path configBaseDir = RuntimePathResolver.resolveWorkingDirOrJarSiblingDir(LabelingSupport.class, "config");
+        List<Path> candidates = new ArrayList<>(relativeCandidates.size() * 2);
+        for (Path candidate : relativeCandidates) {
+            String normalized = candidate.normalize().toString().replace('\\', '/');
+            if (normalized.startsWith("config/")) {
+                candidates.add(configBaseDir.resolve(normalized.substring("config/".length())).normalize());
+            } else {
+                candidates.add(configBaseDir.resolve(normalized).normalize());
+            }
+        }
+        candidates.addAll(relativeCandidates);
+        return candidates;
     }
 
     /**
@@ -84,7 +100,7 @@ public final class LabelingSupport {
             return Collections.emptyMap();
         }
 
-        Map<String, ShipmentSkuFootprint> bySku = new HashMap<>();
+        Map<String, ShipmentSkuFootprint> bySku = new HashMap<>(rows.size());
         for (ShipmentSkuFootprint row : rows) {
             if (row != null && row.getSku() != null && !row.getSku().isBlank()) {
                 bySku.put(row.getSku(), row);
@@ -101,7 +117,7 @@ public final class LabelingSupport {
             return Collections.emptyList();
         }
 
-        List<Lpn> virtualLpns = new ArrayList<>();
+        List<Lpn> virtualLpns = new ArrayList<>(estimateVirtualLpnCount(footprintRows));
         LocalDate today = LocalDate.now();
         int seq = 0;
 
@@ -171,6 +187,26 @@ public final class LabelingSupport {
         }
 
         return virtualLpns;
+    }
+
+    private static int estimateVirtualLpnCount(List<ShipmentSkuFootprint> footprintRows) {
+        int estimated = 0;
+        for (ShipmentSkuFootprint row : footprintRows) {
+            if (row == null || row.getSku() == null || row.getSku().isBlank()) {
+                continue;
+            }
+            int totalUnits = Math.max(0, row.getTotalUnits());
+            if (totalUnits == 0) {
+                continue;
+            }
+            Integer unitsPerPallet = row.getUnitsPerPallet();
+            if (unitsPerPallet != null && unitsPerPallet > 0) {
+                estimated += (totalUnits + unitsPerPallet - 1) / unitsPerPallet;
+            } else {
+                estimated += 1;
+            }
+        }
+        return estimated;
     }
 
     /**

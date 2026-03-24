@@ -46,7 +46,6 @@ function Start-PostUninstallCleanup {
     Set-Content -LiteralPath $cleanupScript -Value ($cleanupContent -join [Environment]::NewLine) -Encoding ASCII
     Start-Process -FilePath 'powershell.exe' -ArgumentList @(
         '-NoProfile',
-        '-ExecutionPolicy', 'Bypass',
         '-WindowStyle', 'Hidden',
         '-File', $cleanupScript
     ) | Out-Null
