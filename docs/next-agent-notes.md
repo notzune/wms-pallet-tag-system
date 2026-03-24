@@ -21,6 +21,18 @@
   - updater-related automated suites passed locally (`core.update` + GUI update support tests)
   - packaged upgrade path has VM evidence
   - raw downgrade is still not fully validated end to end; ad hoc `1.7.6 -> 1.7.5` visible-session installer attempts were inconclusive and should not be treated as proof
+  - `scripts/install-wms-installer.ps1` was hardened afterward to improve downgrade/reinstall behavior:
+    - installer version parsing now handles prerelease suffixes
+    - downgrade or same-version helper runs now force uninstall-first replacement instead of trying an in-place install
+    - MSI uninstall/install now retries transient Windows Installer busy state `1618`
+    - installed-product discovery now checks loaded user hives in addition to `HKCU` / `HKLM`
+  - `scripts/tests/install-wms-installer.tests.ps1` now covers prerelease parsing, semver ordering, and downgrade replacement decisions
+  - a deeper VM downgrade rerun exposed a test-environment nuance:
+    - running the helper via guestcontrol under `vmadmin` against a `zrash` per-user install is not a valid downgrade proof because the installer targets the wrong profile path and can fail with MSI `1401`/`1603`
+  - VirtualBox Guest Additions were then updated in the VM with `/with_autologon`, which successfully installed `C:\Windows\System32\VBoxCredProv.dll`
+  - after that change, `VBoxManage controlvm ... setcredentials` plus a visible-session logoff could move the VM onto the `vmadmin` first-login path
+  - current remaining VM blocker:
+    - the first `vmadmin` desktop lands on the Windows privacy/OOBE acceptance screen, and that one-time prompt still needs to be dismissed before a same-user `vmadmin` guided downgrade can be validated end to end
 - Direct-download note:
   - the app already supports guided installer download when a GitHub release publishes both the installer `.exe` and matching `.sha256`
   - Tropicana config artifacts should stay private because the generated `Install-Tropicana-Config.ps1` embeds environment payload
