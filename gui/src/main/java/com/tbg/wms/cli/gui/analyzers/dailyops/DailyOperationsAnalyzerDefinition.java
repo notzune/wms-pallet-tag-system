@@ -9,8 +9,10 @@ import com.tbg.wms.cli.gui.analyzers.AnalyzerRowStyle;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerRowStyler;
 import com.tbg.wms.cli.gui.analyzers.DashboardAnalyzerPresentation;
 import com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSectionSnapshot;
+import com.tbg.wms.cli.gui.analyzers.dailyops.sections.AppointmentsSectionLoader;
 import com.tbg.wms.cli.gui.analyzers.dailyops.sections.CasePickShiftThroughputSectionLoader;
 import com.tbg.wms.cli.gui.analyzers.dailyops.sections.CasePickSummarySectionLoader;
+import com.tbg.wms.cli.gui.analyzers.dailyops.sections.UnloadLoadActivitySectionLoader;
 
 import java.time.Duration;
 import java.util.List;
@@ -36,7 +38,9 @@ public final class DailyOperationsAnalyzerDefinition implements AnalyzerDefiniti
     public AnalyzerDataProvider<AnalyzerDashboardSectionSnapshot> createProvider(AnalyzerContext context) {
         return new DailyOperationsDataProvider(List.of(
                 new CasePickSummarySectionLoader(),
-                new CasePickShiftThroughputSectionLoader()
+                new CasePickShiftThroughputSectionLoader(),
+                new AppointmentsSectionLoader(),
+                new UnloadLoadActivitySectionLoader()
         ));
     }
 
