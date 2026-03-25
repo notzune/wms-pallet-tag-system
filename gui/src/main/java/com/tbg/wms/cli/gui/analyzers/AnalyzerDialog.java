@@ -166,9 +166,15 @@ public final class AnalyzerDialog extends JDialog {
         try {
             AnalyzerPresentation<R> presentation = definition.presentation();
             if (presentation instanceof DashboardAnalyzerPresentation<R>) {
+                AnalyzerResult<R> result = definition.createProvider(context).load(context);
                 activePresentationId = "dashboard";
                 contentLayout.show(contentPanel, "dashboard");
-                dashboardPanel.showSnapshot(new AnalyzerDashboardSnapshot(java.util.List.of()));
+                @SuppressWarnings("unchecked")
+                java.util.List<com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSectionSnapshot> sections =
+                        (java.util.List<com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSectionSnapshot>) result.rows();
+                dashboardPanel.showSnapshot(new AnalyzerDashboardSnapshot(sections));
+                refreshScheduler.markRefreshCompleted(result.fetchedAt());
+                lastUpdatedLabel.setText("Last updated: " + result.fetchedAt());
                 statusLabel.setText("Loaded " + definition.displayName() + ".");
                 return;
             }
