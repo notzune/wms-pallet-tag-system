@@ -125,6 +125,31 @@ function Get-SignableAppPaths {
         Select-Object -Unique
 }
 
+function Assert-CanonicalAppImage {
+    param(
+        [Parameter(Mandatory)]
+        [string]$BundleDir,
+        [Parameter(Mandatory)]
+        [string]$AppName
+    )
+
+    $requiredPaths = @(
+        (Join-Path $BundleDir "$AppName.exe"),
+        (Join-Path $BundleDir "app\wms-tags.jar"),
+        (Join-Path $BundleDir "app\$AppName.cfg")
+    )
+    foreach ($requiredPath in $requiredPaths) {
+        if (-not (Test-Path -LiteralPath $requiredPath)) {
+            throw "Malformed app image at $BundleDir. Missing required path: $requiredPath"
+        }
+    }
+
+    $nestedAppDir = Join-Path $BundleDir $AppName
+    if (Test-Path -LiteralPath $nestedAppDir) {
+        throw "Malformed app image at $BundleDir. Nested app-image directory detected: $nestedAppDir"
+    }
+}
+
 function Invoke-SignToolSignature {
     param(
         [Parameter(Mandatory)]
@@ -342,8 +367,12 @@ if (-not (Test-Path -LiteralPath $builtAppDir)) {
 }
 
 Remove-Item -LiteralPath $BundleDir -Recurse -Force -ErrorAction SilentlyContinue
+if (Test-Path -LiteralPath $BundleDir) {
+    throw "Could not clean existing bundle directory: $BundleDir. Close any running WMS launcher or remove the directory before rebuilding."
+}
 Copy-Item -LiteralPath $builtAppDir -Destination $BundleDir -Recurse -Force
 Remove-Item -LiteralPath $builtAppDir -Recurse -Force -ErrorAction SilentlyContinue
+Assert-CanonicalAppImage -BundleDir $BundleDir -AppName $appName
 
 $signedArtifacts = [System.Collections.Generic.List[string]]::new()
 foreach ($signablePath in (Get-SignableAppPaths -BundleDir $BundleDir -AppName $appName)) {

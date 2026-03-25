@@ -27,6 +27,7 @@ $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("wms-bundle-seeding-" +
 $fixtureSourceRoot = Join-Path $tempRoot "fixture-source"
 $portableBundleDir = Join-Path $tempRoot "portable"
 $jpackageBundleDir = Join-Path $tempRoot "app-image"
+$appName = "WMS Pallet Tag System"
 $jarPath = Get-ChildItem -Path (Join-Path $sourceRoot "cli\target") -Filter "cli-*.jar" -File -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -notlike "*original*" -and $_.Name -notlike "*shaded*" } |
     Sort-Object LastWriteTime -Descending |
@@ -109,9 +110,43 @@ ORACLE_PASSWORD=live_pass
 
         $jpackageEnv = Get-Content -LiteralPath (Join-Path $jpackageBundleDir "wms-tags.env") -Raw
         Assert-Equal -Expected $expectedEnv -Actual $jpackageEnv -Message "jpackage app image should seed template env"
+        $rootLauncher = Join-Path $jpackageBundleDir "$appName.exe"
+        $rootLauncherConfig = Join-Path $jpackageBundleDir "app\$appName.cfg"
+        $nestedAppImage = Join-Path $jpackageBundleDir $appName
+        if (-not (Test-Path -LiteralPath $rootLauncher)) {
+            throw "jpackage app image should expose the canonical launcher at the app-image root."
+        }
+        if (-not (Test-Path -LiteralPath $rootLauncherConfig)) {
+            throw "jpackage app image should keep the launcher cfg beside the root app payload."
+        }
+        if (Test-Path -LiteralPath $nestedAppImage) {
+            throw "jpackage app image should not contain a nested duplicate app-image directory."
+        }
+        $jpackageGuiWrapper = Get-Content -LiteralPath (Join-Path $jpackageBundleDir "wms-tags-gui.bat") -Raw
+        if ($jpackageGuiWrapper -notmatch [regex]::Escape("set `"APP_EXE=%APP_HOME%\$appName.exe`"")) {
+            throw "jpackage GUI wrapper should target the canonical root launcher."
+        }
         $jpackageUninstallScript = Get-Content -LiteralPath (Join-Path $jpackageBundleDir "scripts\uninstall-wms-tags.ps1") -Raw
         if ($jpackageUninstallScript -match 'ExecutionPolicy''?, ''?Bypass') {
             throw "jpackage app image uninstall script should not bypass PowerShell execution policy."
+        }
+        $lockFile = Join-Path $jpackageBundleDir "bundle.lock"
+        Set-Content -LiteralPath $lockFile -Value "lock" -Encoding ASCII
+        $lockStream = [System.IO.File]::Open($lockFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::None)
+        try {
+            & (Join-Path $sourceRoot "scripts\build-jpackage-bundle.ps1") `
+                -SourceRoot $fixtureSourceRoot `
+                -BundleDir $jpackageBundleDir `
+                -JarPath $jarPath.FullName 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                throw "jpackage rebuild should fail when the previous bundle cannot be fully removed."
+            }
+        } catch {
+            if ($_.Exception.Message -notmatch "Could not clean existing bundle directory") {
+                throw
+            }
+        } finally {
+            $lockStream.Dispose()
         }
     } else {
         Write-Host "Skipping jpackage env seeding assertion because jpackage.exe is not available."

@@ -13,13 +13,16 @@ import javax.swing.JTable;
 import javax.swing.WindowConstants;
 import javax.swing.DefaultListCellRenderer;
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Frame;
 import java.awt.FlowLayout;
 import java.io.Serial;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Objects;
+
+import com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardPanel;
+import com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSnapshot;
 
 @SuppressWarnings("serial")
 public final class AnalyzerDialog extends JDialog {
@@ -35,7 +38,12 @@ public final class AnalyzerDialog extends JDialog {
     private final JLabel statusLabel = new JLabel("Ready.");
     private final JLabel lastUpdatedLabel = new JLabel(" ");
     private final JTable table = new JTable();
+    private final JScrollPane tableScrollPane = new JScrollPane(table);
+    private final AnalyzerDashboardPanel dashboardPanel = new AnalyzerDashboardPanel();
+    private final CardLayout contentLayout = new CardLayout();
+    private final JPanel contentPanel = new JPanel(contentLayout);
     private final AnalyzerRefreshScheduler refreshScheduler = new AnalyzerRefreshScheduler(this::loadSelectedAnalyzer);
+    private String activePresentationId = "table";
 
     public AnalyzerDialog(Frame owner, AnalyzerRegistry registry, AnalyzerContext context) {
         super(owner, "Analyzers", false);
@@ -105,8 +113,10 @@ public final class AnalyzerDialog extends JDialog {
         toolbar.add(autoRefreshCheckBox);
         toolbar.add(intervalCombo);
         toolbar.add(lastUpdatedLabel);
+        contentPanel.add(tableScrollPane, "table");
+        contentPanel.add(dashboardPanel, "dashboard");
         add(toolbar, BorderLayout.NORTH);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        add(contentPanel, BorderLayout.CENTER);
         add(statusLabel, BorderLayout.SOUTH);
     }
 
@@ -124,6 +134,10 @@ public final class AnalyzerDialog extends JDialog {
 
     int tableRowCountForTest() {
         return table.getRowCount();
+    }
+
+    String activePresentationForTest() {
+        return activePresentationId;
     }
 
     void triggerManualRefreshForTest() {
@@ -150,6 +164,21 @@ public final class AnalyzerDialog extends JDialog {
     private <R> void loadDefinition(AnalyzerDefinition<R> definition) {
         statusLabel.setText("Loading...");
         try {
+            AnalyzerPresentation<R> presentation = definition.presentation();
+            if (presentation instanceof DashboardAnalyzerPresentation<R>) {
+                AnalyzerResult<R> result = definition.createProvider(context).load(context);
+                activePresentationId = "dashboard";
+                contentLayout.show(contentPanel, "dashboard");
+                @SuppressWarnings("unchecked")
+                java.util.List<com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSectionSnapshot> sections =
+                        (java.util.List<com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSectionSnapshot>) result.rows();
+                dashboardPanel.showSnapshot(new AnalyzerDashboardSnapshot(sections));
+                refreshScheduler.markRefreshCompleted(result.fetchedAt());
+                lastUpdatedLabel.setText("Last updated: " + result.fetchedAt());
+                statusLabel.setText("Loaded " + definition.displayName() + ".");
+                return;
+            }
+
             AnalyzerResult<R> result = definition.createProvider(context).load(context);
             AnalyzerTableModel<R> model = new AnalyzerTableModel<>(definition.columns());
             model.setRows(result.rows());
@@ -157,6 +186,8 @@ public final class AnalyzerDialog extends JDialog {
             table.setDefaultRenderer(Object.class, new AnalyzerTableCellRenderer<>(model, definition.rowStyler()));
             refreshScheduler.markRefreshCompleted(result.fetchedAt());
             lastUpdatedLabel.setText("Last updated: " + result.fetchedAt());
+            activePresentationId = "table";
+            contentLayout.show(contentPanel, "table");
             statusLabel.setText("Loaded " + definition.displayName() + ".");
         } catch (Exception ex) {
             statusLabel.setText("Load failed: " + ex.getMessage());

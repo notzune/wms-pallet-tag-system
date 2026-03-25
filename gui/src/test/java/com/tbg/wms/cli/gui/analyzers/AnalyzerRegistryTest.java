@@ -23,7 +23,7 @@ class AnalyzerRegistryTest {
     void defaultRegistry_shouldExposeUnpickedPartialsDisplayName() {
         AnalyzerRegistry registry = AnalyzerRegistry.defaultRegistry();
 
-        assertEquals(List.of("Unpicked Partials"),
+        assertEquals(List.of("Daily Operations", "Unpicked Partials", "Open Loads", "All Dock Doors"),
                 registry.definitions().stream().map(AnalyzerDefinition::displayName).toList());
     }
 }

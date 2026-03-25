@@ -1,5 +1,8 @@
 package com.tbg.wms.cli.gui.analyzers;
 
+import com.tbg.wms.cli.gui.analyzers.dailyops.DailyOperationsAnalyzerDefinition;
+import com.tbg.wms.cli.gui.analyzers.dockdoors.AllDockDoorsAnalyzerDefinition;
+import com.tbg.wms.cli.gui.analyzers.openloads.OpenLoadsAnalyzerDefinition;
 import com.tbg.wms.cli.gui.analyzers.unpicked.UnpickedPartialsAnalyzerDefinition;
 
 import java.util.List;
@@ -26,7 +29,10 @@ public final class AnalyzerRegistry {
 
     public static AnalyzerRegistry defaultRegistry() {
         return new AnalyzerRegistry(List.of(
-                new UnpickedPartialsAnalyzerDefinition()
+                new DailyOperationsAnalyzerDefinition(),
+                new UnpickedPartialsAnalyzerDefinition(),
+                new OpenLoadsAnalyzerDefinition(),
+                new AllDockDoorsAnalyzerDefinition()
         ));
     }
 }
