@@ -31,8 +31,13 @@
     - running the helper via guestcontrol under `vmadmin` against a `zrash` per-user install is not a valid downgrade proof because the installer targets the wrong profile path and can fail with MSI `1401`/`1603`
   - VirtualBox Guest Additions were then updated in the VM with `/with_autologon`, which successfully installed `C:\Windows\System32\VBoxCredProv.dll`
   - after that change, `VBoxManage controlvm ... setcredentials` plus a visible-session logoff could move the VM onto the `vmadmin` first-login path
-  - current remaining VM blocker:
-    - the first `vmadmin` desktop lands on the Windows privacy/OOBE acceptance screen, and that one-time prompt still needs to be dismissed before a same-user `vmadmin` guided downgrade can be validated end to end
+  - the one-time `vmadmin` privacy/OOBE screen was cleared and the VM now supports a same-user visible desktop under `vmadmin`
+  - true same-user helper downgrade is now validated end to end on the VM:
+    - helper-driven `1.7.6 -> 1.7.5` run detected installed `1.7.6`, performed uninstall-first replacement, and launched the `1.7.5` installer in the visible `vmadmin` session
+    - uninstall log `install-175.uninstall.log` reports `Removal completed successfully` with status `0`
+    - installer log `install-175` reports `Installation completed successfully` for product version `1.7.5` with status `0`
+    - post-install file metadata for `C:\Users\vmadmin\AppData\Local\WMS-Pallet-Tag-System\WMS Pallet Tag System.exe` reports `ProductVersion = 1.7.5`
+    - post-install GUI launch screenshot confirms window title `WMS Pallet Tag System - 1.7.5`
 - Direct-download note:
   - the app already supports guided installer download when a GitHub release publishes both the installer `.exe` and matching `.sha256`
   - Tropicana config artifacts should stay private because the generated `Install-Tropicana-Config.ps1` embeds environment payload
