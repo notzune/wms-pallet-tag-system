@@ -12,6 +12,8 @@ import com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSectionSnapshot;
 import com.tbg.wms.cli.gui.analyzers.dailyops.sections.AppointmentsSectionLoader;
 import com.tbg.wms.cli.gui.analyzers.dailyops.sections.CasePickShiftThroughputSectionLoader;
 import com.tbg.wms.cli.gui.analyzers.dailyops.sections.CasePickSummarySectionLoader;
+import com.tbg.wms.cli.gui.analyzers.dailyops.sections.ProductionSnapshotSectionLoader;
+import com.tbg.wms.cli.gui.analyzers.dailyops.sections.StorageCapacitySectionLoader;
 import com.tbg.wms.cli.gui.analyzers.dailyops.sections.UnloadLoadActivitySectionLoader;
 
 import java.time.Duration;
@@ -40,7 +42,9 @@ public final class DailyOperationsAnalyzerDefinition implements AnalyzerDefiniti
                 new CasePickSummarySectionLoader(),
                 new CasePickShiftThroughputSectionLoader(),
                 new AppointmentsSectionLoader(),
-                new UnloadLoadActivitySectionLoader()
+                new UnloadLoadActivitySectionLoader(),
+                new ProductionSnapshotSectionLoader(),
+                new StorageCapacitySectionLoader()
         ));
     }
 
