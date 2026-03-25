@@ -15,4 +15,8 @@ public interface AnalyzerDefinition<R> {
     AnalyzerColumnSet<R> columns();
 
     AnalyzerRowStyler<R> rowStyler();
+
+    default AnalyzerPresentation<R> presentation() {
+        return TableAnalyzerPresentation.of(columns(), rowStyler());
+    }
 }
