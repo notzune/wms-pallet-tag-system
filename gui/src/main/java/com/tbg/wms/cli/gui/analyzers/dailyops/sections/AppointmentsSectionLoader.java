@@ -84,7 +84,7 @@ public final class AppointmentsSectionLoader implements DailyOperationsSectionLo
 
     static final class QueryService {
         private static final String SQL = """
-                select a.apptday trucks,count(distinct a.car_move_id) outbounds
+                select a.apptday apptday,count(distinct a.car_move_id) trucks
                 ,count(distinct loddte) completed
                 ,count(distinct trknum) inbounds
                 ,count(distinct clsdte) inb_completed
@@ -124,7 +124,7 @@ public final class AppointmentsSectionLoader implements DailyOperationsSectionLo
                     List<QueryRow> rows = new ArrayList<>();
                     while (resultSet.next()) {
                         rows.add(new QueryRow(
-                                toLocalDate(resultSet, "trucks"),
+                                toLocalDate(resultSet, "apptday"),
                                 integerValue(resultSet, "trucks"),
                                 integerValue(resultSet, "outbounds"),
                                 integerValue(resultSet, "completed"),
