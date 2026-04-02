@@ -67,8 +67,8 @@ Portable bundles include a JRE and do not require a separate Java install.
 
 Choose one of these paths:
 
-- Portable/manual install: extract the ZIP, replace the dummy `wms-tags.env` with your real values, and run `run.bat` or `wms-tags-gui.bat`
-- Packaged installer: run `WMS Pallet Tag System-<version>.exe` or `install-wms-installer.ps1`
+- Portable/manual install: extract the ZIP, replace the dummy `wms-tags.env` with your real values, and run `run.bat` or `wms-tags-gui.bat`. This is the recommended company-shareable distribution path.
+- Packaged installer: run `WMS Pallet Tag System-<version>.exe` or `install-wms-installer.ps1` when you specifically need the packaged Windows install flow.
 - Tropicana internal install: generate and distribute the inert Tropicana package ZIP from a trusted internal machine
 - Manual build from repo: build with Maven, then optionally package with `build-portable-bundle.ps1` or `build-jpackage-bundle.ps1`
 
@@ -112,6 +112,8 @@ java -jar cli/target/cli-*.jar gui
 ```
 
 ### Portable bundle (recommended for operators)
+
+Use the portable ZIP as the default artifact for company sharing and operator distribution.
 
 1. Extract the portable package to a folder (example: `C:\wms-pallet-tag-system`).
 2. Copy your real environment values into `wms-tags.env`.
@@ -266,7 +268,7 @@ Behavior:
 ### Update Paths
 
 - Portable/manual install:
-  download the latest portable ZIP or installer from GitHub Releases and replace/reinstall manually
+  download the latest portable ZIP from GitHub Releases and replace/reinstall manually; use the installer only when you explicitly want the native packaged install path
 - Packaged install:
   use the update actions under `Tools -> Settings` for release checks, guided installer download, and packaged-install maintenance when the release includes both the `.exe` and `.sha256`
 - Tropicana internal install:
@@ -609,8 +611,8 @@ Behavior:
 - PRs: uploads `dist/wms-pallet-tag-system-<version>-portable.zip` as an artifact. `<version>` is read from
   `cli/target/maven-archiver/pom.properties`.
 - PRs: also upload the installer `.exe` and `.exe.sha256` as workflow artifacts.
-- Stable tags (`vX.Y.Z`): attach the portable ZIP, installer `.exe`, and matching `.exe.sha256` to a normal GitHub Release.
-- Prerelease tags (`vX.Y.Z-<suffix>` such as `v1.7.3-rc1`): attach the same artifacts to a GitHub Release marked as a prerelease.
+- Stable tags (`vX.Y.Z`): attach the portable ZIP as the primary shareable artifact, plus the installer `.exe` and matching `.exe.sha256` for environments that still use the packaged install flow.
+- Prerelease tags (`vX.Y.Z-<suffix>` such as `v1.7.3-rc1`): attach the same artifacts to a GitHub Release marked as a prerelease, with the portable ZIP remaining the default shareable package.
 - Uses the matching section from `CHANGELOG.md` for the release body on tag builds.
 
 ## Project Structure
