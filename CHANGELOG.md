@@ -18,6 +18,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - `Tools -> Analyzers...` is now hidden unless developer mode is enabled, keeping the production operator menu focused on day-to-day workflows.
 - GUI status/error messaging now surfaces extra debug context only when developer mode is enabled.
 - Release and operator docs now position the portable ZIP as the primary company-shareable package again, while keeping the installer path available for private/local use.
+- Added a Tropicana-specific portable ZIP build path that packages the real bundle-root `wms-tags.env` with no separate config step.
 
 ## [1.7.6] - 2026-03-23
 

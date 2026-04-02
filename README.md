@@ -265,6 +265,25 @@ Behavior:
 - `Install-Tropicana-Config.ps1` remains the supported repair and credential-rotation path.
 - These Tropicana artifacts are for internal distribution only and should not be attached to public GitHub Releases.
 
+### Tropicana portable ZIP
+
+Use the Tropicana portable packaging flow when you want a company-shareable ZIP that already contains the real Tropicana `wms-tags.env` at the bundle root.
+
+```powershell
+.\scripts\build-tropicana-portable.ps1 -ConfigSourcePath .\.env
+```
+
+Outputs:
+
+- `dist\wms-pallet-tag-system-<version>-portable-tropicana\`
+- `dist\wms-pallet-tag-system-<version>-portable-tropicana.zip`
+
+Behavior:
+
+- The Tropicana portable ZIP ships a preconfigured root `wms-tags.env`; there is no separate config-install step.
+- The Tropicana portable launchers force the bundle-local `wms-tags.env`, so an existing `%LOCALAPPDATA%\Tropicana\WMS-Pallet-Tag-System\wms-tags.env` does not override the packaged config.
+- This ZIP is intended for internal Tropicana sharing only because it contains live environment configuration.
+
 ### Update Paths
 
 - Portable/manual install:
@@ -272,7 +291,7 @@ Behavior:
 - Packaged install:
   use the update actions under `Tools -> Settings` for release checks, guided installer download, and packaged-install maintenance when the release includes both the `.exe` and `.sha256`
 - Tropicana internal install:
-  rerun `Install-Tropicana-Config.ps1` only when credentials rotate or per-user config needs repair
+  use the preconfigured Tropicana portable ZIP for no-step sharing, or rerun `Install-Tropicana-Config.ps1` only when you are using the packaged installer path and credentials rotate or per-user config needs repair
 - Clean reinstall:
   use `Tools -> Settings -> Uninstall / Clean Install Prep...` or `uninstall-wms-tags.ps1`
 

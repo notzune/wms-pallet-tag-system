@@ -3,7 +3,9 @@ param(
     [string]$BundleDir,
     [string]$JarPath,
     [string]$SourceRoot,
-    [string]$RuntimeSource
+    [string]$RuntimeSource,
+    [string]$RootConfigSourcePath,
+    [switch]$ForceBundleLocalConfig
 )
 
 $ErrorActionPreference = "Stop"
@@ -158,6 +160,10 @@ if (-not $RuntimeSource) {
     }
 }
 
+if ($RootConfigSourcePath -and -not (Test-Path -LiteralPath $RootConfigSourcePath)) {
+    throw "RootConfigSourcePath not found: $RootConfigSourcePath"
+}
+
 Write-Host "Creating portable bundle at: $BundleDir"
 New-Item -ItemType Directory -Path $BundleDir -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $BundleDir "config\TBG3002") -Force | Out-Null
@@ -166,8 +172,13 @@ New-Item -ItemType Directory -Path (Join-Path $BundleDir "scripts") -Force | Out
 
 Copy-Item -LiteralPath $JarPath -Destination (Join-Path $BundleDir "wms-tags.jar") -Force
 $bundleEnvPath = Join-Path $BundleDir "wms-tags.env"
-Write-Host "Seeding bundle env from: config\\wms-tags.env.example"
-Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -Destination $bundleEnvPath -Force
+if ($RootConfigSourcePath) {
+    Write-Host "Seeding bundle env from: $RootConfigSourcePath"
+    Copy-Item -LiteralPath $RootConfigSourcePath -Destination $bundleEnvPath -Force
+} else {
+    Write-Host "Seeding bundle env from: config\\wms-tags.env.example"
+    Copy-Item -LiteralPath (Join-Path $SourceRoot "config\wms-tags.env.example") -Destination $bundleEnvPath -Force
+}
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printers.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printers.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\TBG3002\printer-routing.yaml") -Destination (Join-Path $BundleDir "config\TBG3002\printer-routing.yaml") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "config\walmart-sku-matrix.csv") -Destination (Join-Path $BundleDir "config\walmart-sku-matrix.csv") -Force
@@ -178,6 +189,20 @@ Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\run.bat") -Destination (J
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\wms-tags-gui.bat") -Destination (Join-Path $BundleDir "wms-tags-gui.bat") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.ps1") -Destination (Join-Path $BundleDir "scripts\verify-wms-tags.ps1") -Force
 Copy-Item -LiteralPath (Join-Path $SourceRoot "scripts\verify-wms-tags.bat") -Destination (Join-Path $BundleDir "scripts\verify-wms-tags.bat") -Force
+
+if ($ForceBundleLocalConfig) {
+    $launcherFiles = @(
+        (Join-Path $BundleDir "run.bat"),
+        (Join-Path $BundleDir "wms-tags-gui.bat")
+    )
+    foreach ($launcherFile in $launcherFiles) {
+        $content = Get-Content -LiteralPath $launcherFile -Raw
+        if ($content -notmatch 'WMS_CONFIG_FILE') {
+            $content = $content -replace 'pushd "%APP_HOME%" >nul', "pushd ""%APP_HOME%"" >nul`r`nset ""WMS_CONFIG_FILE=%APP_HOME%\wms-tags.env"""
+            Set-Content -LiteralPath $launcherFile -Value $content -Encoding ASCII
+        }
+    }
+}
 
 $legacyLauncher = Join-Path $BundleDir "wms-tags.bat"
 if (Test-Path -LiteralPath $legacyLauncher) {
@@ -220,6 +245,8 @@ $manifest = [pscustomobject]@{
     JavaVersion = if ($RuntimeSource) { "runtime-source" } else { $javaInfo.Version }
     JavaHomeSource = if ($RuntimeSource) { $RuntimeSource } else { $javaInfo.JavaHomePath }
     BundleDir = $BundleDir
+    RootConfigSource = if ($RootConfigSourcePath) { $RootConfigSourcePath } else { "config\\wms-tags.env.example" }
+    ForceBundleLocalConfig = [bool]$ForceBundleLocalConfig
 }
 $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $BundleDir "bundle-manifest.json") -Encoding UTF8
 
