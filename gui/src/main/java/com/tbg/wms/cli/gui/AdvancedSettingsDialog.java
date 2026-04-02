@@ -1,6 +1,7 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.RuntimeSettings;
 import com.tbg.wms.core.RuntimePathResolver;
 
 import javax.swing.*;
@@ -23,8 +24,10 @@ final class AdvancedSettingsDialog extends JDialog {
     private static final long serialVersionUID = 1L;
 
     private final JComboBox<EditableConfigFile> fileCombo = new JComboBox<>();
+    private final JCheckBox developerModeCheckBox = new JCheckBox("Developer mode");
     private final JTextArea editorArea = new JTextArea(28, 90);
     private final JLabel pathLabel = new JLabel(" ");
+    private final transient RuntimeSettings runtimeSettings;
     private final transient Runnable onSave;
     private final transient java.util.function.Consumer<String> showError;
     private final transient java.util.function.Consumer<JTextComponent[]> installClipboardBehavior;
@@ -35,11 +38,13 @@ final class AdvancedSettingsDialog extends JDialog {
     AdvancedSettingsDialog(
             Frame owner,
             AppConfig config,
+            RuntimeSettings runtimeSettings,
             Runnable onSave,
             java.util.function.Consumer<String> showError,
             java.util.function.Consumer<JTextComponent[]> installClipboardBehavior
     ) {
         super(owner, "Advanced Settings", true);
+        this.runtimeSettings = Objects.requireNonNull(runtimeSettings, "runtimeSettings cannot be null");
         this.onSave = Objects.requireNonNull(onSave, "onSave cannot be null");
         this.showError = Objects.requireNonNull(showError, "showError cannot be null");
         this.installClipboardBehavior = Objects.requireNonNull(installClipboardBehavior, "installClipboardBehavior cannot be null");
@@ -58,6 +63,8 @@ final class AdvancedSettingsDialog extends JDialog {
         JPanel selector = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         selector.add(new JLabel("Config file:"));
         selector.add(fileCombo);
+        developerModeCheckBox.setSelected(runtimeSettings.developerModeEnabled());
+        selector.add(developerModeCheckBox);
         JButton reloadButton = new JButton("Reload");
         JButton openFolderButton = new JButton("Open Config Folder");
         selector.add(reloadButton);
@@ -89,6 +96,7 @@ final class AdvancedSettingsDialog extends JDialog {
             }
         });
         editorArea.getDocument().addDocumentListener(SimpleDocumentListener.of(() -> dirty = true));
+        developerModeCheckBox.addActionListener(e -> dirty = true);
 
         if (model.getSize() > 0) {
             fileCombo.setSelectedIndex(0);
@@ -150,6 +158,7 @@ final class AdvancedSettingsDialog extends JDialog {
         try {
             Files.createDirectories(currentFile.path().getParent());
             Files.writeString(currentFile.path(), editorArea.getText(), StandardCharsets.UTF_8);
+            runtimeSettings.setDeveloperModeEnabled(developerModeCheckBox.isSelected());
             dirty = false;
             onSave.run();
             JOptionPane.showMessageDialog(this,

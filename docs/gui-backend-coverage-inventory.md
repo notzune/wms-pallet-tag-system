@@ -1,6 +1,6 @@
 # GUI to Backend Coverage Inventory
 
-This inventory captures the current `1.7.5` GUI surface and maps each operator path to its backend/service entrypoint and current automated coverage.
+This inventory captures the current `1.7.6` GUI surface and maps each operator path to its backend/service entrypoint and current automated coverage.
 
 It is intended to complement `docs/release-smoke-coverage-matrix.md` by making the remaining manual-only and partially covered GUI behaviors explicit.
 
@@ -15,6 +15,7 @@ It is intended to complement `docs/release-smoke-coverage-matrix.md` by making t
 | Rail alignment template | `RailPrintCommand`, `RailCardRenderer` | release smoke (`rail-print --template`) | Deterministic PDF template generation is fully covered. |
 | Rail system-default printer validation | `RailPrintCommand`, `RailPrintService.print(Path)` | release smoke (`rail-print --validate-system-default-print`) + `RailPrintCommandTest` | Non-destructive validation only; no live print job is sent during smoke. |
 | Settings: update check / uninstall prep / advanced settings launchers | `ReleaseCheckService`, `InstallMaintenanceService`, `AdvancedSettingsDialog`, `MainSettingsDialog` | `MainSettingsDialogTest`, `AdvancedSettingsDialogTest`, targeted unit/service coverage | Confirms settings-button callback wiring and advanced-settings file targeting without relying on manual clicking. |
+| Developer mode / Analyzers tool gating | `RuntimeSettings`, `LabelGuiFrameToolMenuSupport`, `LabelGuiFrame` | `RuntimeSettingsTest`, `LabelGuiFrameToolMenuSupportTest`, `AdvancedSettingsDialogTest`, `LabelGuiFrameStartupTest` | Confirms the persisted toggle exists, analyzers stay hidden by default, and the main GUI still starts cleanly with the new gate in place. |
 | Packaged Tropicana config precedence | `ConfigFileLocator`, `AppConfig` | packaged smoke (`config`) + packaged installer smoke | Verified through packaged and installer smoke with isolated `%LOCALAPPDATA%`. |
 | Tropicana bootstrap installer flow | `build-tropicana-installer.ps1`, `install-wms-installer.ps1`, embedded bootstrap scripts | packaged smoke with `-IncludeInstallerScenarios` + PowerShell tests | Current smoke also verifies rerun-safe replacement for the smoke-specific app identity. |
 

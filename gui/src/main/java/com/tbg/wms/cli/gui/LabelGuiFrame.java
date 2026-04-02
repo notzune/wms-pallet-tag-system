@@ -196,7 +196,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private JComponent buildToolBar() {
-        return toolMenuSupport.buildToolBar(toolsButton, buildToolMenuActions());
+        return toolMenuSupport.buildToolBar(toolsButton, buildToolMenuActions(), this::developerModeEnabled);
     }
 
     private JComponent buildTopPanel() {
@@ -650,7 +650,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void setBusy(String message) {
-        statusLabel.setText(message);
+        statusLabel.setText(formatStatusMessage(message));
         previewButton.setEnabled(false);
         clearButton.setEnabled(false);
         showLabelsButton.setEnabled(false);
@@ -658,7 +658,7 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void setReady(String message) {
-        statusLabel.setText(message);
+        statusLabel.setText(formatStatusMessage(message));
         previewButton.setEnabled(true);
         clearButton.setEnabled(true);
         updatePrintButtonEnabled(snapshotPreviewSelection());
@@ -993,7 +993,15 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private String rootMessage(Throwable throwable) {
-        return GuiExceptionMessageSupport.rootMessage(throwable);
+        String message = GuiExceptionMessageSupport.rootMessage(throwable);
+        if (!developerModeEnabled() || throwable == null) {
+            return message;
+        }
+        String exceptionType = throwable.getClass().getSimpleName();
+        if (message == null || message.isBlank()) {
+            return exceptionType;
+        }
+        return exceptionType + ": " + message;
     }
 
     private void openBarcodeDialog() {
@@ -1006,6 +1014,10 @@ public final class LabelGuiFrame extends JFrame {
     }
 
     private void openAnalyzersDialog() {
+        if (!developerModeEnabled()) {
+            setReady("Developer mode is required to open Analyzers.");
+            return;
+        }
         if (analyzerDialog == null || !analyzerDialog.isDisplayable()) {
             analyzerDialog = new AnalyzerDialog(
                     this,
@@ -1014,6 +1026,17 @@ public final class LabelGuiFrame extends JFrame {
             );
         }
         analyzerDialog.setVisible(true);
+    }
+
+    private boolean developerModeEnabled() {
+        return runtimeSettings.developerModeEnabled();
+    }
+
+    private String formatStatusMessage(String message) {
+        if (!developerModeEnabled()) {
+            return message;
+        }
+        return "DEBUG MODE: " + message;
     }
 
     private DefaultComboBoxModel<LabelWorkflowService.PrinterOption> buildMainPrintTargetModel(boolean includeFileOption) {

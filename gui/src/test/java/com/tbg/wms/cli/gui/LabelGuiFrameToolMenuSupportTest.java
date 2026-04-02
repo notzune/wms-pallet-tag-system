@@ -19,7 +19,7 @@ class LabelGuiFrameToolMenuSupportTest {
 
     @Test
     void buildToolsMenu_shouldExposeExpectedMenuLabelsInOrder() {
-        JPopupMenu menu = support.buildToolsMenu(new NoOpActions());
+        JPopupMenu menu = support.buildToolsMenu(new NoOpActions(), true);
         List<String> labels = new ArrayList<>();
         for (var component : menu.getComponents()) {
             if (component instanceof JMenuItem item) {
@@ -33,6 +33,26 @@ class LabelGuiFrameToolMenuSupportTest {
                 "Barcode Generator...",
                 "ZPL Preview...",
                 "Analyzers...",
+                "Resume Incomplete Job...",
+                "Settings..."
+        ), labels);
+    }
+
+    @Test
+    void buildToolsMenu_shouldHideAnalyzersWhenDeveloperModeIsDisabled() {
+        JPopupMenu menu = support.buildToolsMenu(new NoOpActions(), false);
+        List<String> labels = new ArrayList<>();
+        for (var component : menu.getComponents()) {
+            if (component instanceof JMenuItem item) {
+                labels.add(item.getText());
+            }
+        }
+
+        assertEquals(List.of(
+                "Rail Labels...",
+                "Queue Print...",
+                "Barcode Generator...",
+                "ZPL Preview...",
                 "Resume Incomplete Job...",
                 "Settings..."
         ), labels);

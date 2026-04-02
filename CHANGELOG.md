@@ -9,6 +9,15 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ## [Unreleased]
 
+### Added
+
+- Added a persisted `Developer mode` toggle under `Settings... -> Advanced Settings...` so internal users can opt into debug-oriented GUI behavior when needed.
+
+### Changed
+
+- `Tools -> Analyzers...` is now hidden unless developer mode is enabled, keeping the production operator menu focused on day-to-day workflows.
+- GUI status/error messaging now surfaces extra debug context only when developer mode is enabled.
+
 ## [1.7.6] - 2026-03-23
 
 ### Added

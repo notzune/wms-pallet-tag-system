@@ -2,6 +2,7 @@ package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.RuntimePathResolver;
+import com.tbg.wms.core.RuntimeSettings;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AdvancedSettingsDialogTest {
@@ -50,9 +52,11 @@ class AdvancedSettingsDialogTest {
         System.setProperty(RuntimePathResolver.APP_HOME_PROP, appHome.toString());
         System.setProperty("wms.config.file", configFile.toString());
         try {
+            RuntimeSettings runtimeSettings = new RuntimeSettings(java.util.prefs.Preferences.userRoot().node("com/tbg/wms/tests/advanced-settings/" + System.nanoTime()));
             AdvancedSettingsDialog dialog = onEdt(() -> new AdvancedSettingsDialog(
                     null,
                     new AppConfig(),
+                    runtimeSettings,
                     () -> {
                     },
                     message -> {
@@ -63,6 +67,12 @@ class AdvancedSettingsDialogTest {
             ));
             try {
                 onEdt(() -> {
+                    JCheckBox developerModeCheckBox = findComponents(dialog, JCheckBox.class).stream()
+                            .filter(checkBox -> "Developer mode".equals(checkBox.getText()))
+                            .findFirst()
+                            .orElseThrow(() -> new AssertionError("Developer mode checkbox missing"));
+                    assertFalse(developerModeCheckBox.isSelected());
+
                     List<Component> comboComponents = findComponents(dialog, JComboBox.class)
                             .stream()
                             .map(component -> (Component) component)

@@ -107,6 +107,7 @@ final class GuiSettingsDialogSupport {
         AdvancedSettingsDialog dialog = new AdvancedSettingsDialog(
                 dependencies.ownerFrame(),
                 dependencies.config(),
+                dependencies.runtimeSettings(),
                 this::reloadRuntimeConfigArtifacts,
                 dependencies::showError,
                 dependencies::installClipboardBehavior

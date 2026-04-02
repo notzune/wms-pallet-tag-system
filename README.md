@@ -519,6 +519,7 @@ Workflow:
 - `Tools` shows an alert badge when an application update is available, and `Settings...` exposes manual update checks plus packaged-install uninstall / clean-wipe launchers.
 - If the latest release includes the packaged installer `.exe`, update checks can use a guided download-and-install path instead of only opening the release page.
 - `Settings...` also exposes `Advanced Settings...` for non-secret runtime config files under `config/`; `wms-tags.env` stays outside the GUI because it contains database/network secrets.
+- `Advanced Settings...` now also includes a persisted `Developer mode` checkbox. When enabled, the GUI exposes `Tools -> Analyzers...` and prefixes richer debug/status messaging; when disabled, the analyzers tool is hidden completely.
 - Runtime output cleanup now prunes stale `out/` artifacts older than 14 days by default, and the retention window is configurable from `Settings...`.
 - See [docs/update-security-evaluation.md](docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
 

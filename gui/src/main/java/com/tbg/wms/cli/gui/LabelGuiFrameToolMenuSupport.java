@@ -6,6 +6,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JToolBar;
 import javax.swing.SwingConstants;
+import java.util.function.BooleanSupplier;
 import java.util.Objects;
 
 /**
@@ -14,8 +15,13 @@ import java.util.Objects;
 final class LabelGuiFrameToolMenuSupport {
 
     JComponent buildToolBar(JButton toolsButton, MenuActions actions) {
+        return buildToolBar(toolsButton, actions, () -> true);
+    }
+
+    JComponent buildToolBar(JButton toolsButton, MenuActions actions, BooleanSupplier developerModeEnabled) {
         Objects.requireNonNull(toolsButton, "toolsButton cannot be null");
         Objects.requireNonNull(actions, "actions cannot be null");
+        Objects.requireNonNull(developerModeEnabled, "developerModeEnabled cannot be null");
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
 
@@ -23,19 +29,25 @@ final class LabelGuiFrameToolMenuSupport {
         toolsButton.setHorizontalTextPosition(SwingConstants.LEFT);
         toolBar.add(toolsButton);
 
-        JPopupMenu toolsMenu = buildToolsMenu(actions);
-        toolsButton.addActionListener(e -> toolsMenu.show(toolsButton, 0, toolsButton.getHeight()));
+        toolsButton.addActionListener(e -> buildToolsMenu(actions, developerModeEnabled.getAsBoolean())
+                .show(toolsButton, 0, toolsButton.getHeight()));
         return toolBar;
     }
 
     JPopupMenu buildToolsMenu(MenuActions actions) {
+        return buildToolsMenu(actions, true);
+    }
+
+    JPopupMenu buildToolsMenu(MenuActions actions, boolean developerModeEnabled) {
         Objects.requireNonNull(actions, "actions cannot be null");
         JPopupMenu toolsMenu = new JPopupMenu();
         addMenuItem(toolsMenu, "Rail Labels...", actions::openRailLabelsDialog);
         addMenuItem(toolsMenu, "Queue Print...", actions::openQueueDialog);
         addMenuItem(toolsMenu, "Barcode Generator...", actions::openBarcodeDialog);
         addMenuItem(toolsMenu, "ZPL Preview...", actions::openZplPreviewDialog);
-        addMenuItem(toolsMenu, "Analyzers...", actions::openAnalyzersDialog);
+        if (developerModeEnabled) {
+            addMenuItem(toolsMenu, "Analyzers...", actions::openAnalyzersDialog);
+        }
         toolsMenu.addSeparator();
         addMenuItem(toolsMenu, "Resume Incomplete Job...", actions::openResumeDialog);
         addMenuItem(toolsMenu, "Settings...", actions::openSettingsDialog);
