@@ -129,6 +129,19 @@ HKLM\SOFTWARE\ODBC\ODBC.INI
 
 The driver detection must reject 32-bit driver names such as `Oracle in OraClient19Home1_32bit`. DSNs must not include `UID`, `PWD`, or any credential-like value.
 
+## Optional Credential Smoke Test
+
+The SOP confirms that credentials are not part of `tnsnames.ora` and are not required to create the System DSNs. Credentials are used when Net Configuration Assistant or ODBC Administrator tests the connection, and the Excel Analyzer connection strings embed `DSN`, `UID`, `PWD`, and `DBQ`.
+
+The installer may support an optional internal smoke test mode that uses the read-only report credentials in memory after DSN creation:
+
+```text
+Username: RPTADM
+Password: supplied by IT build/deployment configuration
+```
+
+This mode should attempt an actual login against each alias or DSN and report pass/fail per site. It must not write `UID` or `PWD` into the System DSNs, `tnsnames.ora`, install state, command lines, or generated response files. Logs may identify the username and test result, for example `TBG3002 credential test passed as RPTADM`, but should not print the password because the exact password value adds no diagnostic value to install logs.
+
 ## Detection And Verification
 
 `detect.ps1` and the installer's post-install verification share the same checks:
@@ -140,6 +153,8 @@ The driver detection must reject 32-bit driver names such as `Oracle in OraClien
 - Each DSN points to its matching alias or server name.
 
 Verification should continue collecting results after a failure when possible, so Intune logs show a useful report instead of only the first symptom. Optional TCP reachability checks to port `1521` may be supported as non-blocking warnings because VPN, firewall, and network location may vary at install time.
+
+Optional credential smoke tests are verification-only and should be separately controllable from structural detection. `detect.ps1` should continue to verify installed state without requiring live database access or credentials.
 
 ## Uninstall Behavior
 
@@ -161,7 +176,7 @@ Install state is written to:
 C:\ProgramData\Tropicana\ODBCSetup
 ```
 
-The installer must never write database usernames or passwords to disk, registry, command logs, transcript logs, DSNs, or generated config. Logs should avoid full registry dumps and full future command lines that could include secrets if credential options are ever added.
+The installer must never write database passwords to disk, registry, command logs, transcript logs, DSNs, or generated config. Usernames may appear in logs for optional credential smoke test status. Logs should avoid full registry dumps and full future command lines that could include secrets.
 
 ## Error Handling
 
@@ -185,6 +200,7 @@ Automated tests should validate pure script behavior without requiring Oracle to
 - generated `tnsnames.ora` includes all seven aliases, hosts, port `1521`, and service `WMSP`
 - response-file patching sets Oracle Home, Oracle Base, install type, and built-in account
 - DSN cmdlet and registry payload generation omit credentials
+- optional credential smoke test logging includes username/test status but omits password
 - detection logic reports missing and present components clearly
 - packaging refuses to build when the Oracle ZIP path is missing
 - generated local artifacts are placed under `dist/odbc-setup`
