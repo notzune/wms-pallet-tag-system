@@ -70,6 +70,7 @@ final class AdvancedSettingsDialog extends JDialog {
         selector.add(reloadButton);
         selector.add(openFolderButton);
         top.add(selector, BorderLayout.NORTH);
+        top.add(GuiHelpSupport.createHelpButton(this, "Advanced Settings", GuiHelpTopics.advancedSettings()), BorderLayout.EAST);
         top.add(new JLabel("Advanced settings edit runtime YAML/CSV/ZPL config files only. Env values remain root-only."), BorderLayout.CENTER);
         top.add(pathLabel, BorderLayout.SOUTH);
 

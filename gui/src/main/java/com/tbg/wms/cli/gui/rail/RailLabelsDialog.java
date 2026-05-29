@@ -4,6 +4,8 @@
 package com.tbg.wms.cli.gui.rail;
 
 import com.tbg.wms.cli.gui.GuiExceptionMessageSupport;
+import com.tbg.wms.cli.gui.GuiHelpSupport;
+import com.tbg.wms.cli.gui.GuiHelpTopics;
 import com.tbg.wms.cli.gui.GuiPrinterTargetSupport;
 import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.cli.gui.TextFieldClipboardController;
@@ -102,6 +104,11 @@ public final class RailLabelsDialog extends JDialog {
         panel.add(generatePdfButton, gbc);
         gbc.gridx = 4;
         panel.add(printButton, gbc);
+
+        gbc.gridx = 5;
+        gbc.anchor = GridBagConstraints.NORTHEAST;
+        panel.add(GuiHelpSupport.createHelpButton(this, "Rail Labels", GuiHelpTopics.railLabels()), gbc);
+        gbc.anchor = GridBagConstraints.WEST;
 
         gbc.gridx = 0;
         gbc.gridy = 1;

@@ -83,6 +83,11 @@ final class ZplPreviewToolDialog extends JDialog {
         topBar.add(new JLabel("Label #"));
         topBar.add(indexSpinner);
         topBar.add(liveCheck);
+        JPanel topHeader = new JPanel(new BorderLayout());
+        topHeader.add(topBar, BorderLayout.WEST);
+        JPanel helpPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
+        helpPanel.add(GuiHelpSupport.createHelpButton(this, "ZPL Preview Tool", GuiHelpTopics.zplPreview()));
+        topHeader.add(helpPanel, BorderLayout.EAST);
 
         JScrollPane textScroll = new JScrollPane(zplTextArea);
         JScrollPane previewScroll = new JScrollPane(previewLabel);
@@ -93,7 +98,7 @@ final class ZplPreviewToolDialog extends JDialog {
         footer.add(statusLabel, BorderLayout.CENTER);
         footer.add(new JLabel("Rendered via Labelary preview API. Network access required."), BorderLayout.EAST);
 
-        add(topBar, BorderLayout.NORTH);
+        add(topHeader, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
 
