@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class RailCardRendererTest {
@@ -73,6 +74,30 @@ final class RailCardRendererTest {
         try (PDDocument doc = PDDocument.load(output.toFile())) {
             String text = new PDFTextStripper().getText(doc);
             assertTrue(text.contains("0526 BR 8000618166"));
+        }
+    }
+
+    @Test
+    void renderPdfPrintsEveryItemLineWithoutContinuationText() throws Exception {
+        Path output = Files.createTempFile("rail-cards-all-items-test", ".pdf");
+        RailCarCard card = new RailCarCard("JC05262026", "301", "TPIX3204", "8000618166",
+                "0526 BR 8000618166",
+                List.of(
+                        new RailStopRecord.ItemQuantity("00906", 440),
+                        new RailStopRecord.ItemQuantity("20547", 700),
+                        new RailStopRecord.ItemQuantity("20548", 2200),
+                        new RailStopRecord.ItemQuantity("20551", 1000),
+                        new RailStopRecord.ItemQuantity("20567", 500),
+                        new RailStopRecord.ItemQuantity("2157", 825)
+                ),
+                0, 66, 0, List.of("DOM:100"), List.of());
+
+        new RailCardRenderer().renderPdf(List.of(card), output);
+
+        try (PDDocument doc = PDDocument.load(output.toFile())) {
+            String text = new PDFTextStripper().getText(doc);
+            assertTrue(text.contains("2157 825"));
+            assertFalse(text.contains("... 1 more"));
         }
     }
 

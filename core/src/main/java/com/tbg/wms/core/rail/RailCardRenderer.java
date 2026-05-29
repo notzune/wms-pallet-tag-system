@@ -160,18 +160,11 @@ public final class RailCardRenderer {
         }
 
         float itemFontSize = itemFontSize(card.getItemLines().size());
-        int itemCount = Math.min(ITEMS_PER_CARD, card.getItemLines().size());
-        for (int i = 0; i < itemCount; i++) {
+        for (int i = 0; i < card.getItemLines().size(); i++) {
             RailStopRecord.ItemQuantity item = card.getItemLines().get(i);
             String line = safe(item.getItemNumber()) + " " + item.getCases();
             writeText(content, PDType1Font.HELVETICA, itemFontSize, textLeft, supportY, line);
             supportY -= itemFontSize + 2f;
-        }
-
-        if (card.getItemLines().size() > ITEMS_PER_CARD) {
-            int remaining = card.getItemLines().size() - ITEMS_PER_CARD;
-            writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.MIN_ITEM_SIZE,
-                    textLeft, supportY, "... " + remaining + " more");
         }
 
         List<DestinationCount> counts = destinationCounts(card);
