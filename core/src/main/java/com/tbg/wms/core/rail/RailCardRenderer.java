@@ -12,6 +12,7 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,22 +21,14 @@ import java.util.Objects;
  */
 public final class RailCardRenderer {
     private static final PDRectangle PAGE_SIZE = PDRectangle.LETTER;
-    private static final int GRID_COLS = 2;
-    private static final int GRID_ROWS = 5;
-    private static final float POINTS_PER_INCH = 72f;
-    private static final float LABEL_WIDTH = 4.0f * POINTS_PER_INCH;
-    private static final float LABEL_HEIGHT = 2.0f * POINTS_PER_INCH;
-    private static final float GRID_GAP_Y = 0f;
-    private static final float HEADER_FONT_SIZE = 8.5f;
-    private static final float BODY_FONT_SIZE = 6.3f;
-    private static final float LINE_HEIGHT = 8.0f;
+    private static final float BORDER_WIDTH = 0.5f;
+    private static final float TEXT_INSET = 7f;
+    private static final float FOOTER_Y_OFFSET = 8f;
     private static final int ITEMS_PER_CARD = 5;
-    private final float gridGapX;
-    private final float pageMarginX;
-    private final float pageMarginY;
+    private final RailLabelSheetLayout layout;
 
     public RailCardRenderer() {
-        this(0.125f, 0f, 0f);
+        this.layout = RailLabelSheetLayout.defaultLayout();
     }
 
     /**
@@ -46,13 +39,7 @@ public final class RailCardRenderer {
      * @param offsetYInches   positive moves grid down
      */
     public RailCardRenderer(float centerGapInches, float offsetXInches, float offsetYInches) {
-        this.gridGapX = centerGapInches * POINTS_PER_INCH;
-        this.pageMarginX =
-                ((PAGE_SIZE.getWidth() - ((GRID_COLS * LABEL_WIDTH) + ((GRID_COLS - 1) * gridGapX))) / 2.0f)
-                        + (offsetXInches * POINTS_PER_INCH);
-        this.pageMarginY =
-                ((PAGE_SIZE.getHeight() - ((GRID_ROWS * LABEL_HEIGHT) + ((GRID_ROWS - 1) * GRID_GAP_Y))) / 2.0f)
-                        + (offsetYInches * POINTS_PER_INCH);
+        this.layout = RailLabelSheetLayout.calibrated(centerGapInches, offsetXInches, offsetYInches);
     }
 
     /**
@@ -79,7 +66,7 @@ public final class RailCardRenderer {
                     PDPage page = new PDPage(PAGE_SIZE);
                     document.addPage(page);
                     try (PDPageContentStream content = new PDPageContentStream(document, page)) {
-                        for (int slot = 0; slot < GRID_COLS * GRID_ROWS && index < cards.size(); slot++, index++) {
+                        for (int slot = 0; slot < layout.slotsPerPage() && index < cards.size(); slot++, index++) {
                             drawCard(content, cards.get(index), slot);
                         }
                     }
@@ -107,7 +94,7 @@ public final class RailCardRenderer {
             PDPage page = new PDPage(PAGE_SIZE);
             document.addPage(page);
             try (PDPageContentStream content = new PDPageContentStream(document, page)) {
-                for (int slot = 0; slot < GRID_COLS * GRID_ROWS; slot++) {
+                for (int slot = 0; slot < layout.slotsPerPage(); slot++) {
                     drawAlignmentSlot(content, slot);
                 }
             }
@@ -117,106 +104,120 @@ public final class RailCardRenderer {
     }
 
     private void drawAlignmentSlot(PDPageContentStream content, int slot) throws IOException {
-        Rect rect = slotRect(slot);
-        float left = rect.left;
-        float top = rect.top;
-        float bottom = rect.bottom;
+        RailLabelSheetLayout.LabelSlot rect = layout.slot(slot);
+        float left = rect.left();
+        float top = rect.top();
+        float bottom = rect.bottom();
 
-        content.addRect(left, bottom, LABEL_WIDTH, LABEL_HEIGHT);
+        content.addRect(left, bottom, rect.width(), rect.height());
         content.stroke();
 
         float inset = 10f;
-        content.addRect(left + inset, bottom + inset, LABEL_WIDTH - (2 * inset), LABEL_HEIGHT - (2 * inset));
+        content.addRect(left + inset, bottom + inset, rect.width() - (2 * inset), rect.height() - (2 * inset));
         content.stroke();
 
-        float cx = left + (LABEL_WIDTH / 2f);
-        float cy = bottom + (LABEL_HEIGHT / 2f);
+        float cx = left + (rect.width() / 2f);
+        float cy = bottom + (rect.height() / 2f);
         content.moveTo(cx - 9f, cy);
         content.lineTo(cx + 9f, cy);
         content.moveTo(cx, cy - 9f);
         content.lineTo(cx, cy + 9f);
         content.stroke();
 
-        int row = (slot / GRID_COLS) + 1;
-        int col = (slot % GRID_COLS) + 1;
+        int row = (slot / 2) + 1;
+        int col = (slot % 2) + 1;
         String label = "POS " + row + "-" + col + " (slot " + (slot + 1) + ")";
         writeText(content, PDType1Font.HELVETICA_BOLD, 9f, left + 8f, top - 14f, label);
         writeText(content, PDType1Font.HELVETICA, 7f, left + 8f, top - 26f,
-                "4.00in x 2.00in | center gap=" + (gridGapX / POINTS_PER_INCH) + "in");
+                "4.00in x 2.00in rail label");
     }
 
     private void drawCard(PDPageContentStream content, RailCarCard card, int slot) throws IOException {
-        Rect rect = slotRect(slot);
-        float left = rect.left;
-        float top = rect.top;
-        float bottom = rect.bottom;
+        RailLabelSheetLayout.LabelSlot rect = layout.slot(slot);
+        float left = rect.left();
+        float top = rect.top();
+        float bottom = rect.bottom();
+        float right = left + rect.width();
 
-        content.addRect(left, bottom, LABEL_WIDTH, LABEL_HEIGHT);
+        content.setLineWidth(BORDER_WIDTH);
+        content.addRect(left, bottom, rect.width(), rect.height());
         content.stroke();
 
-        float textX = left + 7f;
-        float y = top - 11f;
+        float textLeft = left + TEXT_INSET;
+        float textRight = right - TEXT_INSET;
+        float centerX = left + (rect.width() / 2f);
 
-        writeText(content, PDType1Font.HELVETICA_BOLD, HEADER_FONT_SIZE,
-                textX, y, safe(card.getSequence()) + "      " + safe(card.getVehicleId()));
-        y -= LINE_HEIGHT;
+        writeUnderlinedText(content, PDType1Font.HELVETICA_BOLD_OBLIQUE, RailLabelTypography.SEQUENCE_SIZE,
+                textLeft, top - 22f, safe(card.getSequence()));
+        writeRightAlignedUnderlinedText(content, PDType1Font.HELVETICA_BOLD_OBLIQUE, RailLabelTypography.VEHICLE_SIZE,
+                textRight, top - 27f, safe(card.getVehicleId()));
 
+        float supportY = top - 39f;
         if (!card.getLoadNumbers().isBlank()) {
-            writeText(content, PDType1Font.HELVETICA, BODY_FONT_SIZE, textX, y, "LOAD: " + card.getLoadNumbers());
-            y -= LINE_HEIGHT;
+            writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.ROUTE_HEADER_SIZE,
+                    textLeft, supportY, card.getLoadNumbers());
+            supportY -= 10f;
         }
-        writeText(content, PDType1Font.COURIER_BOLD, BODY_FONT_SIZE, textX, y, "ITEM LIST");
-        y -= LINE_HEIGHT;
 
+        float itemFontSize = itemFontSize(card.getItemLines().size());
         int itemCount = Math.min(ITEMS_PER_CARD, card.getItemLines().size());
         for (int i = 0; i < itemCount; i++) {
             RailStopRecord.ItemQuantity item = card.getItemLines().get(i);
-            String line = String.format("%-10s %6d", safe(item.getItemNumber()), item.getCases());
-            writeText(content, PDType1Font.COURIER, BODY_FONT_SIZE, textX, y, line);
-            y -= LINE_HEIGHT;
+            String line = safe(item.getItemNumber()) + " " + item.getCases();
+            writeText(content, PDType1Font.HELVETICA, itemFontSize, textLeft, supportY, line);
+            supportY -= itemFontSize + 2f;
         }
 
         if (card.getItemLines().size() > ITEMS_PER_CARD) {
             int remaining = card.getItemLines().size() - ITEMS_PER_CARD;
-            writeText(content, PDType1Font.HELVETICA_OBLIQUE, BODY_FONT_SIZE, textX, y,
-                    "... " + remaining + " more item(s)");
-            y -= LINE_HEIGHT;
+            writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.MIN_ITEM_SIZE,
+                    textLeft, supportY, "... " + remaining + " more");
         }
 
-        y -= 2f;
-        writeText(content, PDType1Font.HELVETICA_BOLD, BODY_FONT_SIZE, textX, y, "CAN: " + card.getCanPallets());
-        y -= LINE_HEIGHT;
-        writeText(content, PDType1Font.HELVETICA_BOLD, BODY_FONT_SIZE, textX, y, "DOM: " + card.getDomPallets());
-        y -= LINE_HEIGHT;
-        writeText(content, PDType1Font.HELVETICA_BOLD, BODY_FONT_SIZE, textX, y, "KEV: " + card.getKevPallets());
-        y -= LINE_HEIGHT;
-
-        if (!card.getTopFamilies().isEmpty()) {
-            writeText(content, PDType1Font.HELVETICA, BODY_FONT_SIZE, textX, y,
-                    "TOP: " + String.join(" ", card.getTopFamilies()));
-            y -= LINE_HEIGHT;
+        List<DestinationCount> counts = destinationCounts(card);
+        if (!counts.isEmpty()) {
+            writeCenteredText(content, PDType1Font.HELVETICA_BOLD, RailLabelTypography.PRIMARY_DESTINATION_SIZE,
+                    centerX, bottom + 63f, counts.get(0).display());
+        }
+        if (counts.size() > 1) {
+            writeCenteredUnderlinedText(content, PDType1Font.HELVETICA_BOLD_OBLIQUE,
+                    RailLabelTypography.SECONDARY_DESTINATION_SIZE, centerX, bottom + 40f, counts.get(1).display());
         }
 
         if (!card.getMissingFootprintItems().isEmpty()) {
-            writeText(content, PDType1Font.HELVETICA_OBLIQUE, BODY_FONT_SIZE, textX, y,
-                    "MISSING: " + card.getMissingFootprintItems().size());
+            writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.MIN_ITEM_SIZE,
+                    textLeft, bottom + 22f, "MISSING: " + card.getMissingFootprintItems().size());
         }
 
-        writeText(content, PDType1Font.HELVETICA, BODY_FONT_SIZE, textX, bottom + 8f,
-                "PASS: ______   FUEL: ______   BH: ______");
-    }
-
-    private Rect slotRect(int slot) {
-        int row = slot / GRID_COLS;
-        int col = slot % GRID_COLS;
-        float left = pageMarginX + (col * (LABEL_WIDTH + gridGapX));
-        float top = PAGE_SIZE.getHeight() - pageMarginY - (row * (LABEL_HEIGHT + GRID_GAP_Y));
-        float bottom = top - LABEL_HEIGHT;
-        return new Rect(left, top, bottom);
+        drawFooterField(content, textLeft, bottom + FOOTER_Y_OFFSET, "PASS:");
+        drawFooterField(content, left + 102f, bottom + FOOTER_Y_OFFSET, "FUEL:");
+        drawFooterField(content, left + 198f, bottom + FOOTER_Y_OFFSET, "BH:");
     }
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private float itemFontSize(int itemRows) {
+        if (itemRows <= ITEMS_PER_CARD) {
+            return RailLabelTypography.ITEM_SIZE;
+        }
+        float shrink = (itemRows - ITEMS_PER_CARD) * 0.4f;
+        return Math.max(RailLabelTypography.MIN_ITEM_SIZE, RailLabelTypography.ITEM_SIZE - shrink);
+    }
+
+    private List<DestinationCount> destinationCounts(RailCarCard card) {
+        List<DestinationCount> counts = new ArrayList<>(3);
+        if (card.getCanPallets() > 0) {
+            counts.add(new DestinationCount("CAN", card.getCanPallets()));
+        }
+        if (card.getDomPallets() > 0) {
+            counts.add(new DestinationCount("DOM", card.getDomPallets()));
+        }
+        if (card.getKevPallets() > 0) {
+            counts.add(new DestinationCount("KEV", card.getKevPallets()));
+        }
+        return counts;
     }
 
     private void writeText(PDPageContentStream content,
@@ -232,15 +233,75 @@ public final class RailCardRenderer {
         content.endText();
     }
 
-    private static final class Rect {
-        private final float left;
-        private final float top;
-        private final float bottom;
+    private void writeUnderlinedText(PDPageContentStream content,
+                                     PDType1Font font,
+                                     float fontSize,
+                                     float x,
+                                     float y,
+                                     String text) throws IOException {
+        writeText(content, font, fontSize, x, y, text);
+        underline(content, font, fontSize, x, y, text);
+    }
 
-        private Rect(float left, float top, float bottom) {
-            this.left = left;
-            this.top = top;
-            this.bottom = bottom;
+    private void writeRightAlignedUnderlinedText(PDPageContentStream content,
+                                                PDType1Font font,
+                                                float fontSize,
+                                                float right,
+                                                float y,
+                                                String text) throws IOException {
+        float width = textWidth(font, fontSize, text);
+        writeUnderlinedText(content, font, fontSize, right - width, y, text);
+    }
+
+    private void writeCenteredText(PDPageContentStream content,
+                                   PDType1Font font,
+                                   float fontSize,
+                                   float centerX,
+                                   float y,
+                                   String text) throws IOException {
+        float width = textWidth(font, fontSize, text);
+        writeText(content, font, fontSize, centerX - (width / 2f), y, text);
+    }
+
+    private void writeCenteredUnderlinedText(PDPageContentStream content,
+                                             PDType1Font font,
+                                             float fontSize,
+                                             float centerX,
+                                             float y,
+                                             String text) throws IOException {
+        float width = textWidth(font, fontSize, text);
+        float x = centerX - (width / 2f);
+        writeUnderlinedText(content, font, fontSize, x, y, text);
+    }
+
+    private void drawFooterField(PDPageContentStream content, float x, float y, String label) throws IOException {
+        writeText(content, PDType1Font.HELVETICA_BOLD, RailLabelTypography.FOOTER_SIZE, x, y, label);
+        float labelWidth = textWidth(PDType1Font.HELVETICA_BOLD, RailLabelTypography.FOOTER_SIZE, label);
+        float underlineStart = x + labelWidth + 2f;
+        content.moveTo(underlineStart, y - 1f);
+        content.lineTo(underlineStart + 36f, y - 1f);
+        content.stroke();
+    }
+
+    private void underline(PDPageContentStream content,
+                           PDType1Font font,
+                           float fontSize,
+                           float x,
+                           float y,
+                           String text) throws IOException {
+        content.moveTo(x, y - 2f);
+        content.lineTo(x + textWidth(font, fontSize, text) + 2f, y - 2f);
+        content.stroke();
+    }
+
+    private float textWidth(PDType1Font font, float fontSize, String text) throws IOException {
+        String safeText = text == null ? "" : text;
+        return font.getStringWidth(safeText) / 1000f * fontSize;
+    }
+
+    private record DestinationCount(String label, int count) {
+        private String display() {
+            return label + ":" + count;
         }
     }
 }
