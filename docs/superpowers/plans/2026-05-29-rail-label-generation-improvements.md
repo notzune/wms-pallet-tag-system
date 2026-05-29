@@ -235,11 +235,11 @@ void slotBounds_shouldMatchTwoByFiveSheet() {
     RailLabelSheetLayout.LabelSlot rowTwo = layout.slot(2);
 
     assertEquals(11.25f, first.left(), 0.001f);
-    assertEquals(648.0f, first.bottom(), 0.001f);
+    assertEquals(612.0f, first.bottom(), 0.001f);
     assertEquals(312.75f, second.left(), 0.001f);
-    assertEquals(648.0f, second.bottom(), 0.001f);
+    assertEquals(612.0f, second.bottom(), 0.001f);
     assertEquals(11.25f, rowTwo.left(), 0.001f);
-    assertEquals(504.0f, rowTwo.bottom(), 0.001f);
+    assertEquals(468.0f, rowTwo.bottom(), 0.001f);
 }
 ```
 
