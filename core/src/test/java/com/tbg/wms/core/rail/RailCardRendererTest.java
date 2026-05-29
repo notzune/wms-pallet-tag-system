@@ -61,6 +61,22 @@ final class RailCardRendererTest {
     }
 
     @Test
+    void renderPdfUsesRouteHeaderInsteadOfLoadOnly() throws Exception {
+        Path output = Files.createTempFile("rail-cards-route-header-test", ".pdf");
+        RailCarCard card = new RailCarCard("JC05262026", "301", "TPIX3204", "8000618166",
+                "0526 BR 8000618166",
+                List.of(new RailStopRecord.ItemQuantity("20548", 2200)),
+                0, 66, 0, List.of("DOM:100"), List.of());
+
+        new RailCardRenderer().renderPdf(List.of(card), output);
+
+        try (PDDocument doc = PDDocument.load(output.toFile())) {
+            String text = new PDFTextStripper().getText(doc);
+            assertTrue(text.contains("0526 BR 8000618166"));
+        }
+    }
+
+    @Test
     void renderAlignmentTemplateCreatesOneLetterPage() throws Exception {
         Path output = Files.createTempFile("rail-alignment-template-test", ".pdf");
         new RailCardRenderer().renderAlignmentTemplate(output);

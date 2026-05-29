@@ -153,9 +153,9 @@ public final class RailCardRenderer {
                 textRight, top - 27f, safe(card.getVehicleId()));
 
         float supportY = top - 39f;
-        if (!card.getLoadNumbers().isBlank()) {
+        if (!card.getRouteHeader().isBlank()) {
             writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.ROUTE_HEADER_SIZE,
-                    textLeft, supportY, card.getLoadNumbers());
+                    textLeft, supportY, card.getRouteHeader());
             supportY -= 10f;
         }
 

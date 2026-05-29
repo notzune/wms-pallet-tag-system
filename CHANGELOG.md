@@ -19,6 +19,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 ### Changed
 
 - Rail label PDFs now use the approved 4x2 label sheet geometry and larger label typography for the sequence, rail car code, destination counts, supporting item rows, and PASS/FUEL/BH fields.
+- Rail label route headers now print the DB train number, warehouse code, and load number together, for example `0526 BR 8000618166`.
 - `Tools -> Analyzers...` is now hidden unless developer mode is enabled, keeping the production operator menu focused on day-to-day workflows.
 - GUI status/error messaging now surfaces extra debug context only when developer mode is enabled.
 - Release and operator docs now position the portable ZIP as the primary company-shareable package again, while keeping the installer path available for private/local use.

@@ -96,6 +96,27 @@ final class RailWorkflowServiceTest {
         assertTrue(ex.getMessage().contains("MISSING"));
     }
 
+    @Test
+    void prepareBuildsRouteHeaderFromTrainNumberWarehouseAndLoadNumber() {
+        RailWorkflowService service = new RailWorkflowService(new RailDbRepository() {
+            @Override
+            public List<RailStopRecord> findRailStopsByTrainId(String trainId) {
+                return List.of(new RailStopRecord("05-29-26", "301", "0526", "TPIX3204", "BR", "8000618166",
+                        List.of(new RailStopRecord.ItemQuantity("20548", 2200))));
+            }
+
+            @Override
+            public Map<String, List<RailFootprintCandidate>> findRailFootprintsByShortCode(List<String> shortCodes) {
+                return Map.of("20548", List.of(new RailFootprintCandidate("20548", "ITEM1", "DOM", 56)));
+            }
+        });
+
+        RailCarCard card = service.prepare("JC05262026").getCards().get(0);
+
+        assertEquals("8000618166", card.getLoadNumbers());
+        assertEquals("0526 BR 8000618166", card.getRouteHeader());
+    }
+
     private static RailStopRecord row(String trainId, String sequence, String vehicle, String item, int cases) {
         return new RailStopRecord("03-04-26", sequence, trainId, vehicle, "BR", "L1",
                 List.of(new RailStopRecord.ItemQuantity(item, cases)));

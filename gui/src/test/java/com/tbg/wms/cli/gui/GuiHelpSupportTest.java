@@ -53,9 +53,9 @@ class GuiHelpSupportTest {
     void railHelpExplainsMultipleTrainInputWithConcreteExamples() {
         String helpText = GuiHelpSupport.formatHelpText(GuiHelpTopics.railLabels());
 
-        assertTrue(helpText.contains("302, 303, 304"));
-        assertTrue(helpText.contains("302/303"));
-        assertTrue(helpText.contains("302:303;304"));
+        assertTrue(helpText.contains("JC05262026"));
+        assertTrue(helpText.contains("JC05262026, JC05272026"));
+        assertTrue(helpText.contains("JC05262026/JC05272026"));
         assertTrue(helpText.contains("same PDF"));
         assertTrue(helpText.contains("uncheck"));
         assertNotNull(helpText);

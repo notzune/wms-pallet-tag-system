@@ -132,6 +132,7 @@ public final class RailWorkflowService {
                 aggregate.getSequence(),
                 aggregate.getVehicleId(),
                 aggregate.getLoadNumberDisplay(),
+                routeHeader(aggregate),
                 sortedItems,
                 cardPlan.canPallets(),
                 cardPlan.domPallets(),
@@ -139,6 +140,20 @@ public final class RailWorkflowService {
                 cardPlan.topFamilies(),
                 cardPlan.missingItems()
         );
+    }
+
+    private String routeHeader(RailCarAggregate aggregate) {
+        List<String> parts = new ArrayList<>(3);
+        if (!aggregate.getTrainNumber().isBlank()) {
+            parts.add(aggregate.getTrainNumber());
+        }
+        if (!aggregate.getWarehouse().isBlank()) {
+            parts.add(aggregate.getWarehouse());
+        }
+        if (!aggregate.getLoadNumberDisplay().isBlank()) {
+            parts.add(aggregate.getLoadNumberDisplay());
+        }
+        return String.join(" ", parts);
     }
 
     private String normalizeTrainId(String trainId) {

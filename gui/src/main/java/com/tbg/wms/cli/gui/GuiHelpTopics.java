@@ -34,9 +34,10 @@ public final class GuiHelpTopics {
     public static List<GuiHelpSupport.HelpSection> railLabels() {
         return List.of(
                 section("Workflow",
-                        "Type one train code, or type several train codes at the same time.",
-                        "For example: 302, 303, 304",
-                        "Other examples that also work: 302 303, 302/303, or 302:303;304",
+                        "Type one full train code, or type several full train codes at the same time.",
+                        "For example: JC05262026",
+                        "For more than one train, type examples like: JC05262026, JC05272026",
+                        "Other examples that also work: JC05262026 JC05272026, JC05262026/JC05272026, or JC05262026:JC05272026;JC05282026",
                         "Click Load Preview to gather the rail rows for every train you entered.",
                         "Click Generate PDF to put the selected rail labels into the same PDF."),
                 section("Row Selection",
