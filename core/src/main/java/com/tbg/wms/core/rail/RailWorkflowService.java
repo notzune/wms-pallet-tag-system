@@ -74,6 +74,51 @@ public final class RailWorkflowService {
         );
     }
 
+    /**
+     * Builds print-ready cards for multiple trains in the caller-provided order.
+     *
+     * @param trainIds train identifiers
+     * @return deterministic combined workflow result
+     */
+    public RailWorkflowBatchResult prepareAll(List<String> trainIds) {
+        if (trainIds == null || trainIds.isEmpty()) {
+            throw new IllegalArgumentException("At least one train ID is required.");
+        }
+
+        List<String> normalizedTrainIds = new ArrayList<>(trainIds.size());
+        List<RailWorkflowResult> results = new ArrayList<>(trainIds.size());
+        List<RailStopRecord> rawRows = new ArrayList<>();
+        List<RailCarAggregate> aggregates = new ArrayList<>();
+        List<RailCarCard> cards = new ArrayList<>();
+        Map<String, RailFamilyFootprint> resolvedFootprints = new LinkedHashMap<>();
+        Set<String> unresolvedShortCodes = new TreeSet<>();
+        Set<String> missingItemsInCards = new TreeSet<>();
+
+        for (String trainId : trainIds) {
+            String normalizedTrainId = normalizeTrainId(trainId);
+            RailWorkflowResult result = prepare(normalizedTrainId);
+            normalizedTrainIds.add(normalizedTrainId);
+            results.add(result);
+            rawRows.addAll(result.getRawRows());
+            aggregates.addAll(result.getAggregates());
+            cards.addAll(result.getCards());
+            resolvedFootprints.putAll(result.getResolvedFootprints());
+            unresolvedShortCodes.addAll(result.getUnresolvedShortCodes());
+            missingItemsInCards.addAll(result.getMissingItemsInCards());
+        }
+
+        return new RailWorkflowBatchResult(
+                normalizedTrainIds,
+                results,
+                rawRows,
+                aggregates,
+                cards,
+                resolvedFootprints,
+                unresolvedShortCodes,
+                missingItemsInCards
+        );
+    }
+
     private RailCarCard buildCard(String trainId,
                                   RailCarAggregate aggregate,
                                   Map<String, RailFamilyFootprint> footprints,
@@ -145,6 +190,70 @@ public final class RailWorkflowService {
 
         public String getTrainId() {
             return trainId;
+        }
+
+        public List<RailStopRecord> getRawRows() {
+            return rawRows;
+        }
+
+        public List<RailCarAggregate> getAggregates() {
+            return aggregates;
+        }
+
+        public List<RailCarCard> getCards() {
+            return cards;
+        }
+
+        public Map<String, RailFamilyFootprint> getResolvedFootprints() {
+            return resolvedFootprints;
+        }
+
+        public Set<String> getUnresolvedShortCodes() {
+            return unresolvedShortCodes;
+        }
+
+        public Set<String> getMissingItemsInCards() {
+            return missingItemsInCards;
+        }
+    }
+
+    /**
+     * Immutable combined output for multi-train rail label preparation.
+     */
+    public static final class RailWorkflowBatchResult {
+        private final List<String> trainIds;
+        private final List<RailWorkflowResult> results;
+        private final List<RailStopRecord> rawRows;
+        private final List<RailCarAggregate> aggregates;
+        private final List<RailCarCard> cards;
+        private final Map<String, RailFamilyFootprint> resolvedFootprints;
+        private final Set<String> unresolvedShortCodes;
+        private final Set<String> missingItemsInCards;
+
+        private RailWorkflowBatchResult(List<String> trainIds,
+                                        List<RailWorkflowResult> results,
+                                        List<RailStopRecord> rawRows,
+                                        List<RailCarAggregate> aggregates,
+                                        List<RailCarCard> cards,
+                                        Map<String, RailFamilyFootprint> resolvedFootprints,
+                                        Set<String> unresolvedShortCodes,
+                                        Set<String> missingItemsInCards) {
+            this.trainIds = Collections.unmodifiableList(new ArrayList<>(trainIds));
+            this.results = Collections.unmodifiableList(new ArrayList<>(results));
+            this.rawRows = Collections.unmodifiableList(new ArrayList<>(rawRows));
+            this.aggregates = Collections.unmodifiableList(new ArrayList<>(aggregates));
+            this.cards = Collections.unmodifiableList(new ArrayList<>(cards));
+            this.resolvedFootprints = Collections.unmodifiableMap(new LinkedHashMap<>(resolvedFootprints));
+            this.unresolvedShortCodes = Collections.unmodifiableSet(new TreeSet<>(unresolvedShortCodes));
+            this.missingItemsInCards = Collections.unmodifiableSet(new TreeSet<>(missingItemsInCards));
+        }
+
+        public List<String> getTrainIds() {
+            return trainIds;
+        }
+
+        public List<RailWorkflowResult> getResults() {
+            return results;
         }
 
         public List<RailStopRecord> getRawRows() {
