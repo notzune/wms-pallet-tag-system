@@ -13,6 +13,7 @@ import com.tbg.wms.core.rail.RailCarCard;
 import com.tbg.wms.core.rail.RailCardRenderer;
 import com.tbg.wms.core.rail.RailDbRepository;
 import com.tbg.wms.core.rail.RailPrintService;
+import com.tbg.wms.core.rail.RailTrainInputParser;
 import com.tbg.wms.db.DbConnectionPool;
 import com.tbg.wms.db.OracleDbQueryRepository;
 import com.tbg.wms.db.WmsRailDbRepository;
@@ -45,11 +46,21 @@ public final class RailWorkflowService {
      * @return prepared immutable preview payload
      */
     public PreparedRailJob prepareRailJob(String trainId) throws Exception {
+        return prepareRailJob(new RailTrainInputParser().parse(trainId));
+    }
+
+    /**
+     * Loads and prepares railcard preview data from WMS for one or more trains.
+     *
+     * @param trainIds normalized train identifiers entered by the operator
+     * @return prepared immutable preview payload
+     */
+    public PreparedRailJob prepareRailJob(List<String> trainIds) throws Exception {
         try (DbConnectionPool pool = new DbConnectionPool(config)) {
             RailDbRepository repository = new WmsRailDbRepository(new OracleDbQueryRepository(pool.getDataSource()));
             com.tbg.wms.core.rail.RailWorkflowService workflow =
                     new com.tbg.wms.core.rail.RailWorkflowService(repository);
-            com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowResult result = workflow.prepare(trainId);
+            com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowBatchResult result = workflow.prepareAll(trainIds);
             return new PreparedRailJob(result);
         }
     }
@@ -80,17 +91,34 @@ public final class RailWorkflowService {
      * @return generation result details
      */
     public GenerationResult generatePdf(PreparedRailJob job, Path outputDir, String printerId) throws Exception {
+        return generatePdf(job, job.getCards(), outputDir, printerId);
+    }
+
+    /**
+     * Renders selected cards to PDF and optionally sends the result to printer.
+     *
+     * @param job           prepared job produced by {@link #prepareRailJob(List)}
+     * @param selectedCards selected cards to render
+     * @param outputDir     optional output directory (null for timestamped default)
+     * @param printerId     printer target ID, `SYSTEM_DEFAULT`, or null/blank/FILE to skip printing
+     * @return generation result details
+     */
+    public GenerationResult generatePdf(PreparedRailJob job,
+                                        List<RailCarCard> selectedCards,
+                                        Path outputDir,
+                                        String printerId) throws Exception {
         Objects.requireNonNull(job, "job cannot be null");
+        Objects.requireNonNull(selectedCards, "selectedCards cannot be null");
         Path targetDir = outputDir == null
-                ? Path.of("out", "rail-gui-" + job.result.getTrainId() + "-" + TS.format(LocalDateTime.now()))
+                ? Path.of("out", "rail-gui-" + job.fileNameToken() + "-" + TS.format(LocalDateTime.now()))
                 : outputDir;
         Files.createDirectories(targetDir);
-        Path pdfPath = targetDir.resolve("rail-cards-" + job.result.getTrainId() + ".pdf");
+        Path pdfPath = targetDir.resolve("rail-cards-" + job.fileNameToken() + ".pdf");
         new RailCardRenderer(
                 (float) config.railLabelCenterGapInches(),
                 (float) config.railLabelOffsetXInches(),
                 (float) config.railLabelOffsetYInches()
-        ).renderPdf(job.result.getCards(), pdfPath);
+        ).renderPdf(selectedCards, pdfPath);
         String targetPrinterId = printerId == null ? "" : printerId.trim();
         if (GuiPrinterTargetSupport.SYSTEM_DEFAULT_PRINTER_ID.equals(targetPrinterId)) {
             new RailPrintService().print(pdfPath);
@@ -145,30 +173,79 @@ public final class RailWorkflowService {
         StringBuilder sb = new StringBuilder();
         sb.append("Rail Diagnostics").append('\n');
         sb.append("================").append('\n');
-        sb.append("Train ID: ").append(job.result.getTrainId()).append('\n');
-        sb.append("WMS rows: ").append(job.result.getRawRows().size()).append('\n');
-        sb.append("Railcars: ").append(job.result.getCards().size()).append('\n');
-        sb.append("Resolved footprints: ").append(job.result.getResolvedFootprints().size()).append('\n');
-        sb.append("Unresolved short codes: ").append(job.result.getUnresolvedShortCodes().size()).append('\n');
-        if (!job.result.getUnresolvedShortCodes().isEmpty()) {
-            sb.append("Unresolved: ").append(String.join(", ", job.result.getUnresolvedShortCodes())).append('\n');
+        sb.append("Train IDs: ").append(String.join(", ", job.getTrainIds())).append('\n');
+        sb.append("WMS rows: ").append(job.getRawRowsCount()).append('\n');
+        sb.append("Railcars: ").append(job.getCards().size()).append('\n');
+        sb.append("Resolved footprints: ").append(job.getResolvedFootprintsCount()).append('\n');
+        sb.append("Unresolved short codes: ").append(job.getUnresolvedShortCodes().size()).append('\n');
+        if (!job.getUnresolvedShortCodes().isEmpty()) {
+            sb.append("Unresolved: ").append(String.join(", ", job.getUnresolvedShortCodes())).append('\n');
         }
         return sb.toString();
     }
 
     public static final class PreparedRailJob {
         private final com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowResult result;
+        private final com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowBatchResult batchResult;
 
         private PreparedRailJob(com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowResult result) {
             this.result = result;
+            this.batchResult = null;
+        }
+
+        private PreparedRailJob(com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowBatchResult batchResult) {
+            this.result = null;
+            this.batchResult = batchResult;
         }
 
         public String getTrainId() {
-            return result.getTrainId();
+            return getTrainIds().isEmpty() ? "" : getTrainIds().get(0);
+        }
+
+        public List<String> getTrainIds() {
+            if (batchResult != null) {
+                return batchResult.getTrainIds();
+            }
+            return List.of(result.getTrainId());
         }
 
         public List<RailCarCard> getCards() {
+            if (batchResult != null) {
+                return batchResult.getCards();
+            }
             return result.getCards();
+        }
+
+        private int getRawRowsCount() {
+            if (batchResult != null) {
+                return batchResult.getRawRows().size();
+            }
+            return result.getRawRows().size();
+        }
+
+        private int getResolvedFootprintsCount() {
+            if (batchResult != null) {
+                return batchResult.getResolvedFootprints().size();
+            }
+            return result.getResolvedFootprints().size();
+        }
+
+        private java.util.Set<String> getUnresolvedShortCodes() {
+            if (batchResult != null) {
+                return batchResult.getUnresolvedShortCodes();
+            }
+            return result.getUnresolvedShortCodes();
+        }
+
+        private String fileNameToken() {
+            List<String> trainIds = getTrainIds();
+            if (trainIds.isEmpty()) {
+                return "rail";
+            }
+            if (trainIds.size() == 1) {
+                return trainIds.get(0);
+            }
+            return trainIds.get(0) + "-plus-" + (trainIds.size() - 1);
         }
     }
 
