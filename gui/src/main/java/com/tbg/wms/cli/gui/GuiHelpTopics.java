@@ -16,44 +16,51 @@ public final class GuiHelpTopics {
     public static List<GuiHelpSupport.HelpSection> mainWindow() {
         return List.of(
                 section("Workflow",
-                        "Choose Carrier Move ID or Shipment ID, enter the ID, then load the preview.",
-                        "Review the generated label math and label selection before printing.",
+                        "Choose Carrier Move ID or Shipment ID, type or paste the number, then click Preview.",
+                        "For example: choose Shipment ID for 8000582489, or choose Carrier Move ID for a carrier move number.",
+                        "Review the labels that appear before printing.",
                         "Use Tools for rail labels, barcode generation, ZPL preview, queue print, resume, and settings."),
                 section("Shortcuts",
                         "Ctrl+F runs Preview when the preview button is enabled.",
-                        "Text fields use terminal-like mouse clipboard behavior where supported."),
+                        "In text boxes, left-click and drag to highlight text.",
+                        "right-click in a text box to copy, paste, cut, or select all when those options are available.",
+                        "You can also use Ctrl+C to copy, Ctrl+V to paste, and Ctrl+A to select all."),
                 section("Printing",
-                        "Confirm Print prints only the selected preview labels.",
-                        "Show Labels opens a generated ZPL preview for the currently selected labels.")
+                        "Confirm Print prints only the labels that are still selected.",
+                        "Show Labels lets you look at the generated labels before sending them to the printer.")
         );
     }
 
     public static List<GuiHelpSupport.HelpSection> railLabels() {
         return List.of(
                 section("Workflow",
-                        "Enter one or more train codes separated by comma, space, colon, slash, semicolon, or combinations of those characters.",
-                        "Load Preview builds one combined rail label job for all entered trains.",
-                        "Generate PDF creates one PDF containing only rows whose PRINT checkbox is selected."),
+                        "Type one train code, or type several train codes at the same time.",
+                        "For example: 302, 303, 304",
+                        "Other examples that also work: 302 303, 302/303, or 302:303;304",
+                        "Click Load Preview to gather the rail rows for every train you entered.",
+                        "Click Generate PDF to put the selected rail labels into the same PDF."),
                 section("Row Selection",
-                        "All rows are printable by default after preview loads.",
-                        "Ctrl-click adds or removes individual table rows from the current selection.",
-                        "Shift-click selects a row range.",
-                        "Press Space to toggle the PRINT checkbox for selected rows.",
-                        "Select All, Clear All, and Invert update which rail labels will be generated."),
+                        "Every row is checked to print when the preview loads.",
+                        "Uncheck any row you do not want to print.",
+                        "Ctrl-click lets you pick several separate rows.",
+                        "Shift-click lets you pick a whole group of rows at once.",
+                        "Press Space to check or uncheck the selected rows.",
+                        "Select All checks every row. Clear All unchecks every row. Invert switches checked rows to unchecked and unchecked rows to checked."),
                 section("Shortcuts",
-                        "Ctrl+F runs Load Preview when it is enabled.")
+                        "Ctrl+F runs Load Preview when it is enabled.",
+                        "right-click in the Train ID or Output Directory box to copy, paste, cut, or select all when those options are available.")
         );
     }
 
     public static List<GuiHelpSupport.HelpSection> barcodeGenerator() {
         return List.of(
                 section("Workflow",
-                        "Enter barcode data, choose type, copies, and printer target.",
-                        "Preview opens a live ZPL preview for the current barcode request.",
-                        "Generate prints to the selected printer or writes ZPL when Print to File is selected."),
+                        "Type or paste the barcode text, choose the barcode type, enter the number of copies, and choose where it should go.",
+                        "For example: type 20554, choose CODE128, set Copies to 1, then click Preview.",
+                        "Generate sends the barcode to the selected printer or saves a file when Print to File is selected."),
                 section("Tools",
-                        "Utility Keyboard opens scanner-friendly symbol entry.",
-                        "Advanced Settings adjusts orientation, dimensions, origin, module width, ratio, and human-readable text.")
+                        "Utility Keyboard gives quick buttons for special keys and symbols.",
+                        "Advanced Settings changes label size, barcode position, barcode thickness, and whether readable text prints below the barcode.")
         );
     }
 

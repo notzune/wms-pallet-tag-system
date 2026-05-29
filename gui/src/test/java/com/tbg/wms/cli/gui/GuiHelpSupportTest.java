@@ -8,6 +8,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GuiHelpSupportTest {
@@ -36,5 +37,27 @@ class GuiHelpSupportTest {
         assertFalse(button.isFocusable());
         ActionListener[] listeners = button.getActionListeners();
         assertEquals(1, listeners.length);
+    }
+
+    @Test
+    void mainWindowHelpUsesPlainLanguageExamplesAndMouseCopyPasteWording() {
+        String helpText = GuiHelpSupport.formatHelpText(GuiHelpTopics.mainWindow());
+
+        assertTrue(helpText.contains("For example:"));
+        assertTrue(helpText.contains("left-click and drag"));
+        assertTrue(helpText.contains("right-click"));
+        assertFalse(helpText.toLowerCase().contains("terminal-like"));
+    }
+
+    @Test
+    void railHelpExplainsMultipleTrainInputWithConcreteExamples() {
+        String helpText = GuiHelpSupport.formatHelpText(GuiHelpTopics.railLabels());
+
+        assertTrue(helpText.contains("302, 303, 304"));
+        assertTrue(helpText.contains("302/303"));
+        assertTrue(helpText.contains("302:303;304"));
+        assertTrue(helpText.contains("same PDF"));
+        assertTrue(helpText.contains("uncheck"));
+        assertNotNull(helpText);
     }
 }
