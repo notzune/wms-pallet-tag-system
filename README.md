@@ -457,12 +457,12 @@ Notes:
 ## Rail Print Command
 
 ```bash
-java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID> [OPTIONS]
+java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID>[,<TRAIN_ID>...] [OPTIONS]
 ```
 
 Options:
 
-- `--train <ID>` (required): full WMS train ID (example: `JC08312025`)
+- `--train <ID>` (required): one or more full WMS train IDs (example: `JC08312025`). Multiple train IDs may be separated with commas, spaces, colons, slashes, semicolons, or mixed delimiters.
 - `--output-dir <DIR>` (default `out/rail-print`)
 - `--print` (send generated PDF to default printer after confirmation)
 - `--template` (generate 10-position 4x2 alignment template PDF and exit)
@@ -476,22 +476,24 @@ Workflow:
 - Compute deterministic top-family percentages with largest-remainder rounding (stable ordering and 100% total)
 - Show preview table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`)
 - Confirm
-- Render direct letter-size rail card PDF (no Word mail merge dependency)
+- Render one direct letter-size rail card PDF for all requested trains (no Word mail merge dependency)
+- Use the approved 4x2 label-stock geometry and larger rail label typography for readability
 - Include `MISSING: <count>` warning on cards when any short codes are unresolved
 - Optionally print: tries configured rail printer first (`RAIL_DEFAULT_PRINTER_ID`), then opens system print dialog as fallback
 
 ## Rail Labels GUI Workflow
 
 - Open `gui`, then go to `Tools -> Rail Labels...`.
-- Enter train ID and click `Load Preview`.
+- Enter one or more train IDs and click `Load Preview`. Multiple train IDs may be separated with commas, spaces, colons, slashes, semicolons, or mixed delimiters.
 - Press `Ctrl+F` to trigger `Load Preview` from the keyboard while the workflow window is focused.
 - System pulls rail rows from WMS and resolves footprints by short code from WMS.
 - Preview includes:
-- Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
+- Railcar table (`PRINT`, `TRAIN`, `SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
 - Railcar card preview panel (item lines + CAN/DOM/KEV + pass/fuel/BH fields)
 - Diagnostics panel (row counts and unresolved footprints)
+- All preview rows default to printable. Use the `PRINT` checkboxes, `Select All`, `Clear All`, `Invert`, or multi-select rows with Ctrl/Shift and press Space to control which rows are generated.
 - Rail print target dropdown only shows printers marked with the `RAIL` capability, plus `System default printer` and `Print to file`.
-- Click `Generate PDF` to produce a letter-size multi-card PDF.
+- Click `Generate PDF` to produce one letter-size multi-card PDF for the checked rows.
 - Click `Print` to generate PDF and send it to the selected rail printer, or keep `Print to file` selected to save only.
 
 ## Excel VBA Macro Helpers

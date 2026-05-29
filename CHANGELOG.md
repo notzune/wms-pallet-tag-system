@@ -11,10 +11,13 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ### Added
 
+- Rail label generation now accepts multiple train codes in one run using comma, whitespace, colon, slash, semicolon, or mixed delimiters, then renders one combined PDF.
+- The Rail Labels GUI now includes explicit printable-row checkboxes plus select-all, clear-all, invert, and multi-row keyboard toggling before PDF generation or printing.
 - Added a persisted `Developer mode` toggle under `Settings... -> Advanced Settings...` so internal users can opt into debug-oriented GUI behavior when needed.
 
 ### Changed
 
+- Rail label PDFs now use the approved 4x2 label sheet geometry and larger label typography for the sequence, rail car code, destination counts, supporting item rows, and PASS/FUEL/BH fields.
 - `Tools -> Analyzers...` is now hidden unless developer mode is enabled, keeping the production operator menu focused on day-to-day workflows.
 - GUI status/error messaging now surfaces extra debug context only when developer mode is enabled.
 - Release and operator docs now position the portable ZIP as the primary company-shareable package again, while keeping the installer path available for private/local use.
