@@ -66,6 +66,26 @@ final class RailPrintCliSupportTest {
         assertTrue(preview.contains("Missing in card math: 01830"));
     }
 
+    @Test
+    void buildPreviewTextIncludesMultiTrainSummary() throws Exception {
+        RailWorkflowService.RailWorkflowBatchResult result = batchResult(
+                List.of("JC08312025", "JC04152026"),
+                List.of(
+                        new RailCarCard("JC08312025", "142", "CAR-100", "LOAD-1",
+                                List.of(), 1, 2, 0, List.of(), List.of()),
+                        new RailCarCard("JC04152026", "200", "CAR-200", "LOAD-2",
+                                List.of(), 3, 4, 0, List.of(), List.of())
+                )
+        );
+
+        String preview = support.buildPreviewText(result);
+
+        assertTrue(preview.contains("Train IDs: JC08312025, JC04152026"));
+        assertTrue(preview.contains("Railcars: 2"));
+        assertTrue(preview.contains("CAR-100"));
+        assertTrue(preview.contains("CAR-200"));
+    }
+
     @SuppressWarnings("unchecked")
     private static RailWorkflowService.RailWorkflowResult workflowResult(
             List<RailCarCard> cards,
@@ -86,6 +106,27 @@ final class RailPrintCliSupportTest {
                 resolvedFootprints,
                 unresolvedShortCodes,
                 missingItemsInCards
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private static RailWorkflowService.RailWorkflowBatchResult batchResult(
+            List<String> trainIds,
+            List<RailCarCard> cards
+    ) throws Exception {
+        Constructor<RailWorkflowService.RailWorkflowBatchResult> ctor =
+                (Constructor<RailWorkflowService.RailWorkflowBatchResult>)
+                        RailWorkflowService.RailWorkflowBatchResult.class.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        return ctor.newInstance(
+                trainIds,
+                List.of(),
+                List.of(),
+                List.of(),
+                cards,
+                Map.of(),
+                Set.of(),
+                Set.of()
         );
     }
 }
