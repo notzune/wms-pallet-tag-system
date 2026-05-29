@@ -373,7 +373,7 @@ Key settings:
 - `SITE_<CODE>_SHIP_FROM_NAME`, `SITE_<CODE>_SHIP_FROM_ADDRESS`, `SITE_<CODE>_SHIP_FROM_CITY_STATE_ZIP`
 - `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
 - `RAIL_DEFAULT_PRINTER_ID` (optional: rail PDF print target; printer ID from `printers.yaml`)
-- `RAIL_LABEL_CENTER_GAP_IN=0.125` (rail 2-column center gap, inches)
+- `RAIL_LABEL_CENTER_GAP_IN=0.1875` (rail 2-column center gap, inches)
 - `RAIL_LABEL_OFFSET_X_IN=0.02` (rail label grid X nudge, inches; + is right)
 - `RAIL_LABEL_OFFSET_Y_IN=0.02` (rail label grid Y nudge, inches; + is down)
 - `RIGHT_CLICK_COOLDOWN_MS=250` (GUI right-click copy/paste debounce)

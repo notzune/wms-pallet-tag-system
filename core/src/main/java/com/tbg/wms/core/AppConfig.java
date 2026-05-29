@@ -306,7 +306,7 @@ public final class AppConfig {
     /**
      * Horizontal center-gap between the two rail label columns, in inches.
      *
-     * @return center gap from {@code RAIL_LABEL_CENTER_GAP_IN} (default: {@code 0.125})
+     * @return center gap from {@code RAIL_LABEL_CENTER_GAP_IN} (default: {@code 0.1875})
      */
     public double railLabelCenterGapInches() {
         return printRuntimeSupport.railLabelCenterGapInches();

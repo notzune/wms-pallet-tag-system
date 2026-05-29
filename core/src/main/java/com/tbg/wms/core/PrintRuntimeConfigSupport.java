@@ -27,7 +27,7 @@ final class PrintRuntimeConfigSupport {
     }
 
     double railLabelCenterGapInches() {
-        return valueSupport.parseDouble("RAIL_LABEL_CENTER_GAP_IN", "0.125");
+        return valueSupport.parseDouble("RAIL_LABEL_CENTER_GAP_IN", "0.1875");
     }
 
     double railLabelOffsetXInches() {

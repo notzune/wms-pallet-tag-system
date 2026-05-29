@@ -19,7 +19,7 @@ final class PrintRuntimeConfigSupportTest {
 
         assertEquals("config/printer-routing.yaml", support.printerRoutingFile());
         assertEquals("DISPATCH", support.defaultPrinterId());
-        assertEquals(0.125d, support.railLabelCenterGapInches());
+        assertEquals(0.1875d, support.railLabelCenterGapInches());
         assertEquals(0.02d, support.railLabelOffsetXInches());
         assertEquals(0.02d, support.railLabelOffsetYInches());
         assertNull(support.railDefaultPrinterIdOrNull());
