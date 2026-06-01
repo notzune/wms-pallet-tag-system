@@ -10,7 +10,7 @@
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current branch target: `1.7.6` prerelease validation.
+Current branch target: post-`1.7.6` hardening for rail labels, operator help, documentation, and focused SRP refactors.
 
 ## Versioning and History
 
@@ -20,6 +20,11 @@ Current branch target: `1.7.6` prerelease validation.
 - New release notes should be staged under `## [Unreleased]` before version cut/tagging.
 
 For open work and follow-up items, see the [GitHub issues tracker](https://github.com/notzune/wms-pallet-tag-system/issues).
+
+Active tracked work:
+
+- `#42` improves rail label readability, physical label-sheet documentation, multi-train input, combined PDF generation, and explicit printable-row selection.
+- `#43` adds contextual GUI help buttons and shared help-dialog behavior across operator views.
 
 ## Current Scope
 
@@ -52,6 +57,9 @@ Not implemented yet:
 - GUI workflow caches are site-scoped and thread-safe to prevent stale cross-site printer/site metadata reuse.
 - GUI preview selection refresh now snapshots the selected labels once per update cycle instead of rebuilding shipment/carrier subsets repeatedly.
 - Query and command execution paths remain hardened with prepared statements and argumentized process invocation patterns.
+- Architecture and SRP follow-up notes are tracked in [docs/architecture-solid-audit.md](docs/architecture-solid-audit.md).
+- Large Swing coordinators are refactor targets, not preferred homes for unrelated feature expansion.
+- New branch work should keep parser, data access, orchestration, rendering, and UI state responsibilities in separate classes with tests at the owning boundary.
 
 ## Prerequisites
 
@@ -591,6 +599,7 @@ Package-level documentation is maintained in every `package-info.java` under:
 
 Recent documentation maintenance:
 
+- `docs/architecture-solid-audit.md` captures the current SRP/SOLID audit, open issue context, verification baseline, and managed branch map
 - missing `package-info.java` coverage was filled for the newer `core` subpackages (`barcode`, `db`, `ems`, `label`, `labeling`, `location`, `sku`, `update`)
 - GUI settings/update/install maintenance responsibilities are now documented separately from the main frame through `MainSettingsDialog`
 - GUI print-task planning and artifact naming are now documented separately from workflow orchestration through `PrintTaskPlanner` and `ArtifactNameSupport`
@@ -606,6 +615,19 @@ Recent examples:
 - `DescriptionTextHeuristics` (shared description readability policy)
 - `PrtmstDescriptionColumnResolver` (cached PRTMST schema probing boundary)
 - `RailFootprintResolver` (deterministic candidate-consistency gate before pallet math)
+
+Documentation changes should follow the same boundary rules as code changes: update the README for user-facing workflows, the changelog for release-visible changes, ADRs for durable architecture decisions, and focused docs for operational or refactor guidance. Avoid duplicating long setup procedures across multiple files.
+
+## Branch and Refactor Management
+
+Use isolated worktrees under `.worktrees/` for work that can proceed independently from the main checkout. The current managed branch map is:
+
+- `docs/repo-documentation-solid-audit` - documentation refresh and SRP audit.
+- `refactor/srp-label-gui-frame` - planned extraction work for `LabelGuiFrame` and related Swing coordination responsibilities.
+- `refactor/srp-analyzer-loading` - planned consolidation of analyzer loading, dashboard loading state, and async data-provider boundaries.
+- `perf/code-optimization-baseline` - planned low-risk performance and maintainability cleanup after tests establish baseline behavior.
+
+Refactor branches must preserve behavior through tests before changing production code. Keep each branch narrow enough that a reviewer can evaluate one responsibility boundary at a time.
 
 ## CI Workflows
 

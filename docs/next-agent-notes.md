@@ -1,5 +1,21 @@
 # Next Agent Notes
 
+## 2026-06-01 Repo Documentation And SRP Branch Setup
+
+- Baseline context:
+  - local `main` was ahead of `origin/main` by four documentation/planning commits
+  - the primary checkout had unrelated dirty analyzer/VBA/log/generated-label changes, so this documentation pass was isolated in `.worktrees/repo-documentation-solid-audit`
+  - open issues were `#42` rail label generation improvements and `#43` contextual GUI help
+- Verification before documentation edits:
+  - `.\mvnw.cmd -q -pl core,db,gui,cli -am test` passed in the documentation worktree
+  - earlier CLI smoke in the primary checkout confirmed `java -jar cli\target\cli-1.7.6.jar --help` prints the expected command list
+- Managed branch map:
+  - `docs/repo-documentation-solid-audit` for README/CHANGELOG/release-doc/SRP-audit updates
+  - `refactor/srp-label-gui-frame` for narrowing `LabelGuiFrame` and adjacent Swing coordinator responsibilities
+  - `refactor/srp-analyzer-loading` for analyzer async loading and dashboard loading-state boundaries
+  - `perf/code-optimization-baseline` for low-risk performance cleanup after a fresh verification baseline
+- Keep the existing dirty analyzer and VBA changes intact unless the user explicitly asks to integrate or discard them.
+
 ## 2026-03-24 Validation Notes
 
 - Clean-VM validation was rerun against the `TropTest` VirtualBox guest with no Java on `PATH`.
