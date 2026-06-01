@@ -17,7 +17,7 @@ The latest local verification baseline for this audit used:
 
 ```powershell
 .\mvnw.cmd -q -pl core,db,gui,cli -am test
-java -jar cli\target\cli-1.7.6.jar --help
+java -jar cli\target\cli-1.8.0-SNAPSHOT.jar --help
 ```
 
 The Maven test command exited `0`. The CLI help smoke printed the expected command list.
@@ -89,7 +89,7 @@ Before merging any refactor branch:
 ```powershell
 .\mvnw.cmd -q -pl core,db,gui,cli -am test
 .\mvnw.cmd -q -pl cli -am package -DskipTests
-java -jar cli\target\cli-1.7.6.jar --help
+java -jar cli\target\cli-1.8.0-SNAPSHOT.jar --help
 ```
 
 For release branches, also run the smoke commands in `docs/release-checklist.md`.

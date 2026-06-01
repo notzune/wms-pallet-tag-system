@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.7.6-blue)
+![Version](https://img.shields.io/badge/version-1.8.0--SNAPSHOT-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current branch target: post-`1.7.6` hardening for rail labels, operator help, documentation, and focused SRP refactors.
+Current branch target: `1.8.0-SNAPSHOT` feature validation for rail labels, operator help, documentation, and focused SRP refactors.
 
 ## Versioning and History
 
@@ -230,7 +230,7 @@ Notes:
 - `build-jpackage-bundle.ps1` can optionally sign the app-image launcher(s) and the final installer via `-SigningMode signtool`
 - For standard certificate signing, pass one of `-CertificateThumbprint`, `-CertificateSubjectName`, or `-CertificatePath`
 - For Trusted Signing, pass the required `/dlib` and `/dmdf` values through `-AdditionalSignToolArgs`
-- Prerelease tags such as `v1.7.6-rc.2` are supported in CI and publish GitHub Releases marked as prereleases automatically
+- Prerelease tags such as `v1.8.0-rc.1` are supported in CI and publish GitHub Releases marked as prereleases automatically
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
 - GUI `Tools` / `Settings` now include `Update Manager...` and `Uninstall / Clean Install Prep...` actions for packaged installs
@@ -336,7 +336,7 @@ For clean-machine Windows installer validation in VirtualBox:
   -GuestUser <GUEST_USER> `
   -GuestPassword <GUEST_PASSWORD> `
   -OldInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.4.exe `
-  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.6.exe
+  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-<version>.exe
 ```
 
 Outputs:
