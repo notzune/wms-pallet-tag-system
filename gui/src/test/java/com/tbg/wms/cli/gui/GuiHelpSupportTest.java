@@ -40,24 +40,56 @@ class GuiHelpSupportTest {
     }
 
     @Test
-    void mainWindowHelpUsesPlainLanguageExamplesAndMouseCopyPasteWording() {
+    void mainWindowHelpPrioritizesOperatorWorkflowAndShortcuts() {
         String helpText = GuiHelpSupport.formatHelpText(GuiHelpTopics.mainWindow());
 
-        assertTrue(helpText.contains("For example:"));
-        assertTrue(helpText.contains("left-click and drag"));
-        assertTrue(helpText.contains("right-click"));
+        assertTrue(helpText.contains("Ctrl+F"));
+        assertTrue(helpText.contains("Ctrl+C"));
+        assertTrue(helpText.contains("Ctrl+V"));
+        assertTrue(helpText.contains("Ctrl+A"));
+        assertTrue(helpText.contains("selected labels"));
+        assertFalse(helpText.contains("left-click and drag"));
+        assertFalse(helpText.toLowerCase().contains("right-click"));
         assertFalse(helpText.toLowerCase().contains("terminal-like"));
     }
 
     @Test
-    void railHelpExplainsMultipleTrainInputWithConcreteExamples() {
+    void railHelpHighlightsSelectionShortcutsAndCombinedPdfBehavior() {
         String helpText = GuiHelpSupport.formatHelpText(GuiHelpTopics.railLabels());
 
+        assertTrue(helpText.contains("Ctrl+F"));
+        assertTrue(helpText.contains("Space"));
+        assertTrue(helpText.contains("Ctrl-click"));
+        assertTrue(helpText.contains("Shift-click"));
         assertTrue(helpText.contains("JC05262026"));
-        assertTrue(helpText.contains("JC05262026, JC05272026"));
-        assertTrue(helpText.contains("JC05262026/JC05272026"));
-        assertTrue(helpText.contains("same PDF"));
-        assertTrue(helpText.contains("uncheck"));
+        assertTrue(helpText.contains("combined PDF"));
+        assertFalse(helpText.toLowerCase().contains("type one full train code"));
         assertNotNull(helpText);
+    }
+
+    @Test
+    void allHelpTopicsUseConciseOperatorTone() {
+        List<List<GuiHelpSupport.HelpSection>> topics = List.of(
+                GuiHelpTopics.mainWindow(),
+                GuiHelpTopics.railLabels(),
+                GuiHelpTopics.barcodeGenerator(),
+                GuiHelpTopics.barcodeAdvancedSettings(),
+                GuiHelpTopics.zplPreview(),
+                GuiHelpTopics.queuePrint(),
+                GuiHelpTopics.settings(),
+                GuiHelpTopics.advancedSettings(),
+                GuiHelpTopics.updates(),
+                GuiHelpTopics.analyzers()
+        );
+
+        for (List<GuiHelpSupport.HelpSection> topic : topics) {
+            String helpText = GuiHelpSupport.formatHelpText(topic).toLowerCase();
+            assertFalse(helpText.contains("type or paste"));
+            assertFalse(helpText.contains("click load"));
+            assertFalse(helpText.contains("click generate"));
+            assertFalse(helpText.contains("left-click"));
+            assertFalse(helpText.contains("right-click"));
+            assertFalse(helpText.contains("when those options are available"));
+        }
     }
 }
