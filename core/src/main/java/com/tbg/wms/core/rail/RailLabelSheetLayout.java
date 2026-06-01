@@ -40,7 +40,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
  * Page:              8.5 * 300 = 2550 px, 11 * 300 = 3300 px
  * Label:             4.0 * 300 = 1200 px, 2.0 * 300 = 600 px
  * Left/right margin: 0.15625 * 300 = 46.875 px, rounded 47 px
- * Left column nudge: -0.25 * 300 = -75 px
+ * Template nudge X:  -0.05 * 300 = -15 px
  * Center gap:        0.1875 * 300 = 56.25 px, rounded 56 px
  * Top/bottom margin: 0.5 * 300 = 150 px
  * </pre>
@@ -55,7 +55,7 @@ public final class RailLabelSheetLayout {
     private static final float LABEL_WIDTH_INCHES = 4.0f;
     private static final float LABEL_HEIGHT_INCHES = 2.0f;
     private static final float LEFT_MARGIN_INCHES = 0.15625f;
-    private static final float LEFT_COLUMN_OFFSET_INCHES = -0.25f;
+    private static final float TEMPLATE_OFFSET_X_INCHES = -0.05f;
     private static final float TOP_MARGIN_INCHES = 0.5f;
     private static final float CENTER_GAP_INCHES = 0.1875f;
     private static final int COLUMNS = 2;
@@ -143,10 +143,9 @@ public final class RailLabelSheetLayout {
         }
         int row = index / COLUMNS;
         int column = index % COLUMNS;
-        float left = leftMarginPoints + (column * (labelWidthPoints + horizontalGapPoints));
-        if (column == 0) {
-            left += inchesToPoints(LEFT_COLUMN_OFFSET_INCHES);
-        }
+        float left = leftMarginPoints
+                + inchesToPoints(TEMPLATE_OFFSET_X_INCHES)
+                + (column * (labelWidthPoints + horizontalGapPoints));
         float top = pageHeightPoints - topMarginPoints - (row * labelHeightPoints);
         float bottom = top - labelHeightPoints;
         return new LabelSlot(left, top, bottom, labelWidthPoints, labelHeightPoints);
