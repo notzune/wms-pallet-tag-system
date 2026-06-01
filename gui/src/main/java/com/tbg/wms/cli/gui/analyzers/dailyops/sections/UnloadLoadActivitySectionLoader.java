@@ -3,9 +3,6 @@ package com.tbg.wms.cli.gui.analyzers.dailyops.sections;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerContext;
 import com.tbg.wms.cli.gui.analyzers.dailyops.DailyOperationsSectionLoader;
 import com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSectionSnapshot;
-import com.tbg.wms.core.AppConfig;
-import com.tbg.wms.core.db.DataSourceFactory;
-import com.zaxxer.hikari.HikariDataSource;
 
 import javax.sql.DataSource;
 import javax.swing.JTable;
@@ -36,12 +33,12 @@ public final class UnloadLoadActivitySectionLoader implements DailyOperationsSec
     }
 
     @Override
-    public AnalyzerDashboardSectionSnapshot loadSection(AnalyzerContext context) throws Exception {
+    public AnalyzerDashboardSectionSnapshot loadSection(AnalyzerContext context, DataSource dataSource) throws Exception {
         List<UnloadLoadActivityRow> rows = new ArrayList<>();
-        rows.addAll(mapMetricRows("Unloads", queryService.fetchUnloads(context.config())));
-        rows.addAll(mapMetricRows("Rail Unloads", queryService.fetchRailUnloads(context.config())));
-        rows.addAll(mapMetricRows("Rail Loads", queryService.fetchRailLoads(context.config())));
-        rows.addAll(mapMetricRows("Truck Loads", queryService.fetchTruckLoads(context.config())));
+        rows.addAll(mapMetricRows("Unloads", queryService.fetchUnloads(dataSource)));
+        rows.addAll(mapMetricRows("Rail Unloads", queryService.fetchRailUnloads(dataSource)));
+        rows.addAll(mapMetricRows("Rail Loads", queryService.fetchRailLoads(dataSource)));
+        rows.addAll(mapMetricRows("Truck Loads", queryService.fetchTruckLoads(dataSource)));
         return AnalyzerDashboardSectionSnapshot.success(title(), buildTable(rows));
     }
 
@@ -165,44 +162,37 @@ public final class UnloadLoadActivitySectionLoader implements DailyOperationsSec
                 order by 1
                 """;
 
-        List<QueryRow> fetchUnloads(AppConfig config) throws Exception {
-            return fetchRows(config, UNLOADS_SQL, "unloads");
+        List<QueryRow> fetchUnloads(DataSource dataSource) throws Exception {
+            return fetchRows(dataSource, UNLOADS_SQL, "unloads");
         }
 
-        List<QueryRow> fetchRailUnloads(AppConfig config) throws Exception {
-            return fetchRows(config, RAIL_UNLOADS_SQL, "unloads");
+        List<QueryRow> fetchRailUnloads(DataSource dataSource) throws Exception {
+            return fetchRows(dataSource, RAIL_UNLOADS_SQL, "unloads");
         }
 
-        List<QueryRow> fetchRailLoads(AppConfig config) throws Exception {
-            return fetchRows(config, RAIL_LOADS_SQL, "railloads");
+        List<QueryRow> fetchRailLoads(DataSource dataSource) throws Exception {
+            return fetchRows(dataSource, RAIL_LOADS_SQL, "railloads");
         }
 
-        List<QueryRow> fetchTruckLoads(AppConfig config) throws Exception {
-            return fetchRows(config, TRUCK_LOADS_SQL, "truckloads");
+        List<QueryRow> fetchTruckLoads(DataSource dataSource) throws Exception {
+            return fetchRows(dataSource, TRUCK_LOADS_SQL, "truckloads");
         }
 
-        private List<QueryRow> fetchRows(AppConfig config, String sql, String dateColumn) throws Exception {
-            DataSource dataSource = new DataSourceFactory(config).create();
-            try {
-                try (Connection connection = dataSource.getConnection();
-                     PreparedStatement statement = connection.prepareStatement(sql);
-                     ResultSet resultSet = statement.executeQuery()) {
-                    List<QueryRow> rows = new ArrayList<>();
-                    while (resultSet.next()) {
-                        rows.add(new QueryRow(
-                                toLocalDate(resultSet, dateColumn),
-                                integerValue(resultSet, "thirda"),
-                                integerValue(resultSet, "first"),
-                                integerValue(resultSet, "second"),
-                                integerValue(resultSet, "thirdb")
-                        ));
-                    }
-                    return rows;
+        private List<QueryRow> fetchRows(DataSource dataSource, String sql, String dateColumn) throws Exception {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(sql);
+                 ResultSet resultSet = statement.executeQuery()) {
+                List<QueryRow> rows = new ArrayList<>();
+                while (resultSet.next()) {
+                    rows.add(new QueryRow(
+                            toLocalDate(resultSet, dateColumn),
+                            integerValue(resultSet, "thirda"),
+                            integerValue(resultSet, "first"),
+                            integerValue(resultSet, "second"),
+                            integerValue(resultSet, "thirdb")
+                    ));
                 }
-            } finally {
-                if (dataSource instanceof HikariDataSource hikariDataSource) {
-                    hikariDataSource.close();
-                }
+                return rows;
             }
         }
 

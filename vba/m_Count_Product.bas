@@ -1,76 +1,298 @@
 Option Explicit
 
+Private Const ITEM_SLOT_COUNT As Long = 13
+Private Const MAX_DETAIL_ROW As Long = 200
+
 Sub Count_Product()
+    Dim trainWs As Worksheet
+    Dim calcWs As Worksheet
+    Dim countWs As Worksheet
+    Dim footprints As Object
+    Dim rowIdx As Long
+    Dim lastRow As Long
 
-Sheets("_TrainDetail").Columns(1).Insert
-Sheets("_TrainDetail").Columns(1).Insert
-Sheets("_TrainDetail").Columns(1).Insert
-Sheets("_TrainDetail").Columns(1).Insert
+    Set trainWs = Sheets("_TrainDetail")
+    Set calcWs = Sheets("CALC")
+    Set countWs = Sheets("Family_Count")
+    Set footprints = BuildFootprintMap()
 
+    trainWs.Range("A:D").Insert
 
-Sheets("_TrainDetail").Range("A2:A200").Formula = "=IF(E2>"""",Inputs!C$10,"""")"
-Sheets("_TrainDetail").Range("A2:A200").NumberFormat = "mm-dd-yy"
-Sheets("_TrainDetail").Range("B2:B200").Formula = "=IF(INDEX(CALC!$Z2:$AB2,MATCH(LARGE(CALC!$Z2:$AB2,1),CALC!$Z2:$AB2,0))=0,"""",CONCATENATE(IF((LARGE(CALC!$Z2:$AB2,1))=0,"""",(INDEX(CALC!$Z$1:$AB$1,MATCH(LARGE(CALC!$Z2:$AB2,1),CALC!$Z2:$AB2,0)))),"":"",IF((LARGE(CALC!$Z2:$AB2,1))=0,"""",(INDEX(CALC!$Z2:$AB2,MATCH(LARGE(CALC!$Z2:$AB2,1),CALC!$Z2:$AB2,0))))))"
-Sheets("_TrainDetail").Range("C2:C200").Formula = "=IF(INDEX(CALC!$Z2:$AB2,MATCH(LARGE(CALC!$Z2:$AB2,2),CALC!$Z2:$AB2,0))=0,"""",CONCATENATE(IF((LARGE(CALC!$Z2:$AB2,2))=0,"""",(INDEX(CALC!$Z$1:$AB$1,MATCH(LARGE(CALC!$Z2:$AB2,2),CALC!$Z2:$AB2,0)))),"":"",IF((LARGE(CALC!$Z2:$AB2,2))=0,"""",(INDEX(CALC!$Z2:$AB2,MATCH(LARGE(CALC!$Z2:$AB2,2),CALC!$Z2:$AB2,0))))))"
-Sheets("_TrainDetail").Range("D2:D200").Formula = "=IF(INDEX(CALC!$Z2:$AB2,MATCH(LARGE(CALC!$Z2:$AB2,3),CALC!$Z2:$AB2,0))=0,"""",CONCATENATE(IF((LARGE(CALC!$Z2:$AB2,3))=0,"""",(INDEX(CALC!$Z$1:$AB$1,MATCH(LARGE(CALC!$Z2:$AB2,3),CALC!$Z2:$AB2,0)))),"":"",IF((LARGE(CALC!$Z2:$AB2,3))=0,"""",(INDEX(CALC!$Z2:$AB2,MATCH(LARGE(CALC!$Z2:$AB2,3),CALC!$Z2:$AB2,0))))))"
+    trainWs.Range("A1:D1").Value = Array("Date", "Item_1", "Item_2", "Item_3")
+    trainWs.Range("A2:A" & MAX_DETAIL_ROW).NumberFormat = "mm-dd-yy"
+    trainWs.Columns("A").ColumnWidth = 16
+    trainWs.Columns("B:D").ColumnWidth = 10
 
+    PrepareCalcSheet calcWs
 
+    lastRow = trainWs.Cells(trainWs.Rows.Count, "E").End(xlUp).Row
+    If lastRow < 2 Then lastRow = 2
+    If lastRow > MAX_DETAIL_ROW Then lastRow = MAX_DETAIL_ROW
 
+    For rowIdx = 2 To lastRow
+        PlanTrainDetailRow trainWs, calcWs, footprints, rowIdx
+    Next rowIdx
 
-
-
-Sheets("_TrainDetail").Range("A1") = Application.Transpose(Array("Date"))
-Sheets("_TrainDetail").Range("B1") = Application.Transpose(Array("Item_1"))
-Sheets("_TrainDetail").Range("C1") = Application.Transpose(Array("Item_2"))
-Sheets("_TrainDetail").Range("D1") = Application.Transpose(Array("Item_3"))
-
-Sheets("_TrainDetail").Columns("A").ColumnWidth = 16
-Sheets("_TrainDetail").Columns("B").ColumnWidth = 10
-Sheets("_TrainDetail").Columns("C").ColumnWidth = 10
-Sheets("_TrainDetail").Columns("D").ColumnWidth = 10
-
-
-
-
-Sheet3.Range("A2:A200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!J2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!J2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("B2:B200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!K2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!J2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!J2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("C2:C200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!L2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!L2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("D2:D200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!M2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!L2,_Footprints!$A:$A,0)),INDEX(Item_Family!$J$2:$J$977,MATCH(_TrainDetail!L2,Item_Family!$A$2:$A$977,0)))),0),"""")"
-Sheet3.Range("E2:E200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!N2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!N2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("F2:F200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!O2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!N2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!N2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("G2:G200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!P2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!P2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("H2:H200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!Q2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!P2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!P2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("I2:I200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!R2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!R2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("J2:J200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!S2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!R2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!R2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("K2:K200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!T2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!T2,Item_Family!A$2:A$977,0)),""""))    "
-Sheet3.Range("L2:L200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!U2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!T2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!T2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("M2:M200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!V2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!V2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("N2:N200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!W2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!V2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!V2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("O2:O200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!X2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!X2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("P2:P200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!Y2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!X2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!X2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("Q2:Q200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!Z2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!Z2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("R2:R200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!AA2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!Z2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!Z2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("S2:S200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!AB2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!AB2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("T2:T200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!AC2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!AB2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!AB2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("U2:U200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!AD2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!AD2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("V2:V200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!AE2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!AD2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!AD2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("W2:W200").Formula = "=IFERROR(INDEX(_Footprints!$B:$B,MATCH(_TrainDetail!AF2,_Footprints!$A:$A,0)),IFERROR(INDEX(Item_Family!H$2:H$977,MATCH(_TrainDetail!AF2,Item_Family!A$2:A$977,0)),""""))"
-Sheet3.Range("X2:X200").Formula = "=IFERROR(ROUNDUP((_TrainDetail!AG2)/(IFERROR(INDEX(_Footprints!$C:$C,MATCH(_TrainDetail!AF2,_Footprints!$A:$A,0)),INDEX(Item_Family!J$2:J$977,MATCH(_TrainDetail!AF2,Item_Family!A$2:A$977,0)))),0),"""")"
-Sheet3.Range("Y2:Y200").Formula = "=SUM(B2,D2,F2,H2,J2,L2,N2,P2,R2,T2,V2,X2)"
-Sheet3.Range("Z2:Z200").Formula = "=IF(C2=Z$1,D2,0)+IF(E2=Z$1,F2,0)+IF(G2=Z$1,H2,0)+IF(I2=Z$1,J2,0)+IF(K2=Z$1,L2,0)+IF(M2=Z$1,N2,0)+IF(O2=Z$1,P2,0)+IF(Q2=Z$1,R2,0)+IF(S2=Z$1,T2,0)+IF(U2=Z$1,V2,0)+IF(W2=Z$1,X2,0)+IF(A2=Z$1,B2,0)"
-Sheet3.Range("AC2:AC200").Formula = "=IFERROR(Z2/Y2,"""")"
-Sheet3.Range("AA2:AA200").Formula = "=IF(C2=AA$1,D2,0)+IF(E2=AA$1,F2,0)+IF(G2=AA$1,H2,0)+IF(I2=AA$1,J2,0)+IF(K2=AA$1,L2,0)+IF(M2=AA$1,N2,0)+IF(O2=AA$1,P2,0)+IF(Q2=AA$1,R2,0)+IF(S2=AA$1,T2,0)+IF(U2=AA$1,V2,0)+IF(W2=AA$1,X2,0)+IF(A2=AA$1,B2,0)"
-Sheet3.Range("AD2:AD200").Formula = "=IFERROR(AA2/Y2,"""")"
-Sheet3.Range("AB2:AB200").Formula = "=IF(C2=AB$1,D2,0)+IF(E2=AB$1,F2,0)+IF(G2=AB$1,H2,0)+IF(I2=AB$1,J2,0)+IF(K2=AB$1,L2,0)+IF(M2=AB$1,N2,0)+IF(O2=AB$1,P2,0)+IF(Q2=AB$1,R2,0)+IF(S2=AB$1,T2,0)+IF(U2=AB$1,V2,0)+IF(W2=AB$1,X2,0)+IF(A2=AB$1,B2,0)"
-Sheet3.Range("AE2:AE200").Formula = "=IFERROR(AB2/Y2,"""")"
-
-
-
-Sheet4.Range("B2").Formula = "=IFERROR(SUMPRODUCT(COUNTIF(_TrainDetail!B:D,""*CAN*"")),"""")"
-Sheet4.Range("B3").Formula = "=IFERROR(SUMPRODUCT(COUNTIF(_TrainDetail!B:D,""*DOM*"")),"""")"
-Sheet4.Range("B4").Formula = "=IFERROR(SUMPRODUCT(COUNTIF(_TrainDetail!B:D,""*KEV*"")),"""")"
-
-
-
-
+    countWs.Range("B2").Formula = "=IFERROR(SUMPRODUCT(COUNTIF(_TrainDetail!B:D,""*CAN*"")),"""")"
+    countWs.Range("B3").Formula = "=IFERROR(SUMPRODUCT(COUNTIF(_TrainDetail!B:D,""*DOM*"")),"""")"
+    countWs.Range("B4").Formula = "=IFERROR(SUMPRODUCT(COUNTIF(_TrainDetail!B:D,""*KEV*"")),"""")"
 End Sub
+
+Private Sub PrepareCalcSheet(ByVal calcWs As Worksheet)
+    Dim slotIdx As Long
+    Dim familyCol As Long
+
+    calcWs.Range("A1:AG" & MAX_DETAIL_ROW).ClearContents
+
+    For slotIdx = 1 To ITEM_SLOT_COUNT
+        familyCol = 1 + ((slotIdx - 1) * 2)
+        calcWs.Cells(1, familyCol).Value = "Item " & slotIdx
+        calcWs.Cells(1, familyCol + 1).Value = "PA_Count"
+    Next slotIdx
+
+    calcWs.Range("AA1:AD1").Value = Array("Total_PA_Count", "CAN", "DOM", "KEV")
+End Sub
+
+Private Sub PlanTrainDetailRow(ByVal trainWs As Worksheet, _
+                               ByVal calcWs As Worksheet, _
+                               ByVal footprints As Object, _
+                               ByVal rowIdx As Long)
+    Dim palletCounts As Object
+    Dim slotIdx As Long
+    Dim itemCol As Long
+    Dim qtyCol As Long
+    Dim calcFamilyCol As Long
+    Dim itemNumber As String
+    Dim familyBucket As String
+    Dim casesPerPallet As Double
+    Dim caseCount As Double
+    Dim palletCount As Long
+    Dim totalPalletCount As Long
+    Dim sortedBuckets As Variant
+    Dim outIdx As Long
+
+    Set palletCounts = CreateObject("Scripting.Dictionary")
+    palletCounts.CompareMode = vbTextCompare
+    palletCounts("CAN") = 0&
+    palletCounts("DOM") = 0&
+    palletCounts("KEV") = 0&
+
+    trainWs.Range("B" & rowIdx & ":D" & rowIdx).ClearContents
+
+    If Trim$(CStr(trainWs.Cells(rowIdx, "E").Value)) <> "" Then
+        trainWs.Cells(rowIdx, "A").Formula = "=Inputs!C$10"
+    Else
+        trainWs.Cells(rowIdx, "A").ClearContents
+    End If
+
+    For slotIdx = 1 To ITEM_SLOT_COUNT
+        itemCol = 10 + ((slotIdx - 1) * 2)
+        qtyCol = itemCol + 1
+        calcFamilyCol = 1 + ((slotIdx - 1) * 2)
+        itemNumber = Trim$(CStr(trainWs.Cells(rowIdx, itemCol).Text))
+        caseCount = ParseNumber(trainWs.Cells(rowIdx, qtyCol).Value)
+
+        calcWs.Cells(rowIdx, calcFamilyCol).ClearContents
+        calcWs.Cells(rowIdx, calcFamilyCol + 1).ClearContents
+
+        If itemNumber <> "" And caseCount > 0 Then
+            If TryGetFootprint(footprints, itemNumber, familyBucket, casesPerPallet) Then
+                palletCount = DivideCeiling(caseCount, casesPerPallet)
+                palletCounts(familyBucket) = CLng(palletCounts(familyBucket)) + palletCount
+                totalPalletCount = totalPalletCount + palletCount
+                calcWs.Cells(rowIdx, calcFamilyCol).Value = familyBucket
+                calcWs.Cells(rowIdx, calcFamilyCol + 1).Value = palletCount
+            End If
+        End If
+    Next slotIdx
+
+    calcWs.Cells(rowIdx, "AA").Value = totalPalletCount
+    calcWs.Cells(rowIdx, "AB").Value = palletCounts("CAN")
+    calcWs.Cells(rowIdx, "AC").Value = palletCounts("DOM")
+    calcWs.Cells(rowIdx, "AD").Value = palletCounts("KEV")
+
+    sortedBuckets = SortBucketsByCount(palletCounts)
+    outIdx = 0
+    For slotIdx = LBound(sortedBuckets) To UBound(sortedBuckets)
+        familyBucket = CStr(sortedBuckets(slotIdx))
+        If CLng(palletCounts(familyBucket)) > 0 Then
+            outIdx = outIdx + 1
+            trainWs.Cells(rowIdx, 1 + outIdx).Value = familyBucket & ":" & CStr(palletCounts(familyBucket))
+            If outIdx = 3 Then Exit For
+        End If
+    Next slotIdx
+End Sub
+
+Private Function BuildFootprintMap() As Object
+    Dim result As Object
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    If SheetExists("_Footprints") Then
+        AddFootprintsFromSheet result, Sheets("_Footprints"), "A", "B", "C", 2
+    End If
+    AddFootprintsFromSheet result, Sheets("Item_Family"), "A", "H", "J", 2
+
+    Set BuildFootprintMap = result
+End Function
+
+Private Sub AddFootprintsFromSheet(ByVal result As Object, _
+                                   ByVal ws As Worksheet, _
+                                   ByVal itemColumn As String, _
+                                   ByVal familyColumn As String, _
+                                   ByVal casesColumn As String, _
+                                   ByVal firstRow As Long)
+    Dim lastRow As Long
+    Dim rowIdx As Long
+    Dim itemNumber As String
+    Dim familyBucket As String
+    Dim casesPerPallet As Double
+
+    lastRow = LastValueRow(ws, itemColumn, firstRow)
+    For rowIdx = firstRow To lastRow
+        itemNumber = Trim$(CStr(ws.Cells(rowIdx, itemColumn).Text))
+        familyBucket = ClassifyFamily(ws.Cells(rowIdx, familyColumn).Value)
+        casesPerPallet = ParseNumber(ws.Cells(rowIdx, casesColumn).Value)
+
+        If itemNumber <> "" And casesPerPallet > 0 Then
+            AddFootprint result, itemNumber, familyBucket, casesPerPallet
+        End If
+    Next rowIdx
+End Sub
+
+Private Function LastValueRow(ByVal ws As Worksheet, ByVal columnName As String, ByVal fallbackRow As Long) As Long
+    Dim found As Range
+
+    Set found = ws.Columns(columnName).Find(What:="*", _
+                                           LookIn:=xlValues, _
+                                           SearchOrder:=xlByRows, _
+                                           SearchDirection:=xlPrevious)
+    If found Is Nothing Then
+        LastValueRow = fallbackRow - 1
+    Else
+        LastValueRow = found.Row
+    End If
+End Function
+
+Private Sub AddFootprint(ByVal result As Object, _
+                         ByVal itemNumber As String, _
+                         ByVal familyBucket As String, _
+                         ByVal casesPerPallet As Double)
+    Dim payload As Variant
+    Dim trimmedItem As String
+    Dim noLeadingZeroItem As String
+
+    payload = Array(familyBucket, casesPerPallet)
+    trimmedItem = Trim$(itemNumber)
+    If Not result.Exists(trimmedItem) Then result.Add trimmedItem, payload
+
+    noLeadingZeroItem = TrimLeadingZeros(trimmedItem)
+    If noLeadingZeroItem <> "" And Not result.Exists(noLeadingZeroItem) Then result.Add noLeadingZeroItem, payload
+End Sub
+
+Private Function TryGetFootprint(ByVal footprints As Object, _
+                                 ByVal itemNumber As String, _
+                                 ByRef familyBucket As String, _
+                                 ByRef casesPerPallet As Double) As Boolean
+    Dim key As String
+    Dim payload As Variant
+
+    key = Trim$(itemNumber)
+    If Not footprints.Exists(key) Then key = TrimLeadingZeros(key)
+    If Not footprints.Exists(key) Then Exit Function
+
+    payload = footprints(key)
+    familyBucket = CStr(payload(0))
+    casesPerPallet = CDbl(payload(1))
+    TryGetFootprint = casesPerPallet > 0
+End Function
+
+Private Function ClassifyFamily(ByVal rawFamily As Variant) As String
+    Dim normalized As String
+
+    normalized = UCase$(Trim$(CStr(rawFamily)))
+    If InStr(1, normalized, "CAN", vbTextCompare) > 0 Then
+        ClassifyFamily = "CAN"
+    ElseIf InStr(1, normalized, "KEV", vbTextCompare) > 0 Then
+        ClassifyFamily = "KEV"
+    Else
+        ClassifyFamily = "DOM"
+    End If
+End Function
+
+Private Function DivideCeiling(ByVal dividend As Double, ByVal divisor As Double) As Long
+    If dividend <= 0 Or divisor <= 0 Then
+        DivideCeiling = 0
+    Else
+        DivideCeiling = CLng(Application.WorksheetFunction.RoundUp(dividend / divisor, 0))
+    End If
+End Function
+
+Private Function SortBucketsByCount(ByVal palletCounts As Object) As Variant
+    Dim buckets As Variant
+    Dim i As Long
+    Dim j As Long
+    Dim temp As Variant
+
+    buckets = Array("CAN", "DOM", "KEV")
+    For i = LBound(buckets) To UBound(buckets) - 1
+        For j = i + 1 To UBound(buckets)
+            If BucketComesAfter(CStr(buckets(i)), CStr(buckets(j)), palletCounts) Then
+                temp = buckets(i)
+                buckets(i) = buckets(j)
+                buckets(j) = temp
+            End If
+        Next j
+    Next i
+
+    SortBucketsByCount = buckets
+End Function
+
+Private Function BucketComesAfter(ByVal leftBucket As String, _
+                                  ByVal rightBucket As String, _
+                                  ByVal palletCounts As Object) As Boolean
+    Dim leftCount As Long
+    Dim rightCount As Long
+
+    leftCount = CLng(palletCounts(leftBucket))
+    rightCount = CLng(palletCounts(rightBucket))
+
+    If leftCount < rightCount Then
+        BucketComesAfter = True
+    ElseIf leftCount = rightCount Then
+        BucketComesAfter = (StrComp(leftBucket, rightBucket, vbTextCompare) > 0)
+    End If
+End Function
+
+Private Function ParseNumber(ByVal rawValue As Variant) As Double
+    If IsError(rawValue) Or IsEmpty(rawValue) Or Trim$(CStr(rawValue)) = "" Then
+        ParseNumber = 0#
+    ElseIf IsNumeric(rawValue) Then
+        ParseNumber = CDbl(rawValue)
+    Else
+        ParseNumber = CDbl(Replace(CStr(rawValue), ",", ""))
+    End If
+End Function
+
+Private Function TrimLeadingZeros(ByVal rawValue As String) As String
+    Dim idx As Long
+    Dim value As String
+
+    value = Trim$(rawValue)
+    idx = 1
+    Do While idx < Len(value) And Mid$(value, idx, 1) = "0"
+        idx = idx + 1
+    Loop
+
+    TrimLeadingZeros = Mid$(value, idx)
+End Function
+
+Private Function SheetExists(ByVal sheetName As String) As Boolean
+    Dim ws As Worksheet
+
+    On Error Resume Next
+    Set ws = Sheets(sheetName)
+    SheetExists = Not ws Is Nothing
+    On Error GoTo 0
+End Function

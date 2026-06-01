@@ -178,19 +178,6 @@ public final class LabelGuiFrame extends JFrame {
         return VersionSupport.readFirstNonBlankProperty(LabelGuiFrame.class, "version", VERSION_RESOURCE_PATHS);
     }
 
-    private static JLabel addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0.0;
-        JLabel rowLabel = new JLabel(label + ":");
-        form.add(rowLabel, gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        form.add(field, gbc);
-        return rowLabel;
-    }
-
     private static boolean isPrintToFileSelected(LabelWorkflowService.PrinterOption selected) {
         return GuiPrinterTargetSupport.isPrintToFile(selected);
     }
@@ -489,10 +476,6 @@ public final class LabelGuiFrame extends JFrame {
 
     private int countSelectedCarrierMoveStops(List<LabelSelectionRef> selectedLabels) {
         return previewSelectionSupport.countSelectedCarrierMoveStops(selectedLabels);
-    }
-
-    private int currentInfoTagCount() {
-        return snapshotPreviewSelection().infoTagCount();
     }
 
     private PreviewSelectionSupport.SelectionSnapshot snapshotPreviewSelection() {

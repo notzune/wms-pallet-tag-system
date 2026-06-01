@@ -9,6 +9,8 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-06-01
+
 ### Added
 
 - Rail label generation now accepts multiple train codes in one run using comma, whitespace, colon, slash, semicolon, or mixed delimiters, then renders one combined PDF.
@@ -22,13 +24,18 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - Rail label PDFs now use the approved 4x2 label sheet geometry and larger label typography for the sequence, rail car code, destination counts, supporting item rows, and PASS/FUEL/BH fields.
 - Rail label route headers now print the DB train number, warehouse code, and load number together, for example `0526 BR 8000618166`.
 - Contextual GUI help now reads as an operator quick reference, emphasizing implemented shortcuts and high-value workflow details instead of basic computer-use instructions.
-- Project/module versions now target `1.8.0-SNAPSHOT` for the rail label and contextual help feature line.
+- Project/module versions now target `1.8.0` for the rail label and contextual help release line.
 - Updated README documentation to reflect post-`1.7.6` hardening work, active issues `#42` and `#43`, and branch management expectations for documentation, optimization, and SRP refactors.
 - Release documentation now calls out architecture/SRP review as part of the pre-tag verification gate.
 - `Tools -> Analyzers...` is now hidden unless developer mode is enabled, keeping the production operator menu focused on day-to-day workflows.
 - GUI status/error messaging now surfaces extra debug context only when developer mode is enabled.
+- Daily Operations analyzer refreshes now reuse one Oracle data source across section loaders and load sections concurrently while preserving per-section failure rendering.
 - Release and operator docs now position the portable ZIP as the primary company-shareable package again, while keeping the installer path available for private/local use.
 - Added a Tropicana-specific portable ZIP build path that packages the real bundle-root `wms-tags.env` with no separate config step.
+
+### Fixed
+
+- Daily Operations dashboard refresh now keeps the previous successful dashboard visible while loading and renders explicit empty-table states instead of blank sections.
 
 ## [1.7.6] - 2026-03-23
 

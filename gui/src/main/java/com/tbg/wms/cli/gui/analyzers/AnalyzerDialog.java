@@ -225,6 +225,10 @@ public final class AnalyzerDialog extends JDialog {
         AnalyzerLoadSessionState<R> state = sessionState(definition);
         if (state.hasSnapshot()) {
             renderSnapshot(definition, state.lastSuccessfulSnapshot());
+        } else if (definition.presentation() instanceof DashboardAnalyzerPresentation<R>) {
+            activePresentationId = "dashboard";
+            contentLayout.show(contentPanel, "dashboard");
+            dashboardPanel.showLoading();
         }
         long requestId = state.beginLoad(++requestSequence);
         activeRequestId = requestId;

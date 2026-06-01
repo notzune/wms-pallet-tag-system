@@ -3,9 +3,6 @@ package com.tbg.wms.cli.gui.analyzers.dailyops.sections;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerContext;
 import com.tbg.wms.cli.gui.analyzers.dailyops.DailyOperationsSectionLoader;
 import com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSectionSnapshot;
-import com.tbg.wms.core.AppConfig;
-import com.tbg.wms.core.db.DataSourceFactory;
-import com.zaxxer.hikari.HikariDataSource;
 
 import javax.sql.DataSource;
 import javax.swing.JTable;
@@ -36,8 +33,8 @@ public final class AppointmentsSectionLoader implements DailyOperationsSectionLo
     }
 
     @Override
-    public AnalyzerDashboardSectionSnapshot loadSection(AnalyzerContext context) throws Exception {
-        List<AppointmentsRow> rows = queryService.fetchRows(context.config()).stream().map(this::mapRow).toList();
+    public AnalyzerDashboardSectionSnapshot loadSection(AnalyzerContext context, DataSource dataSource) throws Exception {
+        List<AppointmentsRow> rows = queryService.fetchRows(dataSource).stream().map(this::mapRow).toList();
         return AnalyzerDashboardSectionSnapshot.success(title(), buildTable(rows));
     }
 
@@ -115,29 +112,22 @@ public final class AppointmentsSectionLoader implements DailyOperationsSectionLo
                 order by 1
                 """;
 
-        List<QueryRow> fetchRows(AppConfig config) throws Exception {
-            DataSource dataSource = new DataSourceFactory(config).create();
-            try {
-                try (Connection connection = dataSource.getConnection();
-                     PreparedStatement statement = connection.prepareStatement(SQL);
-                     ResultSet resultSet = statement.executeQuery()) {
-                    List<QueryRow> rows = new ArrayList<>();
-                    while (resultSet.next()) {
-                        rows.add(new QueryRow(
-                                toLocalDate(resultSet, "apptday"),
-                                integerValue(resultSet, "trucks"),
-                                integerValue(resultSet, "outbounds"),
-                                integerValue(resultSet, "completed"),
-                                integerValue(resultSet, "inbounds"),
-                                integerValue(resultSet, "inb_completed")
-                        ));
-                    }
-                    return rows;
+        List<QueryRow> fetchRows(DataSource dataSource) throws Exception {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(SQL);
+                 ResultSet resultSet = statement.executeQuery()) {
+                List<QueryRow> rows = new ArrayList<>();
+                while (resultSet.next()) {
+                    rows.add(new QueryRow(
+                            toLocalDate(resultSet, "apptday"),
+                            integerValue(resultSet, "trucks"),
+                            integerValue(resultSet, "outbounds"),
+                            integerValue(resultSet, "completed"),
+                            integerValue(resultSet, "inbounds"),
+                            integerValue(resultSet, "inb_completed")
+                    ));
                 }
-            } finally {
-                if (dataSource instanceof HikariDataSource hikariDataSource) {
-                    hikariDataSource.close();
-                }
+                return rows;
             }
         }
 

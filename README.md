@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.8.0--SNAPSHOT-blue)
+![Version](https://img.shields.io/badge/version-1.8.0-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current branch target: `1.8.0-SNAPSHOT` feature validation for rail labels, operator help, documentation, and focused SRP refactors.
+Current branch target: `1.8.0` release validation.
 
 ## Versioning and History
 
@@ -56,6 +56,7 @@ Not implemented yet:
 - DB shipment hydration now also coalesces duplicate LPN rows from mixed inventory-detail joins so one physical pallet cannot generate duplicate labels.
 - GUI workflow caches are site-scoped and thread-safe to prevent stale cross-site printer/site metadata reuse.
 - GUI preview selection refresh now snapshots the selected labels once per update cycle instead of rebuilding shipment/carrier subsets repeatedly.
+- The Daily Operations analyzer loads dashboard sections concurrently through one refresh-scoped Oracle data source, renders section-level failures inline, and shows explicit loading/empty states.
 - Query and command execution paths remain hardened with prepared statements and argumentized process invocation patterns.
 - Architecture and SRP follow-up notes are tracked in [docs/architecture-solid-audit.md](docs/architecture-solid-audit.md).
 - Large Swing coordinators are refactor targets, not preferred homes for unrelated feature expansion.
@@ -336,7 +337,7 @@ For clean-machine Windows installer validation in VirtualBox:
   -GuestUser <GUEST_USER> `
   -GuestPassword <GUEST_PASSWORD> `
   -OldInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.4.exe `
-  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-<version>.exe
+-NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-<version>.exe
 ```
 
 Outputs:
@@ -664,7 +665,7 @@ Behavior:
 wms-pallet-tag-system/
 |-- README.md
 |-- CHANGELOG.md
-|-- INSTRUCTIONS.md               # Development standards and system requirements
+|-- INSTRUCTIONS_RAILCAR.md       # Rail office helper notes and workflow guidance
 |-- LICENSE
 |-- pom.xml
 |-- .env.example

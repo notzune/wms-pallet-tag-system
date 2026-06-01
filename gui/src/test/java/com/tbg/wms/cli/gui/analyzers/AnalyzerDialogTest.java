@@ -130,6 +130,30 @@ class AnalyzerDialogTest {
         assertEquals("Loaded Second.", dialog.statusTextForTest());
     }
 
+    @Test
+    void dialog_shouldReuseLastSuccessfulSnapshotWhileRefreshingSameAnalyzer() {
+        ControlledExecutor executor = new ControlledExecutor();
+        FakeAnalyzerDefinition analyzer = new FakeAnalyzerDefinition("unpicked-partials", "Unpicked Partials", "row-a", "row-b");
+        AnalyzerDialog dialog = new AnalyzerDialog(null,
+                new AnalyzerRegistry(List.of(analyzer)),
+                new AnalyzerContext(new com.tbg.wms.core.AppConfig(),
+                        Clock.fixed(Instant.parse("2026-03-23T10:00:00Z"), ZoneOffset.UTC)),
+                executor);
+
+        dialog.openForTest();
+        assertEquals(0, dialog.tableRowCountForTest());
+
+        executor.runNext();
+        assertEquals("row-a", dialog.firstTableValueForTest());
+
+        dialog.triggerManualRefreshForTest();
+        assertEquals("row-a", dialog.firstTableValueForTest());
+        assertEquals("Loading...", dialog.statusTextForTest());
+
+        executor.runNext();
+        assertEquals("row-b", dialog.firstTableValueForTest());
+    }
+
     private static final class FakeAnalyzerDefinition implements AnalyzerDefinition<String> {
         private final String id;
         private final String displayName;
@@ -140,10 +164,10 @@ class AnalyzerDialogTest {
             this(id, displayName, "row");
         }
 
-        private FakeAnalyzerDefinition(String id, String displayName, String row) {
+        private FakeAnalyzerDefinition(String id, String displayName, String... rows) {
             this.id = id;
             this.displayName = displayName;
-            this.rows.add(row);
+            this.rows.addAll(List.of(rows));
         }
 
         @Override

@@ -5,6 +5,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTable;
 import java.awt.BorderLayout;
 
 @SuppressWarnings("serial")
@@ -12,6 +13,7 @@ public final class AnalyzerDashboardSectionPanel extends JPanel {
 
     private final JLabel titleLabel = new JLabel();
     private final JLabel errorLabel = new JLabel();
+    private final JLabel emptyLabel = new JLabel("No data");
     private final JPanel contentPanel = new JPanel(new BorderLayout());
 
     public AnalyzerDashboardSectionPanel() {
@@ -29,6 +31,7 @@ public final class AnalyzerDashboardSectionPanel extends JPanel {
     void showSection(AnalyzerDashboardSectionSnapshot snapshot) {
         titleLabel.setText(snapshot.title());
         contentPanel.removeAll();
+        emptyLabel.setVisible(false);
         if (snapshot.failed()) {
             errorLabel.setText(snapshot.errorText());
             errorLabel.setVisible(true);
@@ -36,7 +39,12 @@ public final class AnalyzerDashboardSectionPanel extends JPanel {
             errorLabel.setVisible(false);
             JComponent content = snapshot.content();
             if (content != null) {
-                contentPanel.add(content, BorderLayout.CENTER);
+                if (content instanceof JTable table && table.getRowCount() == 0) {
+                    emptyLabel.setVisible(true);
+                    contentPanel.add(emptyLabel, BorderLayout.CENTER);
+                } else {
+                    contentPanel.add(content, BorderLayout.CENTER);
+                }
             }
         }
     }
@@ -47,5 +55,9 @@ public final class AnalyzerDashboardSectionPanel extends JPanel {
 
     String errorTextForTest() {
         return errorLabel.getText();
+    }
+
+    String emptyTextForTest() {
+        return emptyLabel.isVisible() ? emptyLabel.getText() : "";
     }
 }

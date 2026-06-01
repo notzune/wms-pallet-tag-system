@@ -19,7 +19,7 @@ Add a new default analyzer named `Daily Operations` that renders a composite ope
 - Replacing the analyzer dialog with a separate window.
 - Converting all existing analyzers into dashboards.
 - Introducing side-by-side compare workflows or custom tab sets.
-- Parallelizing dashboard section loading in the first implementation.
+- Replacing section-specific SQL and mapping with a generic dashboard query engine.
 
 ## User Experience
 
@@ -81,16 +81,16 @@ Each section snapshot should carry only the data required for rendering that sec
 
 ### Section Loading
 
-`Daily Operations` will own a coordinator that loads all dashboard sections during one analyzer refresh cycle. The first implementation should load sections sequentially in a background load and then publish a complete dashboard snapshot to the UI once all section results are collected.
+`Daily Operations` owns a coordinator that loads all dashboard sections during one analyzer refresh cycle. The current implementation creates one refresh-scoped Oracle data source, passes it to each section loader, loads the independent sections concurrently, and then publishes a complete dashboard snapshot to the UI once all section results are collected.
 
-This keeps the refresh behavior deterministic and minimizes repaint churn. If runtime proves slow, the section loader abstraction should allow later parallelization without changing the dialog contract.
+This keeps the UI update behavior deterministic and minimizes repaint churn while avoiding repeated data source creation for each section. Section loader failures are captured as section snapshots so one failed query does not suppress other sections.
 
 ## Data Flow
 
 1. User opens `Analyzers...`.
 2. Registry selects `Daily Operations` as the default analyzer.
 3. Dialog starts a refresh for the selected analyzer.
-4. `Daily Operations` creates its section loaders and executes each query-backed section.
+4. `Daily Operations` creates its section loaders and executes each query-backed section through the shared refresh data source.
 5. Each section returns either a rendered-data snapshot or an error snapshot.
 6. The analyzer assembles a complete dashboard snapshot.
 7. The dialog swaps the center content to the new dashboard snapshot and updates refresh timestamps/status text.
@@ -101,6 +101,8 @@ For existing table analyzers, the current load flow remains unchanged except for
 
 - Section-level query or mapping failures render an inline error state in that section only.
 - Other successfully loaded sections still render normally.
+- Empty table-backed sections render an explicit `No data` state instead of an empty blank panel.
+- A manual refresh keeps the last successful dashboard visible while the next refresh is loading.
 - Analyzer-level failures before section execution can use the existing dialog-level status error path.
 - Null and sparse database results should normalize into zero or empty-state values where the SQL semantics clearly imply absence rather than failure.
 

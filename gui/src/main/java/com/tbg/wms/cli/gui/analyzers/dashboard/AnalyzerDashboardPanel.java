@@ -12,15 +12,26 @@ public final class AnalyzerDashboardPanel extends JScrollPane {
 
     private final JPanel sectionsPanel = new JPanel();
     private final List<AnalyzerDashboardSectionPanel> sectionPanels = new ArrayList<>();
+    private final AnalyzerDashboardLoadingView loadingView = new AnalyzerDashboardLoadingView();
 
     public AnalyzerDashboardPanel() {
         sectionsPanel.setLayout(new BoxLayout(sectionsPanel, BoxLayout.Y_AXIS));
         setViewportView(sectionsPanel);
     }
 
+    public void showLoading() {
+        sectionsPanel.removeAll();
+        sectionPanels.clear();
+        sectionsPanel.setLayout(new BorderLayout());
+        sectionsPanel.add(loadingView, BorderLayout.NORTH);
+        sectionsPanel.revalidate();
+        sectionsPanel.repaint();
+    }
+
     public void showSnapshot(AnalyzerDashboardSnapshot snapshot) {
         sectionsPanel.removeAll();
         sectionPanels.clear();
+        sectionsPanel.setLayout(new BoxLayout(sectionsPanel, BoxLayout.Y_AXIS));
         for (AnalyzerDashboardSectionSnapshot section : snapshot.sections()) {
             AnalyzerDashboardSectionPanel panel = new AnalyzerDashboardSectionPanel();
             panel.showSection(section);
@@ -41,5 +52,17 @@ public final class AnalyzerDashboardPanel extends JScrollPane {
                 .map(AnalyzerDashboardSectionPanel::errorTextForTest)
                 .findFirst()
                 .orElse("");
+    }
+
+    String sectionEmptyTextForTest(String title) {
+        return sectionPanels.stream()
+                .filter(panel -> panel.titleForTest().equals(title))
+                .map(AnalyzerDashboardSectionPanel::emptyTextForTest)
+                .findFirst()
+                .orElse("");
+    }
+
+    String loadingTextForTest() {
+        return loadingView.messageForTest();
     }
 }

@@ -162,21 +162,6 @@ public final class VersionSupport {
         return segment.chars().allMatch(Character::isDigit) ? Integer.parseInt(segment) : 0;
     }
 
-    private static int compareSegment(String leftSegment, String rightSegment) {
-        boolean leftNumeric = leftSegment.chars().allMatch(Character::isDigit);
-        boolean rightNumeric = rightSegment.chars().allMatch(Character::isDigit);
-        if (leftNumeric && rightNumeric) {
-            return Integer.compare(Integer.parseInt(leftSegment), Integer.parseInt(rightSegment));
-        }
-        if (leftNumeric) {
-            return 1;
-        }
-        if (rightNumeric) {
-            return -1;
-        }
-        return leftSegment.compareToIgnoreCase(rightSegment);
-    }
-
     private record ParsedVersion(int major, int minor, int patch, List<QualifierToken> qualifiers)
             implements Comparable<ParsedVersion> {
         private static ParsedVersion parse(String version) {
