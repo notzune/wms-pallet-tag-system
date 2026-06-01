@@ -14,6 +14,7 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import java.util.Objects;
  * transport so the preview remains operator-friendly without overrunning the external render API.</p>
  */
 final class ZplPreviewToolDialog extends JDialog {
+    @Serial
     private static final long serialVersionUID = 1L;
     private static final int LIVE_RENDER_DEBOUNCE_MS = 350;
     private static final int MIN_RENDER_INTERVAL_MS = 1000;
@@ -361,7 +363,8 @@ final class ZplPreviewToolDialog extends JDialog {
         }
 
         int generation = ++renderGeneration;
-        int dpmm = (Integer) dpmmCombo.getSelectedItem();
+        Integer selectedDpmm = (Integer) dpmmCombo.getSelectedItem();
+        int dpmm = selectedDpmm == null ? 8 : selectedDpmm;
         double width = ((Number) widthSpinner.getValue()).doubleValue();
         double height = ((Number) heightSpinner.getValue()).doubleValue();
         int index = ((Number) indexSpinner.getValue()).intValue();

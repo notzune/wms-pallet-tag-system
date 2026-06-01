@@ -1007,7 +1007,7 @@ public final class LabelGuiFrame extends JFrame {
             return message;
         }
         String exceptionType = throwable.getClass().getSimpleName();
-        if (message == null || message.isBlank()) {
+        if (message.isBlank()) {
             return exceptionType;
         }
         return exceptionType + ": " + message;

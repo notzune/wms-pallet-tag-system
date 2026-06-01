@@ -131,7 +131,6 @@ public final class UpdateCatalogService {
                 releaseNode.path("name").asText(""),
                 releaseNode.path("html_url").asText(""),
                 prerelease,
-                draft,
                 parseAssets(releaseNode.path("assets"))
         );
     }
@@ -173,7 +172,6 @@ public final class UpdateCatalogService {
             String releaseName,
             String releaseUrl,
             boolean prerelease,
-            boolean draft,
             List<ReleaseCheckService.ReleaseAsset> assets
     ) {
         public ReleaseEntry {

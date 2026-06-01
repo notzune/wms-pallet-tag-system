@@ -219,18 +219,20 @@ public final class VersionSupport {
                     continue;
                 }
                 StringBuilder current = new StringBuilder();
-                Boolean currentNumeric = null;
+                boolean currentNumeric = false;
+                boolean hasCurrent = false;
                 for (int i = 0; i < group.length(); i++) {
                     char ch = group.charAt(i);
                     boolean numeric = Character.isDigit(ch);
-                    if (currentNumeric != null && currentNumeric != numeric) {
+                    if (hasCurrent && currentNumeric != numeric) {
                         tokens.add(QualifierToken.of(current.toString(), currentNumeric));
                         current.setLength(0);
                     }
                     current.append(ch);
                     currentNumeric = numeric;
+                    hasCurrent = true;
                 }
-                if (current.length() > 0 && currentNumeric != null) {
+                if (hasCurrent) {
                     tokens.add(QualifierToken.of(current.toString(), currentNumeric));
                 }
             }

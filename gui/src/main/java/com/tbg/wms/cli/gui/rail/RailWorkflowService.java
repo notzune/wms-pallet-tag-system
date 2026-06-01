@@ -189,13 +189,13 @@ public final class RailWorkflowService {
         private final com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowBatchResult batchResult;
 
         private PreparedRailJob(com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowResult result) {
-            this.result = result;
+            this.result = Objects.requireNonNull(result, "result cannot be null");
             this.batchResult = null;
         }
 
         private PreparedRailJob(com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowBatchResult batchResult) {
             this.result = null;
-            this.batchResult = batchResult;
+            this.batchResult = Objects.requireNonNull(batchResult, "batchResult cannot be null");
         }
 
         public String getTrainId() {
@@ -206,35 +206,39 @@ public final class RailWorkflowService {
             if (batchResult != null) {
                 return batchResult.getTrainIds();
             }
-            return List.of(result.getTrainId());
+            return List.of(singleResult().getTrainId());
         }
 
         public List<RailCarCard> getCards() {
             if (batchResult != null) {
                 return batchResult.getCards();
             }
-            return result.getCards();
+            return singleResult().getCards();
         }
 
         private int getRawRowsCount() {
             if (batchResult != null) {
                 return batchResult.getRawRows().size();
             }
-            return result.getRawRows().size();
+            return singleResult().getRawRows().size();
         }
 
         private int getResolvedFootprintsCount() {
             if (batchResult != null) {
                 return batchResult.getResolvedFootprints().size();
             }
-            return result.getResolvedFootprints().size();
+            return singleResult().getResolvedFootprints().size();
         }
 
         private java.util.Set<String> getUnresolvedShortCodes() {
             if (batchResult != null) {
                 return batchResult.getUnresolvedShortCodes();
             }
-            return result.getUnresolvedShortCodes();
+            return singleResult().getUnresolvedShortCodes();
+        }
+
+        private com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowResult singleResult() {
+            return Objects.requireNonNull(result, "result cannot be null");
         }
 
         private String fileNameToken() {

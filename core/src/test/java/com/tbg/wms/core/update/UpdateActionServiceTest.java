@@ -98,7 +98,6 @@ class UpdateActionServiceTest {
                 "v" + version,
                 "https://example.test/releases/v" + version,
                 prerelease,
-                false,
                 assets
         );
     }
