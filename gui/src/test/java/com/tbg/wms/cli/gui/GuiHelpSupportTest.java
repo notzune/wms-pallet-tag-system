@@ -63,6 +63,9 @@ class GuiHelpSupportTest {
         assertTrue(helpText.contains("Shift-click"));
         assertTrue(helpText.contains("JC05262026"));
         assertTrue(helpText.contains("combined PDF"));
+        assertTrue(helpText.contains("Label Date"));
+        assertTrue(helpText.contains("Today"));
+        assertTrue(helpText.contains("D-4 C-3"));
         assertFalse(helpText.toLowerCase().contains("type one full train code"));
         assertNotNull(helpText);
     }

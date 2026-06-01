@@ -28,7 +28,8 @@ Rail label workflow for train-based WMS data extraction and per-railcar pallet m
 
 - `cases_per_pallet`: `MAX(CASE WHEN PRTFTP_DTL.PAL_FLG = 1 THEN PRTFTP_DTL.UNTQTY END)`
 - `family_code`: `PRTMST.PRTFAM` (normalized to rail family codes)
-- `market_type` (`CAN`/`DOM`): derived from normalized family (`CAN` when family contains `CAN`, otherwise `DOM`)
+- `market_type` (`CAN`/`DOM`/`KEV`): derived from normalized family (`CAN` when family contains `CAN`, `KEV` when family contains `KEV`, otherwise `DOM`)
+- `consist_marker`: application-derived display value that counts resolved displayed line items by family, for example `D-4 C-3`
 
 ## Join Relationships
 
@@ -42,6 +43,16 @@ Rail label workflow for train-based WMS data extraction and per-railcar pallet m
     - `ALT_PRTMST.PRTNUM = PRTFTP.PRTNUM` and `ALT_PRTMST.PRT_CLIENT_ID = PRTFTP.PRT_CLIENT_ID` and
       `PRTFTP.DEFFTP_FLG = 1`
     - `PRTFTP` to `PRTFTP_DTL` on `PRTNUM`, `PRT_CLIENT_ID`, `WH_ID`, `FTPCOD`
+
+## Label Date And Consist Marker
+
+- `RUN_DATE` remains available from the rail row query for CLI/default behavior.
+- The Rail Labels GUI can override the printed label date with an operator-entered `MM-DD-YY` value before loading preview.
+- The consist marker is not read from a single WMS column. It is reverse-engineered from the same displayed item lines and footprint-family rows used for pallet math:
+    - `D`: count of displayed line items whose resolved family normalizes to domestic
+    - `C`: count of displayed line items whose resolved family normalizes to Canadian
+    - `K`: count of displayed line items whose resolved family normalizes to Kevita
+- Unresolved short codes are excluded from the marker and still surface through unresolved-footprint diagnostics.
 
 ## Sample Query: Rail Rows by Train
 

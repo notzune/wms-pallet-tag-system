@@ -23,7 +23,7 @@ For open work and follow-up items, see the [GitHub issues tracker](https://githu
 
 Active tracked work:
 
-- `#42` improves rail label readability, physical label-sheet documentation, multi-train input, combined PDF generation, and explicit printable-row selection.
+- `#42` improves rail label readability, physical label-sheet documentation, multi-train input, combined PDF generation, explicit printable-row selection, label date entry, and line-item consist checks.
 - `#43` adds contextual GUI help buttons and shared help-dialog behavior across operator views.
 
 ## Current Scope
@@ -481,8 +481,9 @@ Workflow:
 - Query rail rows from WMS by train
 - Aggregate rows by railcar
 - Compute CAN/DOM/KEV pallets using per-item `CEILING(cases / casesPerPallet)` math
+- Compute line-item consist markers such as `D-4 C-3` from resolved WMS item family metadata
 - Compute deterministic top-family percentages with largest-remainder rounding (stable ordering and 100% total)
-- Show preview table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`)
+- Show preview table (`SEQ`, `CONSIST`, `VEHICLE`, `CAN`, `DOM`, `KEV`)
 - Confirm
 - Render one direct letter-size rail card PDF for all requested trains (no Word mail merge dependency)
 - Use the approved 4x2 label-stock geometry and larger rail label typography for readability
@@ -493,12 +494,15 @@ Workflow:
 
 - Open `gui`, then go to `Tools -> Rail Labels...`.
 - Enter one or more train IDs and click `Load Preview`. Multiple train IDs may be separated with commas, spaces, colons, slashes, semicolons, or mixed delimiters.
+- Set `Label Date` before loading preview. The field accepts `MM-DD-YY`, `Calendar...` opens a date picker, and `Today` fills the current date.
 - Press `Ctrl+F` to trigger `Load Preview` from the keyboard while the workflow window is focused.
 - System pulls rail rows from WMS and resolves footprints by short code from WMS.
 - Preview includes:
-- Railcar table (`PRINT`, `TRAIN`, `SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
+- Railcar table (`PRINT`, `TRAIN`, `SEQ`, `CONSIST`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
 - Railcar card preview panel (item lines + CAN/DOM/KEV + pass/fuel/BH fields)
 - Diagnostics panel (row counts and unresolved footprints)
+- The rendered PDF prints the selected date near the sequence and the consist marker under the route/load header.
+- Consist markers count resolved line items by family (`D` domestic, `C` Canadian, `K` Kevita); pallet totals remain separate WMS footprint calculations.
 - All preview rows default to printable. Use the `PRINT` checkboxes, `Select All`, `Clear All`, `Invert`, or multi-select rows with Ctrl/Shift and press Space to control which rows are generated.
 - Rail print target dropdown only shows printers marked with the `RAIL` capability, plus `System default printer` and `Print to file`.
 - Click `Generate PDF` to produce one letter-size multi-card PDF for the checked rows.
