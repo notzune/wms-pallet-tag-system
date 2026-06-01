@@ -15,6 +15,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - The Rail Labels GUI now includes explicit printable-row checkboxes plus select-all, clear-all, invert, and multi-row keyboard toggling before PDF generation or printing.
 - Rail labels now include operator-selected label dates with typed `MM-DD-YY` entry, a month-grid calendar popup, and a Today button in the GUI workflow.
 - Rail labels now include line-item consist markers such as `D-4 C-3`, derived from WMS-resolved item family metadata for the displayed card lines.
+- Rail labels now classify short codes `20557` and `20558` as Costco Club, showing `CC-x` in consist markers and `CLUB:percent` in family callouts.
 - Rail label rendering now shifts the full template 0.05 inches left and prints the label date 3 points larger.
 - TBG3002 printer config now includes QA label printer `3002_ZEB0` and production ROSSI label printer `3002_ZEB2`, with ROSSI staging routed to `3002_ZEB2`.
 - GUI windows and tools now include contextual Help buttons that explain each workflow and its shortcuts.

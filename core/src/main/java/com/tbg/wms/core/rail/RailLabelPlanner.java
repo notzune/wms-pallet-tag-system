@@ -16,6 +16,7 @@ public final class RailLabelPlanner {
     private static final int DEFAULT_ITEM_SLOTS = 13;
     private final int itemSlots;
     private final RailFamilyShareSupport familyShareSupport;
+    private final RailFamilyClassifier familyClassifier;
 
     public RailLabelPlanner() {
         this(DEFAULT_ITEM_SLOTS);
@@ -27,6 +28,7 @@ public final class RailLabelPlanner {
         }
         this.itemSlots = itemSlots;
         this.familyShareSupport = new RailFamilyShareSupport();
+        this.familyClassifier = new RailFamilyClassifier();
     }
 
     /**
@@ -85,7 +87,9 @@ public final class RailLabelPlanner {
             }
             double equivalent = ((double) item.getCases()) / (double) footprint.getCasesPerPallet();
             totalEquivalent += equivalent;
-            equivalentByFamily.merge(footprint.getFamilyCode(), equivalent, Double::sum);
+            String displayFamilyCode =
+                    familyClassifier.displayFamilyCode(footprint.getFamilyCode(), item.getItemNumber());
+            equivalentByFamily.merge(displayFamilyCode, equivalent, Double::sum);
         }
 
         List<FamilyShare> shares = familyShareSupport.buildSortedShares(equivalentByFamily, totalEquivalent);

@@ -51,4 +51,22 @@ final class RailConsistMarkerSupportTest {
 
         assertEquals("K-2", marker);
     }
+
+    @Test
+    void buildMarkerCountsCostcoClubShortcodesSeparately() {
+        RailConsistMarkerSupport support = new RailConsistMarkerSupport();
+        List<RailStopRecord.ItemQuantity> items = List.of(
+                new RailStopRecord.ItemQuantity("20557", 10),
+                new RailStopRecord.ItemQuantity("20558", 20),
+                new RailStopRecord.ItemQuantity("D1", 30)
+        );
+
+        String marker = support.buildMarker(items, Map.of(
+                "20557", new RailFamilyFootprint("20557", "DOM", 56),
+                "20558", new RailFamilyFootprint("20558", "CAN", 56),
+                "D1", new RailFamilyFootprint("D1", "DOM", 56)
+        ));
+
+        assertEquals("D-1 CC-2", marker);
+    }
 }

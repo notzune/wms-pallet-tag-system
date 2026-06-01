@@ -31,5 +31,12 @@ final class RailFamilyClassifierTest {
         assertEquals(RailFamilyClassifier.FamilyBucket.DOM, classifier.classify(""));
         assertEquals(RailFamilyClassifier.FamilyBucket.DOM, classifier.classify("XYZ"));
     }
+
+    @Test
+    void classifyMapsCostcoClubShortcodesBeforeFamilyCode() {
+        assertEquals(RailFamilyClassifier.FamilyBucket.CLUB, classifier.classify("DOM", "20557"));
+        assertEquals(RailFamilyClassifier.FamilyBucket.CLUB, classifier.classify("CAN", "20558"));
+        assertEquals("CLUB", classifier.displayFamilyCode("DOM", "20557"));
+    }
 }
 

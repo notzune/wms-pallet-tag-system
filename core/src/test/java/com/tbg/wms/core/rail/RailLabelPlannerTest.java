@@ -179,4 +179,31 @@ final class RailLabelPlannerTest {
                         .collect(Collectors.toList())
         );
     }
+
+    @Test
+    void planDisplaysCostcoClubShortcodesAsClubFamily() {
+        RailStopRecord record = new RailStopRecord(
+                "03-02-26",
+                "212",
+                "0303",
+                "TPIX3335",
+                "BR",
+                "8000000003",
+                List.of(
+                        new RailStopRecord.ItemQuantity("20557", 100),
+                        new RailStopRecord.ItemQuantity("20558", 100),
+                        new RailStopRecord.ItemQuantity("01832", 100)
+                )
+        );
+        Map<String, RailFamilyFootprint> footprints = Map.of(
+                "20557", new RailFamilyFootprint("20557", "DOM", 100),
+                "20558", new RailFamilyFootprint("20558", "CAN", 100),
+                "01832", new RailFamilyFootprint("01832", "DOM", 100)
+        );
+
+        RailLabelPlanner.PlannedRailLabel planned = new RailLabelPlanner().planOne(record, footprints);
+
+        assertEquals("CLUB:67", planned.toMergeFields().get("Item_1"));
+        assertEquals("DOM:33", planned.toMergeFields().get("Item_2"));
+    }
 }

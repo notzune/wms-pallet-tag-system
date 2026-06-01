@@ -480,8 +480,8 @@ Workflow:
 
 - Query rail rows from WMS by train
 - Aggregate rows by railcar
-- Compute CAN/DOM/KEV pallets using per-item `CEILING(cases / casesPerPallet)` math
-- Compute line-item consist markers such as `D-4 C-3` from resolved WMS item family metadata
+- Compute CAN/DOM/KEV/CLUB pallets using per-item `CEILING(cases / casesPerPallet)` math
+- Compute line-item consist markers such as `D-4 C-3 CC-2` from resolved WMS item family metadata and Costco Club short-code overrides
 - Compute deterministic top-family percentages with largest-remainder rounding (stable ordering and 100% total)
 - Show preview table (`SEQ`, `CONSIST`, `VEHICLE`, `CAN`, `DOM`, `KEV`)
 - Confirm
@@ -499,10 +499,10 @@ Workflow:
 - System pulls rail rows from WMS and resolves footprints by short code from WMS.
 - Preview includes:
 - Railcar table (`PRINT`, `TRAIN`, `SEQ`, `CONSIST`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
-- Railcar card preview panel (item lines + CAN/DOM/KEV + pass/fuel/BH fields)
+- Railcar card preview panel (item lines + CAN/DOM/KEV/CLUB + pass/fuel/BH fields)
 - Diagnostics panel (row counts and unresolved footprints)
 - The rendered PDF prints the selected date near the sequence and the consist marker under the route/load header.
-- Consist markers count resolved line items by family (`D` domestic, `C` Canadian, `K` Kevita); pallet totals remain separate WMS footprint calculations.
+- Consist markers count resolved line items by family (`D` domestic, `C` Canadian, `K` Kevita, `CC` Costco Club for short codes `20557` and `20558`); pallet totals remain separate WMS footprint calculations.
 - All preview rows default to printable. Use the `PRINT` checkboxes, `Select All`, `Clear All`, `Invert`, or multi-select rows with Ctrl/Shift and press Space to control which rows are generated.
 - Rail print target dropdown only shows printers marked with the `RAIL` capability, plus `System default printer` and `Print to file`.
 - Click `Generate PDF` to produce one letter-size multi-card PDF for the checked rows.

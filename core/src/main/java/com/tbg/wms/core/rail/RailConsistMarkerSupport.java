@@ -44,14 +44,15 @@ public final class RailConsistMarkerSupport {
             if (footprint == null || !footprint.isValid()) {
                 continue;
             }
-            RailFamilyClassifier.FamilyBucket bucket = classifier.classify(footprint.getFamilyCode());
+            RailFamilyClassifier.FamilyBucket bucket = classifier.classify(footprint.getFamilyCode(), item.getItemNumber());
             counts.merge(bucket, 1, Integer::sum);
         }
 
         return String.join(" ",
                 markerPart("D", counts.get(RailFamilyClassifier.FamilyBucket.DOM)),
                 markerPart("C", counts.get(RailFamilyClassifier.FamilyBucket.CAN)),
-                markerPart("K", counts.get(RailFamilyClassifier.FamilyBucket.KEV))
+                markerPart("K", counts.get(RailFamilyClassifier.FamilyBucket.KEV)),
+                markerPart("CC", counts.get(RailFamilyClassifier.FamilyBucket.CLUB))
         ).trim().replaceAll(" +", " ");
     }
 

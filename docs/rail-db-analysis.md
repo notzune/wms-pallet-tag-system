@@ -28,7 +28,7 @@ Rail label workflow for train-based WMS data extraction and per-railcar pallet m
 
 - `cases_per_pallet`: `MAX(CASE WHEN PRTFTP_DTL.PAL_FLG = 1 THEN PRTFTP_DTL.UNTQTY END)`
 - `family_code`: `PRTMST.PRTFAM` (normalized to rail family codes)
-- `market_type` (`CAN`/`DOM`/`KEV`): derived from normalized family (`CAN` when family contains `CAN`, `KEV` when family contains `KEV`, otherwise `DOM`)
+- `market_type` (`CAN`/`DOM`/`KEV`/`CLUB`): derived from normalized family (`CAN` when family contains `CAN`, `KEV` when family contains `KEV`, short codes `20557`/`20558` as `CLUB`, otherwise `DOM`)
 - `consist_marker`: application-derived display value that counts resolved displayed line items by family, for example `D-4 C-3`
 
 ## Join Relationships
@@ -52,6 +52,8 @@ Rail label workflow for train-based WMS data extraction and per-railcar pallet m
     - `D`: count of displayed line items whose resolved family normalizes to domestic
     - `C`: count of displayed line items whose resolved family normalizes to Canadian
     - `K`: count of displayed line items whose resolved family normalizes to Kevita
+    - `CC`: count of displayed line items whose short code is `20557` or `20558` (Costco Club)
+- Family callouts use the same short-code override, so `20557` and `20558` print as `CLUB:percent` instead of inheriting the raw footprint family.
 - Unresolved short codes are excluded from the marker and still surface through unresolved-footprint diagnostics.
 
 ## Sample Query: Rail Rows by Train
