@@ -12,4 +12,4 @@ rules:
           op: EQUALS
           value: "ROSSI"
     then:
-      printerId: DISPATCH
+      printerId: 3002_ZEB2
