@@ -69,6 +69,19 @@ class RailPrintableCardTableModelTest {
         assertEquals(1, model.selectedCount());
     }
 
+    @Test
+    void consistColumnShouldExposeMarkerText() {
+        RailPrintableCardTableModel model = new RailPrintableCardTableModel();
+        RailCarCard card = new RailCarCard("TRAIN1", "1", "CAR1", "LOAD1",
+                "TRAIN FP LOAD1", "06-01-26", "D-4 C-3",
+                List.of(), 1, 2, 0, List.of(), List.of());
+
+        model.setCards(List.of(card));
+
+        assertEquals("CONSIST", model.getColumnName(3));
+        assertEquals("D-4 C-3", model.getValueAt(0, 3));
+    }
+
     private static RailCarCard card(String train, String sequence) {
         return new RailCarCard(train, sequence, "CAR" + sequence, "LOAD" + sequence,
                 List.of(), 1, 2, 0, List.of(), List.of());

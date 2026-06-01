@@ -56,11 +56,22 @@ public final class RailWorkflowService {
      * @return prepared immutable preview payload
      */
     public PreparedRailJob prepareRailJob(List<String> trainIds) throws Exception {
+        return prepareRailJob(trainIds, "");
+    }
+
+    /**
+     * Loads and prepares railcard preview data using one label date for every card.
+     *
+     * @param trainIds  normalized train identifiers entered by the operator
+     * @param labelDate label date already validated as MM-DD-YY
+     * @return prepared immutable preview payload
+     */
+    public PreparedRailJob prepareRailJob(List<String> trainIds, String labelDate) throws Exception {
         try (DbConnectionPool pool = new DbConnectionPool(config)) {
             RailDbRepository repository = new WmsRailDbRepository(new OracleDbQueryRepository(pool.getDataSource()));
             com.tbg.wms.core.rail.RailWorkflowService workflow =
                     new com.tbg.wms.core.rail.RailWorkflowService(repository);
-            com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowBatchResult result = workflow.prepareAll(trainIds);
+            com.tbg.wms.core.rail.RailWorkflowService.RailWorkflowBatchResult result = workflow.prepareAll(trainIds, labelDate);
             return new PreparedRailJob(result);
         }
     }
@@ -140,6 +151,12 @@ public final class RailWorkflowService {
     public String buildCardPreviewText(RailCarCard card) {
         StringBuilder sb = new StringBuilder();
         sb.append("SEQ: ").append(card.getSequence()).append("   VEHICLE: ").append(card.getVehicleId()).append('\n');
+        if (!card.getLabelDate().isBlank()) {
+            sb.append("DATE: ").append(card.getLabelDate()).append('\n');
+        }
+        if (!card.getConsistMarker().isBlank()) {
+            sb.append("CONSIST: ").append(card.getConsistMarker()).append('\n');
+        }
         if (!card.getLoadNumbers().isBlank()) {
             sb.append("LOAD: ").append(card.getLoadNumbers()).append('\n');
         }

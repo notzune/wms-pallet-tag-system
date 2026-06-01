@@ -17,7 +17,7 @@ final class RailPrintableCardTableModel extends AbstractTableModel {
     @Serial
     private static final long serialVersionUID = 1L;
     private static final String[] COLUMNS = {
-            "PRINT", "TRAIN", "SEQ", "VEHICLE", "CAN", "DOM", "KEV", "LOAD_NBR"
+            "PRINT", "TRAIN", "SEQ", "CONSIST", "VEHICLE", "CAN", "DOM", "KEV", "LOAD_NBR"
     };
 
     private final transient List<RailCarCard> cards = new ArrayList<>();
@@ -135,11 +135,12 @@ final class RailPrintableCardTableModel extends AbstractTableModel {
             case 0 -> printable.get(rowIndex);
             case 1 -> card.getTrainId();
             case 2 -> card.getSequence();
-            case 3 -> card.getVehicleId();
-            case 4 -> card.getCanPallets();
-            case 5 -> card.getDomPallets();
-            case 6 -> card.getKevPallets();
-            case 7 -> card.getLoadNumbers();
+            case 3 -> card.getConsistMarker();
+            case 4 -> card.getVehicleId();
+            case 5 -> card.getCanPallets();
+            case 6 -> card.getDomPallets();
+            case 7 -> card.getKevPallets();
+            case 8 -> card.getLoadNumbers();
             default -> throw new IllegalArgumentException("Column index out of range: " + columnIndex);
         };
     }

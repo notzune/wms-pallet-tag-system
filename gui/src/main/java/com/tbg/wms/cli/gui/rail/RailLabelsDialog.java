@@ -29,6 +29,7 @@ public final class RailLabelsDialog extends JDialog {
     private static final long serialVersionUID = 1L;
 
     private final JTextField trainIdField = new JTextField(16);
+    private final JTextField labelDateField = new JTextField(8);
     private final JTextField outputDirField = new JTextField(48);
     private final JComboBox<LabelWorkflowService.PrinterOption> printerCombo = new JComboBox<>();
     private final JCheckBox printNowCheck = new JCheckBox("Print after PDF generation", false);
@@ -39,6 +40,8 @@ public final class RailLabelsDialog extends JDialog {
     private final JButton selectAllButton = new JButton("Select All");
     private final JButton clearAllButton = new JButton("Clear All");
     private final JButton invertSelectionButton = new JButton("Invert");
+    private final JButton calendarButton = new JButton("Calendar...");
+    private final JButton todayButton = new JButton("Today");
 
     private final RailPrintableCardTableModel tableModel = new RailPrintableCardTableModel();
     private final JTable previewTable = new JTable(tableModel);
@@ -47,6 +50,7 @@ public final class RailLabelsDialog extends JDialog {
 
     private final transient RailWorkflowService service;
     private final transient TextFieldClipboardController clipboardController = new TextFieldClipboardController();
+    private final transient RailLabelDateSupport dateSupport = new RailLabelDateSupport();
     private final transient RailDialogSupport dialogSupport = new RailDialogSupport();
     private final transient RailDialogExecutionSupport executionSupport = new RailDialogExecutionSupport();
     private final transient RailDialogActionSupport actionSupport =
@@ -63,6 +67,7 @@ public final class RailLabelsDialog extends JDialog {
         setLayout(new BorderLayout(8, 8));
 
         outputDirField.setText(Paths.get("out", "rail-gui").toAbsolutePath().toString());
+        labelDateField.setText(dateSupport.todayText());
         cardPreviewArea.setEditable(false);
         diagnosticsArea.setEditable(false);
         Font mono = new Font(Font.MONOSPACED, Font.PLAIN, 12);
@@ -72,7 +77,7 @@ public final class RailLabelsDialog extends JDialog {
         add(buildTopPanel(), BorderLayout.NORTH);
         add(buildCenterPanel(), BorderLayout.CENTER);
         add(buildBottomPanel(), BorderLayout.SOUTH);
-        clipboardController.install(trainIdField, outputDirField);
+        clipboardController.install(trainIdField, labelDateField, outputDirField);
         wireActions();
         bindTableSelectionShortcuts();
         WorkflowShortcutBinder.bindPreviewShortcut(getRootPane(), loadButton, "loadRailPreview");
@@ -128,6 +133,27 @@ public final class RailLabelsDialog extends JDialog {
 
         gbc.gridx = 0;
         gbc.gridy = 2;
+        panel.add(new JLabel("Label Date:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(labelDateField, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(calendarButton, gbc);
+
+        gbc.gridx = 3;
+        panel.add(todayButton, gbc);
+
+        gbc.gridx = 4;
+        panel.add(new JLabel("MM-DD-YY"), gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
         panel.add(new JLabel("Output Directory:"), gbc);
 
         gbc.gridx = 1;
@@ -144,7 +170,7 @@ public final class RailLabelsDialog extends JDialog {
         panel.add(browseButton, gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 3;
+        gbc.gridy = 4;
         panel.add(new JLabel("Print to file keeps the generated PDF in the output directory."), gbc);
 
         return panel;
@@ -195,6 +221,8 @@ public final class RailLabelsDialog extends JDialog {
         selectAllButton.addActionListener(e -> tableModel.setAllPrintable());
         clearAllButton.addActionListener(e -> tableModel.clearAllPrintable());
         invertSelectionButton.addActionListener(e -> tableModel.invertPrintable());
+        todayButton.addActionListener(e -> labelDateField.setText(dateSupport.todayText()));
+        calendarButton.addActionListener(e -> showCalendarPopup());
     }
 
     private void bindTableSelectionShortcuts() {
@@ -223,10 +251,28 @@ public final class RailLabelsDialog extends JDialog {
         }
     }
 
+    private void showCalendarPopup() {
+        JPopupMenu popup = new JPopupMenu();
+        SpinnerDateModel model = new SpinnerDateModel(dateSupport.toDate(labelDateField.getText()), null, null, java.util.Calendar.DAY_OF_MONTH);
+        JSpinner spinner = new JSpinner(model);
+        spinner.setEditor(new JSpinner.DateEditor(spinner, "MM-dd-yy"));
+        JButton applyButton = new JButton("Apply");
+        applyButton.addActionListener(e -> {
+            labelDateField.setText(dateSupport.formatDate(model.getDate()));
+            popup.setVisible(false);
+        });
+        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        panel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        panel.add(spinner, BorderLayout.CENTER);
+        panel.add(applyButton, BorderLayout.EAST);
+        popup.add(panel);
+        popup.show(calendarButton, 0, calendarButton.getHeight());
+    }
+
     private void loadPreview() {
         RailDialogExecutionSupport.PreviewRequest request;
         try {
-            request = executionSupport.preparePreviewRequest(trainIdField.getText());
+            request = executionSupport.preparePreviewRequest(trainIdField.getText(), labelDateField.getText());
         } catch (IllegalArgumentException ex) {
             showError(ex.getMessage());
             return;
@@ -238,7 +284,7 @@ public final class RailLabelsDialog extends JDialog {
         SwingWorker<RailWorkflowService.PreparedRailJob, Void> worker = new SwingWorker<>() {
             @Override
             protected RailWorkflowService.PreparedRailJob doInBackground() throws Exception {
-                return service.prepareRailJob(request.trainIds());
+                return service.prepareRailJob(request.trainIds(), request.labelDate());
             }
 
             @Override

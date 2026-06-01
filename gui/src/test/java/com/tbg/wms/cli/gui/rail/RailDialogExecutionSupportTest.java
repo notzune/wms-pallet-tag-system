@@ -34,6 +34,15 @@ class RailDialogExecutionSupportTest {
     }
 
     @Test
+    void preparePreviewRequest_shouldIncludeValidatedLabelDate() {
+        RailDialogExecutionSupport.PreviewRequest request =
+                support.preparePreviewRequest("JC03182026", "6-1-26");
+
+        assertEquals(List.of("JC03182026"), request.trainIds());
+        assertEquals("06-01-26", request.labelDate());
+    }
+
+    @Test
     void prepareGenerationRequest_shouldRespectPrintTargetModes() throws Exception {
         RailWorkflowService.PreparedRailJob job = preparedJob();
         List<RailCarCard> selectedCards = List.of(card("1"));

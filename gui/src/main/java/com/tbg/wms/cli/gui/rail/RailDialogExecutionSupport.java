@@ -19,9 +19,14 @@ import java.util.Objects;
  */
 final class RailDialogExecutionSupport {
     private final RailTrainInputParser trainInputParser = new RailTrainInputParser();
+    private final RailLabelDateSupport dateSupport = new RailLabelDateSupport();
 
     PreviewRequest preparePreviewRequest(String trainId) {
-        return new PreviewRequest(trainInputParser.parse(trainId));
+        return new PreviewRequest(trainInputParser.parse(trainId), "");
+    }
+
+    PreviewRequest preparePreviewRequest(String trainId, String labelDateText) {
+        return new PreviewRequest(trainInputParser.parse(trainId), dateSupport.parseLabelDate(labelDateText));
     }
 
     GenerationRequest prepareGenerationRequest(
@@ -67,7 +72,7 @@ final class RailDialogExecutionSupport {
         return GuiExceptionMessageSupport.rootMessage(throwable);
     }
 
-    record PreviewRequest(List<String> trainIds) {
+    record PreviewRequest(List<String> trainIds, String labelDate) {
     }
 
     record GenerationRequest(
