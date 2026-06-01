@@ -149,6 +149,12 @@ public final class RailCardRenderer {
 
         writeUnderlinedText(content, PDType1Font.HELVETICA_BOLD_OBLIQUE, RailLabelTypography.SEQUENCE_SIZE,
                 textLeft, top - 22f, safe(card.getSequence()));
+        if (!card.getLabelDate().isBlank()) {
+            float dateX = textLeft + textWidth(PDType1Font.HELVETICA_BOLD_OBLIQUE,
+                    RailLabelTypography.SEQUENCE_SIZE, safe(card.getSequence())) + 10f;
+            writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.ROUTE_HEADER_SIZE,
+                    dateX, top - 22f, card.getLabelDate());
+        }
         writeRightAlignedUnderlinedText(content, PDType1Font.HELVETICA_BOLD_OBLIQUE, RailLabelTypography.VEHICLE_SIZE,
                 textRight, top - 27f, safe(card.getVehicleId()));
 
@@ -156,6 +162,11 @@ public final class RailCardRenderer {
         if (!card.getRouteHeader().isBlank()) {
             writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.ROUTE_HEADER_SIZE,
                     textLeft, supportY, card.getRouteHeader());
+            supportY -= 10f;
+        }
+        if (!card.getConsistMarker().isBlank()) {
+            writeText(content, PDType1Font.HELVETICA_BOLD_OBLIQUE, RailLabelTypography.ROUTE_HEADER_SIZE,
+                    textLeft, supportY, card.getConsistMarker());
             supportY -= 10f;
         }
 

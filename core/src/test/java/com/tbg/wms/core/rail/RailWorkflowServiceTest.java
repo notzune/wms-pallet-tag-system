@@ -117,6 +117,35 @@ final class RailWorkflowServiceTest {
         assertEquals("0526 BR 8000618166", card.getRouteHeader());
     }
 
+    @Test
+    void prepareAddsSourceDateAndConsistMarkerToCards() {
+        RailWorkflowService service = new RailWorkflowService(new RailDbRepository() {
+            @Override
+            public List<RailStopRecord> findRailStopsByTrainId(String trainId) {
+                return List.of(new RailStopRecord("01-30-24", "201", "0119", "TPIX3086", "FP", "8356173720",
+                        List.of(
+                                new RailStopRecord.ItemQuantity("D1", 100),
+                                new RailStopRecord.ItemQuantity("D2", 90),
+                                new RailStopRecord.ItemQuantity("C1", 80)
+                        )));
+            }
+
+            @Override
+            public Map<String, List<RailFootprintCandidate>> findRailFootprintsByShortCode(List<String> shortCodes) {
+                return Map.of(
+                        "D1", List.of(new RailFootprintCandidate("D1", "ITEM-D1", "DOM", 56)),
+                        "D2", List.of(new RailFootprintCandidate("D2", "ITEM-D2", "DOM", 56)),
+                        "C1", List.of(new RailFootprintCandidate("C1", "ITEM-C1", "CAN", 56))
+                );
+            }
+        });
+
+        RailCarCard card = service.prepare("JC01192024").getCards().get(0);
+
+        assertEquals("01-30-24", card.getLabelDate());
+        assertEquals("D-2 C-1", card.getConsistMarker());
+    }
+
     private static RailStopRecord row(String trainId, String sequence, String vehicle, String item, int cases) {
         return new RailStopRecord("03-04-26", sequence, trainId, vehicle, "BR", "L1",
                 List.of(new RailStopRecord.ItemQuantity(item, cases)));

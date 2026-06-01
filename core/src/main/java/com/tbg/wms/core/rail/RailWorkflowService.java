@@ -14,24 +14,28 @@ public final class RailWorkflowService {
     private final RailAggregationService aggregationService;
     private final RailCardPlanningSupport cardPlanningSupport;
     private final RailFootprintResolver footprintResolver;
+    private final RailConsistMarkerSupport consistMarkerSupport;
 
     public RailWorkflowService(RailDbRepository repository) {
         this(
                 repository,
                 new RailAggregationService(),
                 new RailCardPlanningSupport(),
-                new RailFootprintResolver()
+                new RailFootprintResolver(),
+                new RailConsistMarkerSupport()
         );
     }
 
     RailWorkflowService(RailDbRepository repository,
                         RailAggregationService aggregationService,
                         RailCardPlanningSupport cardPlanningSupport,
-                        RailFootprintResolver footprintResolver) {
+                        RailFootprintResolver footprintResolver,
+                        RailConsistMarkerSupport consistMarkerSupport) {
         this.repository = Objects.requireNonNull(repository, "repository cannot be null");
         this.aggregationService = Objects.requireNonNull(aggregationService, "aggregationService cannot be null");
         this.cardPlanningSupport = Objects.requireNonNull(cardPlanningSupport, "cardPlanningSupport cannot be null");
         this.footprintResolver = Objects.requireNonNull(footprintResolver, "footprintResolver cannot be null");
+        this.consistMarkerSupport = Objects.requireNonNull(consistMarkerSupport, "consistMarkerSupport cannot be null");
     }
 
     /**
@@ -41,7 +45,19 @@ public final class RailWorkflowService {
      * @return deterministic workflow result
      */
     public RailWorkflowResult prepare(String trainId) {
+        return prepare(trainId, "");
+    }
+
+    /**
+     * Builds print-ready cards for a train with a caller-selected label date.
+     *
+     * @param trainId    train identifier
+     * @param labelDate  optional operator-selected date shown on labels
+     * @return deterministic workflow result
+     */
+    public RailWorkflowResult prepare(String trainId, String labelDate) {
         String normalizedTrainId = normalizeTrainId(trainId);
+        String normalizedLabelDate = normalize(labelDate);
 
         List<RailStopRecord> rawRows = repository.findRailStopsByTrainId(normalizedTrainId);
         if (rawRows.isEmpty()) {
@@ -57,7 +73,7 @@ public final class RailWorkflowService {
         List<RailCarCard> cards = new ArrayList<>(aggregates.size());
         Set<String> missingFromPlanner = new TreeSet<>();
         for (RailCarAggregate aggregate : aggregates) {
-            cards.add(buildCard(normalizedTrainId, aggregate, resolvedFootprints, missingFromPlanner));
+            cards.add(buildCard(normalizedTrainId, normalizedLabelDate, aggregate, resolvedFootprints, missingFromPlanner));
         }
 
         Set<String> unresolvedFootprints = new TreeSet<>(shortCodes);
@@ -81,9 +97,21 @@ public final class RailWorkflowService {
      * @return deterministic combined workflow result
      */
     public RailWorkflowBatchResult prepareAll(List<String> trainIds) {
+        return prepareAll(trainIds, "");
+    }
+
+    /**
+     * Builds print-ready cards for multiple trains using one caller-selected label date.
+     *
+     * @param trainIds  train identifiers
+     * @param labelDate optional operator-selected date shown on labels
+     * @return deterministic combined workflow result
+     */
+    public RailWorkflowBatchResult prepareAll(List<String> trainIds, String labelDate) {
         if (trainIds == null || trainIds.isEmpty()) {
             throw new IllegalArgumentException("At least one train ID is required.");
         }
+        String normalizedLabelDate = normalize(labelDate);
 
         List<String> normalizedTrainIds = new ArrayList<>(trainIds.size());
         List<RailWorkflowResult> results = new ArrayList<>(trainIds.size());
@@ -96,7 +124,7 @@ public final class RailWorkflowService {
 
         for (String trainId : trainIds) {
             String normalizedTrainId = normalizeTrainId(trainId);
-            RailWorkflowResult result = prepare(normalizedTrainId);
+            RailWorkflowResult result = prepare(normalizedTrainId, normalizedLabelDate);
             normalizedTrainIds.add(normalizedTrainId);
             results.add(result);
             rawRows.addAll(result.getRawRows());
@@ -120,6 +148,7 @@ public final class RailWorkflowService {
     }
 
     private RailCarCard buildCard(String trainId,
+                                  String labelDate,
                                   RailCarAggregate aggregate,
                                   Map<String, RailFamilyFootprint> footprints,
                                   Set<String> missingFromPlanner) {
@@ -133,6 +162,8 @@ public final class RailWorkflowService {
                 aggregate.getVehicleId(),
                 aggregate.getLoadNumberDisplay(),
                 routeHeader(aggregate),
+                effectiveLabelDate(labelDate, aggregate),
+                consistMarkerSupport.buildMarker(sortedItems, footprints),
                 sortedItems,
                 cardPlan.canPallets(),
                 cardPlan.domPallets(),
@@ -154,6 +185,14 @@ public final class RailWorkflowService {
             parts.add(aggregate.getLoadNumberDisplay());
         }
         return String.join(" ", parts);
+    }
+
+    private String effectiveLabelDate(String labelDate, RailCarAggregate aggregate) {
+        return labelDate.isBlank() ? aggregate.getDate() : labelDate;
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private String normalizeTrainId(String trainId) {

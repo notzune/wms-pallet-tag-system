@@ -16,6 +16,8 @@ public final class RailCarCard {
     private final String vehicleId;
     private final String loadNumbers;
     private final String routeHeader;
+    private final String labelDate;
+    private final String consistMarker;
     private final List<RailStopRecord.ItemQuantity> itemLines;
     private final int canPallets;
     private final int domPallets;
@@ -39,6 +41,8 @@ public final class RailCarCard {
                 vehicleId,
                 loadNumbers,
                 loadNumbers,
+                "",
+                "",
                 itemLines,
                 canPallets,
                 domPallets,
@@ -59,11 +63,43 @@ public final class RailCarCard {
                        int kevPallets,
                        List<String> topFamilies,
                        List<String> missingFootprintItems) {
+        this(
+                trainId,
+                sequence,
+                vehicleId,
+                loadNumbers,
+                routeHeader,
+                "",
+                "",
+                itemLines,
+                canPallets,
+                domPallets,
+                kevPallets,
+                topFamilies,
+                missingFootprintItems
+        );
+    }
+
+    public RailCarCard(String trainId,
+                       String sequence,
+                       String vehicleId,
+                       String loadNumbers,
+                       String routeHeader,
+                       String labelDate,
+                       String consistMarker,
+                       List<RailStopRecord.ItemQuantity> itemLines,
+                       int canPallets,
+                       int domPallets,
+                       int kevPallets,
+                       List<String> topFamilies,
+                       List<String> missingFootprintItems) {
         this.trainId = normalize(trainId);
         this.sequence = normalize(sequence);
         this.vehicleId = normalize(vehicleId);
         this.loadNumbers = normalize(loadNumbers);
         this.routeHeader = normalize(routeHeader);
+        this.labelDate = normalize(labelDate);
+        this.consistMarker = normalize(consistMarker);
         this.itemLines = Collections.unmodifiableList(new ArrayList<>(itemLines));
         this.canPallets = canPallets;
         this.domPallets = domPallets;
@@ -94,6 +130,14 @@ public final class RailCarCard {
 
     public String getRouteHeader() {
         return routeHeader;
+    }
+
+    public String getLabelDate() {
+        return labelDate;
+    }
+
+    public String getConsistMarker() {
+        return consistMarker;
     }
 
     public List<RailStopRecord.ItemQuantity> getItemLines() {

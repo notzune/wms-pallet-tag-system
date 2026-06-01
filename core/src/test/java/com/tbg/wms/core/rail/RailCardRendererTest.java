@@ -78,6 +78,23 @@ final class RailCardRendererTest {
     }
 
     @Test
+    void renderPdfPrintsSelectedDateAndConsistMarker() throws Exception {
+        Path output = Files.createTempFile("rail-cards-date-consist-test", ".pdf");
+        RailCarCard card = new RailCarCard("JC01192024", "201", "TPIX3086", "8356173720",
+                "0119 FP 8356173720", "01-30-24", "D-4 C-3",
+                List.of(new RailStopRecord.ItemQuantity("20274", 6080)),
+                3, 4, 0, List.of("DOM:60", "CAN:40"), List.of());
+
+        new RailCardRenderer().renderPdf(List.of(card), output);
+
+        try (PDDocument doc = PDDocument.load(output.toFile())) {
+            String text = new PDFTextStripper().getText(doc);
+            assertTrue(text.contains("01-30-24"));
+            assertTrue(text.contains("D-4 C-3"));
+        }
+    }
+
+    @Test
     void renderPdfPrintsEveryItemLineWithoutContinuationText() throws Exception {
         Path output = Files.createTempFile("rail-cards-all-items-test", ".pdf");
         RailCarCard card = new RailCarCard("JC05262026", "301", "TPIX3204", "8000618166",
