@@ -253,18 +253,10 @@ public final class RailLabelsDialog extends JDialog {
 
     private void showCalendarPopup() {
         JPopupMenu popup = new JPopupMenu();
-        SpinnerDateModel model = new SpinnerDateModel(dateSupport.toDate(labelDateField.getText()), null, null, java.util.Calendar.DAY_OF_MONTH);
-        JSpinner spinner = new JSpinner(model);
-        spinner.setEditor(new JSpinner.DateEditor(spinner, "MM-dd-yy"));
-        JButton applyButton = new JButton("Apply");
-        applyButton.addActionListener(e -> {
-            labelDateField.setText(dateSupport.formatDate(model.getDate()));
+        RailDateCalendarPanel panel = new RailDateCalendarPanel(dateSupport.parseDate(labelDateField.getText()), date -> {
+            labelDateField.setText(dateSupport.formatDate(date));
             popup.setVisible(false);
         });
-        JPanel panel = new JPanel(new BorderLayout(4, 4));
-        panel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
-        panel.add(spinner, BorderLayout.CENTER);
-        panel.add(applyButton, BorderLayout.EAST);
         popup.add(panel);
         popup.show(calendarButton, 0, calendarButton.getHeight());
     }

@@ -4,12 +4,10 @@
 package com.tbg.wms.cli.gui.rail;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
-import java.util.Date;
 
 /**
  * Parses and formats rail label dates for operator entry and PDF output.
@@ -45,13 +43,7 @@ final class RailLabelDateSupport {
         return OUTPUT_FORMATTER.format(date);
     }
 
-    Date toDate(String text) {
-        LocalDate date = LocalDate.parse(parseLabelDate(text), OUTPUT_FORMATTER);
-        return Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
-    }
-
-    String formatDate(Date date) {
-        LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        return formatDate(localDate);
+    LocalDate parseDate(String text) {
+        return LocalDate.parse(parseLabelDate(text), OUTPUT_FORMATTER);
     }
 }

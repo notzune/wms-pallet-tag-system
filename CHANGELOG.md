@@ -13,7 +13,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 - Rail label generation now accepts multiple train codes in one run using comma, whitespace, colon, slash, semicolon, or mixed delimiters, then renders one combined PDF.
 - The Rail Labels GUI now includes explicit printable-row checkboxes plus select-all, clear-all, invert, and multi-row keyboard toggling before PDF generation or printing.
-- Rail labels now include operator-selected label dates with typed `MM-DD-YY` entry, a date picker, and a Today button in the GUI workflow.
+- Rail labels now include operator-selected label dates with typed `MM-DD-YY` entry, a month-grid calendar popup, and a Today button in the GUI workflow.
 - Rail labels now include line-item consist markers such as `D-4 C-3`, derived from WMS-resolved item family metadata for the displayed card lines.
 - GUI windows and tools now include contextual Help buttons that explain each workflow and its shortcuts.
 - Added `docs/architecture-solid-audit.md` to capture the current SRP/SOLID audit, open GitHub issue context, verification baseline, and managed branch map for upcoming refactor work.

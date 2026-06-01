@@ -36,7 +36,7 @@ public final class GuiHelpTopics {
                 section("Workflow",
                         "Enter one train code or a mixed-delimiter list, then run Load Preview.",
                         "Accepted multi-train examples: JC05262026, JC05272026 or JC05262026/JC05272026.",
-                        "Label Date accepts MM-DD-YY, Calendar opens a date picker, and Today restores the current date before preview.",
+                        "Label Date accepts MM-DD-YY, Calendar opens a month grid, and Today restores the current date before preview.",
                         "Generate PDF renders checked rows from every loaded train into one combined PDF.",
                         "Use Print after review when the selected PDF output is ready for the active printer target."),
                 section("Rail Card Checks",
