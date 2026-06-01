@@ -43,10 +43,13 @@ jobs:
             if (-not $pomVersion) {
               throw "Could not resolve project version from pom.xml for PR build metadata."
             }
+            if ($pomVersion -notmatch '^(?<core>\d+\.\d+\.\d+)(?<suffix>-[0-9A-Za-z.-]+)?$') {
+              throw "Project version '$pomVersion' is not supported. Expected X.Y.Z or X.Y.Z-<suffix>."
+            }
             $versionLabel = $pomVersion
-            $appVersion = $pomVersion
-            $changelogVersion = $pomVersion
-            $isPrerelease = $false
+            $appVersion = $Matches["core"]
+            $changelogVersion = $Matches["core"]
+            $isPrerelease = [string]::IsNullOrEmpty($Matches["suffix"]) -eq $false
           }
           "version_label=$versionLabel" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "app_version=$appVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
