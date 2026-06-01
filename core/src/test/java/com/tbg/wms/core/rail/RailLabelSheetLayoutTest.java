@@ -29,15 +29,25 @@ final class RailLabelSheetLayoutTest {
         RailLabelSheetLayout.LabelSlot second = layout.slot(1);
         RailLabelSheetLayout.LabelSlot rowTwo = layout.slot(2);
 
-        assertEquals(11.25f, first.left(), 0.001f);
+        assertEquals(-6.75f, first.left(), 0.001f);
         assertEquals(756.0f, first.top(), 0.001f);
         assertEquals(612.0f, first.bottom(), 0.001f);
         assertEquals(312.75f, second.left(), 0.001f);
         assertEquals(756.0f, second.top(), 0.001f);
         assertEquals(612.0f, second.bottom(), 0.001f);
-        assertEquals(11.25f, rowTwo.left(), 0.001f);
+        assertEquals(-6.75f, rowTwo.left(), 0.001f);
         assertEquals(612.0f, rowTwo.top(), 0.001f);
         assertEquals(468.0f, rowTwo.bottom(), 0.001f);
+    }
+
+    @Test
+    void slotBounds_shouldShiftOnlyLeftColumnQuarterInchLeft() {
+        RailLabelSheetLayout layout = RailLabelSheetLayout.defaultLayout();
+
+        assertEquals(-6.75f, layout.slot(0).left(), 0.001f);
+        assertEquals(312.75f, layout.slot(1).left(), 0.001f);
+        assertEquals(-6.75f, layout.slot(8).left(), 0.001f);
+        assertEquals(312.75f, layout.slot(9).left(), 0.001f);
     }
 
     @Test

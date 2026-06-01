@@ -15,6 +15,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - The Rail Labels GUI now includes explicit printable-row checkboxes plus select-all, clear-all, invert, and multi-row keyboard toggling before PDF generation or printing.
 - Rail labels now include operator-selected label dates with typed `MM-DD-YY` entry, a month-grid calendar popup, and a Today button in the GUI workflow.
 - Rail labels now include line-item consist markers such as `D-4 C-3`, derived from WMS-resolved item family metadata for the displayed card lines.
+- Rail label rendering now shifts the five left-column label boxes 0.25 inches left and prints the label date 3 points larger.
 - GUI windows and tools now include contextual Help buttons that explain each workflow and its shortcuts.
 - Added `docs/architecture-solid-audit.md` to capture the current SRP/SOLID audit, open GitHub issue context, verification baseline, and managed branch map for upcoming refactor work.
 - Added a persisted `Developer mode` toggle under `Settings... -> Advanced Settings...` so internal users can opt into debug-oriented GUI behavior when needed.

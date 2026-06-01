@@ -152,7 +152,7 @@ public final class RailCardRenderer {
         if (!card.getLabelDate().isBlank()) {
             float dateX = textLeft + textWidth(PDType1Font.HELVETICA_BOLD_OBLIQUE,
                     RailLabelTypography.SEQUENCE_SIZE, safe(card.getSequence())) + 10f;
-            writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.ROUTE_HEADER_SIZE,
+            writeText(content, PDType1Font.HELVETICA_OBLIQUE, RailLabelTypography.DATE_SIZE,
                     dateX, top - 22f, card.getLabelDate());
         }
         writeRightAlignedUnderlinedText(content, PDType1Font.HELVETICA_BOLD_OBLIQUE, RailLabelTypography.VEHICLE_SIZE,
