@@ -14,6 +14,7 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import java.util.Objects;
  * transport so the preview remains operator-friendly without overrunning the external render API.</p>
  */
 final class ZplPreviewToolDialog extends JDialog {
+    @Serial
     private static final long serialVersionUID = 1L;
     private static final int LIVE_RENDER_DEBOUNCE_MS = 350;
     private static final int MIN_RENDER_INTERVAL_MS = 1000;
@@ -83,6 +85,11 @@ final class ZplPreviewToolDialog extends JDialog {
         topBar.add(new JLabel("Label #"));
         topBar.add(indexSpinner);
         topBar.add(liveCheck);
+        JPanel topHeader = new JPanel(new BorderLayout());
+        topHeader.add(topBar, BorderLayout.WEST);
+        JPanel helpPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
+        helpPanel.add(GuiHelpSupport.createHelpButton(this, "ZPL Preview Tool", GuiHelpTopics.zplPreview()));
+        topHeader.add(helpPanel, BorderLayout.EAST);
 
         JScrollPane textScroll = new JScrollPane(zplTextArea);
         JScrollPane previewScroll = new JScrollPane(previewLabel);
@@ -93,7 +100,7 @@ final class ZplPreviewToolDialog extends JDialog {
         footer.add(statusLabel, BorderLayout.CENTER);
         footer.add(new JLabel("Rendered via Labelary preview API. Network access required."), BorderLayout.EAST);
 
-        add(topBar, BorderLayout.NORTH);
+        add(topHeader, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
 
@@ -356,7 +363,8 @@ final class ZplPreviewToolDialog extends JDialog {
         }
 
         int generation = ++renderGeneration;
-        int dpmm = (Integer) dpmmCombo.getSelectedItem();
+        Integer selectedDpmm = (Integer) dpmmCombo.getSelectedItem();
+        int dpmm = selectedDpmm == null ? 8 : selectedDpmm;
         double width = ((Number) widthSpinner.getValue()).doubleValue();
         double height = ((Number) heightSpinner.getValue()).doubleValue();
         int index = ((Number) indexSpinner.getValue()).intValue();

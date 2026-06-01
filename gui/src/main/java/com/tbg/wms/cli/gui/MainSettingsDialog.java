@@ -124,6 +124,9 @@ final class MainSettingsDialog extends JDialog {
         saveButton.addActionListener(e -> saveSettings(outputDirField, retentionDaysField));
         cancelButton.addActionListener(e -> dispose());
 
+        JPanel helpHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
+        helpHeader.add(GuiHelpSupport.createHelpButton(this, "Settings", GuiHelpTopics.settings()));
+        add(helpHeader, BorderLayout.NORTH);
         add(content, BorderLayout.CENTER);
         add(buttonRow, BorderLayout.SOUTH);
         pack();

@@ -98,12 +98,13 @@ public final class RailPrintCommand implements Callable<Integer> {
             return 0;
         }
 
-        RailWorkflowService.RailWorkflowResult result;
+        List<String> trainIds = new RailTrainInputParser().parse(trainId);
+        RailWorkflowService.RailWorkflowBatchResult result;
 
         try (DbConnectionPool pool = new DbConnectionPool(config)) {
             RailDbRepository repository = new WmsRailDbRepository(new OracleDbQueryRepository(pool.getDataSource()));
             RailWorkflowService workflowService = new RailWorkflowService(repository);
-            result = workflowService.prepare(trainId);
+            result = workflowService.prepareAll(trainIds);
         }
 
         System.out.print(cliSupport.buildPreviewText(result));
@@ -114,7 +115,8 @@ public final class RailPrintCommand implements Callable<Integer> {
         }
 
         Files.createDirectories(outputDir);
-        String fileName = "rail-cards-" + result.getTrainId() + "-" + TS.format(LocalDateTime.now()) + ".pdf";
+        String fileName = "rail-cards-" + cliSupport.fileNameToken(result.getTrainIds()) + "-"
+                + TS.format(LocalDateTime.now()) + ".pdf";
         Path pdfPath = outputDir.resolve(fileName);
 
         RailCardRenderer renderer = cliSupport.railRenderer(config);

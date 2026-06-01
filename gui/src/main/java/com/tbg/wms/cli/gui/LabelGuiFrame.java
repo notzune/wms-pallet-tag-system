@@ -134,7 +134,7 @@ public final class LabelGuiFrame extends JFrame {
         setLayout(new BorderLayout(8, 8));
 
         JPanel topContainer = new JPanel(new BorderLayout());
-        topContainer.add(buildToolBar(), BorderLayout.NORTH);
+        topContainer.add(buildToolBarRow(), BorderLayout.NORTH);
         topContainer.add(buildTopPanel(), BorderLayout.SOUTH);
         add(topContainer, BorderLayout.NORTH);
         add(buildCenterPanel(), BorderLayout.CENTER);
@@ -197,6 +197,15 @@ public final class LabelGuiFrame extends JFrame {
 
     private JComponent buildToolBar() {
         return toolMenuSupport.buildToolBar(toolsButton, buildToolMenuActions(), this::developerModeEnabled);
+    }
+
+    private JComponent buildToolBarRow() {
+        JPanel row = new JPanel(new BorderLayout());
+        row.add(buildToolBar(), BorderLayout.WEST);
+        JPanel helpPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 2));
+        helpPanel.add(GuiHelpSupport.createHelpButton(this, "WMS Pallet Tag System", GuiHelpTopics.mainWindow()));
+        row.add(helpPanel, BorderLayout.EAST);
+        return row;
     }
 
     private JComponent buildTopPanel() {
@@ -998,7 +1007,7 @@ public final class LabelGuiFrame extends JFrame {
             return message;
         }
         String exceptionType = throwable.getClass().getSimpleName();
-        if (message == null || message.isBlank()) {
+        if (message.isBlank()) {
             return exceptionType;
         }
         return exceptionType + ": " + message;

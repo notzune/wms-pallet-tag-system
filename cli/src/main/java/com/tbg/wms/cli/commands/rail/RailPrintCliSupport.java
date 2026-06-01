@@ -26,9 +26,46 @@ final class RailPrintCliSupport {
     }
 
     String buildPreviewText(RailWorkflowService.RailWorkflowResult result) {
+        return buildPreviewText(
+                List.of(result.getTrainId()),
+                result.getCards(),
+                result.getRawRows().size(),
+                result.getResolvedFootprints().size(),
+                result.getUnresolvedShortCodes(),
+                result.getMissingItemsInCards()
+        );
+    }
+
+    String buildPreviewText(RailWorkflowService.RailWorkflowBatchResult result) {
+        return buildPreviewText(
+                result.getTrainIds(),
+                result.getCards(),
+                result.getRawRows().size(),
+                result.getResolvedFootprints().size(),
+                result.getUnresolvedShortCodes(),
+                result.getMissingItemsInCards()
+        );
+    }
+
+    String fileNameToken(List<String> trainIds) {
+        if (trainIds == null || trainIds.isEmpty()) {
+            return "rail";
+        }
+        if (trainIds.size() == 1) {
+            return trainIds.get(0);
+        }
+        return trainIds.get(0) + "-plus-" + (trainIds.size() - 1);
+    }
+
+    private String buildPreviewText(List<String> trainIds,
+                                    List<RailCarCard> cards,
+                                    int rawRowCount,
+                                    int resolvedFootprintCount,
+                                    java.util.Set<String> unresolvedShortCodes,
+                                    java.util.Set<String> missingItemsInCards) {
         StringBuilder sb = new StringBuilder();
-        List<RailCarCard> cards = result.getCards();
         sb.append(System.lineSeparator());
+        sb.append("Train IDs: ").append(String.join(", ", trainIds)).append(System.lineSeparator());
         sb.append("SEQ   VEHICLE      CAN   DOM   KEV").append(System.lineSeparator());
         for (RailCarCard card : cards) {
             sb.append(String.format("%-5s %-12s %4d %4d %4d%n",
@@ -40,12 +77,12 @@ final class RailPrintCliSupport {
         }
         sb.append(System.lineSeparator());
         sb.append("Railcars: ").append(cards.size()).append(System.lineSeparator());
-        sb.append("WMS rows: ").append(result.getRawRows().size()).append(System.lineSeparator());
-        sb.append("Resolved footprints: ").append(result.getResolvedFootprints().size()).append(System.lineSeparator());
-        sb.append("Unresolved short codes: ").append(result.getUnresolvedShortCodes().size()).append(System.lineSeparator());
-        if (!result.getMissingItemsInCards().isEmpty()) {
+        sb.append("WMS rows: ").append(rawRowCount).append(System.lineSeparator());
+        sb.append("Resolved footprints: ").append(resolvedFootprintCount).append(System.lineSeparator());
+        sb.append("Unresolved short codes: ").append(unresolvedShortCodes.size()).append(System.lineSeparator());
+        if (!missingItemsInCards.isEmpty()) {
             sb.append("Missing in card math: ")
-                    .append(String.join(", ", result.getMissingItemsInCards()))
+                    .append(String.join(", ", missingItemsInCards))
                     .append(System.lineSeparator());
         }
         sb.append(System.lineSeparator());

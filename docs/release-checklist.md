@@ -67,6 +67,13 @@ Latest validated reports on `1.7.6`:
   - installed app `config`
   - installed app `db-test`
 
+## Architecture And Documentation Checks
+
+- Confirm README and CHANGELOG describe release-visible workflow, packaging, or operator changes.
+- Confirm any durable architecture decision is documented in `docs/adr/` or the relevant focused doc.
+- Confirm SRP-sensitive changes keep parsing, data access, orchestration, rendering, and UI state responsibilities separated.
+- Confirm large coordinator changes identify the follow-up refactor branch or plan when full extraction is outside the release scope.
+
 ## Release Gate
 
 Do not create or push a release tag unless:
@@ -77,3 +84,4 @@ Do not create or push a release tag unless:
 - no Tier 1 scenario remains uncovered in [release-smoke-coverage-matrix.md](release-smoke-coverage-matrix.md)
 - remaining GUI-only/manual surface is documented in [gui-backend-coverage-inventory.md](gui-backend-coverage-inventory.md)
 - generated reports are available for review
+- architecture and documentation checks above are complete

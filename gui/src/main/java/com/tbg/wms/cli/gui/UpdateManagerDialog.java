@@ -98,8 +98,14 @@ final class UpdateManagerDialog extends JDialog {
         buttons.add(installButton);
         buttons.add(closeButton);
 
+        JPanel header = new JPanel(new BorderLayout());
+        header.add(dialogStatusLabel, BorderLayout.CENTER);
+        JPanel helpPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
+        helpPanel.add(GuiHelpSupport.createHelpButton(this, "Update Manager", GuiHelpTopics.updates()));
+        header.add(helpPanel, BorderLayout.EAST);
+
         add(content, BorderLayout.CENTER);
-        add(dialogStatusLabel, BorderLayout.NORTH);
+        add(header, BorderLayout.NORTH);
         add(buttons, BorderLayout.SOUTH);
 
         experimentalCheckBox.addActionListener(e -> reloadSnapshot());

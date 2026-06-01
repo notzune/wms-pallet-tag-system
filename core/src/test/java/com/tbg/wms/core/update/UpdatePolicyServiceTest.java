@@ -81,7 +81,6 @@ class UpdatePolicyServiceTest {
                 "v" + version,
                 "https://example.test/releases/v" + version,
                 prerelease,
-                false,
                 List.of(new ReleaseCheckService.ReleaseAsset(
                         "WMS.Pallet.Tag.System-" + version + ".exe",
                         "https://example.test/releases/v" + version + "/installer.exe"))

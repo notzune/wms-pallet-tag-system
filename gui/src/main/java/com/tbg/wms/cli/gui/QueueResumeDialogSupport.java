@@ -45,7 +45,12 @@ final class QueueResumeDialogSupport {
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controls.add(new JLabel("Default Type (fallback):"));
         controls.add(defaultType);
-        top.add(controls, BorderLayout.NORTH);
+        JPanel header = new JPanel(new BorderLayout());
+        header.add(controls, BorderLayout.WEST);
+        JPanel helpPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        helpPanel.add(GuiHelpSupport.createHelpButton(dialog, "Queue Print", GuiHelpTopics.queuePrint()));
+        header.add(helpPanel, BorderLayout.EAST);
+        top.add(header, BorderLayout.NORTH);
         top.add(new JScrollPane(inputArea), BorderLayout.CENTER);
         top.add(hint, BorderLayout.SOUTH);
 

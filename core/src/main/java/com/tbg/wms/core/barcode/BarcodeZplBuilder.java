@@ -83,10 +83,9 @@ public final class BarcodeZplBuilder {
         int blockWidth = estimatedBarcodeWidth;
         int blockHeight = request.getBarcodeHeight() + textHeight;
         if (landscape) {
-            int rotatedWidth = blockHeight;
-            int rotatedHeight = blockWidth;
-            blockWidth = rotatedWidth;
-            blockHeight = rotatedHeight;
+            int unrotatedWidth = blockWidth;
+            blockWidth = blockHeight;
+            blockHeight = unrotatedWidth;
         }
 
         int centeredX = centerWithinSafeArea(

@@ -15,6 +15,7 @@ public final class RailCarCard {
     private final String sequence;
     private final String vehicleId;
     private final String loadNumbers;
+    private final String routeHeader;
     private final List<RailStopRecord.ItemQuantity> itemLines;
     private final int canPallets;
     private final int domPallets;
@@ -32,10 +33,37 @@ public final class RailCarCard {
                        int kevPallets,
                        List<String> topFamilies,
                        List<String> missingFootprintItems) {
+        this(
+                trainId,
+                sequence,
+                vehicleId,
+                loadNumbers,
+                loadNumbers,
+                itemLines,
+                canPallets,
+                domPallets,
+                kevPallets,
+                topFamilies,
+                missingFootprintItems
+        );
+    }
+
+    public RailCarCard(String trainId,
+                       String sequence,
+                       String vehicleId,
+                       String loadNumbers,
+                       String routeHeader,
+                       List<RailStopRecord.ItemQuantity> itemLines,
+                       int canPallets,
+                       int domPallets,
+                       int kevPallets,
+                       List<String> topFamilies,
+                       List<String> missingFootprintItems) {
         this.trainId = normalize(trainId);
         this.sequence = normalize(sequence);
         this.vehicleId = normalize(vehicleId);
         this.loadNumbers = normalize(loadNumbers);
+        this.routeHeader = normalize(routeHeader);
         this.itemLines = Collections.unmodifiableList(new ArrayList<>(itemLines));
         this.canPallets = canPallets;
         this.domPallets = domPallets;
@@ -62,6 +90,10 @@ public final class RailCarCard {
 
     public String getLoadNumbers() {
         return loadNumbers;
+    }
+
+    public String getRouteHeader() {
+        return routeHeader;
     }
 
     public List<RailStopRecord.ItemQuantity> getItemLines() {

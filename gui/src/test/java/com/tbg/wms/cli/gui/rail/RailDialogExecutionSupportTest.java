@@ -1,6 +1,7 @@
 package com.tbg.wms.cli.gui.rail;
 
 import com.tbg.wms.cli.gui.LabelWorkflowService;
+import com.tbg.wms.core.rail.RailCarCard;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Constructor;
@@ -24,16 +25,22 @@ class RailDialogExecutionSupportTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> support.preparePreviewRequest(" "));
 
-        assertEquals("Train ID is required.", ex.getMessage());
-        assertEquals("JC03182026", support.preparePreviewRequest(" JC03182026 ").trainId());
+        assertEquals("At least one train ID is required.", ex.getMessage());
+        assertEquals(List.of("JC03182026"), support.preparePreviewRequest(" JC03182026 ").trainIds());
+        assertEquals(
+                List.of("JC03182026", "JC04152026"),
+                support.preparePreviewRequest("JC03182026, JC04152026").trainIds()
+        );
     }
 
     @Test
     void prepareGenerationRequest_shouldRespectPrintTargetModes() throws Exception {
         RailWorkflowService.PreparedRailJob job = preparedJob();
+        List<RailCarCard> selectedCards = List.of(card("1"));
 
         RailDialogExecutionSupport.GenerationRequest fileRequest = support.prepareGenerationRequest(
                 job,
+                selectedCards,
                 "",
                 new LabelWorkflowService.PrinterOption("FILE", "Print to File", ""),
                 false,
@@ -41,6 +48,7 @@ class RailDialogExecutionSupportTest {
         );
         RailDialogExecutionSupport.GenerationRequest printRequest = support.prepareGenerationRequest(
                 job,
+                selectedCards,
                 "out\\rail",
                 new LabelWorkflowService.PrinterOption("RAIL1", "Rail 1", "10.0.0.1", List.of("RAIL")),
                 false,
@@ -50,9 +58,27 @@ class RailDialogExecutionSupportTest {
         assertNull(fileRequest.outputDirectory());
         assertEquals("FILE", fileRequest.printerId());
         assertFalse(fileRequest.shouldPrint());
+        assertEquals(1, fileRequest.selectedCards().size());
         assertEquals(Path.of("out\\rail"), printRequest.outputDirectory());
         assertEquals("RAIL1", printRequest.printerId());
         assertTrue(printRequest.shouldPrint());
+    }
+
+    @Test
+    void prepareGenerationRequest_shouldRejectEmptySelection() throws Exception {
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> support.prepareGenerationRequest(
+                        preparedJob(),
+                        List.of(),
+                        "",
+                        new LabelWorkflowService.PrinterOption("FILE", "Print to File", ""),
+                        false,
+                        false
+                )
+        );
+
+        assertEquals("Select at least one rail row to generate.", ex.getMessage());
     }
 
     @Test
@@ -87,5 +113,9 @@ class RailDialogExecutionSupportTest {
                         "JC03182026", List.of(), List.of(), List.of(), Map.of(), Set.of(), Set.of()
                 )
         );
+    }
+
+    private static RailCarCard card(String sequence) {
+        return new RailCarCard("TRAIN1", sequence, "CAR" + sequence, "", List.of(), 1, 0, 0, List.of(), List.of());
     }
 }

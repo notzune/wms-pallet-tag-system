@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.7.6-blue)
+![Version](https://img.shields.io/badge/version-1.8.0--SNAPSHOT-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current branch target: `1.7.6` prerelease validation.
+Current branch target: `1.8.0-SNAPSHOT` feature validation for rail labels, operator help, documentation, and focused SRP refactors.
 
 ## Versioning and History
 
@@ -20,6 +20,11 @@ Current branch target: `1.7.6` prerelease validation.
 - New release notes should be staged under `## [Unreleased]` before version cut/tagging.
 
 For open work and follow-up items, see the [GitHub issues tracker](https://github.com/notzune/wms-pallet-tag-system/issues).
+
+Active tracked work:
+
+- `#42` improves rail label readability, physical label-sheet documentation, multi-train input, combined PDF generation, and explicit printable-row selection.
+- `#43` adds contextual GUI help buttons and shared help-dialog behavior across operator views.
 
 ## Current Scope
 
@@ -52,6 +57,9 @@ Not implemented yet:
 - GUI workflow caches are site-scoped and thread-safe to prevent stale cross-site printer/site metadata reuse.
 - GUI preview selection refresh now snapshots the selected labels once per update cycle instead of rebuilding shipment/carrier subsets repeatedly.
 - Query and command execution paths remain hardened with prepared statements and argumentized process invocation patterns.
+- Architecture and SRP follow-up notes are tracked in [docs/architecture-solid-audit.md](docs/architecture-solid-audit.md).
+- Large Swing coordinators are refactor targets, not preferred homes for unrelated feature expansion.
+- New branch work should keep parser, data access, orchestration, rendering, and UI state responsibilities in separate classes with tests at the owning boundary.
 
 ## Prerequisites
 
@@ -222,7 +230,7 @@ Notes:
 - `build-jpackage-bundle.ps1` can optionally sign the app-image launcher(s) and the final installer via `-SigningMode signtool`
 - For standard certificate signing, pass one of `-CertificateThumbprint`, `-CertificateSubjectName`, or `-CertificatePath`
 - For Trusted Signing, pass the required `/dlib` and `/dmdf` values through `-AdditionalSignToolArgs`
-- Prerelease tags such as `v1.7.6-rc.2` are supported in CI and publish GitHub Releases marked as prereleases automatically
+- Prerelease tags such as `v1.8.0-rc.1` are supported in CI and publish GitHub Releases marked as prereleases automatically
 - The installer helper writes an MSI log and can uninstall an existing same-version install first when `-ReplaceExisting` is used
 - `uninstall-wms-tags.ps1` / `uninstall-wms-tags.bat` provide a direct uninstall path for packaged installs
 - GUI `Tools` / `Settings` now include `Update Manager...` and `Uninstall / Clean Install Prep...` actions for packaged installs
@@ -328,7 +336,7 @@ For clean-machine Windows installer validation in VirtualBox:
   -GuestUser <GUEST_USER> `
   -GuestPassword <GUEST_PASSWORD> `
   -OldInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.4.exe `
-  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-1.7.6.exe
+  -NewInstallerPath C:\path\to\WMS` Pallet` Tag` System-<version>.exe
 ```
 
 Outputs:
@@ -373,7 +381,7 @@ Key settings:
 - `SITE_<CODE>_SHIP_FROM_NAME`, `SITE_<CODE>_SHIP_FROM_ADDRESS`, `SITE_<CODE>_SHIP_FROM_CITY_STATE_ZIP`
 - `PRINTER_ROUTING_FILE=config/TBG3002/printer-routing.yaml`
 - `RAIL_DEFAULT_PRINTER_ID` (optional: rail PDF print target; printer ID from `printers.yaml`)
-- `RAIL_LABEL_CENTER_GAP_IN=0.125` (rail 2-column center gap, inches)
+- `RAIL_LABEL_CENTER_GAP_IN=0.1875` (rail 2-column center gap, inches)
 - `RAIL_LABEL_OFFSET_X_IN=0.02` (rail label grid X nudge, inches; + is right)
 - `RAIL_LABEL_OFFSET_Y_IN=0.02` (rail label grid Y nudge, inches; + is down)
 - `RIGHT_CLICK_COOLDOWN_MS=250` (GUI right-click copy/paste debounce)
@@ -457,12 +465,12 @@ Notes:
 ## Rail Print Command
 
 ```bash
-java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID> [OPTIONS]
+java -jar cli/target/cli-*.jar rail-print --train <TRAIN_ID>[,<TRAIN_ID>...] [OPTIONS]
 ```
 
 Options:
 
-- `--train <ID>` (required): full WMS train ID (example: `JC08312025`)
+- `--train <ID>` (required): one or more full WMS train IDs (example: `JC08312025`). Multiple train IDs may be separated with commas, spaces, colons, slashes, semicolons, or mixed delimiters.
 - `--output-dir <DIR>` (default `out/rail-print`)
 - `--print` (send generated PDF to default printer after confirmation)
 - `--template` (generate 10-position 4x2 alignment template PDF and exit)
@@ -476,22 +484,24 @@ Workflow:
 - Compute deterministic top-family percentages with largest-remainder rounding (stable ordering and 100% total)
 - Show preview table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`)
 - Confirm
-- Render direct letter-size rail card PDF (no Word mail merge dependency)
+- Render one direct letter-size rail card PDF for all requested trains (no Word mail merge dependency)
+- Use the approved 4x2 label-stock geometry and larger rail label typography for readability
 - Include `MISSING: <count>` warning on cards when any short codes are unresolved
 - Optionally print: tries configured rail printer first (`RAIL_DEFAULT_PRINTER_ID`), then opens system print dialog as fallback
 
 ## Rail Labels GUI Workflow
 
 - Open `gui`, then go to `Tools -> Rail Labels...`.
-- Enter train ID and click `Load Preview`.
+- Enter one or more train IDs and click `Load Preview`. Multiple train IDs may be separated with commas, spaces, colons, slashes, semicolons, or mixed delimiters.
 - Press `Ctrl+F` to trigger `Load Preview` from the keyboard while the workflow window is focused.
 - System pulls rail rows from WMS and resolves footprints by short code from WMS.
 - Preview includes:
-- Railcar table (`SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
+- Railcar table (`PRINT`, `TRAIN`, `SEQ`, `VEHICLE`, `CAN`, `DOM`, `KEV`, `LOAD_NBR`)
 - Railcar card preview panel (item lines + CAN/DOM/KEV + pass/fuel/BH fields)
 - Diagnostics panel (row counts and unresolved footprints)
+- All preview rows default to printable. Use the `PRINT` checkboxes, `Select All`, `Clear All`, `Invert`, or multi-select rows with Ctrl/Shift and press Space to control which rows are generated.
 - Rail print target dropdown only shows printers marked with the `RAIL` capability, plus `System default printer` and `Print to file`.
-- Click `Generate PDF` to produce a letter-size multi-card PDF.
+- Click `Generate PDF` to produce one letter-size multi-card PDF for the checked rows.
 - Click `Print` to generate PDF and send it to the selected rail printer, or keep `Print to file` selected to save only.
 
 ## Excel VBA Macro Helpers
@@ -589,6 +599,7 @@ Package-level documentation is maintained in every `package-info.java` under:
 
 Recent documentation maintenance:
 
+- `docs/architecture-solid-audit.md` captures the current SRP/SOLID audit, open issue context, verification baseline, and managed branch map
 - missing `package-info.java` coverage was filled for the newer `core` subpackages (`barcode`, `db`, `ems`, `label`, `labeling`, `location`, `sku`, `update`)
 - GUI settings/update/install maintenance responsibilities are now documented separately from the main frame through `MainSettingsDialog`
 - GUI print-task planning and artifact naming are now documented separately from workflow orchestration through `PrintTaskPlanner` and `ArtifactNameSupport`
@@ -604,6 +615,19 @@ Recent examples:
 - `DescriptionTextHeuristics` (shared description readability policy)
 - `PrtmstDescriptionColumnResolver` (cached PRTMST schema probing boundary)
 - `RailFootprintResolver` (deterministic candidate-consistency gate before pallet math)
+
+Documentation changes should follow the same boundary rules as code changes: update the README for user-facing workflows, the changelog for release-visible changes, ADRs for durable architecture decisions, and focused docs for operational or refactor guidance. Avoid duplicating long setup procedures across multiple files.
+
+## Branch and Refactor Management
+
+Use isolated worktrees under `.worktrees/` for work that can proceed independently from the main checkout. The current managed branch map is:
+
+- `docs/repo-documentation-solid-audit` - documentation refresh and SRP audit.
+- `refactor/srp-label-gui-frame` - planned extraction work for `LabelGuiFrame` and related Swing coordination responsibilities.
+- `refactor/srp-analyzer-loading` - planned consolidation of analyzer loading, dashboard loading state, and async data-provider boundaries.
+- `perf/code-optimization-baseline` - planned low-risk performance and maintainability cleanup after tests establish baseline behavior.
+
+Refactor branches must preserve behavior through tests before changing production code. Keep each branch narrow enough that a reviewer can evaluate one responsibility boundary at a time.
 
 ## CI Workflows
 

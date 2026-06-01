@@ -9,13 +9,13 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
-public final class UnpickedPartialsDataProvider implements AnalyzerDataProvider<UnpickedPartialsRow> {
+final class UnpickedPartialsDataProvider implements AnalyzerDataProvider<UnpickedPartialsRow> {
 
     private final UnpickedPartialsQueryService queryService;
     private final UnpickedPartialsRuleClassifier classifier;
     private final Clock clock;
 
-    public UnpickedPartialsDataProvider(
+    UnpickedPartialsDataProvider(
             UnpickedPartialsQueryService queryService,
             UnpickedPartialsRuleClassifier classifier,
             Clock clock

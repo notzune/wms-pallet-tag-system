@@ -4,6 +4,8 @@
 package com.tbg.wms.cli.gui.rail;
 
 import com.tbg.wms.cli.gui.GuiExceptionMessageSupport;
+import com.tbg.wms.cli.gui.GuiHelpSupport;
+import com.tbg.wms.cli.gui.GuiHelpTopics;
 import com.tbg.wms.cli.gui.GuiPrinterTargetSupport;
 import com.tbg.wms.cli.gui.LabelWorkflowService;
 import com.tbg.wms.cli.gui.TextFieldClipboardController;
@@ -12,7 +14,6 @@ import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.rail.RailCarCard;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.Serial;
 import java.nio.file.Path;
@@ -35,14 +36,11 @@ public final class RailLabelsDialog extends JDialog {
     private final JButton loadButton = new JButton("Load Preview");
     private final JButton generatePdfButton = new JButton("Generate PDF");
     private final JButton printButton = new JButton("Print");
+    private final JButton selectAllButton = new JButton("Select All");
+    private final JButton clearAllButton = new JButton("Clear All");
+    private final JButton invertSelectionButton = new JButton("Invert");
 
-    private final DefaultTableModel tableModel = new DefaultTableModel(
-            new Object[]{"SEQ", "VEHICLE", "CAN", "DOM", "KEV", "LOAD_NBR"}, 0) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    };
+    private final RailPrintableCardTableModel tableModel = new RailPrintableCardTableModel();
     private final JTable previewTable = new JTable(tableModel);
     private final JTextArea cardPreviewArea = new JTextArea();
     private final JTextArea diagnosticsArea = new JTextArea();
@@ -76,6 +74,7 @@ public final class RailLabelsDialog extends JDialog {
         add(buildBottomPanel(), BorderLayout.SOUTH);
         clipboardController.install(trainIdField, outputDirField);
         wireActions();
+        bindTableSelectionShortcuts();
         WorkflowShortcutBinder.bindPreviewShortcut(getRootPane(), loadButton, "loadRailPreview");
         applyUiState(uiStateSupport.initial());
         loadPrintersAsync();
@@ -105,6 +104,11 @@ public final class RailLabelsDialog extends JDialog {
         panel.add(generatePdfButton, gbc);
         gbc.gridx = 4;
         panel.add(printButton, gbc);
+
+        gbc.gridx = 5;
+        gbc.anchor = GridBagConstraints.NORTHEAST;
+        panel.add(GuiHelpSupport.createHelpButton(this, "Rail Labels", GuiHelpTopics.railLabels()), gbc);
+        gbc.anchor = GridBagConstraints.WEST;
 
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -147,15 +151,22 @@ public final class RailLabelsDialog extends JDialog {
     }
 
     private JComponent buildCenterPanel() {
-        previewTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        previewTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         previewTable.getSelectionModel().addListSelectionListener(e -> updateCardPreviewFromSelection());
         JScrollPane tableScroll = new JScrollPane(previewTable);
-        tableScroll.setBorder(BorderFactory.createTitledBorder("Railcar Preview Table"));
+        JPanel tablePanel = new JPanel(new BorderLayout(4, 4));
+        tablePanel.setBorder(BorderFactory.createTitledBorder("Railcar Preview Table"));
+        tablePanel.add(tableScroll, BorderLayout.CENTER);
+        JPanel selectionControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+        selectionControls.add(selectAllButton);
+        selectionControls.add(clearAllButton);
+        selectionControls.add(invertSelectionButton);
+        tablePanel.add(selectionControls, BorderLayout.SOUTH);
 
         JScrollPane cardScroll = new JScrollPane(cardPreviewArea);
         cardScroll.setBorder(BorderFactory.createTitledBorder("Railcar Card Preview"));
 
-        JSplitPane horizontal = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tableScroll, cardScroll);
+        JSplitPane horizontal = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tablePanel, cardScroll);
         horizontal.setDividerLocation(560);
 
         JScrollPane diagnosticsScroll = new JScrollPane(diagnosticsArea);
@@ -181,6 +192,24 @@ public final class RailLabelsDialog extends JDialog {
         generatePdfButton.addActionListener(e -> generate(false));
         printButton.addActionListener(e -> generate(true));
         printerCombo.addActionListener(e -> syncPrintTargetUi());
+        selectAllButton.addActionListener(e -> tableModel.setAllPrintable());
+        clearAllButton.addActionListener(e -> tableModel.clearAllPrintable());
+        invertSelectionButton.addActionListener(e -> tableModel.invertPrintable());
+    }
+
+    private void bindTableSelectionShortcuts() {
+        previewTable.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke("SPACE"), "togglePrintableRows");
+        previewTable.getActionMap().put("togglePrintableRows", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                int[] selectedRows = previewTable.getSelectedRows();
+                int[] modelRows = new int[selectedRows.length];
+                for (int i = 0; i < selectedRows.length; i++) {
+                    modelRows[i] = previewTable.convertRowIndexToModel(selectedRows[i]);
+                }
+                tableModel.togglePrintableRows(modelRows);
+            }
+        });
     }
 
     private void browseOutputDirectory() {
@@ -209,7 +238,7 @@ public final class RailLabelsDialog extends JDialog {
         SwingWorker<RailWorkflowService.PreparedRailJob, Void> worker = new SwingWorker<>() {
             @Override
             protected RailWorkflowService.PreparedRailJob doInBackground() throws Exception {
-                return service.prepareRailJob(request.trainId());
+                return service.prepareRailJob(request.trainIds());
             }
 
             @Override
@@ -239,19 +268,26 @@ public final class RailLabelsDialog extends JDialog {
             return;
         }
 
-        RailDialogExecutionSupport.GenerationRequest request = executionSupport.prepareGenerationRequest(
-                preparedJob,
-                outputDirField.getText(),
-                (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem(),
-                forcePrint,
-                printNowCheck.isSelected()
-        );
+        RailDialogExecutionSupport.GenerationRequest request;
+        try {
+            request = executionSupport.prepareGenerationRequest(
+                    preparedJob,
+                    tableModel.selectedCards(),
+                    outputDirField.getText(),
+                    (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem(),
+                    forcePrint,
+                    printNowCheck.isSelected()
+            );
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
+            return;
+        }
         applyUiState(uiStateSupport.generationBusy(executionSupport.generationBusyMessage(request.shouldPrint())));
 
         SwingWorker<RailWorkflowService.GenerationResult, Void> worker = new SwingWorker<>() {
             @Override
             protected RailWorkflowService.GenerationResult doInBackground() throws Exception {
-                return service.generatePdf(preparedJob, request.outputDirectory(), request.printerId());
+                return service.generatePdf(preparedJob, request.selectedCards(), request.outputDirectory(), request.printerId());
             }
 
             @Override
@@ -271,17 +307,7 @@ public final class RailLabelsDialog extends JDialog {
     }
 
     private void renderTable(List<RailCarCard> cards) {
-        tableModel.setRowCount(0);
-        for (RailCarCard card : cards) {
-            tableModel.addRow(new Object[]{
-                    card.getSequence(),
-                    card.getVehicleId(),
-                    card.getCanPallets(),
-                    card.getDomPallets(),
-                    card.getKevPallets(),
-                    card.getLoadNumbers()
-            });
-        }
+        tableModel.setCards(cards);
     }
 
     private void updateCardPreviewFromSelection() {
@@ -290,17 +316,22 @@ public final class RailLabelsDialog extends JDialog {
             return;
         }
         int index = previewTable.getSelectedRow();
-        if (index < 0 || index >= preparedJob.getCards().size()) {
+        if (index < 0) {
             cardPreviewArea.setText("");
             return;
         }
-        cardPreviewArea.setText(service.buildCardPreviewText(preparedJob.getCards().get(index)));
+        int modelIndex = previewTable.convertRowIndexToModel(index);
+        if (modelIndex < 0 || modelIndex >= tableModel.getRowCount()) {
+            cardPreviewArea.setText("");
+            return;
+        }
+        cardPreviewArea.setText(service.buildCardPreviewText(tableModel.cardAt(modelIndex)));
         cardPreviewArea.setCaretPosition(0);
     }
 
     private void clearPreview() {
         preparedJob = null;
-        tableModel.setRowCount(0);
+        tableModel.setCards(List.of());
         cardPreviewArea.setText("");
         diagnosticsArea.setText("");
     }

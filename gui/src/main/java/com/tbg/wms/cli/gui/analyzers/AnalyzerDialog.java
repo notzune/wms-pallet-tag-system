@@ -29,6 +29,8 @@ import java.util.concurrent.Executors;
 
 import com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardPanel;
 import com.tbg.wms.cli.gui.analyzers.dashboard.AnalyzerDashboardSnapshot;
+import com.tbg.wms.cli.gui.GuiHelpSupport;
+import com.tbg.wms.cli.gui.GuiHelpTopics;
 
 @SuppressWarnings("serial")
 public final class AnalyzerDialog extends JDialog {
@@ -141,9 +143,14 @@ public final class AnalyzerDialog extends JDialog {
         toolbar.add(autoRefreshCheckBox);
         toolbar.add(intervalCombo);
         toolbar.add(lastUpdatedLabel);
+        JPanel header = new JPanel(new BorderLayout());
+        header.add(toolbar, BorderLayout.WEST);
+        JPanel helpPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
+        helpPanel.add(GuiHelpSupport.createHelpButton(this, "Analyzers", GuiHelpTopics.analyzers()));
+        header.add(helpPanel, BorderLayout.EAST);
         contentPanel.add(tableScrollPane, "table");
         contentPanel.add(dashboardPanel, "dashboard");
-        add(toolbar, BorderLayout.NORTH);
+        add(header, BorderLayout.NORTH);
         add(contentPanel, BorderLayout.CENTER);
         add(statusLabel, BorderLayout.SOUTH);
     }

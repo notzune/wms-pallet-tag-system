@@ -231,6 +231,9 @@ final class BarcodeDialogFactory {
                 }
             }
         });
+        JPanel helpHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
+        helpHeader.add(GuiHelpSupport.createHelpButton(dialog, "Barcode Generator", GuiHelpTopics.barcodeGenerator()));
+        dialog.add(helpHeader, BorderLayout.NORTH);
         dialog.add(form, BorderLayout.CENTER);
         dialog.add(buttons, BorderLayout.SOUTH);
         dialog.pack();
@@ -418,6 +421,13 @@ final class BarcodeDialogFactory {
         closeAdvanced.addActionListener(x -> advancedDialog.dispose());
         advancedButtons.add(closeAdvanced);
 
+        JPanel helpHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
+        helpHeader.add(GuiHelpSupport.createHelpButton(
+                advancedDialog,
+                "Advanced Barcode Settings",
+                GuiHelpTopics.barcodeAdvancedSettings()
+        ));
+        advancedDialog.add(helpHeader, BorderLayout.NORTH);
         advancedDialog.add(advancedForm, BorderLayout.CENTER);
         advancedDialog.add(advancedButtons, BorderLayout.SOUTH);
         advancedDialog.pack();
