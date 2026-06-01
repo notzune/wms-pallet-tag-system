@@ -17,9 +17,7 @@ import java.awt.image.BufferedImage;
 import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Live ZPL preview tool using a real rendered image.
@@ -48,13 +46,12 @@ final class ZplPreviewToolDialog extends JDialog {
     private final Timer debounceTimer;
     private final Timer throttleTimer;
     private final transient ZplPreviewRenderService renderService = new ZplPreviewRenderService();
-    private final transient List<GuiZplPreviewSupport.PreviewDocument> documents = new ArrayList<>();
+    private final transient ZplPreviewDocumentModel documentModel = new ZplPreviewDocumentModel();
     private transient SwingWorker<BufferedImage, Void> currentWorker;
     private int renderGeneration;
     private long lastRenderStartedAtMs;
     private boolean pendingLiveRender;
     private boolean programmaticDocumentSwitch;
-    private int currentDocumentIndex;
 
     ZplPreviewToolDialog(JFrame owner) {
         super(owner, "ZPL Preview Tool", Dialog.ModalityType.MODELESS);
@@ -121,8 +118,8 @@ final class ZplPreviewToolDialog extends JDialog {
         clearButton.addActionListener(e -> {
             clearDocuments();
         });
-        previousButton.addActionListener(e -> showDocumentAt(currentDocumentIndex - 1));
-        nextButton.addActionListener(e -> showDocumentAt(currentDocumentIndex + 1));
+        previousButton.addActionListener(e -> showDocumentAt(documentModel.currentIndex() - 1));
+        nextButton.addActionListener(e -> showDocumentAt(documentModel.currentIndex() + 1));
         documentSpinner.addChangeListener(e -> {
             if (!programmaticDocumentSwitch) {
                 showDocumentAt(((Number) documentSpinner.getValue()).intValue() - 1);
@@ -269,15 +266,9 @@ final class ZplPreviewToolDialog extends JDialog {
     }
 
     private void loadDocuments(List<GuiZplPreviewSupport.PreviewDocument> previewDocuments) {
-        documents.clear();
-        if (previewDocuments != null) {
-            documents.addAll(previewDocuments.stream()
-                    .filter(Objects::nonNull)
-                    .toList());
-        }
-        currentDocumentIndex = 0;
+        documentModel.load(previewDocuments);
         updateDocumentControls();
-        if (documents.isEmpty()) {
+        if (documentModel.isEmpty()) {
             clearDocuments();
             return;
         }
@@ -285,8 +276,7 @@ final class ZplPreviewToolDialog extends JDialog {
     }
 
     private void clearDocuments() {
-        documents.clear();
-        currentDocumentIndex = 0;
+        documentModel.clear();
         previewLabel.setIcon(null);
         previewLabel.setText("Paste ZPL or open a .zpl file to preview.");
         statusLabel.setText("Cleared");
@@ -301,16 +291,16 @@ final class ZplPreviewToolDialog extends JDialog {
     }
 
     private void showDocumentAt(int index) {
-        if (documents.isEmpty()) {
+        if (documentModel.isEmpty()) {
             return;
         }
         persistCurrentDocumentText();
-        currentDocumentIndex = Math.max(0, Math.min(index, documents.size() - 1));
-        GuiZplPreviewSupport.PreviewDocument document = documents.get(currentDocumentIndex);
+        documentModel.showAt(index);
+        GuiZplPreviewSupport.PreviewDocument document = documentModel.currentDocument();
         programmaticDocumentSwitch = true;
         try {
             zplTextArea.setText(document.zpl());
-            documentSpinner.setValue(currentDocumentIndex + 1);
+            documentSpinner.setValue(documentModel.currentIndex() + 1);
         } finally {
             programmaticDocumentSwitch = false;
         }
@@ -324,28 +314,21 @@ final class ZplPreviewToolDialog extends JDialog {
     }
 
     private void persistCurrentDocumentText() {
-        if (documents.isEmpty() || currentDocumentIndex < 0 || currentDocumentIndex >= documents.size()) {
-            return;
-        }
-        GuiZplPreviewSupport.PreviewDocument document = documents.get(currentDocumentIndex);
-        documents.set(currentDocumentIndex, new GuiZplPreviewSupport.PreviewDocument(document.name(), zplTextArea.getText()));
+        documentModel.persistCurrentText(zplTextArea.getText());
     }
 
     private void updateDocumentControls() {
-        int documentCount = Math.max(1, documents.size());
+        int documentCount = documentModel.spinnerMaximum();
         programmaticDocumentSwitch = true;
         try {
-            documentSpinner.setModel(new SpinnerNumberModel(Math.min(currentDocumentIndex + 1, documentCount), 1, documentCount, 1));
+            documentSpinner.setModel(new SpinnerNumberModel(Math.min(documentModel.currentIndex() + 1, documentCount), 1, documentCount, 1));
         } finally {
             programmaticDocumentSwitch = false;
         }
-        boolean multipleDocuments = documents.size() > 1;
-        previousButton.setEnabled(multipleDocuments && currentDocumentIndex > 0);
-        nextButton.setEnabled(multipleDocuments && currentDocumentIndex < documents.size() - 1);
-        documentSpinner.setEnabled(multipleDocuments);
-        documentLabel.setText(documents.isEmpty()
-                ? "Single document"
-                : documents.get(currentDocumentIndex).name() + " (" + (currentDocumentIndex + 1) + "/" + documents.size() + ")");
+        previousButton.setEnabled(documentModel.hasPrevious());
+        nextButton.setEnabled(documentModel.hasNext());
+        documentSpinner.setEnabled(documentModel.size() > 1);
+        documentLabel.setText(documentModel.displayLabel());
     }
 
     private void renderNow() {

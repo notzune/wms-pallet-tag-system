@@ -22,6 +22,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 - Rail label PDFs now use the approved 4x2 label sheet geometry and larger label typography for the sequence, rail car code, destination counts, supporting item rows, and PASS/FUEL/BH fields.
 - Rail label route headers now print the DB train number, warehouse code, and load number together, for example `0526 BR 8000618166`.
 - Contextual GUI help now reads as an operator quick reference, emphasizing implemented shortcuts and high-value workflow details instead of basic computer-use instructions.
+- ZPL preview document navigation state now lives in a focused model instead of the Swing dialog, reducing the dialog's reasons to change.
 - Project/module versions now target `1.8.0-SNAPSHOT` for the rail label and contextual help feature line.
 - Updated README documentation to reflect post-`1.7.6` hardening work, active issues `#42` and `#43`, and branch management expectations for documentation, optimization, and SRP refactors.
 - Release documentation now calls out architecture/SRP review as part of the pre-tag verification gate.

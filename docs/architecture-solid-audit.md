@@ -66,6 +66,9 @@ Use `.worktrees/` for isolated branches. Current branch purposes:
 - `refactor/srp-analyzer-loading`
   - Normalize analyzer loading state and asynchronous section loading after current dirty analyzer work is reviewed.
   - Candidate first steps: keep data-provider concurrency in a coordinator and keep dashboard views passive.
+- `refactor/strict-srp-refactor-pass`
+  - Current strict SRP pass from merged `main`.
+  - First slice: move editable ZPL preview document list, current index, navigation bounds, and label text state out of `ZplPreviewToolDialog` into `ZplPreviewDocumentModel`.
 - `perf/code-optimization-baseline`
   - Low-risk cleanup branch for repeated formatting, collection, parsing, and caching improvements.
   - No behavior change should land without tests that already pass before the refactor.
