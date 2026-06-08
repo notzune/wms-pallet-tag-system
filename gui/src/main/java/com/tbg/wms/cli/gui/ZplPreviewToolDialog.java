@@ -27,7 +27,7 @@ import java.util.Objects;
  * <p>The dialog intentionally separates live-edit debounce/throttle behavior from remote render
  * transport so the preview remains operator-friendly without overrunning the external render API.</p>
  */
-final class ZplPreviewToolDialog extends JDialog {
+public final class ZplPreviewToolDialog extends JDialog {
     @Serial
     private static final long serialVersionUID = 1L;
     private static final int LIVE_RENDER_DEBOUNCE_MS = 350;
@@ -159,7 +159,7 @@ final class ZplPreviewToolDialog extends JDialog {
         updateDocumentControls();
     }
 
-    static ZplPreviewToolDialog createWithDocuments(
+    public static ZplPreviewToolDialog createWithDocuments(
             JFrame owner,
             String title,
             List<GuiZplPreviewSupport.PreviewDocument> previewDocuments
@@ -169,7 +169,7 @@ final class ZplPreviewToolDialog extends JDialog {
         return dialog;
     }
 
-    static void openWithDocuments(
+    public static void openWithDocuments(
             JFrame owner,
             String title,
             List<GuiZplPreviewSupport.PreviewDocument> previewDocuments

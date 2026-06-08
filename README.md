@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.8.0-blue)
+![Version](https://img.shields.io/badge/version-1.9.0-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current branch target: `1.8.0` release validation.
+Current branch target: `1.9.0` release validation.
 
 ## Versioning and History
 
@@ -25,6 +25,7 @@ Active tracked work:
 
 - `#42` improves rail label readability, physical label-sheet documentation, multi-train input, combined PDF generation, and explicit printable-row selection.
 - `#43` adds contextual GUI help buttons and shared help-dialog behavior across operator views.
+- `#44` adds the SSCC label tool under `Tools`, with CSV import, manual row entry, preview/export, and a fixed ZPL-based template that matches the established label layout.
 
 ## Current Scope
 
@@ -34,7 +35,7 @@ Implemented and supported:
 - `db-test` command (database connectivity diagnostics)
 - `ems-recon` command (legacy EMS reconciliation XLS analysis and fix-plan output)
 - `run` command (shipment or carrier-move label generation and printing)
-- `gui` command (desktop workflow with shipment/carrier-move preview and confirm-print)
+- `gui` command (desktop workflow with shipment/carrier-move preview, SSCC label import/manual entry, and confirm-print)
 - `barcode` command (standalone barcode ZPL generation and optional printing)
 - `rail-helper` command (rail office merge CSV generation from item footprint data)
 - `rail-print` command (WMS-first railcar preview, direct PDF card rendering, optional printing)
@@ -45,6 +46,7 @@ Implemented and supported:
 - Bulk queue processing (mixed shipment and carrier move jobs)
 - Job persistence and resume for interrupted print runs
 - Dedicated `gui` Maven module for Swing workflows (separated from CLI command module)
+- SSCC labels are available from the GUI `Tools` menu and require the same CSV headers as the workbook-derived import format
 
 Not implemented yet:
 

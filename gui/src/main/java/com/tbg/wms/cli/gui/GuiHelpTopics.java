@@ -19,7 +19,7 @@ public final class GuiHelpTopics {
                         "Choose Carrier Move ID or Shipment ID, enter the identifier, then run Preview.",
                         "Review the label set, clear any labels that should stay out of the run, then use Confirm Print.",
                         "Show Labels opens the generated ZPL preview for the current selected labels.",
-                        "Tools keeps rail labels, barcode generation, ZPL preview, queue print, resume, and settings close to the main workflow."),
+                        "Tools keeps rail labels, SSCC labels, barcode generation, ZPL preview, queue print, resume, and settings close to the main workflow."),
                 section("Shortcuts",
                         "Ctrl+F runs Preview when Preview is enabled.",
                         "Ctrl+A, Ctrl+C, Ctrl+V, and Ctrl+X use standard text-field editing.",
@@ -47,6 +47,34 @@ public final class GuiHelpTopics {
                 section("Shortcuts",
                         "Ctrl+F runs Load Preview when Load Preview is enabled.",
                         "Ctrl+A, Ctrl+C, Ctrl+V, and Ctrl+X use standard text-field editing in train and output fields.")
+        );
+    }
+
+    public static List<GuiHelpSupport.HelpSection> ssccLabels() {
+        return List.of(
+                section("Workflow",
+                        "Import a CSV that uses the same headers as the workbook export, or add raw rows manually.",
+                        "Grouped Labels shows one row per final pallet label after grouping by Sales Order # and New Received LPN.",
+                        "Select a grouped label to preview its final ZPL, then export one label or the full set to files."),
+                section("Required CSV Headers",
+                        "Sales Order #",
+                        "Purchase Order #",
+                        "Shipment #",
+                        "Carrier Code",
+                        "Trailer ID",
+                        "Destination",
+                        "Destination Address",
+                        "Customer Name",
+                        "Facility",
+                        "Item #",
+                        "Level 2 Reference #",
+                        "Originally Shipped LPN",
+                        "Sum of Ship Cases",
+                        "New Received LPN"),
+                section("Notes",
+                        "Mixed-SKU pallets show MIXED SKU instead of a single item number.",
+                        "The ship-from block is fixed to Tropicana Manufacturing Company Inc., 4 Owens Rd., Brockport, NY 14420.",
+                        "Preview uses the same ZPL layout the old working export generated.")
         );
     }
 

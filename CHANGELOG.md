@@ -9,6 +9,15 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ## [Unreleased]
 
+### Added
+
+- Added a new SSCC label tool under the GUI `Tools` menu with CSV import, manual row entry, contextual header help, barcode helpers, and preview/export against the established ZPL layout.
+- Walmart label-selection cards now show a valid LPN together with item number and short description, and they suppress synthetic or malformed LPN values that would confuse operators during reprint selection.
+
+### Changed
+
+- Removed the legacy PowerShell generator and the old Java PDF renderer in favor of the local Java SSCC tool path.
+
 ## [1.8.0] - 2026-06-01
 
 ### Added

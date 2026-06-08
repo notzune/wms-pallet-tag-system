@@ -8,24 +8,28 @@
 package com.tbg.wms.cli.gui;
 
 import com.tbg.wms.core.label.LabelSelectionRef;
+import com.tbg.wms.core.model.LineItem;
 import com.tbg.wms.core.model.Lpn;
 
 import javax.swing.JCheckBox;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Pure preview-selection helpers shared by GUI selection/rendering flows.
  */
 final class PreviewSelectionSupport {
+    private static final Pattern VALID_LPN_PATTERN =
+            Pattern.compile("^(?:\\d{8,9})(?:_[A-Z0-9]{3,4})?$", Pattern.CASE_INSENSITIVE);
 
     List<LabelOption> buildShipmentLabelOptions(LabelWorkflowService.PreparedJob job) {
         Objects.requireNonNull(job, "job cannot be null");
         List<LabelOption> options = new ArrayList<>(job.getLpnsForLabels().size());
         int index = 1;
         for (Lpn lpn : job.getLpnsForLabels()) {
-            options.add(new LabelOption(String.format("%02d. %s", index, resolveLpnId(lpn)), lpn, null));
+            options.add(new LabelOption(buildShipmentLabelText(index, lpn), lpn, null));
             index++;
         }
         return options;
@@ -128,6 +132,77 @@ final class PreviewSelectionSupport {
 
     private String resolveLpnId(Lpn lpn) {
         return lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank() ? "UNKNOWN" : lpn.getLpnId();
+    }
+
+    private String buildShipmentLabelText(int index, Lpn lpn) {
+        StringBuilder text = new StringBuilder(String.format("%02d. ", index));
+        String lpnId = resolveDisplayLpnId(lpn);
+        if (!lpnId.isBlank()) {
+            text.append("LPN ").append(lpnId).append(" | ");
+        }
+        text.append(resolveItemSummary(lpn));
+        return text.toString();
+    }
+
+    private String resolveDisplayLpnId(Lpn lpn) {
+        String lpnId = lpn == null || lpn.getLpnId() == null ? "" : lpn.getLpnId().trim();
+        if (lpnId.isBlank() || !VALID_LPN_PATTERN.matcher(lpnId).matches()) {
+            return "";
+        }
+        return lpnId;
+    }
+
+    private String resolveItemSummary(Lpn lpn) {
+        LineItem item = resolveDisplayItem(lpn);
+        if (item == null) {
+            return "Item -";
+        }
+
+        String itemNumber = firstNonBlank(item.getWalmartItemNumber(), item.getSku());
+        String description = firstNonBlank(item.getDescription());
+
+        if (itemNumber.isBlank() && description.isBlank()) {
+            return "Item -";
+        }
+        if (itemNumber.isBlank()) {
+            return "Item - " + description;
+        }
+        if (description.isBlank()) {
+            return "Item " + itemNumber;
+        }
+        return "Item " + itemNumber + " - " + description;
+    }
+
+    private LineItem resolveDisplayItem(Lpn lpn) {
+        if (lpn == null || lpn.getLineItems().isEmpty()) {
+            return null;
+        }
+        LineItem fallback = null;
+        for (LineItem item : lpn.getLineItems()) {
+            if (item == null) {
+                continue;
+            }
+            if (fallback == null) {
+                fallback = item;
+            }
+            if (!firstNonBlank(item.getWalmartItemNumber(), item.getSku()).isBlank()
+                    || !firstNonBlank(item.getDescription()).isBlank()) {
+                return item;
+            }
+        }
+        return fallback;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (value != null && !value.trim().isBlank()) {
+                return value.trim();
+            }
+        }
+        return "";
     }
 
     record LabelOption(

@@ -11,6 +11,7 @@ package com.tbg.wms.cli.gui;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerContext;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerDialog;
 import com.tbg.wms.cli.gui.analyzers.AnalyzerRegistry;
+import com.tbg.wms.cli.gui.sscc.SsccLabelDialog;
 import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.OutDirectoryRetentionService;
@@ -963,6 +964,11 @@ public final class LabelGuiFrame extends JFrame {
         dialog.setVisible(true);
     }
 
+    private void openSsccLabelsDialog() {
+        SsccLabelDialog dialog = new SsccLabelDialog(this);
+        dialog.setVisible(true);
+    }
+
     private void autoResumeIfFound() {
         queueResumeDialogSupport.autoResumeIfFound();
     }
@@ -1075,6 +1081,7 @@ public final class LabelGuiFrame extends JFrame {
     private LabelGuiFrameToolMenuSupport.MenuActions buildToolMenuActions() {
         return new LabelGuiFrameToolMenuActions(
                 this::openRailLabelsDialog,
+                this::openSsccLabelsDialog,
                 this::openQueueDialog,
                 this::openBarcodeDialog,
                 this::openZplPreviewDialog,

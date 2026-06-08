@@ -1,11 +1,12 @@
-2026-03-10 14:08:57.836 [INFO ] [ed26be83] [TBG3002:PROD] com.tbg.wms.cli.commands.DbTestCommand   - Starting database connectivity test
-2026-03-10 14:08:57.863 [INFO ] [ed26be83] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
-2026-03-10 14:08:58.136 [INFO ] [ed26be83] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
-2026-03-10 14:08:58.791 [INFO ] [ed26be83] [TBG3002:PROD] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
-2026-03-10 14:08:58.791 [INFO ] [ed26be83] [TBG3002:PROD] com.tbg.wms.db.DbConnectionPool          - Testing database connectivity: site=TBG3002, env=PROD, host=10.19.68.61
-2026-03-10 14:08:58.796 [INFO ] [ed26be83] [TBG3002:PROD] com.tbg.wms.db.DbConnectionPool          - Database connectivity verified: durationMs=0, poolActive=1, poolIdle=0
-2026-03-10 14:08:58.796 [INFO ] [ed26be83] [TBG3002:PROD] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
-2026-03-10 14:08:58.796 [INFO ] [ed26be83] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
-2026-03-10 14:08:58.805 [INFO ] [ed26be83] [TBG3002:PROD] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
-2026-03-10 14:08:58.809 [INFO ] [ed26be83] [TBG3002:PROD] com.tbg.wms.cli.commands.DbTestCommand   - Database connectivity test succeeded: durationMs=0, dbVersion=Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
-Version 19.3.0.0.0
+2026-05-19 17:57:57.187 [INFO ] [77aa961f] [TBG3002:] com.tbg.wms.cli.commands.RunCommand      - Starting shipment print job for 8000613977
+2026-05-19 17:57:57.210 [INFO ] [77aa961f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Starting...
+2026-05-19 17:57:57.465 [INFO ] [77aa961f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Start completed.
+2026-05-19 17:57:58.143 [INFO ] [77aa961f] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Connection pool created: poolName=TBG3002, maxSize=5, jdbcUrl=jdbc:oracle:thin:@//10.19.68.61:1521/WMSP
+2026-05-19 17:57:58.149 [INFO ] [77aa961f] [TBG3002:] com.tbg.wms.db.OracleDbQueryRepository   - Retrieving shipment with LPNs and line items: 8000613977
+2026-05-19 17:57:58.442 [INFO ] [77aa961f] [TBG3002:] com.tbg.wms.core.sku.SkuMappingService   - Loaded 43 SKU mappings from config\walmart-sku-matrix.csv
+2026-05-19 17:57:58.451 [INFO ] [77aa961f] [TBG3002:] c.t.w.c.print.PrinterRoutingConfigLoader - Loading printer configuration from config\TBG3002
+2026-05-19 17:57:58.569 [INFO ] [77aa961f] [TBG3002:] c.t.wms.core.print.PrinterRoutingService - Initialized printer routing for site TBG3002 with 5 printers and 1 rules
+2026-05-19 17:57:58.574 [INFO ] [77aa961f] [TBG3002:] com.tbg.wms.db.DbConnectionPool          - Closing database connection pool
+2026-05-19 17:57:58.575 [INFO ] [77aa961f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown initiated...
+2026-05-19 17:57:58.587 [INFO ] [77aa961f] [TBG3002:] com.zaxxer.hikari.HikariDataSource       - wms-tags-oracle-TBG3002 - Shutdown completed.
+2026-05-19 17:57:58.596 [INFO ] [77aa961f] [TBG3002:] c.t.w.c.l.LocationNumberMappingService   - Loaded 5 sold-to location mappings from config\walm_loc_num_matrix.csv

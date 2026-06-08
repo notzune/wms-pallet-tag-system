@@ -29,6 +29,7 @@ class LabelGuiFrameToolMenuSupportTest {
 
         assertEquals(List.of(
                 "Rail Labels...",
+                "SSCC Labels...",
                 "Queue Print...",
                 "Barcode Generator...",
                 "ZPL Preview...",
@@ -50,6 +51,7 @@ class LabelGuiFrameToolMenuSupportTest {
 
         assertEquals(List.of(
                 "Rail Labels...",
+                "SSCC Labels...",
                 "Queue Print...",
                 "Barcode Generator...",
                 "ZPL Preview...",
@@ -72,6 +74,10 @@ class LabelGuiFrameToolMenuSupportTest {
     private static final class NoOpActions implements LabelGuiFrameToolMenuSupport.MenuActions {
         @Override
         public void openRailLabelsDialog() {
+        }
+
+        @Override
+        public void openSsccLabelsDialog() {
         }
 
         @Override

@@ -21,15 +21,15 @@ import java.util.Objects;
  * <p>This helper reuses the same task-planning paths used for real print execution so previewed
  * ZPL matches the exact documents that would be printed or written to file.</p>
  */
-final class GuiZplPreviewSupport {
+public final class GuiZplPreviewSupport {
 
-    List<PreviewDocument> buildBarcodeDocuments(BarcodeRequest request) {
+    public List<PreviewDocument> buildBarcodeDocuments(BarcodeRequest request) {
         Objects.requireNonNull(request, "request cannot be null");
         String data = request.getData() == null || request.getData().isBlank() ? "barcode" : request.getData().trim();
         return List.of(new PreviewDocument("barcode-" + data + ".zpl", BarcodeZplBuilder.build(request)));
     }
 
-    List<PreviewDocument> buildShipmentDocuments(
+    public List<PreviewDocument> buildShipmentDocuments(
             LabelWorkflowService.PreparedJob preparedJob,
             List<Lpn> selectedLpns,
             boolean includeInfoTags
@@ -41,7 +41,7 @@ final class GuiZplPreviewSupport {
         return toPreviewDocuments(tasks);
     }
 
-    List<PreviewDocument> buildCarrierMoveDocuments(
+    public List<PreviewDocument> buildCarrierMoveDocuments(
             AdvancedPrintWorkflowService.PreparedCarrierMoveJob preparedCarrierJob,
             List<LabelSelectionRef> selectedLabels,
             boolean includeInfoTags
@@ -58,8 +58,8 @@ final class GuiZplPreviewSupport {
                 .toList();
     }
 
-    record PreviewDocument(String name, String zpl) {
-        PreviewDocument {
+    public record PreviewDocument(String name, String zpl) {
+        public PreviewDocument {
             name = Objects.requireNonNullElse(name, "preview.zpl");
             zpl = Objects.requireNonNullElse(zpl, "");
         }
