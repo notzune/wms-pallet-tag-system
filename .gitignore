@@ -38,6 +38,9 @@ build/
 .env
 out/
 barcodes/
+generated-customer-csvs/
+scripts/customer-label-scripts/
+scripts/customer-label-scripts.zip
 target/
 **/target/
 .idea/
