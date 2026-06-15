@@ -422,15 +422,18 @@ public final class BarcodeCommand implements Callable<Integer> {
          *   <li>{@code BREAK} is typed into the first field</li>
          *   <li>{@code {tab}} moves to the next field</li>
          *   <li>the action ({@code START}/{@code STOP}) is typed</li>
-         *   <li>{@code {enter}} submits</li>
+         *   <li>{@code {return}} submits the field</li>
          * </ol>
-         * {@code {pause:500}} lets each screen redraw before the next key so the
-         * host does not buffer a keystroke into the wrong screen. Pause duration,
-         * and {@code {enter}} vs {@code {send}}, are the likely tuning knobs if a
-         * live scan misfires.
+         * Tokens are the Velocity VT-220 key codes ({@code {F7}}={@code E041},
+         * {@code {tab}}={@code 0009}, {@code {return}}={@code 000D}); the host
+         * profile is VT-220, so the submit key is {@code {return}} rather than the
+         * 3270-only {@code {enter}}. {@code {pause:500}} lets each screen redraw
+         * before the next key so the host does not buffer a keystroke into the
+         * wrong screen. The pause duration and {@code {tab}} vs {@code {down}} are
+         * the likely tuning knobs if a live scan misfires.
          */
         private static String velocityActivitySequence(String action) {
-            return "{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}" + action + "{enter}";
+            return "{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}" + action + "{return}";
         }
     }
 }

@@ -12,7 +12,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 ### Added
 
 - Added a new SSCC label tool under the GUI `Tools` menu with CSV import, manual row entry, contextual header help, barcode helpers, and preview/export against the established ZPL layout.
-- Added `barcode --preset BREAK_START|BREAK_STOP|BREAK_SHEET` presets that emit the operator break workflow as Honeywell Velocity key-command tokens (`{F7}…{tab}…{enter}`) on CODE128 labels, including a combined `BREAK_SHEET` that stacks both barcodes on one label for printing to `3002_ZEB0`. (Velocity must be configured to process key commands from scanned data.)
+- Added `barcode --preset BREAK_START|BREAK_STOP|BREAK_SHEET` presets that emit the operator break workflow as Honeywell Velocity VT-220 key-command tokens (`{F7}…{tab}…{return}`) on CODE128 labels, including a combined `BREAK_SHEET` that stacks both barcodes on one label for printing to `3002_ZEB0`. (Velocity must be configured to process key commands from scanned data.)
 
 ### Changed
 

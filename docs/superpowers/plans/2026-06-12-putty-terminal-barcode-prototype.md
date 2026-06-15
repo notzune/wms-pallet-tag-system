@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Code complete and tests green; label generation/printing verified on hardware. Payload re-encoded to **Honeywell Velocity key-command tokens** (`{F7}…{tab}…{enter}`) after a live scan proved raw control bytes (`ESC`/`TAB`) are dropped by the Granit/Velocity path. Pending: enable Velocity's *process key commands from scanned data* setting on the VM1A, then re-scan and tune `{pause}` / `{enter}` if needed (see Results).
+**Status:** Code complete and tests green; label generation/printing verified on hardware. Payload re-encoded to **Honeywell Velocity key-command tokens** (`{F7}…{tab}…{enter}`) after a live scan proved raw control bytes (`ESC`/`TAB`) are dropped by the Granit/Velocity path. Tokens use VT-220 key codes (`{return}` submit, not the 3270-only `{enter}`). Pending: enable Velocity's *process key commands from scanned data* setting on the VM1A, then re-scan and tune `{pause}` / `{tab}` if needed (see Results).
 
 **Goal:** Add a quick prototype that prints two operator barcodes for the Putty/Telnet break workflow to the `3002_ZEB0` printer.
 
@@ -55,8 +55,8 @@ Three presets exposed via `barcode --preset <NAME>`:
 
 | Preset | Caption | Scanned payload |
 | --- | --- | --- |
-| `BREAK_START` | `BREAK START` | `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}START{enter}` |
-| `BREAK_STOP` | `BREAK STOP` | `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}STOP{enter}` |
+| `BREAK_START` | `BREAK START` | `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}START{return}` |
+| `BREAK_STOP` | `BREAK STOP` | `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}STOP{return}` |
 | `BREAK_SHEET` | both | combined single label stacking START over STOP |
 
 ### Verified manual terminal sequence (operator, 2026-06-15)
@@ -88,8 +88,10 @@ data and replays them as real host key presses:
 
 - `{F7}` (or `{hex:E041}`) → F7
 - `{tab}` (or `{hex:0009}`) → Tab
-- `{enter}` / `{send}` (or `{hex:000D}`) → Enter
+- `{return}` / `{autoenter}` (or `{hex:000D}`) → field submit (the host profile is
+  **VT-220**; `{enter}` is a 3270-only token and must not be used here)
 - `{pause:500}` → wait 500 ms so each screen redraws before the next key
+  (Velocity's default `{pause}` is 250 ms)
 
 So the barcode now carries **only printable characters** (`{F7}…{tab}…{enter}`),
 which the scanner transmits intact — no control-byte / function-key scanner mode
@@ -101,11 +103,13 @@ payload string above.
 commands from scanned data* (its scan handler / data-processing path) — otherwise
 it types the literal text `{F7}…` into the field instead of executing the keys.
 
+Target stack: **Velocity 2.1.6 (Android TE)**, host profile **VT-220**.
+
 **Likely tuning knobs after a live scan:** the `{pause:500}` duration (raise if a
-screen is slow to redraw), and `{enter}` vs `{send}` for the final submit. The
-menu keys `0`/`3` are sent without an Enter because the host accepts single-key
-menu selections (confirmed by the original misfire, where `1`/`8` were each taken
-immediately).
+screen is slow to redraw), and `{tab}` vs `{down}` arrow to move between the
+activity-name and START/STOP fields. The menu keys `0`/`3` are sent without an
+Enter because the host accepts single-key menu selections (confirmed by the
+original misfire, where `1`/`8` were each taken immediately).
 
 ### Usage
 
