@@ -317,9 +317,12 @@ public final class BarcodeCommand implements Callable<Integer> {
     private BarcodeRequest buildBarcodeRequest(String barcodeData) {
         boolean hexEncoded = preset != null;
         String caption = preset == null ? null : preset.caption;
+        // Terminal presets carry long key-command strings; render them as 2D
+        // (Data Matrix) so they fit and scan on a narrow label.
+        Symbology effectiveSymbology = preset != null ? Symbology.DATA_MATRIX : symbology;
         return new BarcodeRequest(
                 barcodeData,
-                symbology,
+                effectiveSymbology,
                 orientation,
                 labelWidthDots,
                 labelHeightDots,
@@ -338,7 +341,7 @@ public final class BarcodeCommand implements Callable<Integer> {
     private BarcodeRequest buildTerminalRequest(String caption, TerminalPreset terminalPreset) {
         return new BarcodeRequest(
                 terminalPreset.rawData,
-                Symbology.CODE128,
+                Symbology.DATA_MATRIX,
                 Orientation.PORTRAIT,
                 labelWidthDots,
                 labelHeightDots,

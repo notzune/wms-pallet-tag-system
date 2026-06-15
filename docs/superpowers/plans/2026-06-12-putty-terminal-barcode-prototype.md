@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Code complete and tests green; label generation/printing verified on hardware. Payload re-encoded to **Honeywell Velocity key-command tokens** (`{F7}…{tab}…{enter}`) after a live scan proved raw control bytes (`ESC`/`TAB`) are dropped by the Granit/Velocity path. Tokens use VT-220 key codes (`{return}` submit, not the 3270-only `{enter}`). Pending: enable Velocity's *process key commands from scanned data* setting on the VM1A, then re-scan and tune `{pause}` / `{tab}` if needed (see Results).
+**Status:** Code complete and tests green; label generation/printing verified on hardware. Payload re-encoded to **Honeywell Velocity key-command tokens** (`{F7}…{tab}…{enter}`) after a live scan proved raw control bytes (`ESC`/`TAB`) are dropped by the Granit/Velocity path. Tokens use VT-220 key codes (`{return}` submit, not the 3270-only `{enter}`) and the labels are now **Data Matrix** (2D) because the ~62-char token string overflows a 1D Code 128 on a 4″ label. Pending: enable Velocity's *process key commands from scanned data* setting on the VM1A, then re-scan and tune `{pause}` / `{tab}` if needed (see Results).
 
 **Goal:** Add a quick prototype that prints two operator barcodes for the Putty/Telnet break workflow to the `3002_ZEB0` printer.
 
@@ -93,11 +93,25 @@ data and replays them as real host key presses:
 - `{pause:500}` → wait 500 ms so each screen redraws before the next key
   (Velocity's default `{pause}` is 250 ms)
 
-So the barcode now carries **only printable characters** (`{F7}…{tab}…{enter}`),
+So the barcode now carries **only printable characters** (`{F7}…{tab}…{return}`),
 which the scanner transmits intact — no control-byte / function-key scanner mode
-is required. The ZPL still uses hex-field encoding (`^FH`) purely to embed the
-literal `{` `}` `:` characters reliably; decoded, the symbol contains exactly the
-payload string above.
+is required. The ZPL uses hex-field encoding (`^FH`) purely to embed the literal
+`{` `}` `:` characters reliably; decoded, the symbol contains exactly the payload
+string above.
+
+### Symbology: Data Matrix (2D), not Code 128
+
+The token payload is ~62 characters. As a 1D **Code 128** at module width 3 that
+is `35 + 20 + 62×11 = 737` modules ≈ **2211 dots ≈ 10.9″**, which overflows the
+812-dot (4″) label — the printer clips it and the scanner cannot decode a partial
+symbol. (This is why the short control-byte payload scanned but the long token
+payload did not.) The presets therefore render as **Data Matrix** (`^BXN`), a 2D
+symbology the **Granit 1980i** area imager reads, which holds the full string in a
+compact ~1.4″ square. The host receives identical characters regardless of
+symbology, so this is transparent to Velocity.
+
+> The Granit 1980i must have Data Matrix decoding enabled (on by default). If a
+> 2D scan does not read, that symbology may be disabled in the scanner config.
 
 **Required device-side configuration:** Velocity must be set to *process key
 commands from scanned data* (its scan handler / data-processing path) — otherwise

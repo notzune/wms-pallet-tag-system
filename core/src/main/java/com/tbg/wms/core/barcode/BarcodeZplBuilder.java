@@ -20,6 +20,7 @@ public final class BarcodeZplBuilder {
     private static final int ESTIMATED_CODE128_QUIET_ZONE_MODULES = 20;
     private static final int HUMAN_READABLE_TEXT_HEIGHT_DOTS = 36;
     private static final int HUMAN_READABLE_TEXT_GAP_DOTS = 12;
+    private static final int DATA_MATRIX_MODULE_DOTS = 12;
     private static final int CAPTION_TEXT_HEIGHT_DOTS = 36;
     private static final int CAPTION_TEXT_GAP_DOTS = 12;
     private static final int CENTER_UPWARD_BIAS_DOTS = 36;
@@ -52,26 +53,14 @@ public final class BarcodeZplBuilder {
             zpl.append("^A0N,36,36\n");
             zpl.append("^FD").append(escapeZpl(request.getCaptionText())).append("^FS\n");
         }
-        zpl.append("^BY")
-                .append(request.getModuleWidth())
-                .append(',')
-                .append(request.getModuleRatio())
-                .append(',')
-                .append(request.getBarcodeHeight())
-                .append('\n');
-        zpl.append("^FO")
-                .append(placement.originX())
-                .append(',')
-                .append(placement.originY())
-                .append('\n');
-        zpl.append("^BC")
-                .append(landscape ? "R" : "N")
-                .append(',')
-                .append(request.getBarcodeHeight())
-                .append(',')
-                .append(request.isHumanReadable() ? "Y" : "N")
-                .append(",N,N\n");
-        appendFieldData(zpl, request);
+        if (request.getSymbology() == Symbology.DATA_MATRIX) {
+            int captionOffset = (request.getCaptionText() != null && !request.getCaptionText().isBlank())
+                    ? CAPTION_TEXT_HEIGHT_DOTS + CAPTION_TEXT_GAP_DOTS
+                    : 0;
+            appendSymbol(zpl, request, request.getOriginX(), request.getOriginY() + captionOffset, landscape);
+        } else {
+            appendSymbol(zpl, request, placement.originX(), placement.originY(), landscape);
+        }
         if (request.getCopies() > 1) {
             zpl.append("^PQ").append(request.getCopies()).append('\n');
         }
@@ -180,6 +169,26 @@ public final class BarcodeZplBuilder {
             zpl.append("^A0N,36,36\n");
             zpl.append("^FD").append(escapeZpl(request.getCaptionText())).append("^FS\n");
         }
+        appendSymbol(zpl, request, captionX, barcodeY, false);
+    }
+
+    /**
+     * Emits the barcode symbol (without caption) at the given origin. Data Matrix
+     * (2D) is used for long payloads such as terminal key-command strings that
+     * would overflow a 1D Code 128 on a narrow label; everything else renders as
+     * Code 128 / GS1-128.
+     */
+    private static void appendSymbol(StringBuilder zpl, BarcodeRequest request, int x, int y, boolean landscape) {
+        if (request.getSymbology() == Symbology.DATA_MATRIX) {
+            zpl.append("^FO").append(x).append(',').append(y).append('\n');
+            zpl.append("^BX")
+                    .append(landscape ? "R" : "N")
+                    .append(',')
+                    .append(DATA_MATRIX_MODULE_DOTS)
+                    .append(",200\n");
+            appendFieldData(zpl, request);
+            return;
+        }
         zpl.append("^BY")
                 .append(request.getModuleWidth())
                 .append(',')
@@ -187,9 +196,9 @@ public final class BarcodeZplBuilder {
                 .append(',')
                 .append(request.getBarcodeHeight())
                 .append('\n');
-        zpl.append("^FO").append(captionX).append(',').append(barcodeY).append('\n');
+        zpl.append("^FO").append(x).append(',').append(y).append('\n');
         zpl.append("^BC")
-                .append("N")
+                .append(landscape ? "R" : "N")
                 .append(',')
                 .append(request.getBarcodeHeight())
                 .append(',')
@@ -242,7 +251,8 @@ public final class BarcodeZplBuilder {
      */
     public enum Symbology {
         CODE128,
-        GS1_128
+        GS1_128,
+        DATA_MATRIX
     }
 
     /**
