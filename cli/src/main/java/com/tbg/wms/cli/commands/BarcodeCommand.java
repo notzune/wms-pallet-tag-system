@@ -52,7 +52,8 @@ public final class BarcodeCommand implements Callable<Integer> {
     @Option(
             names = {"-preset", "--preset"},
             required = false,
-            description = "Quick terminal preset: BREAK_START or BREAK_STOP."
+            description = "Quick terminal preset (${COMPLETION-CANDIDATES}). "
+                    + "BREAK_SHEET prints START and STOP stacked on one label. Overrides --data."
     )
     private TerminalPreset preset;
 
