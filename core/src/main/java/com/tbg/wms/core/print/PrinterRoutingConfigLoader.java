@@ -61,6 +61,7 @@ final class PrinterRoutingConfigLoader {
     private Map<String, PrinterConfig> loadPrinters(PrintersYaml printersYaml, Path printersFile) {
         List<PrinterEntry> printersList = printersYaml.printers == null ? List.of() : printersYaml.printers;
         Map<String, PrinterConfig> printers = new LinkedHashMap<>();
+        boolean defaultPrinterSeen = false;
         for (PrinterEntry printerEntry : printersList) {
             String id = requireYamlValue(printerEntry.id, "printers[].id", printersFile);
             String name = requireYamlValue(printerEntry.name, "printers[].name", printersFile);
@@ -70,8 +71,30 @@ final class PrinterRoutingConfigLoader {
             List<String> capabilities = printerEntry.capabilities == null ? Collections.emptyList() : printerEntry.capabilities;
             String locationHint = printerEntry.locationHint;
             boolean enabled = printerEntry.enabled == null || printerEntry.enabled;
+            boolean testingOnly = printerEntry.testingOnly != null && printerEntry.testingOnly;
+            boolean defaultPrinter = printerEntry.defaultPrinter != null && printerEntry.defaultPrinter;
 
-            PrinterConfig printer = new PrinterConfig(id, name, ip, port, tags, capabilities, locationHint, enabled);
+            if (defaultPrinter) {
+                if (defaultPrinterSeen) {
+                    throw new IllegalArgumentException(
+                            "Multiple printers are marked as default in " + printersFile
+                    );
+                }
+                defaultPrinterSeen = true;
+            }
+
+            PrinterConfig printer = new PrinterConfig(
+                    id,
+                    name,
+                    ip,
+                    port,
+                    tags,
+                    capabilities,
+                    locationHint,
+                    enabled,
+                    testingOnly,
+                    defaultPrinter
+            );
             printers.put(id, printer);
             log.debug("Loaded printer: {}", printer);
         }
@@ -187,6 +210,8 @@ final class PrinterRoutingConfigLoader {
         public List<String> capabilities;
         public String locationHint;
         public Boolean enabled;
+        public Boolean testingOnly;
+        public Boolean defaultPrinter;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

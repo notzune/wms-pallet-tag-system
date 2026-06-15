@@ -117,6 +117,8 @@ public final class LabelGuiFrame extends JFrame {
     private final transient InstallMaintenanceService installMaintenanceService = new InstallMaintenanceService();
     private final transient GuidedUpdateService guidedUpdateService = new GuidedUpdateService();
     private transient List<LabelWorkflowService.PrinterOption> loadedPrinters = List.of();
+    private transient LabelWorkflowService.PrinterOption lastValidPrinterSelection;
+    private transient boolean restoringPrinterSelection;
     private transient List<JCheckBox> previewLabelCheckboxes = List.of();
     private transient List<PreviewSelectionSupport.LabelOption> previewLabelOptions = List.of();
     private transient LabelWorkflowService.PreparedJob preparedJob;
@@ -142,6 +144,7 @@ public final class LabelGuiFrame extends JFrame {
         add(buildBottomPanel(), BorderLayout.SOUTH);
         this.barcodeDialogFactory = new BarcodeDialogFactory(buildBarcodeDependencies());
 
+        configurePrinterCombo();
         wireActions();
         wireShortcuts();
         installTerminalLikeMouseClipboardBehavior(shipmentField);
@@ -324,6 +327,7 @@ public final class LabelGuiFrame extends JFrame {
                     );
                     if (selectionIndex >= 0) {
                         printerCombo.setSelectedIndex(selectionIndex);
+                        lastValidPrinterSelection = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
                     }
                     setReady(printerSelectionSupport.printerLoadStatusMessage(printerCount, model.getSize()));
                 } catch (Exception ex) {
@@ -1055,6 +1059,64 @@ public final class LabelGuiFrame extends JFrame {
 
     private void restoreSelection(LabelWorkflowService.PrinterOption previousSelection) {
         framePrinterSelectionSupport.restoreSelection(printerCombo, previousSelection, printerSelectionSupport);
+        LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
+        if (selected != null && !GuiPrinterTargetSupport.isSeparator(selected)) {
+            lastValidPrinterSelection = selected;
+        }
+    }
+
+    private void configurePrinterCombo() {
+        printerCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(
+                    JList<?> list,
+                    Object value,
+                    int index,
+                    boolean isSelected,
+                    boolean cellHasFocus
+            ) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof LabelWorkflowService.PrinterOption option) {
+                    label.setText(option.toString());
+                    if (option.isSeparator()) {
+                        label.setHorizontalAlignment(SwingConstants.CENTER);
+                        label.setFont(label.getFont().deriveFont(Font.BOLD));
+                        label.setEnabled(false);
+                    } else {
+                        label.setHorizontalAlignment(SwingConstants.LEFT);
+                    }
+                } else {
+                    label.setText("");
+                    label.setHorizontalAlignment(SwingConstants.LEFT);
+                }
+                return label;
+            }
+        });
+
+        printerCombo.addActionListener(e -> {
+            if (restoringPrinterSelection) {
+                return;
+            }
+
+            LabelWorkflowService.PrinterOption selected = (LabelWorkflowService.PrinterOption) printerCombo.getSelectedItem();
+            if (GuiPrinterTargetSupport.isSeparator(selected)) {
+                restoringPrinterSelection = true;
+                try {
+                    if (lastValidPrinterSelection != null) {
+                        printerCombo.setSelectedItem(lastValidPrinterSelection);
+                    } else {
+                        restoreSelection(null);
+                    }
+                } finally {
+                    restoringPrinterSelection = false;
+                }
+                return;
+            }
+
+            if (selected != null) {
+                lastValidPrinterSelection = selected;
+            }
+        });
     }
 
     private void installTerminalLikeMouseClipboardBehavior(JTextComponent... fields) {

@@ -28,10 +28,16 @@ class LabelWorkflowServiceTest {
                 "    name: Office_Test",
                 "    ip: 10.19.64.106",
                 "    port: 9100",
+                "    testingOnly: true",
                 "  - id: RAIL_OFFICE",
                 "    name: RAIL OFFICE",
                 "    ip: 10.19.64.16",
                 "    port: 9100",
+                "  - id: DISPATCH",
+                "    name: Dispatch_Prod",
+                "    ip: 10.19.64.53",
+                "    port: 9100",
+                "    defaultPrinter: true",
                 "  - id: ORDER_PICK",
                 "    name: ORDER PICK",
                 "    ip: 10.19.64.52",
@@ -52,10 +58,12 @@ class LabelWorkflowServiceTest {
 
         List<LabelWorkflowService.PrinterOption> printers = service.loadPrinters();
 
-        assertEquals(2, printers.size());
-        assertEquals(List.of("OFFICE", "RAIL_OFFICE"),
+        assertEquals(3, printers.size());
+        assertEquals(List.of("DISPATCH", "RAIL_OFFICE", "OFFICE"),
                 printers.stream().map(LabelWorkflowService.PrinterOption::getId).collect(Collectors.toList()));
         assertTrue(printers.stream().anyMatch(option -> option.toString().contains("Office_Test")));
+        assertTrue(printers.stream().anyMatch(LabelWorkflowService.PrinterOption::isDefaultPrinter));
+        assertTrue(printers.stream().anyMatch(LabelWorkflowService.PrinterOption::isTestingOnly));
         assertTrue(printers.stream().noneMatch(option -> option.getId().equals("ORDER_PICK")));
     }
 

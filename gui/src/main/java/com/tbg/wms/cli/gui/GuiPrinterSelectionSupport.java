@@ -18,15 +18,17 @@ final class GuiPrinterSelectionSupport {
             return -1;
         }
         if (previousSelection == null) {
-            return 0;
+            int defaultIndex = resolveDefaultSelectionIndex(candidates);
+            return defaultIndex >= 0 ? defaultIndex : firstSelectableIndex(candidates);
         }
         for (int i = 0; i < candidates.size(); i++) {
             LabelWorkflowService.PrinterOption candidate = candidates.get(i);
-            if (candidate != null && Objects.equals(candidate.getId(), previousSelection.getId())) {
+            if (candidate != null && !candidate.isSeparator() && Objects.equals(candidate.getId(), previousSelection.getId())) {
                 return i;
             }
         }
-        return 0;
+        int defaultIndex = resolveDefaultSelectionIndex(candidates);
+        return defaultIndex >= 0 ? defaultIndex : firstSelectableIndex(candidates);
     }
 
     String printerLoadStatusMessage(int printerCount, int modelSize) {
@@ -37,5 +39,25 @@ final class GuiPrinterSelectionSupport {
             return "No enabled printers found. Print to file available.";
         }
         return "Printers loaded.";
+    }
+
+    private int resolveDefaultSelectionIndex(List<LabelWorkflowService.PrinterOption> candidates) {
+        for (int i = 0; i < candidates.size(); i++) {
+            LabelWorkflowService.PrinterOption candidate = candidates.get(i);
+            if (candidate != null && !candidate.isSeparator() && candidate.isDefaultPrinter()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private int firstSelectableIndex(List<LabelWorkflowService.PrinterOption> candidates) {
+        for (int i = 0; i < candidates.size(); i++) {
+            LabelWorkflowService.PrinterOption candidate = candidates.get(i);
+            if (candidate != null && !candidate.isSeparator()) {
+                return i;
+            }
+        }
+        return -1;
     }
 }

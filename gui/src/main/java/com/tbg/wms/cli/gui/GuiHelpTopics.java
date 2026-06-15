@@ -26,6 +26,9 @@ public final class GuiHelpTopics {
                         "Tab moves through the active controls; Shift+Tab moves backward."),
                 section("Printing",
                         "Confirm Print sends only selected labels to the active printer target.",
+                        "DISPATCH is the default production printer and should be used for normal label printing.",
+                        "ROSSI is the other production ZPL printer.",
+                        "OFFICE and 3002_ZEB0 are backups/testing printers only, kept available for emergencies and debug work.",
                         "Print to file keeps generated labels under the configured output directory.",
                         "Printer routing and print-to-file targets are visible before the run starts.")
         );

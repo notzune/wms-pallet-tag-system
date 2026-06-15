@@ -29,7 +29,7 @@ final class PreviewSelectionSupport {
         List<LabelOption> options = new ArrayList<>(job.getLpnsForLabels().size());
         int index = 1;
         for (Lpn lpn : job.getLpnsForLabels()) {
-            options.add(new LabelOption(buildShipmentLabelText(index, lpn), lpn, null));
+            options.add(new LabelOption(buildSelectionLabelText(index, job.getShipmentId(), lpn), lpn, null));
             index++;
         }
         return options;
@@ -42,13 +42,7 @@ final class PreviewSelectionSupport {
         for (AdvancedPrintWorkflowService.PreparedStopGroup stop : job.getStopGroups()) {
             for (LabelWorkflowService.PreparedJob shipmentJob : stop.getShipmentJobs()) {
                 for (Lpn lpn : shipmentJob.getLpnsForLabels()) {
-                    String labelText = String.format(
-                            "%02d. Stop %02d | Shipment %s | %s",
-                            index,
-                            stop.getStopPosition(),
-                            shipmentJob.getShipmentId(),
-                            resolveLpnId(lpn)
-                    );
+                    String labelText = buildSelectionLabelText(index, shipmentJob.getShipmentId(), lpn);
                     LabelSelectionRef selection = LabelSelectionRef.forCarrierMove(
                             index,
                             shipmentJob.getShipmentId(),
@@ -134,13 +128,14 @@ final class PreviewSelectionSupport {
         return lpn == null || lpn.getLpnId() == null || lpn.getLpnId().isBlank() ? "UNKNOWN" : lpn.getLpnId();
     }
 
-    private String buildShipmentLabelText(int index, Lpn lpn) {
+    private String buildSelectionLabelText(int index, String shipmentId, Lpn lpn) {
         StringBuilder text = new StringBuilder(String.format("%02d. ", index));
         String lpnId = resolveDisplayLpnId(lpn);
         if (!lpnId.isBlank()) {
             text.append("LPN ").append(lpnId).append(" | ");
         }
-        text.append(resolveItemSummary(lpn));
+        text.append("ITEM#: ").append(resolveItemNumber(lpn)).append(" | ");
+        text.append("ORD#: ").append(valueOrDash(shipmentId));
         return text.toString();
     }
 
@@ -152,25 +147,14 @@ final class PreviewSelectionSupport {
         return lpnId;
     }
 
-    private String resolveItemSummary(Lpn lpn) {
+    private String resolveItemNumber(Lpn lpn) {
         LineItem item = resolveDisplayItem(lpn);
         if (item == null) {
-            return "Item -";
+            return "-";
         }
 
         String itemNumber = firstNonBlank(item.getWalmartItemNumber(), item.getSku());
-        String description = firstNonBlank(item.getDescription());
-
-        if (itemNumber.isBlank() && description.isBlank()) {
-            return "Item -";
-        }
-        if (itemNumber.isBlank()) {
-            return "Item - " + description;
-        }
-        if (description.isBlank()) {
-            return "Item " + itemNumber;
-        }
-        return "Item " + itemNumber + " - " + description;
+        return itemNumber.isBlank() ? "-" : itemNumber;
     }
 
     private LineItem resolveDisplayItem(Lpn lpn) {
@@ -203,6 +187,10 @@ final class PreviewSelectionSupport {
             }
         }
         return "";
+    }
+
+    private String valueOrDash(String value) {
+        return value == null || value.isBlank() ? "-" : value.trim();
     }
 
     record LabelOption(

@@ -31,6 +31,8 @@ public final class PrinterConfig {
     private final List<String> capabilities;
     private final String locationHint;
     private final boolean enabled;
+    private final boolean testingOnly;
+    private final boolean defaultPrinter;
 
     /**
      * Creates a new printer configuration.
@@ -46,6 +48,26 @@ public final class PrinterConfig {
      */
     public PrinterConfig(String id, String name, String ip, int port,
                          List<String> tags, List<String> capabilities, String locationHint, boolean enabled) {
+        this(id, name, ip, port, tags, capabilities, locationHint, enabled, false, false);
+    }
+
+    /**
+     * Creates a new printer configuration.
+     *
+     * @param id            stable printer identifier (e.g., "DISPATCH", "OFFICE")
+     * @param name          human-readable printer name
+     * @param ip            printer IP address
+     * @param port          printer port (typically 9100 for Zebra RAW protocol)
+     * @param tags          classification tags (PROD, TEST, DISPATCH, etc.)
+     * @param capabilities  workflow capabilities (for example ZPL, RAIL)
+     * @param locationHint   human-readable physical location
+     * @param enabled       whether printer is currently active
+     * @param testingOnly   whether printer is intended for backup/debug testing only
+     * @param defaultPrinter whether printer should be pre-selected as the default target
+     */
+    public PrinterConfig(String id, String name, String ip, int port,
+                         List<String> tags, List<String> capabilities, String locationHint,
+                         boolean enabled, boolean testingOnly, boolean defaultPrinter) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
         this.name = Objects.requireNonNull(name, "name cannot be null");
         this.ip = Objects.requireNonNull(ip, "ip cannot be null");
@@ -54,6 +76,8 @@ public final class PrinterConfig {
         this.capabilities = capabilities != null ? List.copyOf(capabilities) : Collections.emptyList();
         this.locationHint = locationHint;
         this.enabled = enabled;
+        this.testingOnly = testingOnly;
+        this.defaultPrinter = defaultPrinter;
 
         if (port < 1 || port > 65535) {
             throw new IllegalArgumentException("Invalid port: " + port);
@@ -92,6 +116,14 @@ public final class PrinterConfig {
         return enabled;
     }
 
+    public boolean isTestingOnly() {
+        return testingOnly;
+    }
+
+    public boolean isDefaultPrinter() {
+        return defaultPrinter;
+    }
+
     public String getEndpoint() {
         return ip + ":" + port;
     }
@@ -103,6 +135,8 @@ public final class PrinterConfig {
                 ", name='" + name + '\'' +
                 ", endpoint='" + getEndpoint() + '\'' +
                 ", enabled=" + enabled +
+                ", testingOnly=" + testingOnly +
+                ", defaultPrinter=" + defaultPrinter +
                 '}';
     }
 }

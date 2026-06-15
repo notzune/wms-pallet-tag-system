@@ -74,6 +74,36 @@ class GuiSettingsDialogSupportTest {
         }
     }
 
+    @Test
+    void buildMainPrintTargetModel_shouldInsertBackupPrinterSectionAndKeepDefaultFirst() {
+        Preferences preferences = Preferences.userRoot().node("com/tbg/wms/tests/gui-settings/" + System.nanoTime());
+        try {
+            StubDependencies dependencies = new StubDependencies(preferences);
+            dependencies.loadedPrinters = List.of(
+                    new LabelWorkflowService.PrinterOption("OFFICE", "Office", "10.0.0.1:9100", List.of("ZPL"), true, false),
+                    new LabelWorkflowService.PrinterOption("DISPATCH", "Dispatch", "10.0.0.2:9100", List.of("ZPL"), false, true),
+                    new LabelWorkflowService.PrinterOption("ROSSI", "Rossi", "10.0.0.3:9100", List.of("ZPL"))
+            );
+            GuiSettingsDialogSupport support = new GuiSettingsDialogSupport(
+                    dependencies,
+                    "printToFile.defaultOutputDir",
+                    GuiSettingsDialogSupportTest.class
+            );
+
+            DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = support.buildMainPrintTargetModel(true);
+
+            assertEquals("DISPATCH", model.getElementAt(0).getId());
+            assertEquals("ROSSI", model.getElementAt(1).getId());
+            assertTrue(model.getElementAt(2).isSeparator());
+            assertEquals("OFFICE", model.getElementAt(3).getId());
+        } finally {
+            try {
+                preferences.removeNode();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
     private static final class StubDependencies implements GuiSettingsDialogSupport.Dependencies {
         private final Preferences preferences;
         private final RuntimeSettings runtimeSettings = new RuntimeSettings();

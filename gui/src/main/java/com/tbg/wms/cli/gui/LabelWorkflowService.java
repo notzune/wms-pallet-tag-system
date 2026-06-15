@@ -148,20 +148,41 @@ public final class LabelWorkflowService {
     }
 
     public static final class PrinterOption {
+        public static final String TEST_PRINTER_SEPARATOR_LABEL = "--- BACKUPS/TEST PRINTERS ---";
         private final String id;
         private final String name;
         private final String endpoint;
         private final List<String> capabilities;
+        private final boolean testingOnly;
+        private final boolean defaultPrinter;
+        private final boolean separator;
 
         public PrinterOption(String id, String name, String endpoint) {
             this(id, name, endpoint, List.of());
         }
 
         public PrinterOption(String id, String name, String endpoint, List<String> capabilities) {
+            this(id, name, endpoint, capabilities, false, false, false);
+        }
+
+        public PrinterOption(String id, String name, String endpoint, List<String> capabilities,
+                             boolean testingOnly, boolean defaultPrinter) {
+            this(id, name, endpoint, capabilities, testingOnly, defaultPrinter, false);
+        }
+
+        private PrinterOption(String id, String name, String endpoint, List<String> capabilities,
+                              boolean testingOnly, boolean defaultPrinter, boolean separator) {
             this.id = id;
             this.name = name;
             this.endpoint = endpoint;
             this.capabilities = capabilities == null ? List.of() : List.copyOf(capabilities);
+            this.testingOnly = testingOnly;
+            this.defaultPrinter = defaultPrinter;
+            this.separator = separator;
+        }
+
+        public static PrinterOption separator() {
+            return new PrinterOption("SECTION_BACKUPS_TEST", TEST_PRINTER_SEPARATOR_LABEL, "", List.of(), true, false, true);
         }
 
         public String getId() {
@@ -172,8 +193,23 @@ public final class LabelWorkflowService {
             return capabilities;
         }
 
+        public boolean isTestingOnly() {
+            return testingOnly;
+        }
+
+        public boolean isDefaultPrinter() {
+            return defaultPrinter;
+        }
+
+        public boolean isSeparator() {
+            return separator;
+        }
+
         @Override
         public String toString() {
+            if (separator) {
+                return name;
+            }
             return id + " - " + name + " (" + endpoint + ")";
         }
     }

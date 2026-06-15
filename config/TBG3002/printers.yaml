@@ -13,7 +13,25 @@ printers:
     port: 9100
     tags: [ TEST, QA ]
     capabilities: [ ZPL ]
+    testingOnly: true
     locationHint: "Admin office (backup/test)"
+
+  - id: 3002_ZEB0
+    name: 3002_ZEB0
+    ip: 10.19.64.110
+    port: 9100
+    tags: [ TEST, QA, LABEL ]
+    capabilities: [ ZPL ]
+    testingOnly: true
+    locationHint: "Zeyad's Office (QA label printer, MAC 00:07:4D:A0:76:D4)"
+
+  - id: 3002_ZEB2
+    name: ROSSI
+    ip: 169.225.180.36
+    port: 9100
+    tags: [ PROD, ROSSI, LABEL ]
+    capabilities: [ ZPL ]
+    locationHint: "ROSSI (production label printer, MAC 00:07:4D:B0:1E:32)"
 
   - id: RAIL_OFFICE
     name: RAIL OFFICE
@@ -37,6 +55,7 @@ printers:
     port: 9100
     tags: [ PROD, DISPATCH ]
     capabilities: [ ZPL ]
+    defaultPrinter: true
     locationHint: "Dispatch office (production)"
 
   # Placeholder for the new post go-live printer

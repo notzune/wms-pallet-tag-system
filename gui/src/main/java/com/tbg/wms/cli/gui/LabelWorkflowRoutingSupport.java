@@ -4,7 +4,6 @@ import com.tbg.wms.core.print.PrinterConfig;
 import com.tbg.wms.core.print.PrinterRoutingService;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,12 +24,13 @@ final class LabelWorkflowRoutingSupport {
                         printer.getId(),
                         printer.getName(),
                         printer.getEndpoint(),
-                        printer.getCapabilities()
+                        printer.getCapabilities(),
+                        printer.isTestingOnly(),
+                        printer.isDefaultPrinter()
                 ));
             }
         }
-        options.sort(Comparator.comparing(LabelWorkflowService.PrinterOption::getId));
-        return options;
+        return GuiPrinterTargetSupport.orderForDisplay(options);
     }
 
     PrinterConfig resolvePrinter(String siteCode, String printerId, LabelWorkflowAssetSupport assetSupport)

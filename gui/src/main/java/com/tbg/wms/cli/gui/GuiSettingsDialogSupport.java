@@ -129,8 +129,16 @@ final class GuiSettingsDialogSupport {
             boolean includeFileOption
     ) {
         DefaultComboBoxModel<LabelWorkflowService.PrinterOption> model = new DefaultComboBoxModel<>();
-        for (LabelWorkflowService.PrinterOption option : printerOptions) {
+        List<LabelWorkflowService.PrinterOption> orderedPrinters = GuiPrinterTargetSupport.orderForDisplay(printerOptions);
+        boolean separatorAdded = false;
+        boolean sawProductionPrinter = false;
+        for (LabelWorkflowService.PrinterOption option : orderedPrinters) {
+            if (!separatorAdded && sawProductionPrinter && option.isTestingOnly()) {
+                model.addElement(GuiPrinterTargetSupport.buildPrinterSectionSeparator());
+                separatorAdded = true;
+            }
             model.addElement(option);
+            sawProductionPrinter = sawProductionPrinter || !option.isTestingOnly();
         }
         if (includeFileOption) {
             model.addElement(GuiPrinterTargetSupport.buildPrintToFileOption(defaultPrintToFileOutputDir()));

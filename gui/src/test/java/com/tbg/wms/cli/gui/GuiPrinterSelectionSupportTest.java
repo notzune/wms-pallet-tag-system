@@ -16,12 +16,23 @@ class GuiPrinterSelectionSupportTest {
     void resolveSelectionIndex_shouldRestoreMatchingPrinterOrFallbackToFirst() {
         List<LabelWorkflowService.PrinterOption> candidates = List.of(
                 new LabelWorkflowService.PrinterOption("P1", "Printer 1", "10.0.0.1"),
-                new LabelWorkflowService.PrinterOption("P2", "Printer 2", "10.0.0.2")
+                new LabelWorkflowService.PrinterOption("P2", "Printer 2", "10.0.0.2", List.of(), false, true)
         );
 
         assertEquals(1, support.resolveSelectionIndex(new LabelWorkflowService.PrinterOption("P2", "Printer 2", "10.0.0.2"), candidates));
-        assertEquals(0, support.resolveSelectionIndex(new LabelWorkflowService.PrinterOption("PX", "Printer X", "10.0.0.9"), candidates));
-        assertEquals(0, support.resolveSelectionIndex(null, candidates));
+        assertEquals(1, support.resolveSelectionIndex(new LabelWorkflowService.PrinterOption("PX", "Printer X", "10.0.0.9"), candidates));
+        assertEquals(1, support.resolveSelectionIndex(null, candidates));
+    }
+
+    @Test
+    void resolveSelectionIndex_shouldSkipSeparatorRows() {
+        List<LabelWorkflowService.PrinterOption> candidates = List.of(
+                new LabelWorkflowService.PrinterOption("P1", "Printer 1", "10.0.0.1"),
+                LabelWorkflowService.PrinterOption.separator(),
+                new LabelWorkflowService.PrinterOption("P2", "Printer 2", "10.0.0.2", List.of(), true, true)
+        );
+
+        assertEquals(2, support.resolveSelectionIndex(null, candidates));
     }
 
     @Test

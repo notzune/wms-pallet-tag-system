@@ -24,8 +24,8 @@ class PreviewSelectionPanelSupportTest {
         JLabel status = new JLabel();
         AtomicInteger actions = new AtomicInteger();
         List<PreviewSelectionSupport.LabelOption> options = List.of(
-                new PreviewSelectionSupport.LabelOption("01. LPN 901427186 | Item 30081705 - Vanilla Yogurt", new Lpn("901427186", "S1", null, 0, 0, 0.0, null, null, null, null, null, List.of()), null),
-                new PreviewSelectionSupport.LabelOption("02. Item 30081706 - Blueberry Yogurt", new Lpn("NO_LPN_1", "S1", null, 0, 0, 0.0, null, null, null, null, null, List.of()), null)
+                new PreviewSelectionSupport.LabelOption("01. LPN 901427186 | ITEM#: 30081705 | ORD#: S1", new Lpn("901427186", "S1", null, 0, 0, 0.0, null, null, null, null, null, List.of()), null),
+                new PreviewSelectionSupport.LabelOption("02. ITEM#: 30081706 | ORD#: S1", new Lpn("NO_LPN_1", "S1", null, 0, 0, 0.0, null, null, null, null, null, List.of()), null)
         );
 
         PreviewSelectionPanelSupport.PanelBuildResult result = support.buildPanel(

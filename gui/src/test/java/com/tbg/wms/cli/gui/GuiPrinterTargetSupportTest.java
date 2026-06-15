@@ -44,6 +44,26 @@ class GuiPrinterTargetSupportTest {
     }
 
     @Test
+    void orderForDisplay_shouldPlaceProductionPrintersBeforeTestingPrinters() {
+        List<LabelWorkflowService.PrinterOption> ordered = GuiPrinterTargetSupport.orderForDisplay(List.of(
+                new LabelWorkflowService.PrinterOption("OFFICE", "Office", "1", List.of("ZPL"), true, false),
+                new LabelWorkflowService.PrinterOption("DISPATCH", "Dispatch", "3", List.of("ZPL"), false, true),
+                new LabelWorkflowService.PrinterOption("ROSSI", "Rossi", "2", List.of("ZPL"))
+        ));
+
+        assertEquals(List.of("DISPATCH", "ROSSI", "OFFICE"),
+                ordered.stream().map(LabelWorkflowService.PrinterOption::getId).collect(Collectors.toList()));
+    }
+
+    @Test
+    void buildPrinterSectionSeparator_shouldCreateSeparatorRow() {
+        LabelWorkflowService.PrinterOption separator = GuiPrinterTargetSupport.buildPrinterSectionSeparator();
+
+        assertTrue(separator.isSeparator());
+        assertEquals(LabelWorkflowService.PrinterOption.TEST_PRINTER_SEPARATOR_LABEL, separator.toString());
+    }
+
+    @Test
     void buildPrintToFileOption_shouldUseFileSentinel() {
         LabelWorkflowService.PrinterOption option = GuiPrinterTargetSupport.buildPrintToFileOption(Path.of("out"));
 

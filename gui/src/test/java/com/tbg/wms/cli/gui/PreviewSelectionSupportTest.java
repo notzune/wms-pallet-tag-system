@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import javax.swing.JCheckBox;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PreviewSelectionSupportTest {
@@ -22,8 +23,8 @@ class PreviewSelectionSupportTest {
                 PreviewSelectionTestData.shipmentJob("S1", List.of(first, second))
         );
 
-        assertEquals("01. LPN 901427186 | Item 30081705 - Vanilla Yogurt", options.get(0).labelText());
-        assertEquals("02. LPN 64362111_OOL | Item 30081706 - Blueberry Yogurt", options.get(1).labelText());
+        assertEquals("01. LPN 901427186 | ITEM#: 30081705 | ORD#: S1", options.get(0).labelText());
+        assertEquals("02. LPN 64362111_OOL | ITEM#: 30081706 | ORD#: S1", options.get(1).labelText());
     }
 
     @Test
@@ -34,8 +35,11 @@ class PreviewSelectionSupportTest {
                 PreviewSelectionTestData.shipmentJob("S1", List.of(invalid, synthetic))
         );
 
-        assertEquals("01. Item 30081707 - Strawberry Yogurt", options.get(0).labelText());
-        assertEquals("02. Item 30081708 - Plain Yogurt", options.get(1).labelText());
+        assertEquals("01. ITEM#: 30081707 | ORD#: S1", options.get(0).labelText());
+        assertEquals("02. ITEM#: 30081708 | ORD#: S1", options.get(1).labelText());
+        assertFalse(options.stream()
+                .map(PreviewSelectionSupport.LabelOption::labelText)
+                .anyMatch(text -> text.contains("NO_LPN")));
     }
 
     @Test
@@ -43,11 +47,11 @@ class PreviewSelectionSupportTest {
         Lpn first = lpn("901427186", "30081705", "Vanilla Yogurt");
         Lpn second = lpn("901427191", "30081706", "Blueberry Yogurt");
         List<PreviewSelectionSupport.LabelOption> options = List.of(
-                new PreviewSelectionSupport.LabelOption("01. LPN 901427186 | Item 30081705 - Vanilla Yogurt", first, null),
-                new PreviewSelectionSupport.LabelOption("02. LPN 901427191 | Item 30081706 - Blueberry Yogurt", second, null)
+                new PreviewSelectionSupport.LabelOption("01. LPN 901427186 | ITEM#: 30081705 | ORD#: S1", first, null),
+                new PreviewSelectionSupport.LabelOption("02. LPN 901427191 | ITEM#: 30081706 | ORD#: S1", second, null)
         );
-        JCheckBox firstBox = new JCheckBox("01. LPN 901427186 | Item 30081705 - Vanilla Yogurt", true);
-        JCheckBox secondBox = new JCheckBox("02. LPN 901427191 | Item 30081706 - Blueberry Yogurt", false);
+        JCheckBox firstBox = new JCheckBox("01. LPN 901427186 | ITEM#: 30081705 | ORD#: S1", true);
+        JCheckBox secondBox = new JCheckBox("02. LPN 901427191 | ITEM#: 30081706 | ORD#: S1", false);
 
         PreviewSelectionSupport.SelectionSnapshot snapshot = support.snapshotSelection(
                 List.of(firstBox, secondBox),
@@ -103,8 +107,22 @@ class PreviewSelectionSupportTest {
         List<PreviewSelectionSupport.LabelOption> options = support.buildCarrierMoveLabelOptions(carrierJob);
 
         assertEquals(2, options.size());
-        assertEquals("01. Stop 01 | Shipment S1 | 901427186", options.get(0).labelText());
-        assertEquals("02. Stop 02 | Shipment S2 | 901427191", options.get(1).labelText());
+        assertEquals("01. LPN 901427186 | ITEM#: 30081705 | ORD#: S1", options.get(0).labelText());
+        assertEquals("02. LPN 901427191 | ITEM#: 30081706 | ORD#: S2", options.get(1).labelText());
+    }
+
+    @Test
+    void buildCarrierMoveLabelOptions_shouldHideInvalidLpnValues() {
+        Lpn invalid = lpn("NO_LPN_1", "30081708", "Plain Yogurt");
+        LabelWorkflowService.PreparedJob shipment = PreviewSelectionTestData.shipmentJob("S1", List.of(invalid));
+        AdvancedPrintWorkflowService.PreparedCarrierMoveJob carrierJob =
+                PreviewSelectionTestData.carrierMoveJob("CM1", List.of(
+                        PreviewSelectionTestData.stopGroup(1, 1, List.of(shipment))
+                ));
+
+        List<PreviewSelectionSupport.LabelOption> options = support.buildCarrierMoveLabelOptions(carrierJob);
+
+        assertEquals("01. ITEM#: 30081708 | ORD#: S1", options.get(0).labelText());
     }
 
     private static Lpn lpn(String lpnId, String itemNumber, String description) {

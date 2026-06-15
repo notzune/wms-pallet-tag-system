@@ -2,6 +2,7 @@ package com.tbg.wms.cli.gui;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Locale;
@@ -46,6 +47,24 @@ public final class GuiPrinterTargetSupport {
                 "Host default",
                 List.of()
         );
+    }
+
+    public static List<LabelWorkflowService.PrinterOption> orderForDisplay(List<LabelWorkflowService.PrinterOption> printers) {
+        Objects.requireNonNull(printers, "printers cannot be null");
+        List<LabelWorkflowService.PrinterOption> ordered = new ArrayList<>(printers);
+        ordered.sort(Comparator
+                .comparing(LabelWorkflowService.PrinterOption::isTestingOnly)
+                .thenComparing(LabelWorkflowService.PrinterOption::isDefaultPrinter, Comparator.reverseOrder())
+                .thenComparing(LabelWorkflowService.PrinterOption::getId));
+        return ordered;
+    }
+
+    public static boolean isSeparator(LabelWorkflowService.PrinterOption option) {
+        return option != null && option.isSeparator();
+    }
+
+    public static LabelWorkflowService.PrinterOption buildPrinterSectionSeparator() {
+        return LabelWorkflowService.PrinterOption.separator();
     }
 
     public static boolean hasCapability(LabelWorkflowService.PrinterOption option, String capability) {
