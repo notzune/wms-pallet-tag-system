@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Complete — implemented and verified 2026-06-15. All targeted tests and the full `mvnw test` suite pass.
+**Status:** Code complete and tests green; label-generation/printing verified on hardware. End-to-end scanning is **blocked on scanner configuration** — the keyboard-wedge scanner currently drops `ESC`/`TAB`, so F7 and the field Tab don't fire. The encoded sequence itself is confirmed correct against the operator's manual steps (see Results → Open blocker).
 
 **Goal:** Add a quick prototype that prints two operator barcodes for the Putty/Telnet break workflow to the `3002_ZEB0` printer.
 
@@ -60,7 +60,9 @@ Three presets exposed via `barcode --preset <NAME>`:
 | `BREAK_SHEET` | both | combined single label stacking START over STOP |
 
 Payloads are emitted as CODE128 using ZPL hex-field encoding (`^FH`), so the
-control bytes survive the scanner:
+control bytes are present in the barcode symbol (whether the *scanner* re-emits
+them as keystrokes is a separate, scanner-config concern — see the open blocker
+below):
 
 ```
 ^FH^FD_1B_5B_31_38_7E_30_33_42_52_45_41_4B_09_53_54_41_52_54_0D^FS   (BREAK START)
@@ -68,6 +70,39 @@ control bytes survive the scanner:
 ```
 
 Decode: `_1B`=ESC, `_5B`=`[`, `18`, `_7E`=`~`, `03`, `BREAK`, `_09`=TAB, `START`/`STOP`, `_0D`=CR.
+
+### Verified manual terminal sequence (operator, 2026-06-15)
+
+The encoded sequence matches the real manual steps confirmed by the operator:
+
+1. Top-level **Undirected Menu**
+2. **F7** (function key) → opens the **Tools** menu screen
+3. `0` → next page
+4. `3` → **Activity Login**
+5. first field → type `BREAK`
+6. **Tab** (or arrow) to the next field
+7. type `START` (or `STOP`)
+8. **Enter**
+
+`F7` over the xterm/VT220 host is `ESC [ 1 8 ~`, so the prototype payload
+(`ESC[18~` + `0` + `3` + `BREAK` + TAB + `START`/`STOP` + CR) is logically correct.
+
+### Open blocker: scanner drops control bytes
+
+Live scan testing showed the symbol-motion (keyboard-wedge) scanner transmits
+only printable ASCII plus Enter:
+
+- `ESC` is dropped → **F7 never fires**; the bare `1` `8` fall through as menu
+  selections (Picking Menu, then Auto Allocate Load).
+- `TAB` is dropped → `BREAK` and `START` merge into one field (`BREAKSTART`).
+- `CR` transmits → the field submits and errors with `order doesn't exist`.
+
+The label content is correct; the fix is **scanner configuration** — the scanner
+must be put into a mode that transmits function keys / control characters (commonly
+"Function Key Mapping" / "Control Character Output"). F7 is unavoidable, so a
+plain-printable-only barcode cannot reach the Tools menu. Next step is to identify
+the scanner make/model and enable function-key transmission, then re-test the
+existing labels unchanged.
 
 ### Usage
 
