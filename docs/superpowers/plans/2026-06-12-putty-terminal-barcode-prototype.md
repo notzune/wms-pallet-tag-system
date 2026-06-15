@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Code complete and tests green; label-generation/printing verified on hardware. End-to-end scanning is **blocked on scanner configuration** — the keyboard-wedge scanner currently drops `ESC`/`TAB`, so F7 and the field Tab don't fire. The encoded sequence itself is confirmed correct against the operator's manual steps (see Results → Open blocker).
+**Status:** Code complete and tests green; label generation/printing verified on hardware. Payload re-encoded to **Honeywell Velocity key-command tokens** (`{F7}…{tab}…{enter}`) after a live scan proved raw control bytes (`ESC`/`TAB`) are dropped by the Granit/Velocity path. Pending: enable Velocity's *process key commands from scanned data* setting on the VM1A, then re-scan and tune `{pause}` / `{enter}` if needed (see Results).
 
 **Goal:** Add a quick prototype that prints two operator barcodes for the Putty/Telnet break workflow to the `3002_ZEB0` printer.
 
@@ -53,56 +53,59 @@
 
 Three presets exposed via `barcode --preset <NAME>`:
 
-| Preset | Caption | Scanned payload (decoded) |
+| Preset | Caption | Scanned payload |
 | --- | --- | --- |
-| `BREAK_START` | `BREAK START` | `ESC [ 1 8 ~ 0 3 B R E A K <TAB> START <CR>` |
-| `BREAK_STOP` | `BREAK STOP` | `ESC [ 1 8 ~ 0 3 B R E A K <TAB> STOP <CR>` |
+| `BREAK_START` | `BREAK START` | `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}START{enter}` |
+| `BREAK_STOP` | `BREAK STOP` | `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}STOP{enter}` |
 | `BREAK_SHEET` | both | combined single label stacking START over STOP |
-
-Payloads are emitted as CODE128 using ZPL hex-field encoding (`^FH`), so the
-control bytes are present in the barcode symbol (whether the *scanner* re-emits
-them as keystrokes is a separate, scanner-config concern — see the open blocker
-below):
-
-```
-^FH^FD_1B_5B_31_38_7E_30_33_42_52_45_41_4B_09_53_54_41_52_54_0D^FS   (BREAK START)
-^FH^FD_1B_5B_31_38_7E_30_33_42_52_45_41_4B_09_53_54_4F_50_0D^FS       (BREAK STOP)
-```
-
-Decode: `_1B`=ESC, `_5B`=`[`, `18`, `_7E`=`~`, `03`, `BREAK`, `_09`=TAB, `START`/`STOP`, `_0D`=CR.
 
 ### Verified manual terminal sequence (operator, 2026-06-15)
 
-The encoded sequence matches the real manual steps confirmed by the operator:
+The target hardware is a **Honeywell Thor VM1A** vehicle computer running the
+**Honeywell Velocity** terminal emulator, scanned with a **Granit 1980i**. The
+operator's confirmed manual break sequence is:
 
 1. Top-level **Undirected Menu**
-2. **F7** (function key) → opens the **Tools** menu screen
+2. **F7** → opens the **Tools** menu
 3. `0` → next page
 4. `3` → **Activity Login**
 5. first field → type `BREAK`
-6. **Tab** (or arrow) to the next field
+6. **Tab** to the next field
 7. type `START` (or `STOP`)
 8. **Enter**
 
-`F7` over the xterm/VT220 host is `ESC [ 1 8 ~`, so the prototype payload
-(`ESC[18~` + `0` + `3` + `BREAK` + TAB + `START`/`STOP` + CR) is logically correct.
+### Why the first encoding failed, and the fix
 
-### Open blocker: scanner drops control bytes
+The original payload encoded the raw host bytes `ESC[18~03BREAK<TAB>START<CR>`.
+Live scanning showed the Granit/Velocity path silently drops control bytes: `ESC`
+was dropped (so F7 never fired and `1`/`8` fell through into the Picking → Auto
+Allocate menus), `TAB` was dropped (`BREAK`+`START` merged), and only `CR`
+transmitted (the field submitted and errored).
 
-Live scan testing showed the symbol-motion (keyboard-wedge) scanner transmits
-only printable ASCII plus Enter:
+The correct approach for the Honeywell/Velocity stack is **not** to send raw
+control bytes. Velocity parses **brace-token key commands** embedded in scanned
+data and replays them as real host key presses:
 
-- `ESC` is dropped → **F7 never fires**; the bare `1` `8` fall through as menu
-  selections (Picking Menu, then Auto Allocate Load).
-- `TAB` is dropped → `BREAK` and `START` merge into one field (`BREAKSTART`).
-- `CR` transmits → the field submits and errors with `order doesn't exist`.
+- `{F7}` (or `{hex:E041}`) → F7
+- `{tab}` (or `{hex:0009}`) → Tab
+- `{enter}` / `{send}` (or `{hex:000D}`) → Enter
+- `{pause:500}` → wait 500 ms so each screen redraws before the next key
 
-The label content is correct; the fix is **scanner configuration** — the scanner
-must be put into a mode that transmits function keys / control characters (commonly
-"Function Key Mapping" / "Control Character Output"). F7 is unavoidable, so a
-plain-printable-only barcode cannot reach the Tools menu. Next step is to identify
-the scanner make/model and enable function-key transmission, then re-test the
-existing labels unchanged.
+So the barcode now carries **only printable characters** (`{F7}…{tab}…{enter}`),
+which the scanner transmits intact — no control-byte / function-key scanner mode
+is required. The ZPL still uses hex-field encoding (`^FH`) purely to embed the
+literal `{` `}` `:` characters reliably; decoded, the symbol contains exactly the
+payload string above.
+
+**Required device-side configuration:** Velocity must be set to *process key
+commands from scanned data* (its scan handler / data-processing path) — otherwise
+it types the literal text `{F7}…` into the field instead of executing the keys.
+
+**Likely tuning knobs after a live scan:** the `{pause:500}` duration (raise if a
+screen is slow to redraw), and `{enter}` vs `{send}` for the final submit. The
+menu keys `0`/`3` are sent without an Enter because the host accepts single-key
+menu selections (confirmed by the original misfire, where `1`/`8` were each taken
+immediately).
 
 ### Usage
 

@@ -60,7 +60,8 @@ final class BarcodeCommandTest {
             assertTrue(artifact.getFileName().toString().matches("barcode-\\d{8}-\\d{6}-break-start\\.zpl"));
             String zpl = Files.readString(artifact);
             assertTrue(zpl.contains("BREAK START"));
-            assertTrue(zpl.contains("^FH^FD_1B"));
+            // Hex-encoded Velocity token "{F7}" ({=7B, F=46, 7=37, }=7D) starts the payload.
+            assertTrue(zpl.contains("^FH^FD_7B_46_37_7D"));
         }
     }
 
@@ -82,7 +83,8 @@ final class BarcodeCommandTest {
             assertTrue(artifact.getFileName().toString().matches("barcode-\\d{8}-\\d{6}-break-stop\\.zpl"));
             String zpl = Files.readString(artifact);
             assertTrue(zpl.contains("BREAK STOP"));
-            assertTrue(zpl.contains("^FH^FD_1B"));
+            // Hex-encoded Velocity token "{F7}" ({=7B, F=46, 7=37, }=7D) starts the payload.
+            assertTrue(zpl.contains("^FH^FD_7B_46_37_7D"));
         }
     }
 

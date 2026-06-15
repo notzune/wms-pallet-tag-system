@@ -389,8 +389,8 @@ public final class BarcodeCommand implements Callable<Integer> {
      * Predefined operator barcode payloads for quick terminal workflows.
      */
     enum TerminalPreset {
-        BREAK_START(xtermActivitySequence("START"), "BREAK START", "break-start"),
-        BREAK_STOP(xtermActivitySequence("STOP"), "BREAK STOP", "break-stop"),
+        BREAK_START(velocityActivitySequence("START"), "BREAK START", "break-start"),
+        BREAK_STOP(velocityActivitySequence("STOP"), "BREAK STOP", "break-stop"),
         BREAK_SHEET("BREAK SHEET", "BREAK SHEET", "break-sheet", true);
 
         private final String rawData;
@@ -409,8 +409,28 @@ public final class BarcodeCommand implements Callable<Integer> {
             this.combinedSheet = combinedSheet;
         }
 
-        private static String xtermActivitySequence(String action) {
-            return String.valueOf((char) 27) + "[18~03BREAK\t" + action + '\r';
+        /**
+         * Builds the Honeywell Velocity key-command payload for the operator
+         * break activity. The barcode carries only printable characters; Velocity
+         * parses the brace tokens in scanned data and replays them as real host
+         * key presses (this requires Velocity to be configured to process key
+         * commands from scans). The mapped manual sequence is:
+         * <ol>
+         *   <li>{@code {F7}} opens the Tools menu from the Undirected Menu</li>
+         *   <li>{@code 0} advances to the next page</li>
+         *   <li>{@code 3} selects Activity Login</li>
+         *   <li>{@code BREAK} is typed into the first field</li>
+         *   <li>{@code {tab}} moves to the next field</li>
+         *   <li>the action ({@code START}/{@code STOP}) is typed</li>
+         *   <li>{@code {enter}} submits</li>
+         * </ol>
+         * {@code {pause:500}} lets each screen redraw before the next key so the
+         * host does not buffer a keystroke into the wrong screen. Pause duration,
+         * and {@code {enter}} vs {@code {send}}, are the likely tuning knobs if a
+         * live scan misfires.
+         */
+        private static String velocityActivitySequence(String action) {
+            return "{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}" + action + "{enter}";
         }
     }
 }
