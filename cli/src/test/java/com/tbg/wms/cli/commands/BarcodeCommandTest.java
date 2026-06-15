@@ -41,4 +41,78 @@ final class BarcodeCommandTest {
             assertTrue(Files.readString(artifact).contains("^FDHELLO-WORLD-123^FS"));
         }
     }
+
+    @Test
+    void presetBreakStartWritesExpectedPayload() throws IOException {
+        CommandLine cli = new CommandLine(new BarcodeCommand());
+
+        int exitCode = cli.execute(
+                "--preset", "BREAK_START",
+                "--dry-run",
+                "--output-dir", tempDir.toString()
+        );
+
+        assertEquals(0, exitCode);
+        try (Stream<Path> files = Files.list(tempDir)) {
+            List<Path> artifacts = files.toList();
+            assertEquals(1, artifacts.size());
+            Path artifact = artifacts.get(0);
+            assertTrue(artifact.getFileName().toString().matches("barcode-\\d{8}-\\d{6}-break-start\\.zpl"));
+            String zpl = Files.readString(artifact);
+            assertTrue(zpl.contains("BREAK START"));
+            assertTrue(zpl.contains("^FH^FD_1B"));
+        }
+    }
+
+    @Test
+    void presetBreakStopWritesExpectedPayload() throws IOException {
+        CommandLine cli = new CommandLine(new BarcodeCommand());
+
+        int exitCode = cli.execute(
+                "--preset", "BREAK_STOP",
+                "--dry-run",
+                "--output-dir", tempDir.toString()
+        );
+
+        assertEquals(0, exitCode);
+        try (Stream<Path> files = Files.list(tempDir)) {
+            List<Path> artifacts = files.toList();
+            assertEquals(1, artifacts.size());
+            Path artifact = artifacts.get(0);
+            assertTrue(artifact.getFileName().toString().matches("barcode-\\d{8}-\\d{6}-break-stop\\.zpl"));
+            String zpl = Files.readString(artifact);
+            assertTrue(zpl.contains("BREAK STOP"));
+            assertTrue(zpl.contains("^FH^FD_1B"));
+        }
+    }
+
+    @Test
+    void missingDataAndPresetFailsFast() {
+        CommandLine cli = new CommandLine(new BarcodeCommand());
+
+        int exitCode = cli.execute("--dry-run", "--output-dir", tempDir.toString());
+
+        assertEquals(2, exitCode);
+    }
+
+    @Test
+    void breakSheetWritesBothWorkflowCodesToOneLabel() throws IOException {
+        CommandLine cli = new CommandLine(new BarcodeCommand());
+
+        int exitCode = cli.execute(
+                "--preset", "BREAK_SHEET",
+                "--dry-run",
+                "--output-dir", tempDir.toString()
+        );
+
+        assertEquals(0, exitCode);
+        try (Stream<Path> files = Files.list(tempDir)) {
+            List<Path> artifacts = files.toList();
+            assertEquals(1, artifacts.size());
+            String zpl = Files.readString(artifacts.get(0));
+            assertTrue(zpl.contains("BREAK START"));
+            assertTrue(zpl.contains("BREAK STOP"));
+            assertTrue(zpl.indexOf("^BCN") != zpl.lastIndexOf("^BCN"));
+        }
+    }
 }

@@ -37,6 +37,7 @@ build/
 
 .env
 out/
+barcodes/
 target/
 **/target/
 .idea/

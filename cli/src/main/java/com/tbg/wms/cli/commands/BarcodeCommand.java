@@ -44,10 +44,17 @@ public final class BarcodeCommand implements Callable<Integer> {
 
     @Option(
             names = {"-d", "--data"},
-            required = true,
+            required = false,
             description = "Barcode payload (raw data)."
     )
     private String data;
+
+    @Option(
+            names = {"-preset", "--preset"},
+            required = false,
+            description = "Quick terminal preset: BREAK_START or BREAK_STOP."
+    )
+    private TerminalPreset preset;
 
     @Option(
             names = {"-t", "--type"},
@@ -161,8 +168,18 @@ public final class BarcodeCommand implements Callable<Integer> {
      */
     @Override
     public Integer call() {
+        if (preset != null && preset.combinedSheet) {
+            return callCombinedBreakSheet();
+        }
+
+        String barcodeData = resolveBarcodeData();
+        if (barcodeData == null) {
+            System.err.println("Error: --data is required unless --preset is specified.");
+            return 2;
+        }
+
         String validationError = commandSupport.validateOptions(
-                data,
+                barcodeData,
                 labelWidthDots,
                 labelHeightDots,
                 originX,
@@ -180,14 +197,14 @@ public final class BarcodeCommand implements Callable<Integer> {
         String jobId = UUID.randomUUID().toString().substring(0, JOB_ID_LENGTH);
         log.info("Generating barcode label (jobId={})", jobId);
 
-        BarcodeRequest request = buildBarcodeRequest();
+        BarcodeRequest request = buildBarcodeRequest(barcodeData);
         String zpl = BarcodeZplBuilder.build(request);
 
         boolean effectiveDryRun = dryRun || printToFile;
         String effectiveOutputDir = printToFile
                 ? RuntimePathResolver.resolveJarSiblingDir(BarcodeCommand.class, "out").toString()
                 : outputDir;
-        Path zplFile = commandSupport.writeZplFile(zpl, effectiveOutputDir, data, TS, log);
+        Path zplFile = commandSupport.writeZplFile(zpl, effectiveOutputDir, artifactSlug(), TS, log);
         if (zplFile == null) {
             return 2;
         }
@@ -222,9 +239,85 @@ public final class BarcodeCommand implements Callable<Integer> {
         return 0;
     }
 
-    private BarcodeRequest buildBarcodeRequest() {
+    private Integer callCombinedBreakSheet() {
+        String validationError = commandSupport.validateOptions(
+                preset.fileSlug.toUpperCase(),
+                labelWidthDots,
+                labelHeightDots,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                copies
+        );
+        if (validationError != null) {
+            System.err.println(validationError);
+            return 2;
+        }
+
+        String jobId = UUID.randomUUID().toString().substring(0, JOB_ID_LENGTH);
+        log.info("Generating barcode label (jobId={})", jobId);
+
+        String zpl = BarcodeZplBuilder.buildDual(
+                buildTerminalRequest("BREAK START", TerminalPreset.BREAK_START),
+                buildTerminalRequest("BREAK STOP", TerminalPreset.BREAK_STOP)
+        );
+
+        boolean effectiveDryRun = dryRun || printToFile;
+        String effectiveOutputDir = printToFile
+                ? RuntimePathResolver.resolveJarSiblingDir(BarcodeCommand.class, "out").toString()
+                : outputDir;
+        Path zplFile = commandSupport.writeZplFile(zpl, effectiveOutputDir, artifactSlug(), TS, log);
+        if (zplFile == null) {
+            return 2;
+        }
+
+        log.info("ZPL file written: {}", zplFile.toAbsolutePath());
+
+        if (effectiveDryRun) {
+            System.out.println("Dry run enabled. ZPL generated at: " + zplFile.toAbsolutePath());
+            return 0;
+        }
+
+        if (printerId == null || printerId.isBlank()) {
+            System.err.println("Error: --printer is required unless --dry-run is specified.");
+            return 2;
+        }
+
+        PrinterConfig printer = resolvePrinter();
+        if (printer == null) {
+            return 2;
+        }
+
+        NetworkPrintService printService = new NetworkPrintService();
+        try {
+            printService.print(printer, zpl, "barcode-" + jobId);
+        } catch (Exception e) {
+            log.error("Barcode print failed", e);
+            System.err.println("Error: Failed to print barcode: " + e.getMessage());
+            return 6;
+        }
+
+        System.out.println("Printed barcode label to printer " + printer.getId() + " (" + printer.getEndpoint() + ")");
+        return 0;
+    }
+
+    private String resolveBarcodeData() {
+        if (data != null && !data.isBlank()) {
+            return data.trim();
+        }
+        if (preset == null) {
+            return null;
+        }
+        return preset.rawData;
+    }
+
+    private BarcodeRequest buildBarcodeRequest(String barcodeData) {
+        boolean hexEncoded = preset != null;
+        String caption = preset == null ? null : preset.caption;
         return new BarcodeRequest(
-                data,
+                barcodeData,
                 symbology,
                 orientation,
                 labelWidthDots,
@@ -234,9 +327,37 @@ public final class BarcodeCommand implements Callable<Integer> {
                 moduleWidth,
                 moduleRatio,
                 barcodeHeight,
-                humanReadable,
-                copies
+                preset == null && humanReadable,
+                copies,
+                caption,
+                hexEncoded
         );
+    }
+
+    private BarcodeRequest buildTerminalRequest(String caption, TerminalPreset terminalPreset) {
+        return new BarcodeRequest(
+                terminalPreset.rawData,
+                Symbology.CODE128,
+                Orientation.PORTRAIT,
+                labelWidthDots,
+                labelHeightDots,
+                originX,
+                originY,
+                moduleWidth,
+                moduleRatio,
+                barcodeHeight,
+                false,
+                1,
+                caption,
+                true
+        );
+    }
+
+    private String artifactSlug() {
+        if (preset != null) {
+            return preset.fileSlug;
+        }
+        return data;
     }
 
     private PrinterConfig resolvePrinter() {
@@ -261,5 +382,34 @@ public final class BarcodeCommand implements Callable<Integer> {
             return null;
         }
         return printer;
+    }
+
+    /**
+     * Predefined operator barcode payloads for quick terminal workflows.
+     */
+    enum TerminalPreset {
+        BREAK_START(xtermActivitySequence("START"), "BREAK START", "break-start"),
+        BREAK_STOP(xtermActivitySequence("STOP"), "BREAK STOP", "break-stop"),
+        BREAK_SHEET("BREAK SHEET", "BREAK SHEET", "break-sheet", true);
+
+        private final String rawData;
+        private final String caption;
+        private final String fileSlug;
+        private final boolean combinedSheet;
+
+        TerminalPreset(String rawData, String caption, String fileSlug) {
+            this(rawData, caption, fileSlug, false);
+        }
+
+        TerminalPreset(String rawData, String caption, String fileSlug, boolean combinedSheet) {
+            this.rawData = rawData;
+            this.caption = caption;
+            this.fileSlug = fileSlug;
+            this.combinedSheet = combinedSheet;
+        }
+
+        private static String xtermActivitySequence(String action) {
+            return String.valueOf((char) 27) + "[18~03BREAK\t" + action + '\r';
+        }
     }
 }

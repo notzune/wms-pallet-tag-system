@@ -12,6 +12,7 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 ### Added
 
 - Added a new SSCC label tool under the GUI `Tools` menu with CSV import, manual row entry, contextual header help, barcode helpers, and preview/export against the established ZPL layout.
+- Added `barcode --preset BREAK_START|BREAK_STOP|BREAK_SHEET` presets that emit the PuTTY/Telnet operator break sequence as hex-encoded CODE128 labels, including a combined `BREAK_SHEET` that stacks both barcodes on one label for printing to `3002_ZEB0`.
 
 ### Changed
 

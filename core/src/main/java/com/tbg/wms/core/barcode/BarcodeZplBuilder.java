@@ -20,6 +20,8 @@ public final class BarcodeZplBuilder {
     private static final int ESTIMATED_CODE128_QUIET_ZONE_MODULES = 20;
     private static final int HUMAN_READABLE_TEXT_HEIGHT_DOTS = 36;
     private static final int HUMAN_READABLE_TEXT_GAP_DOTS = 12;
+    private static final int CAPTION_TEXT_HEIGHT_DOTS = 36;
+    private static final int CAPTION_TEXT_GAP_DOTS = 12;
     private static final int CENTER_UPWARD_BIAS_DOTS = 36;
 
     private BarcodeZplBuilder() {
@@ -45,6 +47,11 @@ public final class BarcodeZplBuilder {
         zpl.append("^PW").append(request.getLabelWidthDots()).append('\n');
         zpl.append("^LL").append(request.getLabelHeightDots()).append('\n');
         zpl.append(landscape ? "^FWR\n" : "^FWN\n");
+        if (request.getCaptionText() != null && !request.getCaptionText().isBlank()) {
+            zpl.append("^FO").append(request.getOriginX()).append(',').append(request.getOriginY()).append('\n');
+            zpl.append("^A0N,36,36\n");
+            zpl.append("^FD").append(escapeZpl(request.getCaptionText())).append("^FS\n");
+        }
         zpl.append("^BY")
                 .append(request.getModuleWidth())
                 .append(',')
@@ -64,12 +71,7 @@ public final class BarcodeZplBuilder {
                 .append(',')
                 .append(request.isHumanReadable() ? "Y" : "N")
                 .append(",N,N\n");
-        zpl.append("^FD");
-        if (request.getSymbology() == Symbology.GS1_128) {
-            zpl.append(">;");
-        }
-        zpl.append(escapeZpl(request.getData()));
-        zpl.append("^FS\n");
+        appendFieldData(zpl, request);
         if (request.getCopies() > 1) {
             zpl.append("^PQ").append(request.getCopies()).append('\n');
         }
@@ -77,9 +79,38 @@ public final class BarcodeZplBuilder {
         return zpl.toString();
     }
 
+    /**
+     * Builds a single ZPL label containing two stacked barcode blocks.
+     *
+     * @param top top barcode request
+     * @param bottom bottom barcode request
+     * @return ZPL content
+     */
+    public static String buildDual(BarcodeRequest top, BarcodeRequest bottom) {
+        Objects.requireNonNull(top, "top cannot be null");
+        Objects.requireNonNull(bottom, "bottom cannot be null");
+
+        StringBuilder zpl = new StringBuilder(512);
+        zpl.append("^XA\n");
+        zpl.append("^PON\n");
+        zpl.append("^PW").append(top.getLabelWidthDots()).append('\n');
+        zpl.append("^LL").append(top.getLabelHeightDots()).append('\n');
+        zpl.append("^FWN\n");
+        appendBarcodeBlock(zpl, top, 60, 70, 130);
+        appendBarcodeBlock(zpl, bottom, 60, 650, 710);
+        zpl.append("^XZ\n");
+        return zpl.toString();
+    }
+
     private static Placement computePlacement(BarcodeRequest request, boolean landscape) {
         int estimatedBarcodeWidth = estimateBarcodeWidthDots(request);
-        int textHeight = request.isHumanReadable() ? HUMAN_READABLE_TEXT_HEIGHT_DOTS + HUMAN_READABLE_TEXT_GAP_DOTS : 0;
+        int textHeight = 0;
+        if (request.getCaptionText() != null && !request.getCaptionText().isBlank()) {
+            textHeight += CAPTION_TEXT_HEIGHT_DOTS + CAPTION_TEXT_GAP_DOTS;
+        }
+        if (request.isHumanReadable()) {
+            textHeight += HUMAN_READABLE_TEXT_HEIGHT_DOTS + HUMAN_READABLE_TEXT_GAP_DOTS;
+        }
         int blockWidth = estimatedBarcodeWidth;
         int blockHeight = request.getBarcodeHeight() + textHeight;
         if (landscape) {
@@ -127,6 +158,57 @@ public final class BarcodeZplBuilder {
                 .replace("}", "}}");
     }
 
+    private static void appendFieldData(StringBuilder zpl, BarcodeRequest request) {
+        if (request.isHexEncoded()) {
+            zpl.append("^FH");
+        }
+        zpl.append("^FD");
+        if (request.getSymbology() == Symbology.GS1_128) {
+            zpl.append(">;");
+        }
+        if (request.isHexEncoded()) {
+            zpl.append(toZplHexFieldData(request.getData()));
+        } else {
+            zpl.append(escapeZpl(request.getData()));
+        }
+        zpl.append("^FS\n");
+    }
+
+    private static void appendBarcodeBlock(StringBuilder zpl, BarcodeRequest request, int captionX, int captionY, int barcodeY) {
+        if (request.getCaptionText() != null && !request.getCaptionText().isBlank()) {
+            zpl.append("^FO").append(captionX).append(',').append(captionY).append('\n');
+            zpl.append("^A0N,36,36\n");
+            zpl.append("^FD").append(escapeZpl(request.getCaptionText())).append("^FS\n");
+        }
+        zpl.append("^BY")
+                .append(request.getModuleWidth())
+                .append(',')
+                .append(request.getModuleRatio())
+                .append(',')
+                .append(request.getBarcodeHeight())
+                .append('\n');
+        zpl.append("^FO").append(captionX).append(',').append(barcodeY).append('\n');
+        zpl.append("^BC")
+                .append("N")
+                .append(',')
+                .append(request.getBarcodeHeight())
+                .append(',')
+                .append(request.isHumanReadable() ? "Y" : "N")
+                .append(",N,N\n");
+        appendFieldData(zpl, request);
+    }
+
+    private static String toZplHexFieldData(String value) {
+        StringBuilder encoded = new StringBuilder(value.length() * 4);
+        for (int i = 0; i < value.length(); i++) {
+            int ch = value.charAt(i);
+            encoded.append('_');
+            encoded.append(Character.forDigit((ch >> 4) & 0xF, 16));
+            encoded.append(Character.forDigit(ch & 0xF, 16));
+        }
+        return encoded.toString().toUpperCase();
+    }
+
     private static int requirePositive(int value, String field) {
         if (value <= 0) {
             throw new IllegalArgumentException(field + " must be greater than 0");
@@ -146,6 +228,13 @@ public final class BarcodeZplBuilder {
             throw new IllegalArgumentException(field + " cannot be blank");
         }
         return value.trim();
+    }
+
+    private static String requireNonBlankRaw(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " cannot be blank");
+        }
+        return value;
     }
 
     /**
@@ -180,6 +269,8 @@ public final class BarcodeZplBuilder {
         private final int barcodeHeight;
         private final boolean humanReadable;
         private final int copies;
+        private final String captionText;
+        private final boolean hexEncoded;
 
         public BarcodeRequest(String data,
                               Symbology symbology,
@@ -193,7 +284,25 @@ public final class BarcodeZplBuilder {
                               int barcodeHeight,
                               boolean humanReadable,
                               int copies) {
-            this.data = requireNonBlank(data, "data");
+            this(data, symbology, orientation, labelWidthDots, labelHeightDots, originX, originY,
+                    moduleWidth, moduleRatio, barcodeHeight, humanReadable, copies, null, false);
+        }
+
+        public BarcodeRequest(String data,
+                              Symbology symbology,
+                              Orientation orientation,
+                              int labelWidthDots,
+                              int labelHeightDots,
+                              int originX,
+                              int originY,
+                              int moduleWidth,
+                              int moduleRatio,
+                              int barcodeHeight,
+                              boolean humanReadable,
+                              int copies,
+                              String captionText,
+                              boolean hexEncoded) {
+            this.data = hexEncoded ? requireNonBlankRaw(data, "data") : requireNonBlank(data, "data");
             this.symbology = Objects.requireNonNull(symbology, "symbology cannot be null");
             this.orientation = Objects.requireNonNull(orientation, "orientation cannot be null");
             this.labelWidthDots = requirePositive(labelWidthDots, "labelWidthDots");
@@ -205,6 +314,8 @@ public final class BarcodeZplBuilder {
             this.barcodeHeight = requirePositive(barcodeHeight, "barcodeHeight");
             this.humanReadable = humanReadable;
             this.copies = requirePositive(copies, "copies");
+            this.captionText = captionText;
+            this.hexEncoded = hexEncoded;
         }
 
         public String getData() {
@@ -253,6 +364,14 @@ public final class BarcodeZplBuilder {
 
         public int getCopies() {
             return copies;
+        }
+
+        public String getCaptionText() {
+            return captionText;
+        }
+
+        public boolean isHexEncoded() {
+            return hexEncoded;
         }
     }
 

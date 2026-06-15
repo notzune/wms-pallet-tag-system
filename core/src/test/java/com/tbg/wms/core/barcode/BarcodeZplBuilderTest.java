@@ -127,4 +127,45 @@ public class BarcodeZplBuilderTest {
         String zpl = BarcodeZplBuilder.build(request);
         assertTrue(zpl.contains("^FO80,90"));
     }
+
+    @Test
+    public void testBuildDualContainsBothCaptionsAndBarcodes() {
+        BarcodeZplBuilder.BarcodeRequest start = new BarcodeZplBuilder.BarcodeRequest(
+                "\u001B[18~03BREAK\tSTART\r",
+                BarcodeZplBuilder.Symbology.CODE128,
+                BarcodeZplBuilder.Orientation.PORTRAIT,
+                812,
+                1218,
+                60,
+                60,
+                3,
+                3,
+                220,
+                false,
+                1,
+                "BREAK START",
+                true
+        );
+        BarcodeZplBuilder.BarcodeRequest stop = new BarcodeZplBuilder.BarcodeRequest(
+                "\u001B[18~03BREAK\tSTOP\r",
+                BarcodeZplBuilder.Symbology.CODE128,
+                BarcodeZplBuilder.Orientation.PORTRAIT,
+                812,
+                1218,
+                60,
+                650,
+                3,
+                3,
+                220,
+                false,
+                1,
+                "BREAK STOP",
+                true
+        );
+
+        String zpl = BarcodeZplBuilder.buildDual(start, stop);
+        assertTrue(zpl.contains("BREAK START"));
+        assertTrue(zpl.contains("BREAK STOP"));
+        assertTrue(zpl.indexOf("^BCN") != zpl.lastIndexOf("^BCN"));
+    }
 }
