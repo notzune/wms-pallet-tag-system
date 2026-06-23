@@ -60,10 +60,9 @@ final class BarcodeCommandTest {
             assertTrue(artifact.getFileName().toString().matches("barcode-\\d{8}-\\d{6}-break-start\\.zpl"));
             String zpl = Files.readString(artifact);
             assertTrue(zpl.contains("BREAK START"));
-            // Hex-encoded Velocity token "{F7}" ({=7B, F=46, 7=37, }=7D) starts the payload.
-            assertTrue(zpl.contains("^FH^FD_7B_46_37_7D"));
-            // Long key-command payload is rendered as 2D Data Matrix, not 1D Code 128.
-            assertTrue(zpl.contains("^BXN"));
+            // Short trigger as Code 128; the Velocity scan handler maps it to the key macro.
+            assertTrue(zpl.contains("^FDBRKSTART^FS"));
+            assertTrue(zpl.contains("^BCN"));
         }
     }
 
@@ -85,10 +84,9 @@ final class BarcodeCommandTest {
             assertTrue(artifact.getFileName().toString().matches("barcode-\\d{8}-\\d{6}-break-stop\\.zpl"));
             String zpl = Files.readString(artifact);
             assertTrue(zpl.contains("BREAK STOP"));
-            // Hex-encoded Velocity token "{F7}" ({=7B, F=46, 7=37, }=7D) starts the payload.
-            assertTrue(zpl.contains("^FH^FD_7B_46_37_7D"));
-            // Long key-command payload is rendered as 2D Data Matrix, not 1D Code 128.
-            assertTrue(zpl.contains("^BXN"));
+            // Short trigger as Code 128; the Velocity scan handler maps it to the key macro.
+            assertTrue(zpl.contains("^FDBRKSTOP^FS"));
+            assertTrue(zpl.contains("^BCN"));
         }
     }
 
@@ -118,8 +116,10 @@ final class BarcodeCommandTest {
             String zpl = Files.readString(artifacts.get(0));
             assertTrue(zpl.contains("BREAK START"));
             assertTrue(zpl.contains("BREAK STOP"));
-            // Two 2D Data Matrix symbols (START over STOP) on one label.
-            assertTrue(zpl.indexOf("^BXN") != zpl.lastIndexOf("^BXN"));
+            assertTrue(zpl.contains("^FDBRKSTART^FS"));
+            assertTrue(zpl.contains("^FDBRKSTOP^FS"));
+            // Two Code 128 trigger barcodes (START over STOP) on one label.
+            assertTrue(zpl.indexOf("^BCN") != zpl.lastIndexOf("^BCN"));
         }
     }
 }

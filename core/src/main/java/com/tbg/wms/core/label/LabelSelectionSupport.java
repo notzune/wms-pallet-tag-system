@@ -48,19 +48,25 @@ public final class LabelSelectionSupport {
 
         Set<String> selectedLpnIds = new LinkedHashSet<>();
         for (LabelSelectionRef selectedRef : selectedRefs) {
-            if (selectedRef != null) {
-                selectedLpnIds.add(selectedRef.getLpnId());
+            if (selectedRef == null) {
+                throw new IllegalArgumentException("Selected label reference cannot be null.");
             }
+            selectedLpnIds.add(selectedRef.getLpnId());
         }
         if (selectedLpnIds.isEmpty()) {
             throw new IllegalArgumentException("Select at least one label.");
         }
 
         List<Lpn> selected = new ArrayList<>(selectedLpnIds.size());
+        Set<String> unmatchedLpnIds = new LinkedHashSet<>(selectedLpnIds);
         for (Lpn lpn : availableLpns) {
             if (lpn != null && selectedLpnIds.contains(lpn.getLpnId())) {
                 selected.add(lpn);
+                unmatchedLpnIds.remove(lpn.getLpnId());
             }
+        }
+        if (!unmatchedLpnIds.isEmpty()) {
+            throw new IllegalArgumentException("Selected LPN is not available: " + unmatchedLpnIds.iterator().next());
         }
         return selected;
     }

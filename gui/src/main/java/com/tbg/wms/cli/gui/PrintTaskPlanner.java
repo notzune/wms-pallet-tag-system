@@ -1,15 +1,9 @@
 package com.tbg.wms.cli.gui;
 
-import com.tbg.wms.core.label.LabelDataBuilder;
 import com.tbg.wms.core.label.LabelSelectionRef;
-import com.tbg.wms.core.label.LabelType;
-import com.tbg.wms.core.labeling.LabelingSupport;
 import com.tbg.wms.core.model.Lpn;
-import com.tbg.wms.core.model.Shipment;
-import com.tbg.wms.core.template.ZplTemplateEngine;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,8 +17,8 @@ import java.util.Objects;
  * executing checkpointed tasks.</p>
  */
 final class PrintTaskPlanner {
-    private static final int MAX_LABELS_PER_JOB = 10_000;
-    private static final int MAX_ARTIFACT_SLUG_LENGTH = 64;
+    private static final PalletLabelPrintTaskSupport PALLET_LABEL_TASKS = new PalletLabelPrintTaskSupport();
+    private static final InfoTagPrintTaskSupport INFO_TAG_TASKS = new InfoTagPrintTaskSupport();
 
     private PrintTaskPlanner() {
     }
@@ -60,49 +54,10 @@ final class PrintTaskPlanner {
 
     static List<AdvancedPrintWorkflowService.PrintTask> buildShipmentTasks(ShipmentPrintBatch batch) {
         Objects.requireNonNull(batch, "batch cannot be null");
-        LabelWorkflowService.PreparedJob job = batch.getShipmentJob();
-        List<Lpn> lpnsToPrint = batch.getLpnsToPrint();
-        LabelDataBuilder builder = new LabelDataBuilder(job.getSkuMapping(), job.getSiteConfig(), job.getFootprintBySku());
-        Shipment shipmentForLabels = LabelingSupport.buildShipmentForLabeling(job.getShipment(), lpnsToPrint);
-        int labelCount = lpnsToPrint.size();
-        if (labelCount > MAX_LABELS_PER_JOB) {
-            throw new IllegalArgumentException("Label count exceeds max limit: " + MAX_LABELS_PER_JOB);
-        }
-        List<AdvancedPrintWorkflowService.PrintTask> tasks =
-                new ArrayList<>(labelCount + (batch.isIncludeShipmentInfoTag() ? 1 : 0));
-        String safeShipmentId = ArtifactNameSupport.safeSlug(job.getShipmentId(), "shipment", MAX_ARTIFACT_SLUG_LENGTH);
-        String stopSuffix = batch.getStopPosition() == null ? "" : (" stop " + batch.getStopPosition());
-        for (int i = 0; i < labelCount; i++) {
-            Lpn lpn = lpnsToPrint.get(i);
-            Map<String, String> data = new LinkedHashMap<>(builder.build(shipmentForLabels, lpn, i, LabelType.WALMART_CANADA_GRID));
-            if (batch.getStopSequence() != null) {
-                data.put("stopSequence", String.valueOf(batch.getStopSequence()));
-            }
-            if (job.isUsingVirtualLabels()) {
-                data.put("palletSeq", String.valueOf(i + 1));
-                data.put("palletTotal", String.valueOf(labelCount));
-            }
-            String zpl = ZplTemplateEngine.generate(job.getTemplate(), data);
-            String safeLpnId = ArtifactNameSupport.safeSlug(lpn.getLpnId(), "lpn", MAX_ARTIFACT_SLUG_LENGTH);
-            String fileName = String.format("%s_%s_%d_of_%d.zpl", safeShipmentId, safeLpnId, i + 1, labelCount);
-            String payload = job.getShipmentId() + ":" + lpn.getLpnId() + stopSuffix;
-            tasks.add(new AdvancedPrintWorkflowService.PrintTask(
-                    AdvancedPrintWorkflowService.TaskKind.PALLET_LABEL,
-                    fileName,
-                    zpl,
-                    payload
-            ));
-        }
+        List<AdvancedPrintWorkflowService.PrintTask> tasks = new ArrayList<>(PALLET_LABEL_TASKS.buildPalletLabelTasks(batch));
 
         if (batch.isIncludeShipmentInfoTag()) {
-            String infoFile = "info-shipment-" + safeShipmentId + ".zpl";
-            String infoZpl = InfoTagZplBuilder.buildShipmentInfoTag(job);
-            tasks.add(new AdvancedPrintWorkflowService.PrintTask(
-                    AdvancedPrintWorkflowService.TaskKind.STOP_INFO_TAG,
-                    infoFile,
-                    infoZpl,
-                    "INFO-SHIPMENT " + job.getShipmentId()
-            ));
+            tasks.add(INFO_TAG_TASKS.buildShipmentInfoTask(batch.getShipmentJob()));
         }
         return tasks;
     }
@@ -132,16 +87,7 @@ final class PrintTaskPlanner {
         }
 
         if (includeInfoTags && !stopBatches.isEmpty()) {
-            String finalFile = "info-final-cmid-" +
-                    ArtifactNameSupport.safeSlug(job.getCarrierMoveId(), "carrier-move", MAX_ARTIFACT_SLUG_LENGTH) +
-                    ".zpl";
-            String finalInfo = InfoTagZplBuilder.buildFinalInfoTag(job);
-            tasks.add(new AdvancedPrintWorkflowService.PrintTask(
-                    AdvancedPrintWorkflowService.TaskKind.FINAL_INFO_TAG,
-                    finalFile,
-                    finalInfo,
-                    "INFO-FINAL " + job.getCarrierMoveId()
-            ));
+            tasks.add(INFO_TAG_TASKS.buildFinalInfoTask(job));
         }
         return tasks;
     }
@@ -194,30 +140,16 @@ final class PrintTaskPlanner {
             AdvancedPrintWorkflowService.PreparedCarrierMoveJob job,
             CarrierMoveStopBatch stopBatch
     ) {
-        List<String> shipmentIds = new ArrayList<>(stopBatch.getShipmentBatches().size());
         List<LabelWorkflowService.PreparedJob> shipmentJobs = new ArrayList<>(stopBatch.getShipmentBatches().size());
         for (ShipmentPrintBatch shipmentBatch : stopBatch.getShipmentBatches()) {
-            shipmentIds.add(shipmentBatch.getShipmentJob().getShipmentId());
             shipmentJobs.add(shipmentBatch.getShipmentJob());
         }
-        String stopInfoFile = String.format(
-                "info-stop-%02d-of-%02d.zpl",
-                stopBatch.getStop().getStopPosition(),
-                stopBatch.getTotalStops()
-        );
-        String stopInfo = InfoTagZplBuilder.buildStopInfoTag(
+        return INFO_TAG_TASKS.buildStopInfoTask(
                 job.getCarrierMoveId(),
                 stopBatch.getStop().getStopPosition(),
                 stopBatch.getTotalStops(),
                 stopBatch.getStop().getStopSequence(),
-                shipmentIds,
                 shipmentJobs
-        );
-        return new AdvancedPrintWorkflowService.PrintTask(
-                AdvancedPrintWorkflowService.TaskKind.STOP_INFO_TAG,
-                stopInfoFile,
-                stopInfo,
-                "INFO-STOP " + stopBatch.getStop().getStopPosition()
         );
     }
 

@@ -7,9 +7,29 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class LabelSelectionSupportTest {
+
+    @Test
+    void labelSelectionRef_shouldCompareByNormalizedValue() {
+        LabelSelectionRef first = LabelSelectionRef.forCarrierMove(1, " SHIP-1 ", " LPN-1 ", 2);
+        LabelSelectionRef same = LabelSelectionRef.forCarrierMove(1, "SHIP-1", "LPN-1", 2);
+        LabelSelectionRef differentStop = LabelSelectionRef.forCarrierMove(1, "SHIP-1", "LPN-1", 3);
+
+        assertEquals(first, same);
+        assertEquals(first.hashCode(), same.hashCode());
+        assertNotEquals(first, differentStop);
+    }
+
+    @Test
+    void labelSelectionRef_shouldRejectInvalidCarrierMoveStopPosition() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> LabelSelectionRef.forCarrierMove(1, "SHIP-1", "LPN-1", 0));
+
+        assertEquals("stopPosition must be >= 1", ex.getMessage());
+    }
 
     @Test
     void parseOneBasedSelection_shouldReturnAllWhenBlank() {
@@ -84,5 +104,31 @@ class LabelSelectionSupportTest {
         );
 
         assertEquals(List.of("LPN-1", "LPN-3"), selected.stream().map(Lpn::getLpnId).collect(Collectors.toList()));
+    }
+
+    @Test
+    void selectLpnsByRefs_shouldRejectNullSelectionRef() {
+        Lpn first = new Lpn("LPN-1", "SHIP-1", null, 0, 0, 0.0, null, null, null, null, null, List.of());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> LabelSelectionSupport.selectLpnsByRefs(List.of(first), java.util.Arrays.asList(
+                        LabelSelectionRef.forShipment(1, "SHIP-1", "LPN-1"),
+                        null
+                )));
+
+        assertEquals("Selected label reference cannot be null.", ex.getMessage());
+    }
+
+    @Test
+    void selectLpnsByRefs_shouldRejectSelectionsThatDoNotMatchAvailableLpns() {
+        Lpn first = new Lpn("LPN-1", "SHIP-1", null, 0, 0, 0.0, null, null, null, null, null, List.of());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> LabelSelectionSupport.selectLpnsByRefs(
+                        List.of(first),
+                        List.of(LabelSelectionRef.forShipment(2, "SHIP-1", "LPN-2"))
+                ));
+
+        assertEquals("Selected LPN is not available: LPN-2", ex.getMessage());
     }
 }

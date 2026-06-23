@@ -29,6 +29,27 @@ class GuiUpdateExecutionSupportTest {
     }
 
     @Test
+    void planCheckStart_shouldHandleDuplicateAndFreshChecks() {
+        GuiUpdateExecutionSupport.CheckStartPlan duplicateUserCheck =
+                support.planCheckStart(true, true, true);
+        GuiUpdateExecutionSupport.CheckStartPlan duplicateBackgroundCheck =
+                support.planCheckStart(true, false, true);
+        GuiUpdateExecutionSupport.CheckStartPlan freshCheckWithStatus =
+                support.planCheckStart(false, false, true);
+        GuiUpdateExecutionSupport.CheckStartPlan freshCheckWithoutStatus =
+                support.planCheckStart(false, true, false);
+
+        assertFalse(duplicateUserCheck.shouldStart());
+        assertEquals("Update check already in progress...", duplicateUserCheck.statusOutputMessage());
+        assertFalse(duplicateBackgroundCheck.shouldStart());
+        assertEquals(null, duplicateBackgroundCheck.statusOutputMessage());
+        assertTrue(freshCheckWithStatus.shouldStart());
+        assertEquals("Checking for updates...", freshCheckWithStatus.statusOutputMessage());
+        assertTrue(freshCheckWithoutStatus.shouldStart());
+        assertEquals(null, freshCheckWithoutStatus.statusOutputMessage());
+    }
+
+    @Test
     void resolvePromptAction_shouldFollowUpdateFlowPolicy() {
         ReleaseCheckService.ReleaseInfo browserOnly = releaseInfo(true, List.of(installerAsset()));
         ReleaseCheckService.ReleaseInfo guided = releaseInfo(true, List.of(installerAsset(), checksumAsset()));

@@ -21,6 +21,14 @@
         <module>db</module>
         <module>gui</module>
         <module>cli</module>
+        <module>wms-domain</module>
+        <module>wms-application</module>
+        <module>wms-oracle</module>
+        <module>wms-printing</module>
+        <module>wms-files</module>
+        <module>wms-cli</module>
+        <module>wms-desktop</module>
+        <module>wms-smoke</module>
     </modules>
 
     <properties>

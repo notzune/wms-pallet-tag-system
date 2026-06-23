@@ -315,11 +315,10 @@ public final class BarcodeCommand implements Callable<Integer> {
     }
 
     private BarcodeRequest buildBarcodeRequest(String barcodeData) {
-        boolean hexEncoded = preset != null;
         String caption = preset == null ? null : preset.caption;
-        // Terminal presets carry long key-command strings; render them as 2D
-        // (Data Matrix) so they fit and scan on a narrow label.
-        Symbology effectiveSymbology = preset != null ? Symbology.DATA_MATRIX : symbology;
+        // Terminal presets carry a short alphanumeric trigger (e.g. BRKSTART);
+        // encode it as a plain Code 128 so it scans reliably.
+        Symbology effectiveSymbology = preset != null ? Symbology.CODE128 : symbology;
         return new BarcodeRequest(
                 barcodeData,
                 effectiveSymbology,
@@ -334,14 +333,14 @@ public final class BarcodeCommand implements Callable<Integer> {
                 preset == null && humanReadable,
                 copies,
                 caption,
-                hexEncoded
+                false
         );
     }
 
     private BarcodeRequest buildTerminalRequest(String caption, TerminalPreset terminalPreset) {
         return new BarcodeRequest(
                 terminalPreset.rawData,
-                Symbology.DATA_MATRIX,
+                Symbology.CODE128,
                 Orientation.PORTRAIT,
                 labelWidthDots,
                 labelHeightDots,
@@ -353,7 +352,7 @@ public final class BarcodeCommand implements Callable<Integer> {
                 false,
                 1,
                 caption,
-                true
+                false
         );
     }
 
@@ -390,10 +389,26 @@ public final class BarcodeCommand implements Callable<Integer> {
 
     /**
      * Predefined operator barcode payloads for quick terminal workflows.
+     *
+     * <p>Each label carries only a short, distinctive <em>trigger</em> string (for
+     * example {@code BRKSTART}). The actual key sequence is not in the barcode:
+     * Honeywell Velocity does not interpret key-command tokens embedded directly in
+     * scanned data (it types them literally), but it does honor them inside a
+     * <em>scan handler</em> macro. So the device is configured with a scan handler
+     * that matches each trigger and plays the stored key macro:
+     * <pre>
+     * BRKSTART -&gt; {F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}START{return}
+     * BRKSTOP  -&gt; {F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}STOP{return}
+     * </pre>
+     * The macro maps the manual sequence (F7 to Tools menu, {@code 0} next page,
+     * {@code 3} Activity Login, type {@code BREAK}, Tab, type {@code START}/{@code STOP},
+     * submit). VT-220 key codes: {@code {F7}}={@code E041}, {@code {tab}}={@code 0009},
+     * {@code {return}}={@code 000D} (the host profile is VT-220, so the submit key is
+     * {@code {return}}, not the 3270-only {@code {enter}}).
      */
     enum TerminalPreset {
-        BREAK_START(velocityActivitySequence("START"), "BREAK START", "break-start"),
-        BREAK_STOP(velocityActivitySequence("STOP"), "BREAK STOP", "break-stop"),
+        BREAK_START("BRKSTART", "BREAK START", "break-start"),
+        BREAK_STOP("BRKSTOP", "BREAK STOP", "break-stop"),
         BREAK_SHEET("BREAK SHEET", "BREAK SHEET", "break-sheet", true);
 
         private final String rawData;
@@ -410,33 +425,6 @@ public final class BarcodeCommand implements Callable<Integer> {
             this.caption = caption;
             this.fileSlug = fileSlug;
             this.combinedSheet = combinedSheet;
-        }
-
-        /**
-         * Builds the Honeywell Velocity key-command payload for the operator
-         * break activity. The barcode carries only printable characters; Velocity
-         * parses the brace tokens in scanned data and replays them as real host
-         * key presses (this requires Velocity to be configured to process key
-         * commands from scans). The mapped manual sequence is:
-         * <ol>
-         *   <li>{@code {F7}} opens the Tools menu from the Undirected Menu</li>
-         *   <li>{@code 0} advances to the next page</li>
-         *   <li>{@code 3} selects Activity Login</li>
-         *   <li>{@code BREAK} is typed into the first field</li>
-         *   <li>{@code {tab}} moves to the next field</li>
-         *   <li>the action ({@code START}/{@code STOP}) is typed</li>
-         *   <li>{@code {return}} submits the field</li>
-         * </ol>
-         * Tokens are the Velocity VT-220 key codes ({@code {F7}}={@code E041},
-         * {@code {tab}}={@code 0009}, {@code {return}}={@code 000D}); the host
-         * profile is VT-220, so the submit key is {@code {return}} rather than the
-         * 3270-only {@code {enter}}. {@code {pause:500}} lets each screen redraw
-         * before the next key so the host does not buffer a keystroke into the
-         * wrong screen. The pause duration and {@code {tab}} vs {@code {down}} are
-         * the likely tuning knobs if a live scan misfires.
-         */
-        private static String velocityActivitySequence(String action) {
-            return "{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}" + action + "{return}";
         }
     }
 }

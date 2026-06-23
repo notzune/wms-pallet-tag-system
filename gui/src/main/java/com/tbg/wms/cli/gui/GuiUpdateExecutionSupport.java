@@ -31,6 +31,19 @@ final class GuiUpdateExecutionSupport {
         return "Checking for updates...";
     }
 
+    CheckStartPlan planCheckStart(boolean checkInProgress, boolean userInitiated, boolean hasStatusOutput) {
+        if (checkInProgress) {
+            return new CheckStartPlan(
+                    false,
+                    userInitiated && hasStatusOutput ? alreadyInProgressMessage() : null
+            );
+        }
+        return new CheckStartPlan(
+                true,
+                hasStatusOutput ? checkingForUpdatesMessage() : null
+        );
+    }
+
     CheckCompletionOutcome buildCheckCompletion(ReleaseCheckService.ReleaseInfo releaseInfo) {
         Objects.requireNonNull(releaseInfo, "releaseInfo cannot be null");
         return new CheckCompletionOutcome(
@@ -107,6 +120,12 @@ final class GuiUpdateExecutionSupport {
             String statusMessage,
             String tooltip,
             boolean updateAvailable
+    ) {
+    }
+
+    record CheckStartPlan(
+            boolean shouldStart,
+            String statusOutputMessage
     ) {
     }
 

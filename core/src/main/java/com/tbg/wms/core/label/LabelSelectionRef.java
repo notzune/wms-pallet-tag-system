@@ -15,6 +15,9 @@ public final class LabelSelectionRef {
         if (oneBasedIndex < 1) {
             throw new IllegalArgumentException("oneBasedIndex must be >= 1");
         }
+        if (stopPosition != null && stopPosition < 1) {
+            throw new IllegalArgumentException("stopPosition must be >= 1");
+        }
         this.oneBasedIndex = oneBasedIndex;
         this.shipmentId = normalizeRequired(shipmentId, "shipmentId");
         this.lpnId = normalizeRequired(lpnId, "lpnId");
@@ -47,6 +50,35 @@ public final class LabelSelectionRef {
 
     public boolean isCarrierMoveSelection() {
         return stopPosition != null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof LabelSelectionRef that)) {
+            return false;
+        }
+        return oneBasedIndex == that.oneBasedIndex
+                && shipmentId.equals(that.shipmentId)
+                && lpnId.equals(that.lpnId)
+                && Objects.equals(stopPosition, that.stopPosition);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(oneBasedIndex, shipmentId, lpnId, stopPosition);
+    }
+
+    @Override
+    public String toString() {
+        return "LabelSelectionRef{"
+                + "oneBasedIndex=" + oneBasedIndex
+                + ", shipmentId='" + shipmentId + '\''
+                + ", lpnId='" + lpnId + '\''
+                + ", stopPosition=" + stopPosition
+                + '}';
     }
 
     private static String normalizeRequired(String value, String fieldName) {

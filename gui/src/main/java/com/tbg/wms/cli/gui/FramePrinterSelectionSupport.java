@@ -43,4 +43,41 @@ final class FramePrinterSelectionSupport {
             comboBox.setSelectedIndex(selectionIndex);
         }
     }
+
+    LoadedPrinterPlan planLoadedPrinters(
+            ComboBoxModel<LabelWorkflowService.PrinterOption> model,
+            int printerCount,
+            GuiPrinterSelectionSupport printerSelectionSupport
+    ) {
+        Objects.requireNonNull(printerSelectionSupport, "printerSelectionSupport cannot be null");
+        List<LabelWorkflowService.PrinterOption> items = comboItems(model);
+        return new LoadedPrinterPlan(
+                printerSelectionSupport.resolveSelectionIndex(null, items),
+                printerSelectionSupport.printerLoadStatusMessage(printerCount, model.getSize())
+        );
+    }
+
+    SelectionAction resolveSelectionAction(
+            LabelWorkflowService.PrinterOption selected,
+            LabelWorkflowService.PrinterOption lastValidSelection
+    ) {
+        if (GuiPrinterTargetSupport.isSeparator(selected)) {
+            return lastValidSelection == null
+                    ? SelectionAction.RESTORE_DEFAULT
+                    : SelectionAction.RESTORE_LAST_VALID;
+        }
+        return SelectionAction.ACCEPT_SELECTED;
+    }
+
+    enum SelectionAction {
+        ACCEPT_SELECTED,
+        RESTORE_LAST_VALID,
+        RESTORE_DEFAULT
+    }
+
+    record LoadedPrinterPlan(
+            int selectionIndex,
+            String statusMessage
+    ) {
+    }
 }

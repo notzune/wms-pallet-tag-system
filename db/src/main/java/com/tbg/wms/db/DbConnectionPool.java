@@ -9,8 +9,8 @@
 package com.tbg.wms.db;
 
 import com.tbg.wms.core.AppConfig;
+import com.tbg.wms.core.db.OracleHikariConfigSupport;
 import com.tbg.wms.core.exception.WmsDbConnectivityException;
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,30 +120,19 @@ public final class DbConnectionPool implements AutoCloseable {
      * @return a configured HikariDataSource
      */
     private HikariDataSource createDataSource(AppConfig config, String jdbcUrl) {
-        HikariConfig hc = new HikariConfig();
-        hc.setJdbcUrl(jdbcUrl);
-        hc.setUsername(config.oracleUsername());
-        hc.setPassword(config.oraclePassword());
-
-        hc.setMaximumPoolSize(config.dbPoolMaxSize());
-        // Avoid eager prefill so invalid credentials don't fan out into multiple rapid login failures.
-        hc.setMinimumIdle(0);
-        hc.setConnectionTimeout(config.dbPoolConnectionTimeoutMs());
-        hc.setValidationTimeout(config.dbPoolValidationTimeoutMs());
-        // Defer physical connection creation until first explicit borrow in constructor validation.
-        hc.setInitializationFailTimeout(-1);
-
-        hc.setPoolName("wms-tags-oracle-" + config.activeSiteCode());
-        hc.setAutoCommit(true);
-        hc.setReadOnly(true);
-
-        // Oracle best practice: lightweight validation query
-        hc.setConnectionTestQuery("SELECT 1 FROM dual");
-
-        // Optional: leak detection (logs warnings if connection held > 60s)
-        hc.setLeakDetectionThreshold(60000);
-
-        return new HikariDataSource(hc);
+        return new HikariDataSource(OracleHikariConfigSupport.build(
+                new OracleHikariConfigSupport.Settings(
+                        jdbcUrl,
+                        config.oracleUsername(),
+                        config.oraclePassword(),
+                        config.dbPoolMaxSize(),
+                        config.dbPoolConnectionTimeoutMs(),
+                        config.dbPoolValidationTimeoutMs(),
+                        "wms-tags-oracle-" + config.activeSiteCode(),
+                        true,
+                        0,
+                        -1L,
+                        60_000L)));
     }
 
     /**
