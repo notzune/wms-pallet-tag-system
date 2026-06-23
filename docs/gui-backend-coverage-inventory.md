@@ -15,7 +15,7 @@ It is intended to complement `docs/release-smoke-coverage-matrix.md` by making t
 | Rail alignment template | `RailPrintCommand`, `RailCardRenderer` | release smoke (`rail-print --template`) | Deterministic PDF template generation is fully covered. |
 | Rail system-default printer validation | `RailPrintCommand`, `RailPrintService.print(Path)` | release smoke (`rail-print --validate-system-default-print`) + `RailPrintCommandTest` | Non-destructive validation only; no live print job is sent during smoke. |
 | Settings: update check / uninstall prep / advanced settings launchers | `ReleaseCheckService`, `InstallMaintenanceService`, `AdvancedSettingsDialog`, `MainSettingsDialog` | `MainSettingsDialogTest`, `AdvancedSettingsDialogTest`, targeted unit/service coverage | Confirms settings-button callback wiring and advanced-settings file targeting without relying on manual clicking. |
-| Developer mode / Analyzers tool gating | `RuntimeSettings`, `LabelGuiFrameToolMenuSupport`, `LabelGuiFrame` | `RuntimeSettingsTest`, `LabelGuiFrameToolMenuSupportTest`, `AdvancedSettingsDialogTest`, `LabelGuiFrameStartupTest` | Confirms the persisted toggle exists, analyzers stay hidden by default, and the main GUI still starts cleanly with the new gate in place. |
+| Developer mode status messaging | `RuntimeSettings`, `LabelGuiFrame`, settings dialogs | `RuntimeSettingsTest`, `AdvancedSettingsDialogTest`, `LabelGuiFrameStartupTest` | Developer mode remains available for richer debug/status messaging; analyzer tooling was removed from 2.0. |
 | Packaged Tropicana config precedence | `ConfigFileLocator`, `AppConfig` | packaged smoke (`config`) + packaged installer smoke | Verified through packaged and installer smoke with isolated `%LOCALAPPDATA%`. |
 | Tropicana bootstrap installer flow | `build-tropicana-installer.ps1`, `install-wms-installer.ps1`, embedded bootstrap scripts | packaged smoke with `-IncludeInstallerScenarios` + PowerShell tests | Current smoke also verifies rerun-safe replacement for the smoke-specific app identity. |
 
@@ -47,3 +47,9 @@ It is intended to complement `docs/release-smoke-coverage-matrix.md` by making t
 - No Tier 1 release smoke scenario remains uncovered.
 - The remaining gaps are concentrated in Swing presentation and operator interaction, not backend release mechanics.
 - Queue/resume remains the highest-value future GUI-only hardening area because it executes real print-task orchestration outside the current smoke boundary.
+
+## Removed from 2.0 GUI scope
+
+- Analyzers were removed from the 2.0 track after the experiment failed to justify active runtime complexity.
+- SSCC-specific GUI/domain tooling is deferred for a future redesign.
+- Generic barcode tooling remains supported and covered through CLI smoke plus Barcode Generator tests.

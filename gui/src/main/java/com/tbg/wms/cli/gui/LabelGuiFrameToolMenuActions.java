@@ -8,30 +8,24 @@ import java.util.Objects;
 final class LabelGuiFrameToolMenuActions implements LabelGuiFrameToolMenuSupport.MenuActions {
 
     private final Runnable openRailLabelsDialog;
-    private final Runnable openSsccLabelsDialog;
     private final Runnable openQueueDialog;
     private final Runnable openBarcodeDialog;
     private final Runnable openZplPreviewDialog;
-    private final Runnable openAnalyzersDialog;
     private final Runnable openResumeDialog;
     private final Runnable openSettingsDialog;
 
     LabelGuiFrameToolMenuActions(
             Runnable openRailLabelsDialog,
-            Runnable openSsccLabelsDialog,
             Runnable openQueueDialog,
             Runnable openBarcodeDialog,
             Runnable openZplPreviewDialog,
-            Runnable openAnalyzersDialog,
             Runnable openResumeDialog,
             Runnable openSettingsDialog
     ) {
         this.openRailLabelsDialog = Objects.requireNonNull(openRailLabelsDialog, "openRailLabelsDialog cannot be null");
-        this.openSsccLabelsDialog = Objects.requireNonNull(openSsccLabelsDialog, "openSsccLabelsDialog cannot be null");
         this.openQueueDialog = Objects.requireNonNull(openQueueDialog, "openQueueDialog cannot be null");
         this.openBarcodeDialog = Objects.requireNonNull(openBarcodeDialog, "openBarcodeDialog cannot be null");
         this.openZplPreviewDialog = Objects.requireNonNull(openZplPreviewDialog, "openZplPreviewDialog cannot be null");
-        this.openAnalyzersDialog = Objects.requireNonNull(openAnalyzersDialog, "openAnalyzersDialog cannot be null");
         this.openResumeDialog = Objects.requireNonNull(openResumeDialog, "openResumeDialog cannot be null");
         this.openSettingsDialog = Objects.requireNonNull(openSettingsDialog, "openSettingsDialog cannot be null");
     }
@@ -39,11 +33,6 @@ final class LabelGuiFrameToolMenuActions implements LabelGuiFrameToolMenuSupport
     @Override
     public void openRailLabelsDialog() {
         openRailLabelsDialog.run();
-    }
-
-    @Override
-    public void openSsccLabelsDialog() {
-        openSsccLabelsDialog.run();
     }
 
     @Override
@@ -59,11 +48,6 @@ final class LabelGuiFrameToolMenuActions implements LabelGuiFrameToolMenuSupport
     @Override
     public void openZplPreviewDialog() {
         openZplPreviewDialog.run();
-    }
-
-    @Override
-    public void openAnalyzersDialog() {
-        openAnalyzersDialog.run();
     }
 
     @Override

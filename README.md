@@ -25,7 +25,7 @@ Active tracked work:
 
 - `#42` improves rail label readability, physical label-sheet documentation, multi-train input, combined PDF generation, and explicit printable-row selection.
 - `#43` adds contextual GUI help buttons and shared help-dialog behavior across operator views.
-- `#44` adds the SSCC label tool under `Tools`, with CSV import, manual row entry, preview/export, and a fixed ZPL-based template that matches the established label layout.
+- The 2.0 rewrite track removes the failed analyzer experiment and defers SSCC-specific tooling for a future redesign.
 
 ## Current Scope
 
@@ -35,7 +35,7 @@ Implemented and supported:
 - `db-test` command (database connectivity diagnostics)
 - `ems-recon` command (legacy EMS reconciliation XLS analysis and fix-plan output)
 - `run` command (shipment or carrier-move label generation and printing)
-- `gui` command (desktop workflow with shipment/carrier-move preview, SSCC label import/manual entry, and confirm-print)
+- `gui` command (desktop workflow with shipment/carrier-move preview, rail labels, barcode generation, queue/resume, ZPL preview, settings, and confirm-print)
 - `barcode` command (standalone barcode ZPL generation and optional printing)
 - `rail-helper` command (rail office merge CSV generation from item footprint data)
 - `rail-print` command (WMS-first railcar preview, direct PDF card rendering, optional printing)
@@ -46,7 +46,9 @@ Implemented and supported:
 - Bulk queue processing (mixed shipment and carrier move jobs)
 - Job persistence and resume for interrupted print runs
 - Dedicated `gui` Maven module for Swing workflows (separated from CLI command module)
-- SSCC labels are available from the GUI `Tools` menu and require the same CSV headers as the workbook-derived import format
+- Generic barcode tooling remains supported.
+- Analyzers were removed from the 2.0 track.
+- SSCC-specific tooling is deferred for a future redesign.
 
 Not implemented yet:
 
@@ -58,7 +60,7 @@ Not implemented yet:
 - DB shipment hydration now also coalesces duplicate LPN rows from mixed inventory-detail joins so one physical pallet cannot generate duplicate labels.
 - GUI workflow caches are site-scoped and thread-safe to prevent stale cross-site printer/site metadata reuse.
 - GUI preview selection refresh now snapshots the selected labels once per update cycle instead of rebuilding shipment/carrier subsets repeatedly.
-- The Daily Operations analyzer loads dashboard sections concurrently through one refresh-scoped Oracle data source, renders section-level failures inline, and shows explicit loading/empty states.
+- The 2.0 rewrite keeps routine print, barcode, rail, queue/resume, config, and smoke-test paths while removing failed analyzer and SSCC-specific tool experiments.
 - Query and command execution paths remain hardened with prepared statements and argumentized process invocation patterns.
 - Architecture and SRP follow-up notes are tracked in [docs/architecture-solid-audit.md](docs/architecture-solid-audit.md).
 - Large Swing coordinators are refactor targets, not preferred homes for unrelated feature expansion.
@@ -553,7 +555,7 @@ Workflow:
 - `Tools` shows an alert badge when an application update is available, and `Settings...` exposes manual update checks plus packaged-install uninstall / clean-wipe launchers.
 - If the latest release includes the packaged installer `.exe`, update checks can use a guided download-and-install path instead of only opening the release page.
 - `Settings...` also exposes `Advanced Settings...` for non-secret runtime config files under `config/`; `wms-tags.env` stays outside the GUI because it contains database/network secrets.
-- `Advanced Settings...` now also includes a persisted `Developer mode` checkbox. When enabled, the GUI exposes `Tools -> Analyzers...` and prefixes richer debug/status messaging; when disabled, the analyzers tool is hidden completely.
+- `Advanced Settings...` now also includes a persisted `Developer mode` checkbox for richer debug/status messaging; analyzer tooling was removed from the 2.0 track.
 - Runtime output cleanup now prunes stale `out/` artifacts older than 14 days by default, and the retention window is configurable from `Settings...`.
 - See [docs/update-security-evaluation.md](docs/update-security-evaluation.md) for the current security boundary and why silent self-updating is still intentionally out of scope.
 

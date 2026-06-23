@@ -78,8 +78,7 @@ class GuiHelpSupportTest {
                 GuiHelpTopics.queuePrint(),
                 GuiHelpTopics.settings(),
                 GuiHelpTopics.advancedSettings(),
-                GuiHelpTopics.updates(),
-                GuiHelpTopics.analyzers()
+                GuiHelpTopics.updates()
         );
 
         for (List<GuiHelpSupport.HelpSection> topic : topics) {

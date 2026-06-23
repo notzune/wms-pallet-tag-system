@@ -42,13 +42,9 @@ final class LabelGuiFrameToolMenuSupport {
         Objects.requireNonNull(actions, "actions cannot be null");
         JPopupMenu toolsMenu = new JPopupMenu();
         addMenuItem(toolsMenu, "Rail Labels...", actions::openRailLabelsDialog);
-        addMenuItem(toolsMenu, "SSCC Labels...", actions::openSsccLabelsDialog);
         addMenuItem(toolsMenu, "Queue Print...", actions::openQueueDialog);
         addMenuItem(toolsMenu, "Barcode Generator...", actions::openBarcodeDialog);
         addMenuItem(toolsMenu, "ZPL Preview...", actions::openZplPreviewDialog);
-        if (developerModeEnabled) {
-            addMenuItem(toolsMenu, "Analyzers...", actions::openAnalyzersDialog);
-        }
         toolsMenu.addSeparator();
         addMenuItem(toolsMenu, "Resume Incomplete Job...", actions::openResumeDialog);
         addMenuItem(toolsMenu, "Settings...", actions::openSettingsDialog);
@@ -64,15 +60,11 @@ final class LabelGuiFrameToolMenuSupport {
     interface MenuActions {
         void openRailLabelsDialog();
 
-        void openSsccLabelsDialog();
-
         void openQueueDialog();
 
         void openBarcodeDialog();
 
         void openZplPreviewDialog();
-
-        void openAnalyzersDialog();
 
         void openResumeDialog();
 

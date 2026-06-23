@@ -8,10 +8,6 @@
 
 package com.tbg.wms.cli.gui;
 
-import com.tbg.wms.cli.gui.analyzers.AnalyzerContext;
-import com.tbg.wms.cli.gui.analyzers.AnalyzerDialog;
-import com.tbg.wms.cli.gui.analyzers.AnalyzerRegistry;
-import com.tbg.wms.cli.gui.sscc.SsccLabelDialog;
 import com.tbg.wms.cli.gui.rail.RailLabelsDialog;
 import com.tbg.wms.core.AppConfig;
 import com.tbg.wms.core.OutDirectoryRetentionService;
@@ -117,7 +113,6 @@ public final class LabelGuiFrame extends JFrame {
     private final transient GuiZplPreviewSupport zplPreviewSupport = new GuiZplPreviewSupport();
     private final transient GeneratedLabelPreviewSupport generatedLabelPreviewSupport =
             new GeneratedLabelPreviewSupport(zplPreviewSupport);
-    private final transient GuiAnalyzerDialogOpenSupport analyzerDialogOpenSupport = new GuiAnalyzerDialogOpenSupport();
     private final transient GuiAsyncTaskRunner asyncTaskRunner = new GuiAsyncTaskRunner();
     private final transient GuiActionButtonStateSupport actionButtonStateSupport = new GuiActionButtonStateSupport();
     private final transient ReleaseCheckService releaseCheckService = new ReleaseCheckService();
@@ -133,7 +128,6 @@ public final class LabelGuiFrame extends JFrame {
     private transient ReleaseCheckService.ReleaseInfo latestReleaseInfo;
     private transient boolean updateCheckInProgress;
     private transient ZplPreviewToolDialog generatedLabelsPreviewDialog;
-    private transient AnalyzerDialog analyzerDialog;
 
     public LabelGuiFrame() {
         super(buildWindowTitle());
@@ -874,11 +868,6 @@ public final class LabelGuiFrame extends JFrame {
         dialog.setVisible(true);
     }
 
-    private void openSsccLabelsDialog() {
-        SsccLabelDialog dialog = new SsccLabelDialog(this);
-        dialog.setVisible(true);
-    }
-
     private void autoResumeIfFound() {
         queueResumeDialogSupport.autoResumeIfFound();
     }
@@ -919,27 +908,6 @@ public final class LabelGuiFrame extends JFrame {
     private void openZplPreviewDialog() {
         ZplPreviewToolDialog dialog = new ZplPreviewToolDialog(this);
         dialog.setVisible(true);
-    }
-
-    private void openAnalyzersDialog() {
-        GuiAnalyzerDialogOpenSupport.OpenPlan plan = analyzerDialogOpenSupport.planOpen(
-                developerModeEnabled(),
-                analyzerDialog != null && analyzerDialog.isDisplayable()
-        );
-        if (plan.statusMessage() != null) {
-            setReady(plan.statusMessage());
-            return;
-        }
-        if (plan.shouldCreateDialog()) {
-            analyzerDialog = new AnalyzerDialog(
-                    this,
-                    AnalyzerRegistry.defaultRegistry(),
-                    new AnalyzerContext(config, java.time.Clock.systemDefaultZone())
-            );
-        }
-        if (plan.shouldShowDialog()) {
-            analyzerDialog.setVisible(true);
-        }
     }
 
     private boolean developerModeEnabled() {
@@ -1057,11 +1025,9 @@ public final class LabelGuiFrame extends JFrame {
     private LabelGuiFrameToolMenuSupport.MenuActions buildToolMenuActions() {
         return new LabelGuiFrameToolMenuActions(
                 this::openRailLabelsDialog,
-                this::openSsccLabelsDialog,
                 this::openQueueDialog,
                 this::openBarcodeDialog,
                 this::openZplPreviewDialog,
-                this::openAnalyzersDialog,
                 this::openResumeDialog,
                 this::openSettingsDialog
         );

@@ -29,11 +29,9 @@ class LabelGuiFrameToolMenuSupportTest {
 
         assertEquals(List.of(
                 "Rail Labels...",
-                "SSCC Labels...",
                 "Queue Print...",
                 "Barcode Generator...",
                 "ZPL Preview...",
-                "Analyzers...",
                 "Resume Incomplete Job...",
                 "Settings..."
         ), labels);
@@ -51,7 +49,6 @@ class LabelGuiFrameToolMenuSupportTest {
 
         assertEquals(List.of(
                 "Rail Labels...",
-                "SSCC Labels...",
                 "Queue Print...",
                 "Barcode Generator...",
                 "ZPL Preview...",
@@ -77,10 +74,6 @@ class LabelGuiFrameToolMenuSupportTest {
         }
 
         @Override
-        public void openSsccLabelsDialog() {
-        }
-
-        @Override
         public void openQueueDialog() {
         }
 
@@ -90,10 +83,6 @@ class LabelGuiFrameToolMenuSupportTest {
 
         @Override
         public void openZplPreviewDialog() {
-        }
-
-        @Override
-        public void openAnalyzersDialog() {
         }
 
         @Override
