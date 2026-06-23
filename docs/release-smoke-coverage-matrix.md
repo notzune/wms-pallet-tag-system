@@ -1,6 +1,6 @@
 # Release Smoke Coverage Matrix
 
-This matrix defines the current release smoke boundary for `1.7.6` prerelease hardening work.
+This matrix defines the current release smoke boundary for the `2.0.0` rewrite cutover.
 
 Status values:
 

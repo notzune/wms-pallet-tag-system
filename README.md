@@ -3,14 +3,14 @@
 [![Release Bundle](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/release.yml)
 [![Javadoc Pages](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml/badge.svg?branch=main)](https://github.com/notzune/wms-pallet-tag-system/actions/workflows/javadoc-pages.yml)
 [![API Docs](https://img.shields.io/badge/docs-javadoc-blue)](https://notzune.github.io/wms-pallet-tag-system/)
-![Version](https://img.shields.io/badge/version-1.9.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![Java](https://img.shields.io/badge/java-17%2B-orange)
 ![License](https://img.shields.io/badge/license-Custom-green)
 
 Licensed under the terms in `LICENSE`.
 
 Production Java CLI and GUI for generating and printing Zebra ZPL pallet labels from Oracle WMS data.
-Current branch target: `1.9.0` release validation.
+Current branch target: `2.0.0` release validation.
 
 ## Versioning and History
 
@@ -23,9 +23,8 @@ For open work and follow-up items, see the [GitHub issues tracker](https://githu
 
 Active tracked work:
 
-- `#42` improves rail label readability, physical label-sheet documentation, multi-train input, combined PDF generation, and explicit printable-row selection.
-- `#43` adds contextual GUI help buttons and shared help-dialog behavior across operator views.
-- The 2.0 rewrite track removes the failed analyzer experiment and defers SSCC-specific tooling for a future redesign.
+- `#46` tracks the WMS 2.0 rewrite and release cutover.
+- The 2.0 rewrite track keeps routine print, barcode, rail, queue/resume, config, and smoke-test paths while removing the failed analyzer experiment and deferring SSCC-specific tooling for a future redesign.
 
 ## Current Scope
 
@@ -120,8 +119,8 @@ java -jar cli/target/cli-*.jar gui
 ```powershell
 .\mvnw.cmd -q -pl cli -am "-Dmaven.test.skip=true" package
 .\scripts\build-portable-bundle.ps1
-.\scripts\build-jpackage-bundle.ps1
-.\scripts\build-jpackage-bundle.ps1 -InstallerType exe
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-jpackage-bundle.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-jpackage-bundle.ps1 -InstallerType exe
 ```
 
 ### Portable bundle (recommended for operators)
@@ -179,19 +178,19 @@ Use the `jpackage` builder when you want a native executable layout while keepin
 1. Build the app image:
 
 ```powershell
-.\scripts\build-jpackage-bundle.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-jpackage-bundle.ps1
 ```
 
 2. Optional: also build a per-user Windows installer:
 
 ```powershell
-.\scripts\build-jpackage-bundle.ps1 -InstallerType exe
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-jpackage-bundle.ps1 -InstallerType exe
 ```
 
 2a. Optional: sign the app-image launcher(s) and installer with local SignTool certificate settings:
 
 ```powershell
-.\scripts\build-jpackage-bundle.ps1 `
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-jpackage-bundle.ps1 `
   -InstallerType exe `
   -SigningMode signtool `
   -CertificateThumbprint <CERT_THUMBPRINT> `
@@ -201,7 +200,7 @@ Use the `jpackage` builder when you want a native executable layout while keepin
 2b. Optional: sign with Microsoft Trusted Signing via SignTool plugin arguments:
 
 ```powershell
-.\scripts\build-jpackage-bundle.ps1 `
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-jpackage-bundle.ps1 `
   -InstallerType exe `
   -SigningMode signtool `
   -TimestampUrl http://timestamp.acs.microsoft.com `
