@@ -5,7 +5,7 @@
 
     <groupId>com.tbg.wms</groupId>
     <artifactId>wms-pallet-tag-system</artifactId>
-    <version>1.9.1</version>
+    <version>2.0.0</version>
     <packaging>pom</packaging>
 
     <name>WMS Pallet Tag System</name>
@@ -17,10 +17,14 @@
     </developers>
 
     <modules>
-        <module>core</module>
-        <module>db</module>
-        <module>gui</module>
+        <module>domain</module>
+        <module>app</module>
+        <module>oracle</module>
+        <module>printing</module>
+        <module>files</module>
         <module>cli</module>
+        <module>desktop</module>
+        <module>smoke</module>
     </modules>
 
     <properties>

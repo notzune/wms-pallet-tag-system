@@ -150,8 +150,8 @@ $guestCliPath = ('C:\Users\{0}\AppData\Local\WMS-Pallet-Tag-System\run.bat' -f $
 $visibleInstallDir = ('C:\Users\{0}\AppData\Local\WMS-Pallet-Tag-System' -f $visibleSessionUser)
 $visibleProgramsDir = ('C:\Users\{0}\AppData\Local\Programs\WMS-Pallet-Tag-System' -f $visibleSessionUser)
 $visibleProbeFile = 'C:\Users\Public\wms-visible-check.txt'
-$visibleCliConfigFile = 'C:\Users\Public\wms-cli-config.txt'
-$visibleCliDbTestFile = 'C:\Users\Public\wms-cli-dbtest.txt'
+$visibleCliConfigFile = 'C:\Users\Public\cli-config.txt'
+$visibleCliDbTestFile = 'C:\Users\Public\cli-dbtest.txt'
 $reportLines.Add("Visible session user: $visibleSessionUser")
 $reportLines.Add("Guest launcher path: $guestLauncherPath")
 

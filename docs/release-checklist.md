@@ -13,7 +13,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps
 - Packaged-mode smoke:
 
 ```powershell
-.\scripts\build-jpackage-bundle.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-jpackage-bundle.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps1 -Mode packaged -ConfigPath .\.env
 ```
 
@@ -27,14 +27,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-smoke-tests.ps
   - `smoke-report.txt`
   - `smoke-report.json`
 
-Latest validated reports on `patch/v1.7.5-tropicana-bootstrap-fix`:
+Latest validated reports on `codex/2.0-rewrite-track` for the 2.0 cutover:
 
-- repo: `out/smoke-repo-20260321-122513/smoke-report.txt`
-- packaged + installer: `out/smoke-packaged-20260321-123051/smoke-report.txt`
-
-Latest validated reports on `1.7.6`:
-
-- packaged + installer: `C:\Users\zrashed\AppData\Local\Temp\wms-host-smoke-auto-9fc2b53b2122477cb22c3864fa906786\smoke-report.txt`
+- repo: `out/smoke-repo-20260623-133153/smoke-report.txt`
+- packaged: `out/smoke-packaged-20260623-133253/smoke-report.txt`
 
 ## Required Production-Safe Inputs
 

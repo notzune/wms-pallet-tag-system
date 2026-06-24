@@ -9,15 +9,21 @@ Commit history is maintained with [Conventional Commits](https://www.conventiona
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-23
+
 ### Added
 
-- Added a new SSCC label tool under the GUI `Tools` menu with CSV import, manual row entry, contextual header help, barcode helpers, and preview/export against the established ZPL layout.
 - Added `barcode --preset BREAK_START|BREAK_STOP|BREAK_SHEET` presets that emit the operator break workflow as Honeywell Velocity VT-220 key-command tokens (`{F7}…{tab}…{return}`) on **Data Matrix (2D)** labels (the long token string overflows a 1D Code 128 on a 4″ label), including a combined `BREAK_SHEET` that stacks both codes on one label for printing to `3002_ZEB0`. (Velocity must be configured to process key commands from scanned data; the scanner must have Data Matrix enabled.)
 - Added Data Matrix (`^BX`) support to the core barcode/ZPL builder.
+- Added the WMS 2.0 modular rewrite track with domain, application, Oracle, file, printing, CLI, desktop, and smoke modules alongside the existing legacy modules for cutover validation.
+- Added repo and packaged smoke coverage for barcode generation, rail rendering, packaged config assets, and Tropicana per-user config precedence.
 
 ### Changed
 
-- Removed the legacy PowerShell generator and the old Java PDF renderer in favor of the local Java SSCC tool path.
+- Project metadata/version updated to `2.0.0` across Maven modules and release documentation.
+- The 2.0 cutover keeps shipment, carrier move, barcode, rail, queue/resume, config, package, and smoke workflows as the supported operator scope.
+- Removed the failed analyzer experiment from active GUI runtime paths for the 2.0 rewrite track.
+- Removed SSCC-specific GUI/domain tooling from active runtime paths; SSCC redesign is deferred while generic barcode tooling remains supported.
 
 ## [1.9.1] - 2026-06-12
 

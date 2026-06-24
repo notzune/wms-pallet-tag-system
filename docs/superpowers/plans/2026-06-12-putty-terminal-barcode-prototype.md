@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Code complete and tests green; label generation/printing verified on hardware. Payload re-encoded to **Honeywell Velocity key-command tokens** (`{F7}…{tab}…{enter}`) after a live scan proved raw control bytes (`ESC`/`TAB`) are dropped by the Granit/Velocity path. Tokens use VT-220 key codes (`{return}` submit, not the 3270-only `{enter}`) and the labels are now **Data Matrix** (2D) because the ~62-char token string overflows a 1D Code 128 on a 4″ label. Pending: enable Velocity's *process key commands from scanned data* setting on the VM1A, then re-scan and tune `{pause}` / `{tab}` if needed (see Results).
+**Status:** Code complete and tests green; label generation/printing verified on hardware. The final labels use short **Code 128 trigger payloads** (`BRKSTART` / `BRKSTOP`) because Velocity types key-command tokens literally when they arrive as raw scan data. Pending: configure the two Velocity scan handlers on the VM1A, then re-scan and tune `{pause}` / `{tab}` if needed (see Results).
 
 **Goal:** Add a quick prototype that prints two operator barcodes for the Putty/Telnet break workflow to the `3002_ZEB0` printer.
 
@@ -51,79 +51,64 @@
 
 ## Results
 
+Target stack: **Honeywell Thor VM1A** vehicle computer running **Velocity 2.1.6
+(Android TE)**, host profile **VT-220**, scanned with a **Granit 1980i**.
+
 Three presets exposed via `barcode --preset <NAME>`:
 
-| Preset | Caption | Scanned payload |
+| Preset | Caption | Barcode payload (Code 128) |
 | --- | --- | --- |
-| `BREAK_START` | `BREAK START` | `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}START{return}` |
-| `BREAK_STOP` | `BREAK STOP` | `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}STOP{return}` |
-| `BREAK_SHEET` | both | combined single label stacking START over STOP |
+| `BREAK_START` | `BREAK START` | `BRKSTART` |
+| `BREAK_STOP` | `BREAK STOP` | `BRKSTOP` |
+| `BREAK_SHEET` | both | combined label stacking the two triggers |
 
-### Verified manual terminal sequence (operator, 2026-06-15)
+### Design: short trigger barcode + Velocity scan-handler macro
 
-The target hardware is a **Honeywell Thor VM1A** vehicle computer running the
-**Honeywell Velocity** terminal emulator, scanned with a **Granit 1980i**. The
-operator's confirmed manual break sequence is:
+The barcode does **not** contain the key sequence. It carries a short, distinctive
+**trigger** (`BRKSTART` / `BRKSTOP`). On the device, a **Velocity scan handler**
+matches the trigger and plays the stored key macro:
 
-1. Top-level **Undirected Menu**
-2. **F7** → opens the **Tools** menu
-3. `0` → next page
-4. `3` → **Activity Login**
-5. first field → type `BREAK`
-6. **Tab** to the next field
-7. type `START` (or `STOP`)
-8. **Enter**
+```
+BRKSTART -> {F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}START{return}
+BRKSTOP  -> {F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}STOP{return}
+```
 
-### Why the first encoding failed, and the fix
+The macro maps the operator's confirmed manual sequence: **F7** → Tools menu, `0`
+next page, `3` Activity Login, type `BREAK`, **Tab**, type `START`/`STOP`,
+**Return** to submit. VT-220 key codes: `{F7}`=`E041`, `{tab}`=`0009`,
+`{return}`=`000D` (`{return}`, not the 3270-only `{enter}`). `{pause:500}` lets
+each screen redraw (Velocity's default `{pause}` is 250 ms).
 
-The original payload encoded the raw host bytes `ESC[18~03BREAK<TAB>START<CR>`.
-Live scanning showed the Granit/Velocity path silently drops control bytes: `ESC`
-was dropped (so F7 never fired and `1`/`8` fell through into the Picking → Auto
-Allocate menus), `TAB` was dropped (`BREAK`+`START` merged), and only `CR`
-transmitted (the field submitted and errored).
+### Why it took three tries to land here
 
-The correct approach for the Honeywell/Velocity stack is **not** to send raw
-control bytes. Velocity parses **brace-token key commands** embedded in scanned
-data and replays them as real host key presses:
+1. **Raw control bytes** (`ESC[18~03BREAK<TAB>START<CR>`, Code 128): the
+   Granit/Velocity path silently drops control bytes — `ESC` gone (F7 never fired;
+   `1`/`8` fell through into Picking → Auto Allocate), `TAB` gone (`BREAKSTART`
+   merged), only `CR` transmitted.
+2. **Key-command tokens in the barcode** (`{F7}…{return}`): two problems —
+   (a) as 1D Code 128 the ~62-char string is ≈ 2211 dots (~10.9″), overflowing the
+   4″ label so it would not even scan; switching to **Data Matrix** (2D, which the
+   Granit reads) fixed decoding, but (b) Velocity types those tokens **literally**
+   from a raw scan (`7` selected Yard Menu, `}` errored) — it only honors key
+   commands inside **scripts/macros/buttons/scan handlers**, not raw scanned data.
+3. **Trigger + scan-handler macro** (current): the barcode is a short Code 128
+   trigger that transmits cleanly; the macro lives where Velocity *does* honor key
+   tokens. This is the Ivanti/Zebra "scan a barcode to send a key" pattern.
 
-- `{F7}` (or `{hex:E041}`) → F7
-- `{tab}` (or `{hex:0009}`) → Tab
-- `{return}` / `{autoenter}` (or `{hex:000D}`) → field submit (the host profile is
-  **VT-220**; `{enter}` is a 3270-only token and must not be used here)
-- `{pause:500}` → wait 500 ms so each screen redraws before the next key
-  (Velocity's default `{pause}` is 250 ms)
+The core builder retains **Data Matrix** (`^BX`) support from step 2 for any future
+long-payload need, but the break presets are short Code 128 again.
 
-So the barcode now carries **only printable characters** (`{F7}…{tab}…{return}`),
-which the scanner transmits intact — no control-byte / function-key scanner mode
-is required. The ZPL uses hex-field encoding (`^FH`) purely to embed the literal
-`{` `}` `:` characters reliably; decoded, the symbol contains exactly the payload
-string above.
+### Required device-side configuration (Velocity)
 
-### Symbology: Data Matrix (2D), not Code 128
+Create two scan handlers on the VM1A host profile:
 
-The token payload is ~62 characters. As a 1D **Code 128** at module width 3 that
-is `35 + 20 + 62×11 = 737` modules ≈ **2211 dots ≈ 10.9″**, which overflows the
-812-dot (4″) label — the printer clips it and the scanner cannot decode a partial
-symbol. (This is why the short control-byte payload scanned but the long token
-payload did not.) The presets therefore render as **Data Matrix** (`^BXN`), a 2D
-symbology the **Granit 1980i** area imager reads, which holds the full string in a
-compact ~1.4″ square. The host receives identical characters regardless of
-symbology, so this is transparent to Velocity.
+- match `BRKSTART` → play macro `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}START{return}`
+- match `BRKSTOP`  → play macro `{F7}{pause:500}0{pause:500}3{pause:500}BREAK{tab}STOP{return}`
 
-> The Granit 1980i must have Data Matrix decoding enabled (on by default). If a
-> 2D scan does not read, that symbology may be disabled in the scanner config.
-
-**Required device-side configuration:** Velocity must be set to *process key
-commands from scanned data* (its scan handler / data-processing path) — otherwise
-it types the literal text `{F7}…` into the field instead of executing the keys.
-
-Target stack: **Velocity 2.1.6 (Android TE)**, host profile **VT-220**.
-
-**Likely tuning knobs after a live scan:** the `{pause:500}` duration (raise if a
-screen is slow to redraw), and `{tab}` vs `{down}` arrow to move between the
-activity-name and START/STOP fields. The menu keys `0`/`3` are sent without an
-Enter because the host accepts single-key menu selections (confirmed by the
-original misfire, where `1`/`8` were each taken immediately).
+**Tuning knobs after a live scan:** the `{pause:500}` duration (raise if a screen
+is slow to redraw) and `{tab}` vs `{down}` to move between the activity-name and
+START/STOP fields. The menu keys `0`/`3` are sent without an Enter because the host
+accepts single-key menu selections.
 
 ### Usage
 

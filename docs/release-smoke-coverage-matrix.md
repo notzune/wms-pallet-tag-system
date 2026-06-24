@@ -1,6 +1,6 @@
 # Release Smoke Coverage Matrix
 
-This matrix defines the current release smoke boundary for `1.7.6` prerelease hardening work.
+This matrix defines the current release smoke boundary for the `2.0.0` rewrite cutover.
 
 Status values:
 
@@ -29,3 +29,9 @@ Status values:
 | Queue / resume GUI actions | `AdvancedPrintWorkflowService` queue APIs | targeted service-level verification | gap | No release smoke runner path yet |
 | Barcode Generator GUI | `BarcodeCommand`, barcode services | `barcode --data ... --dry-run --output-dir ...` in repo and packaged modes | covered | Verifies deterministic ZPL generation and file artifact output without printer I/O |
 | Swing-specific selection UX (`Ctrl+F`, table selection, dialogs) | Swing dialog classes | manual verification only | gap | Outside first-line backend smoke boundary |
+
+## Removed from 2.0 smoke scope
+
+- Analyzers were removed from the 2.0 track after the dashboard/tooling experiment failed to justify continued runtime complexity.
+- SSCC-specific tooling is deferred for a future redesign and is not part of 2.0 release smoke.
+- Generic barcode tooling remains supported through `barcode` CLI smoke and Barcode Generator GUI coverage.

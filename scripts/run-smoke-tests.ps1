@@ -588,9 +588,23 @@ function Update-ConfigSourceResult {
     return $Result
 }
 
+function Resolve-SmokeManifestPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourceRoot
+    )
+
+    $v2ManifestPath = Join-Path $SourceRoot "smoke\target\generated-smoke\smoke-manifest.json"
+    if (Test-Path -LiteralPath $v2ManifestPath) {
+        return $v2ManifestPath
+    }
+
+    return Join-Path $SourceRoot "scripts\smoke\smoke-manifest.json"
+}
+
 $scriptRoot = Split-Path -Parent $PSCommandPath
 $sourceRoot = Split-Path -Parent $scriptRoot
-$manifestPath = Join-Path $sourceRoot "scripts\smoke\smoke-manifest.json"
+$manifestPath = Resolve-SmokeManifestPath -SourceRoot $sourceRoot
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 
 $resolvedConfigPath = Resolve-SmokeConfigPath -ConfigPath $ConfigPath -SourceRoot $sourceRoot
