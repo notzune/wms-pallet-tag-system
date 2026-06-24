@@ -1,26 +1,29 @@
 # Architecture And SOLID Audit
 
-Last updated: 2026-06-01
+Last updated: 2026-06-24
 
 ## Current Baseline
 
-The project is a Java 17 Maven multi-module desktop and CLI application:
+The project is a Java 17 Maven multi-module desktop and CLI application. The active 2.0 reactor is:
 
-- `core` owns domain services, label planning, rail calculations, template rendering, printer routing, update policy, and runtime configuration.
-- `db` owns Oracle connection pooling and WMS query/hydration support.
-- `cli` owns Picocli command parsing and command-specific output formatting.
-- `gui` owns Swing workflows, operator dialogs, preview state, update UI, analyzers, and GUI-only workflow orchestration.
+- `domain` owns pure domain values and deterministic business rules.
+- `app` owns use cases, workflow DTOs, typed application errors, and driven ports.
+- `oracle` owns read-only Oracle repositories, row mappers, and datasource setup.
+- `printing` owns ZPL and PDF rendering adapters.
+- `files` owns file-backed configuration, artifact, and checkpoint adapters.
+- `cli` owns Picocli command parsing and command-specific output formatting over application use cases.
+- `desktop` owns desktop shell state and workflow ViewModels.
+- `smoke` owns Java smoke manifest and report helpers.
 - `scripts` owns packaging, installer, smoke-test, and VM validation automation.
 - `vba` preserves Excel macro helpers used by legacy rail workflows.
 
-The latest local verification baseline for this audit used:
+The latest local verification baseline for this audit should use:
 
 ```powershell
-.\mvnw.cmd -q -pl core,db,gui,cli -am test
-java -jar cli\target\cli-1.8.0-SNAPSHOT.jar --help
+.\mvnw.cmd test
 ```
 
-The Maven test command exited `0`. The CLI help smoke printed the expected command list.
+Historical references in this document to `core`, `db`, `gui`, and the old `cli` module describe pre-2.0 audit findings, not active production modules.
 
 ## Open Work
 
@@ -46,11 +49,12 @@ Use these rules when adding features or refactoring:
 
 ## Current Hotspots
 
-These files are not automatically wrong, but they carry enough responsibility that new work should reduce pressure rather than add more:
+These areas are not automatically wrong, but they carry enough responsibility that new work should reduce pressure rather than add more:
 
-- `gui/src/main/java/com/tbg/wms/cli/gui/LabelGuiFrame.java` - broad Swing coordinator for startup, menus, dialogs, workflow wiring, and status behavior.
-- `gui/src/main/java/com/tbg/wms/cli/gui/BarcodeDialogFactory.java` - sizable dialog construction and behavior wiring.
-- `gui/src/main/java/com/tbg/wms/cli/gui/AdvancedPrintWorkflowService.java` - complex workflow orchestration that should stay clear of UI rendering and persistence details.
+- `app/src/main/java/com/tbg/wms/v2/app/labels/*` - print-plan builders should remain deterministic and free of adapter concerns.
+- `app/src/main/java/com/tbg/wms/v2/app/queue/*` - queue parsing, preparation, and execution should stay separated as queue behavior grows.
+- `oracle/src/main/java/com/tbg/wms/v2/oracle/**` - SQL text, row mapping, and repository orchestration should remain split.
+- `desktop/src/main/java/com/tbg/wms/v2/desktop/**` - ViewModels should stay free of Oracle, filesystem, and print-dispatch implementation details.
 - `scripts/run-smoke-tests.ps1` - valuable release harness, but broad enough that future changes should split manifest parsing, command execution, and reporting carefully.
 - `vba/m_Count_Product.bas` - legacy macro logic; preserve workbook behavior and add comments/tests or fixture evidence before further extraction.
 

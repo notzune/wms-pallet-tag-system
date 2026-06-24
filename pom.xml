@@ -17,18 +17,14 @@
     </developers>
 
     <modules>
-        <module>core</module>
-        <module>db</module>
-        <module>gui</module>
+        <module>domain</module>
+        <module>app</module>
+        <module>oracle</module>
+        <module>printing</module>
+        <module>files</module>
         <module>cli</module>
-        <module>wms-domain</module>
-        <module>wms-application</module>
-        <module>wms-oracle</module>
-        <module>wms-printing</module>
-        <module>wms-files</module>
-        <module>wms-cli</module>
-        <module>wms-desktop</module>
-        <module>wms-smoke</module>
+        <module>desktop</module>
+        <module>smoke</module>
     </modules>
 
     <properties>

@@ -10,6 +10,21 @@ We paused the workspace-wide SRP/cleanup effort after completing the first narro
 
 The initial audit found the highest SRP pressure in GUI orchestration and analyzer query services, with `LabelSelectionRef` selected as the first safe pass because it was directly referenced by the user and had a small, testable surface.
 
+## 2026-06-24 Status Update
+
+This handoff is now historical context for the pre-2.0 `core`, `db`, `gui`, and old `cli` modules. Those modules have been removed from the active Maven reactor. Current production work lives in the renamed WMS 2.0 modules:
+
+- `domain`: domain values and deterministic business rules.
+- `app`: use cases, workflow DTOs, typed application errors, and driven ports.
+- `oracle`: read-only Oracle repositories and row mappers.
+- `printing`: ZPL and PDF rendering adapters.
+- `files`: file-backed config, artifact, and checkpoint adapters.
+- `cli`: Picocli command adapter over application use cases.
+- `desktop`: desktop shell and workflow ViewModels.
+- `smoke`: release smoke manifest and report helpers.
+
+Use this document for rationale and migration history only. New cleanup or documentation work should target `*/src/main/java/com/tbg/wms/v2/**` unless a task explicitly restores or audits legacy code.
+
 ## Completed Work
 
 Files intentionally changed:

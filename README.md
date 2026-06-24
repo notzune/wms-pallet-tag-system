@@ -596,29 +596,33 @@ settings.
 
 Package-level documentation is maintained in every `package-info.java` under:
 
-- `cli/src/main/java/com/tbg/wms/cli/**`
-- `core/src/main/java/com/tbg/wms/core/**`
-- `db/src/main/java/com/tbg/wms/db`
-- `gui/src/main/java/com/tbg/wms/cli/gui/**`
+- `domain/src/main/java/com/tbg/wms/v2/domain/**`
+- `app/src/main/java/com/tbg/wms/v2/app/**`
+- `oracle/src/main/java/com/tbg/wms/v2/oracle/**`
+- `printing/src/main/java/com/tbg/wms/v2/printing/**`
+- `files/src/main/java/com/tbg/wms/v2/files/**`
+- `cli/src/main/java/com/tbg/wms/v2/cli/**`
+- `desktop/src/main/java/com/tbg/wms/v2/desktop/**`
+- `smoke/src/main/java/com/tbg/wms/v2/smoke/**`
 
 Recent documentation maintenance:
 
-- `docs/architecture-solid-audit.md` captures the current SRP/SOLID audit, open issue context, verification baseline, and managed branch map
-- missing `package-info.java` coverage was filled for the newer `core` subpackages (`barcode`, `db`, `ems`, `label`, `labeling`, `location`, `sku`, `update`)
-- GUI settings/update/install maintenance responsibilities are now documented separately from the main frame through `MainSettingsDialog`
-- GUI print-task planning and artifact naming are now documented separately from workflow orchestration through `PrintTaskPlanner` and `ArtifactNameSupport`
+- 2.0 production classes now carry Javadoc on package, type, and public/module-facing method boundaries.
+- Module documentation follows the 2.0 ports-and-adapters structure: domain values, application use cases/ports, Oracle adapters, rendering adapters, file adapters, CLI adapter, desktop ViewModels, and smoke harness.
+- Historical SRP notes under `docs/handoffs/` describe the removed pre-2.0 `core`, `db`, `gui`, and old `cli` modules and should be treated as migration history unless explicitly marked current.
 
-Documentation expectations for helper classes:
+Documentation expectations for production classes:
 
-- State why the helper was created.
-- State the exact responsibility it owns.
-- State why it should remain separate (SRP, determinism, reuse, or performance).
+- State the exact responsibility the type owns.
+- Document public and module-facing methods with `@param`, `@return`, and `@throws` tags when applicable.
+- Keep inline comments reserved for non-obvious policy, parsing, persistence, or rendering decisions.
+- Avoid restating implementation line-by-line; use comments to clarify boundaries and operator-facing behavior.
 
 Recent examples:
 
-- `DescriptionTextHeuristics` (shared description readability policy)
-- `PrtmstDescriptionColumnResolver` (cached PRTMST schema probing boundary)
-- `RailFootprintResolver` (deterministic candidate-consistency gate before pallet math)
+- `BuildShipmentPrintPlan` and `BuildCarrierMovePrintPlan` document deterministic print-task planning.
+- `CheckpointStore` documents the resume boundary and checkpoint DTO.
+- `OracleShipmentRepository`, `OracleCarrierMoveRepository`, and `OracleRailRepository` document read-only adapter responsibilities.
 
 Documentation changes should follow the same boundary rules as code changes: update the README for user-facing workflows, the changelog for release-visible changes, ADRs for durable architecture decisions, and focused docs for operational or refactor guidance. Avoid duplicating long setup procedures across multiple files.
 
@@ -670,9 +674,9 @@ wms-pallet-tag-system/
 |-- CHANGELOG.md
 |-- INSTRUCTIONS_RAILCAR.md       # Rail office helper notes and workflow guidance
 |-- LICENSE
-|-- pom.xml
+|-- pom.xml                       # Maven reactor for active 2.0 modules
 |-- .env.example
-|-- config/
+|-- config/                       # Non-secret templates and site config samples
 |   |-- wms-tags.env.example
 |   |-- walmart-sku-matrix.csv
 |   |-- walm_loc_num_matrix.csv
@@ -681,108 +685,59 @@ wms-pallet-tag-system/
 |   `-- TBG3002/
 |       |-- printers.yaml
 |       `-- printer-routing.yaml
-|-- core/
-|   |-- pom.xml
-|   `-- src/
-|       |-- main/
-|       |   |-- java/com/tbg/wms/core/
-|       |   |   |-- AppConfig.java                  # env + runtime configuration loading
-|       |   |   |-- ConfigFileLocator.java          # runtime env file discovery and validation
-|       |   |   |-- EnvStyleConfigParser.java       # dotenv/env-style parsing
-|       |   |   |-- OutDirectoryRetentionService.java # stale out/ cleanup policy
-|       |   |   |-- RuntimePathResolver.java        # runtime-relative path resolution
-|       |   |   |-- RuntimeSettings.java            # non-secret user runtime preferences
-|       |   |   |-- barcode/                        # barcode ZPL builders and barcode logic
-|       |   |   |-- db/                             # DB-related core abstractions/models
-|       |   |   |-- exception/                      # typed app exceptions + exit code mapping
-|       |   |   |-- label/                          # label data composition and label types
-|       |   |   |-- labeling/                       # label-domain helper services
-|       |   |   |-- location/                       # sold-to / location mapping services
-|       |   |   |-- model/                          # core domain models (Shipment, LPN, etc.)
-|       |   |   |-- print/                          # printer config, routing, network print
-|       |   |   |-- rail/                           # rail planners, CSV support, merge exporters
-|       |   |   |-- sku/                            # SKU matrix loading/mapping services
-|       |   |   |-- template/                       # template parsing/merge logic
-|       |   |   `-- update/                         # release/version/update helpers
-|       |   `-- resources/
-|       `-- test/
-|           `-- java/com/tbg/wms/core/              # unit tests by package area
-|-- db/
-|   |-- pom.xml
-|   `-- src/
-|       |-- main/java/com/tbg/wms/db/
-|       |   |-- DbConnectionPool.java               # Oracle/Hikari pool lifecycle
-|       |   |-- DbQueryRepository.java              # query contracts used by CLI/GUI
-|       |   `-- OracleDbQueryRepository.java        # WMS SQL implementations (shipment, carrier, rail)
-|       `-- test/java/com/tbg/wms/db/
-|-- gui/
-|   |-- pom.xml
-|   `-- src/
-|       |-- main/java/com/tbg/wms/cli/gui/
-|       |   |-- LabelGuiFrame.java                  # desktop shell and tool entrypoints
-|       |   |-- LabelWorkflowService.java           # shipment preview/print orchestration
-|       |   |-- AdvancedPrintWorkflowService.java   # carrier move / queue / resume orchestration
-|       |   |-- MainSettingsDialog.java             # primary settings and maintenance dialog
-|       |   |-- AdvancedSettingsDialog.java         # non-secret runtime config editor
-|       |   |-- BarcodeDialogFactory.java           # barcode UI dialog wiring
-|       |   |-- PrintTaskPlanner.java               # shipment/carrier print task planning
-|       |   |-- ArtifactNameSupport.java            # shared artifact filename slugging
-|       |   |-- TextFieldClipboardController.java   # terminal-like right-click behavior
-|       |   `-- rail/                               # rail GUI workflow package
-|       |       |-- RailLabelsDialog.java           # rail workflow dialog
-|       |       |-- RailWorkflowService.java        # WMS-first rail prep/diagnostics/orchestration
-|       |       `-- RailArtifactService.java        # DOCX/PDF/PRN automation helper
-|       `-- test/java/com/tbg/wms/cli/gui/
-|           |-- QueueInputParserTest.java
-|           `-- rail/
-|               `-- RailArtifactServiceTest.java
-|-- cli/
-|   |-- pom.xml
-|   `-- src/
-|       |-- main/java/com/tbg/wms/cli/
-|       |   |-- CliMain.java                        # CLI entrypoint
-|       |   `-- commands/
-|       |       |-- RootCommand.java                # top-level command registration
-|       |       |-- RunCommand.java                 # shipment/carrier print workflow command
-|       |       |-- BarcodeCommand.java             # barcode command
-|       |       |-- DbTestCommand.java              # DB diagnostics command
-|       |       |-- ShowConfigCommand.java          # resolved config command
-|       |       |-- GuiCommand.java                 # launches Swing GUI
-|       |       |-- VersionCommand.java             # version output
-|       |       |-- BuildVersionProvider.java       # build-filtered version provider
-|       |       `-- rail/
-|       |           |-- RailHelperCommand.java      # CSV-driven rail helper command
-|       |           `-- RailPrintCommand.java       # WMS-first rail print workflow command
-|       |-- main/resources/
-|       |   `-- version.txt                         # filtered from Maven project.version
-|       `-- test/java/com/tbg/wms/cli/commands/
-|           `-- rail/
-|               `-- RailHelperCommandTest.java
-|-- scripts/                      # Build and launcher helpers
-|   |-- setup-wms-tags.ps1        # local install helper
-|   |-- build-portable-bundle.ps1 # portable package builder
-|   |-- build-jpackage-bundle.ps1 # app-image / installer builder + installer sha256
-|   |-- install-wms-installer.ps1 # logged installer runner / replace-existing helper
-|   |-- uninstall-wms-tags.ps1    # uninstall / clean-install prep helper
-|   |-- verify-wms-tags.ps1       # packaged smoke-test helper
-|   |-- run.bat                   # bundle launcher
-|   `-- wms-tags-gui.bat          # bundle GUI launcher
+|-- domain/                       # Pure WMS 2.0 domain values and rules
+|   `-- src/main/java/com/tbg/wms/v2/domain/
+|       |-- barcode/              # Barcode request and preset value types
+|       |-- carriermove/          # Carrier-move stop grouping values
+|       |-- label/                # Label selection and prepared label values
+|       |-- print/                # Print task value types
+|       `-- rail/                 # Rail card and footprint values
+|-- app/                          # WMS 2.0 use cases and driven port contracts
+|   `-- src/main/java/com/tbg/wms/v2/app/
+|       |-- barcode/              # Barcode label generation use case
+|       |-- errors/               # Typed application exceptions
+|       |-- labels/               # Shipment/carrier print-plan builders
+|       |-- ports/                # Repository, printer, artifact, and checkpoint ports
+|       |-- print/                # Print-plan execution
+|       |-- queue/                # Queue parsing, preparation, and execution
+|       |-- rail/                 # Rail train parsing, planning, and PDF use cases
+|       `-- resume/               # Resume candidate and checkpoint execution use cases
+|-- oracle/                       # Oracle-backed WMS 2.0 adapter implementations
+|   `-- src/main/java/com/tbg/wms/v2/oracle/
+|       |-- carriermove/          # Carrier-move row mapping and repository
+|       |-- rail/                 # Rail row mapping and repository
+|       `-- shipment/             # Shipment label row mapping and repository
+|-- printing/                     # ZPL/PDF rendering adapters
+|   `-- src/main/java/com/tbg/wms/v2/printing/
+|       |-- pdf/                  # Rail PDF renderer
+|       `-- zpl/                  # Barcode ZPL renderer
+|-- files/                        # File-backed configuration, artifact, and checkpoint adapters
+|   `-- src/main/java/com/tbg/wms/v2/files/
+|       |-- artifacts/            # Print artifact file store
+|       |-- checkpoints/          # File-backed resume checkpoint store
+|       `-- config/               # Runtime config loader
+|-- cli/                          # Picocli command adapter over application use cases
+|   `-- src/main/java/com/tbg/wms/v2/cli/
+|-- desktop/                      # Desktop ViewModels and shell state for 2.0 workflows
+|   `-- src/main/java/com/tbg/wms/v2/desktop/
+|       |-- barcode/
+|       |-- labels/
+|       |-- queue/
+|       |-- rail/
+|       |-- resume/
+|       |-- settings/
+|       |-- shell/
+|       `-- zplpreview/
+|-- smoke/                        # Java-owned smoke manifest/report helpers
+|   `-- src/main/java/com/tbg/wms/v2/smoke/
+|-- scripts/                      # Build, launcher, installer, and smoke helpers
 |-- vba/                          # Excel macro helper modules (.bas)
-|   |-- m_RunReports.bas          # rail macro entrypoint/orchestration
-|   |-- m_RefreshData.bas         # train data query refresh helper
-|   |-- m_RefreshFootprints.bas   # footprint refresh helper
-|   |-- m_Count_Product.bas       # rail pallet/family rollup helper
-|   |-- m_Formatting.bas          # train detail formatting helper
-|   `-- m_Delete.bas              # temp worksheet cleanup helper
 |-- analysis/                     # Internal analysis notes and DB dumps
-|   |-- docs/
-|   `-- python-tools/
-|-- docs/                         # Handoff notes, security notes, PR drafts
+|-- docs/                         # Handoff notes, security notes, PR drafts, ADRs, and plans
 |-- dist/                         # Generated portable/app-image/installer bundles
 |-- logs/                         # Runtime logs
 `-- out/                          # Generated print artifacts
 ```
-
 ## Troubleshooting
 
 - Config check: `java -jar cli/target/cli-*.jar config`

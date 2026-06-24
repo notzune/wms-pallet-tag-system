@@ -594,7 +594,7 @@ function Resolve-SmokeManifestPath {
         [string]$SourceRoot
     )
 
-    $v2ManifestPath = Join-Path $SourceRoot "wms-smoke\target\generated-smoke\smoke-manifest.json"
+    $v2ManifestPath = Join-Path $SourceRoot "smoke\target\generated-smoke\smoke-manifest.json"
     if (Test-Path -LiteralPath $v2ManifestPath) {
         return $v2ManifestPath
     }

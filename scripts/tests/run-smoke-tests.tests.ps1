@@ -49,7 +49,7 @@ Assert-True -Condition ($runnerContent.Contains("releaseOnly")) -Message "Smoke 
 Assert-True -Condition ($runnerContent.Contains("tropicana-package-install")) -Message "Smoke runner should handle Tropicana package installer scenarios"
 Assert-True -Condition ($runnerContent.Contains("Invoke-TropicanaPackageInstallScenario")) -Message "Smoke runner should route installer smoke through the Tropicana package helper"
 Assert-True -Condition ($runnerContent.Contains("Resolve-SmokeManifestPath")) -Message "Smoke runner should resolve a Java-owned 2.0 manifest with legacy fallback"
-Assert-True -Condition ($runnerContent.Contains("wms-smoke\target\generated-smoke\smoke-manifest.json")) -Message "Smoke runner should prefer the generated 2.0 smoke manifest"
+Assert-True -Condition ($runnerContent.Contains("smoke\target\generated-smoke\smoke-manifest.json")) -Message "Smoke runner should prefer the generated 2.0 smoke manifest"
 Assert-True -Condition ($runnerContent.Contains("Resolve-SmokeConfigPath")) -Message "Smoke runner should resolve a usable smoke config path for live ID discovery"
 Assert-True -Condition ($runnerContent.Contains("Resolve-LiveSmokeIds")) -Message "Smoke runner should support live shipment and carrier move discovery"
 Assert-True -Condition ($runnerContent.Contains("ReadToEndAsync")) -Message "Smoke runner should drain child process output asynchronously to avoid deadlocks on verbose smoke commands"

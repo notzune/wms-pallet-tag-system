@@ -36,14 +36,14 @@ foreach ($relativePath in $removedPaths) {
 $runtimePaths = @(
     "gui\src\main\java",
     "core\src\main\java",
-    "wms-domain\src\main\java",
-    "wms-application\src\main\java",
-    "wms-oracle\src\main\java",
-    "wms-printing\src\main\java",
-    "wms-files\src\main\java",
-    "wms-cli\src\main\java",
-    "wms-desktop\src\main\java",
-    "wms-smoke\src\main\java"
+    "domain\src\main\java",
+    "app\src\main\java",
+    "oracle\src\main\java",
+    "printing\src\main\java",
+    "files\src\main\java",
+    "cli\src\main\java",
+    "desktop\src\main\java",
+    "smoke\src\main\java"
 )
 
 $patterns = @(

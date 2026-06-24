@@ -66,21 +66,21 @@ Use a modular monolith with Clean Architecture / Ports and Adapters.
 Recommended modules:
 
 ```text
-wms-domain
-wms-application
-wms-oracle
-wms-printing
-wms-files
-wms-cli
-wms-desktop
-wms-smoke
+domain
+app
+oracle
+printing
+files
+cli
+desktop
+smoke
 ```
 
 No domain or application module may depend on Swing, JavaFX, Picocli, Oracle JDBC, filesystem implementation classes, network printing implementation classes, or GitHub release implementation classes.
 
-During the side-by-side migration, new code uses the `com.tbg.wms.v2.*` package namespace. This keeps 2.0 classes clearly separated from the existing `core`, `db`, `gui`, and `cli` modules until cutover.
+During the side-by-side migration, new code used the `com.tbg.wms.v2.*` package namespace to keep 2.0 classes separated from the existing `core`, `db`, `gui`, and old `cli` modules. As of the 2026-06-24 cleanup, those legacy modules are no longer active in the Maven reactor; the `com.tbg.wms.v2.*` namespace remains the active production namespace.
 
-### `wms-domain`
+### `domain`
 
 Pure business models and deterministic rules.
 
@@ -102,7 +102,7 @@ com.tbg.wms.domain.barcode
 com.tbg.wms.domain.config
 ```
 
-### `wms-application`
+### `app`
 
 Use cases and ports. This is the center of 2.0.
 
@@ -154,7 +154,7 @@ ReleaseRepository
 Clock
 ```
 
-### `wms-oracle`
+### `oracle`
 
 Oracle implementations of application ports.
 
@@ -173,7 +173,7 @@ Rules:
 - No UI formatting.
 - No print planning.
 
-### `wms-printing`
+### `printing`
 
 Rendering and dispatch adapters.
 
@@ -186,7 +186,7 @@ Responsibilities:
 - Printer route loading and reachability checks.
 - Barcode ZPL rendering.
 
-### `wms-files`
+### `files`
 
 Runtime file and configuration adapters.
 
@@ -200,7 +200,7 @@ Responsibilities:
 - Checkpoint file store.
 - Packaged resource lookup.
 
-### `wms-cli`
+### `cli`
 
 Picocli adapter.
 
@@ -218,7 +218,7 @@ Commands to preserve:
 
 CLI commands call application use cases and format output only.
 
-### `wms-desktop`
+### `desktop`
 
 Desktop UI adapter.
 
@@ -245,7 +245,7 @@ View -> ViewModel/Presenter -> Application Use Case -> State -> View
 
 No desktop view or controller may directly query Oracle, build print tasks, write artifacts, or dispatch printer jobs.
 
-### `wms-smoke`
+### `smoke`
 
 Java-owned smoke harness plus small PowerShell wrappers.
 
